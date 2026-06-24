@@ -19,6 +19,65 @@
 
 from setuptools import setup, find_packages
 
+CORE_REQUIRES = [
+    'numpy<2',
+    'matplotlib',
+    'pytz',
+]
+
+EXTRAS_REQUIRE = {
+    'numba': ['numba'],
+    'tensorboard': ['torch', 'tensorboard'],
+    'wandb': ['wandb'],
+    'openai': ['openai'],
+    'gui': ['ttkbootstrap'],
+    'local-vllm': [
+        'requests',
+        'torch',
+        'flask',
+        'flask-cors',
+        'transformers',
+        'vllm',
+    ],
+    'funsearch': ['scipy'],
+    'multi-objective': ['pymoo'],
+    'meoh': [
+        'pymoo',
+        'codebleu',
+        'tree-sitter-python==0.23',
+    ],
+    'partevo': [
+        'codebleu',
+        'tree-sitter-python==0.23',
+        'scikit-learn',
+        'seaborn',
+        'torch',
+        'transformers',
+    ],
+    'llamea': [
+        'llamea @ git+https://github.com/XAI-liacs/LLaMEA.git@main',
+    ],
+    'machine-learning': ['gymnasium[box2d]'],
+    'science-discovery': ['pandas', 'scipy'],
+    'pymoo-task': ['pymoo'],
+    'co-bench': [
+        'datasets',
+        'huggingface_hub',
+        'httpx',
+        'httpcore',
+        'networkx',
+        'scipy',
+    ],
+    'tsp-gls': ['numba', 'scipy'],
+}
+
+EXTRAS_REQUIRE['all'] = sorted({
+    package
+    for extra_name, packages in EXTRAS_REQUIRE.items()
+    if extra_name != 'local-vllm'
+    for package in packages
+})
+
 setup(
     name='llm4ad',
     version='1.0',
@@ -27,20 +86,6 @@ setup(
     packages=find_packages(),
     package_dir={'': '.'},
     python_requires='>=3.9,<3.13',
-    install_requires=[
-        'numpy<2',
-        'torch',
-        'tensorboardX',
-        'wandb',
-        'scipy',
-        'tqdm',
-        'numba',
-        'requests',
-        'openai',
-        'pytz',
-        'matplotlib',
-        'python-docx',
-        'ttkbootstrap',
-        'llamea @ git+https://github.com/XAI-liacs/LLaMEA.git@main'
-    ]
+    install_requires=CORE_REQUIRES,
+    extras_require=EXTRAS_REQUIRE,
 )

@@ -74,24 +74,46 @@ For more information, see the [contact list](https://github.com/Optima-CityU/LLM
 > [!Important]
 > The Python version **MUST** be larger or equal to Python 3.9, and less than Python 3.13.
 
-> [!Important]
-> If you are testing machine learning tasks or using GUI, please install gym via `pip install gym`. 
-> Please note that the gym version may be conflict with your own Python environment, please refer to gym's docs to obtain appropriate version.
+The default installation keeps dependencies small. Optional packages are only needed when you use specific methods, tasks, loggers, LLM backends, or the GUI.
 
+```bash
+$ cd LLM4AD
+$ pip install .
+```
 
-- Please refer to [requirements.txt](./requirements.txt)
+For optional features from a cloned repository, run the matching extra from the repository root:
 
-- Please install `numba` (if you want to use Numba accelerate)
+```bash
+$ cd LLM4AD
+$ pip install ".[gui]"
+$ pip install ".[machine-learning]"
+$ pip install ".[science-discovery]"
+```
 
-- Please install `tensorboard` (if you want to use a Tensorboard logger)
+If you install from PyPI, use `pip install "llm4ad[gui]"` instead of `pip install ".[gui]"`.
 
-- Please install `wandb` (if you want to use wandb logger)
+**Method optional dependencies**
 
-- Please install `gym` (if you want to try **GUI**, and **Machine Learning** tasks)
+| Method | Extra packages |
+| --- | --- |
+| FunSearch | Local: `pip install ".[funsearch]"`<br>PyPI: `pip install "llm4ad[funsearch]"`<br>`scipy` |
+| MOEAD / NSGA2 | Local: `pip install ".[multi-objective]"`<br>PyPI: `pip install "llm4ad[multi-objective]"`<br>`pymoo` |
+| MEoH | Local: `pip install ".[meoh]"`<br>PyPI: `pip install "llm4ad[meoh]"`<br>`pymoo`, `codebleu`, `tree-sitter-python` |
+| PartEvo | Local: `pip install ".[partevo]"`<br>PyPI: `pip install "llm4ad[partevo]"`<br>`codebleu`, `tree-sitter-python`, `scikit-learn`, `seaborn`, `torch`, `transformers` |
+| LLaMEA | Local: `pip install ".[llamea]"`<br>PyPI: `pip install "llm4ad[llamea]"`<br>`llamea` |
 
-- Please install `pandas` (if you want to try **Science Discovery** tasks)
+**Task optional dependencies**
 
-- Please install all required packages in [requirements.txt](./requirements.txt) (if you want to use GUI)
+| Task | Extra packages |
+| --- | --- |
+| Machine-learning control tasks | Local: `pip install ".[machine-learning]"`<br>PyPI: `pip install "llm4ad[machine-learning]"`<br>`gymnasium[box2d]` |
+| Science-discovery tasks | Local: `pip install ".[science-discovery]"`<br>PyPI: `pip install "llm4ad[science-discovery]"`<br>`pandas`, `scipy` |
+| Pymoo MOEA/D task | Local: `pip install ".[pymoo-task]"`<br>PyPI: `pip install "llm4ad[pymoo-task]"`<br>`pymoo` |
+| Co-Bench tasks | Local: `pip install ".[co-bench]"`<br>PyPI: `pip install "llm4ad[co-bench]"`<br>`datasets`, `huggingface_hub`, `httpx`, `httpcore`, `networkx`, `scipy` |
+| TSP GLS 2O task | Local: `pip install ".[tsp-gls]"`<br>PyPI: `pip install "llm4ad[tsp-gls]"`<br>`numba`, `scipy` |
+
+Other optional features:
+Use `pip install ".[tensorboard]"` locally or `pip install "llm4ad[tensorboard]"` from PyPI for Tensorboard logging. The same pattern applies to `wandb` and `openai`.
 
 
 ### Install LLM4AD locally
@@ -160,7 +182,7 @@ Check [Documents](https://llm4ad-doc.readthedocs.io/en/latest/index.html) for mo
 ### GUI usage:
 
 > [!Important]
-> Install all required packages in [requirements.txt](./requirements.txt) for GUI usage.
+> From the repository root, install GUI dependencies with `pip install ".[gui]"`. If you run machine-learning tasks from the GUI, also install `pip install ".[machine-learning]"`.
 
 ```shell
 $ cd GUI
