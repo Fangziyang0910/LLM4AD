@@ -112,8 +112,15 @@ If you install from PyPI, use `pip install "llm4ad[gui]"` instead of `pip instal
 | Co-Bench tasks | Local: `pip install ".[co-bench]"`<br>PyPI: `pip install "llm4ad[co-bench]"`<br>`datasets`, `huggingface_hub`, `httpx`, `httpcore`, `networkx`, `scipy` |
 | TSP GLS 2O task | Local: `pip install ".[tsp-gls]"`<br>PyPI: `pip install "llm4ad[tsp-gls]"`<br>`numba`, `scipy` |
 
-Other optional features:
-Use `pip install ".[tensorboard]"` locally or `pip install "llm4ad[tensorboard]"` from PyPI for Tensorboard logging. The same pattern applies to `wandb` and `openai`.
+**Tool optional dependencies**
+
+| Tool | Extra install |
+| --- | --- |
+| GUI | Local: `pip install ".[gui]"`<br>PyPI: `pip install "llm4ad[gui]"`<br>`ttkbootstrap` |
+| TensorBoard profiler | Local: `pip install ".[tensorboard]"`<br>PyPI: `pip install "llm4ad[tensorboard]"`<br>`torch`, `tensorboard` |
+| Weights & Biases profiler | Local: `pip install ".[wandb]"`<br>PyPI: `pip install "llm4ad[wandb]"`<br>`wandb` |
+| OpenAI backend | Local: `pip install ".[openai]"`<br>PyPI: `pip install "llm4ad[openai]"`<br>`openai` |
+| Local vLLM backend | Local: `pip install ".[local-vllm]"`<br>PyPI: `pip install "llm4ad[local-vllm]"`<br>`requests`, `torch`, `flask`, `flask-cors`, `transformers`, `vllm` |
 
 
 ### Install LLM4AD locally
