@@ -1,11 +1,11 @@
-# Minimal dependencies for core usage and common EoH examples such as TSP/OBP.
+# Default dependencies for core usage, GUI, and common EoH examples such as TSP/OBP.
 numpy<2.0.0
 matplotlib
 pytz
+ttkbootstrap
 
 # Optional dependencies are installed only when needed.
 # Examples:
-#   pip install ".[gui]"
 #   pip install ".[machine-learning]"
 #   pip install ".[science-discovery]"
 #   pip install ".[partevo]"

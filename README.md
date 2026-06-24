@@ -74,7 +74,7 @@ For more information, see the [contact list](https://github.com/Optima-CityU/LLM
 > [!Important]
 > The Python version **MUST** be larger or equal to Python 3.9, and less than Python 3.13.
 
-The default installation keeps dependencies small. Optional packages are only needed when you use specific methods, tasks, loggers, LLM backends, or the GUI.
+The default installation keeps dependencies small and includes the GUI dependency. Optional packages are only needed when you use specific methods, tasks, loggers, or LLM backends.
 
 ```bash
 $ cd LLM4AD
@@ -85,12 +85,11 @@ For optional features from a cloned repository, run the matching extra from the 
 
 ```bash
 $ cd LLM4AD
-$ pip install ".[gui]"
 $ pip install ".[machine-learning]"
 $ pip install ".[science-discovery]"
 ```
 
-If you install from PyPI, use `pip install "llm4ad[gui]"` instead of `pip install ".[gui]"`.
+If you install from PyPI, use `pip install "llm4ad[machine-learning]"` instead of `pip install ".[machine-learning]"`.
 
 **Method optional dependencies**
 
@@ -116,7 +115,6 @@ If you install from PyPI, use `pip install "llm4ad[gui]"` instead of `pip instal
 
 | Tool | Extra install |
 | --- | --- |
-| GUI | Local: `pip install ".[gui]"`<br>PyPI: `pip install "llm4ad[gui]"`<br>`ttkbootstrap` |
 | TensorBoard profiler | Local: `pip install ".[tensorboard]"`<br>PyPI: `pip install "llm4ad[tensorboard]"`<br>`torch`, `tensorboard` |
 | Weights & Biases profiler | Local: `pip install ".[wandb]"`<br>PyPI: `pip install "llm4ad[wandb]"`<br>`wandb` |
 | OpenAI backend | Local: `pip install ".[openai]"`<br>PyPI: `pip install "llm4ad[openai]"`<br>`openai` |
@@ -189,7 +187,7 @@ Check [Documents](https://llm4ad-doc.readthedocs.io/en/latest/index.html) for mo
 ### GUI usage:
 
 > [!Important]
-> From the repository root, install GUI dependencies with `pip install ".[gui]"`. If you run machine-learning tasks from the GUI, also install `pip install ".[machine-learning]"`.
+> The GUI dependency is included in the default installation. If you run machine-learning tasks from the GUI, also install `pip install ".[machine-learning]"`.
 
 ```shell
 $ cd GUI

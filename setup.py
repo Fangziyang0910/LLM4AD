@@ -23,6 +23,7 @@ CORE_REQUIRES = [
     'numpy<2',
     'matplotlib',
     'pytz',
+    'ttkbootstrap',
 ]
 
 EXTRAS_REQUIRE = {
@@ -30,7 +31,6 @@ EXTRAS_REQUIRE = {
     'tensorboard': ['torch', 'tensorboard'],
     'wandb': ['wandb'],
     'openai': ['openai'],
-    'gui': ['ttkbootstrap'],
     'local-vllm': [
         'requests',
         'torch',
