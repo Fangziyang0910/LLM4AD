@@ -76,21 +76,35 @@ For more information, see the [contact list](https://github.com/Optima-CityU/LLM
 
 The default installation keeps dependencies small and includes the GUI dependency. Optional packages are only needed when you use specific methods, tasks, loggers, or LLM backends.
 
+**Install from PyPI**
+
+```bash
+$ pip install llm4ad
+```
+
+To install every optional dependency from PyPI:
+
+```bash
+$ pip install "llm4ad[all]"
+```
+
+**Install from source**
+
+Run these commands from the repository root, where `setup.py` is located:
+
 ```bash
 $ cd LLM4AD
 $ pip install .
 ```
 
-For optional features from a cloned repository, run the matching extra from the repository root:
+To install every optional dependency from a cloned repository:
 
 ```bash
 $ cd LLM4AD
 $ pip install ".[all]"
-$ pip install ".[machine-learning]"
-$ pip install ".[science-discovery]"
 ```
 
-If you install from PyPI, use `pip install "llm4ad[all]"` instead of `pip install ".[all]"`. The `all` extra installs every optional dependency, including local-vLLM dependencies. If your platform cannot install vLLM, install only the smaller extras you need from the tables below.
+Use `llm4ad[extra-name]` when installing from PyPI, and `.[extra-name]` when installing from a local clone. The `all` extra installs every optional dependency, including local-vLLM dependencies. If your platform cannot install vLLM, install only the smaller extras you need from the tables below.
 
 **Method optional dependencies**
 
@@ -121,23 +135,6 @@ If you install from PyPI, use `pip install "llm4ad[all]"` instead of `pip instal
 | OpenAI backend | Local: `pip install ".[openai]"`<br>PyPI: `pip install "llm4ad[openai]"`<br>`openai` |
 | Local vLLM backend | Local: `pip install ".[local-vllm]"`<br>PyPI: `pip install "llm4ad[local-vllm]"`<br>`requests`, `torch`, `flask`, `flask-cors`, `transformers`, `vllm` |
 
-
-### Install LLM4AD locally
-
-We suggest to install and run LLM4AD in [conda](https://conda.io/projects/conda/en/latest/index.html) env with python>=3.9, <3.13
-
-```bash
-$ cd LLM4AD
-$ pip install .
-```
-
-### Install LLM4AD using PiPy
-
-We suggest to install and run LLM4AD in [conda](https://conda.io/projects/conda/en/latest/index.html) env with python>=3.9, <3.13
-
-```bash
-$ pip install llm4ad
-```
 
 ## 💻 Example Usage
 
