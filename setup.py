@@ -71,10 +71,11 @@ EXTRAS_REQUIRE = {
     'tsp-gls': ['numba', 'scipy'],
 }
 
+# Install every optional feature with:
+#   pip install ".[all]"
 EXTRAS_REQUIRE['all'] = sorted({
     package
-    for extra_name, packages in EXTRAS_REQUIRE.items()
-    if extra_name != 'local-vllm'
+    for packages in EXTRAS_REQUIRE.values()
     for package in packages
 })
 

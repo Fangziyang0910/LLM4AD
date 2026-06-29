@@ -85,11 +85,12 @@ For optional features from a cloned repository, run the matching extra from the 
 
 ```bash
 $ cd LLM4AD
+$ pip install ".[all]"
 $ pip install ".[machine-learning]"
 $ pip install ".[science-discovery]"
 ```
 
-If you install from PyPI, use `pip install "llm4ad[machine-learning]"` instead of `pip install ".[machine-learning]"`.
+If you install from PyPI, use `pip install "llm4ad[all]"` instead of `pip install ".[all]"`. The `all` extra installs every optional dependency, including local-vLLM dependencies. If your platform cannot install vLLM, install only the smaller extras you need from the tables below.
 
 **Method optional dependencies**
 

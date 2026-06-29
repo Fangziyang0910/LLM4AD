@@ -6,6 +6,7 @@ ttkbootstrap
 
 # Optional dependencies are installed only when needed.
 # Examples:
+#   pip install ".[all]"
 #   pip install ".[machine-learning]"
 #   pip install ".[science-discovery]"
 #   pip install ".[partevo]"
