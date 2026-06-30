@@ -2,6 +2,7 @@
 numpy<2.0.0
 matplotlib
 pytz
+tqdm
 ttkbootstrap
 
 # Optional dependencies are installed only when needed.

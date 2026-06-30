@@ -114,14 +114,14 @@ Use `llm4ad[extra-name]` when installing from PyPI, and `.[extra-name]` when ins
 | MOEAD / NSGA2 | Local: `pip install ".[multi-objective]"`<br>PyPI: `pip install "llm4ad[multi-objective]"`<br>`pymoo` |
 | MEoH | Local: `pip install ".[meoh]"`<br>PyPI: `pip install "llm4ad[meoh]"`<br>`pymoo`, `codebleu`, `tree-sitter-python` |
 | PartEvo | Local: `pip install ".[partevo]"`<br>PyPI: `pip install "llm4ad[partevo]"`<br>`codebleu`, `tree-sitter-python`, `scikit-learn`, `seaborn`, `torch`, `transformers` |
-| LLaMEA | Local: `pip install ".[llamea]"`<br>PyPI: `pip install "llm4ad[llamea]"`<br>`llamea` |
+| LLaMEA | Local: `pip install ".[llamea]"`<br>PyPI: `pip install "llm4ad[llamea]"`<br>`llamea`, `ConfigSpace` |
 
 **Task optional dependencies**
 
 | Task | Extra packages |
 | --- | --- |
 | Machine-learning control tasks | Local: `pip install ".[machine-learning]"`<br>PyPI: `pip install "llm4ad[machine-learning]"`<br>`gymnasium[box2d]` |
-| Science-discovery tasks | Local: `pip install ".[science-discovery]"`<br>PyPI: `pip install "llm4ad[science-discovery]"`<br>`pandas`, `scipy` |
+| Science-discovery tasks | Local: `pip install ".[science-discovery]"`<br>PyPI: `pip install "llm4ad[science-discovery]"`<br>`pandas`, `scipy`, `sympy` |
 | Pymoo MOEA/D task | Local: `pip install ".[pymoo-task]"`<br>PyPI: `pip install "llm4ad[pymoo-task]"`<br>`pymoo` |
 | Co-Bench tasks | Local: `pip install ".[co-bench]"`<br>PyPI: `pip install "llm4ad[co-bench]"`<br>`datasets`, `huggingface_hub`, `httpx`, `httpcore`, `networkx`, `scipy` |
 | TSP GLS 2O task | Local: `pip install ".[tsp-gls]"`<br>PyPI: `pip install "llm4ad[tsp-gls]"`<br>`numba`, `scipy` |
@@ -133,7 +133,8 @@ Use `llm4ad[extra-name]` when installing from PyPI, and `.[extra-name]` when ins
 | TensorBoard profiler | Local: `pip install ".[tensorboard]"`<br>PyPI: `pip install "llm4ad[tensorboard]"`<br>`torch`, `tensorboard` |
 | Weights & Biases profiler | Local: `pip install ".[wandb]"`<br>PyPI: `pip install "llm4ad[wandb]"`<br>`wandb` |
 | OpenAI backend | Local: `pip install ".[openai]"`<br>PyPI: `pip install "llm4ad[openai]"`<br>`openai` |
-| Local vLLM backend | Local: `pip install ".[local-vllm]"`<br>PyPI: `pip install "llm4ad[local-vllm]"`<br>`requests`, `torch`, `flask`, `flask-cors`, `transformers`, `vllm` |
+| Local Ollama backend | Local: `pip install ".[local-ollama]"`<br>PyPI: `pip install "llm4ad[local-ollama]"`<br>`langchain-ollama` |
+| Local vLLM backend | Local: `pip install ".[local-vllm]"`<br>PyPI: `pip install "llm4ad[local-vllm]"`<br>`requests`, `psutil`, `torch`, `flask`, `flask-cors`, `transformers`, `vllm` |
 
 
 ## 💻 Example Usage

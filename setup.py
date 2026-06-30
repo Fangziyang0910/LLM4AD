@@ -23,6 +23,7 @@ CORE_REQUIRES = [
     'numpy<2',
     'matplotlib',
     'pytz',
+    'tqdm',
     'ttkbootstrap',
 ]
 
@@ -33,12 +34,14 @@ EXTRAS_REQUIRE = {
     'openai': ['openai'],
     'local-vllm': [
         'requests',
+        'psutil',
         'torch',
         'flask',
         'flask-cors',
         'transformers',
         'vllm',
     ],
+    'local-ollama': ['langchain-ollama'],
     'funsearch': ['scipy'],
     'multi-objective': ['pymoo'],
     'meoh': [
@@ -56,9 +59,10 @@ EXTRAS_REQUIRE = {
     ],
     'llamea': [
         'llamea @ git+https://github.com/XAI-liacs/LLaMEA.git@main',
+        'ConfigSpace',
     ],
     'machine-learning': ['gymnasium[box2d]'],
-    'science-discovery': ['pandas', 'scipy'],
+    'science-discovery': ['pandas', 'scipy', 'sympy'],
     'pymoo-task': ['pymoo'],
     'co-bench': [
         'datasets',
