@@ -1,0 +1,69 @@
+{
+  "dataset_id": "gnn_aggregation_v1",
+  "description": "Fixed EoH GNN neighborhood-aggregation benchmark. The searched function updates node features for community detection on stochastic block model graphs.",
+  "generator": "llm4ad.task.optimization.gnn_aggregation.dataset.write_default_dataset",
+  "paper": "papers/EoH",
+  "source": "reference_code/EoH/examples/gnn_aggregation",
+  "splits": {
+    "test_full": {
+      "adj_matrices_shape": [
+        64,
+        30,
+        30
+      ],
+      "filename": "test_full.npz",
+      "format": "npz",
+      "labels_shape": [
+        64,
+        30
+      ],
+      "n_feat": 4,
+      "n_instances": 64,
+      "n_layers": 3,
+      "n_nodes": 30,
+      "node_features_shape": [
+        64,
+        30,
+        4
+      ],
+      "noise_std": 5.0,
+      "note": "Fixed LLM4AD post-hoc split generated from the same EoH SBM distribution. The original EoH example does not ship a separate test split.",
+      "p_in": 0.4,
+      "p_out": 0.1,
+      "role": "test",
+      "seed": 2025,
+      "sha256": "b78332ce815865034b4c12b88b816efd3353ab64c884d785dabf66300a256a94"
+    },
+    "train": {
+      "adj_matrices_shape": [
+        20,
+        30,
+        30
+      ],
+      "filename": "train.npz",
+      "format": "npz",
+      "labels_shape": [
+        20,
+        30
+      ],
+      "n_feat": 4,
+      "n_instances": 20,
+      "n_layers": 3,
+      "n_nodes": 30,
+      "node_features_shape": [
+        20,
+        30,
+        4
+      ],
+      "noise_std": 5.0,
+      "note": "Original EoH search evaluator: 20 SBM graph instances generated with seed 2024.",
+      "p_in": 0.4,
+      "p_out": 0.1,
+      "role": "train",
+      "seed": 2024,
+      "sha256": "4c775d4fc33b93497c0cdf98296fb949e8f7905e3b5461782d693d648fa31e16"
+    }
+  },
+  "task": "gnn_aggregation",
+  "version": 1
+}

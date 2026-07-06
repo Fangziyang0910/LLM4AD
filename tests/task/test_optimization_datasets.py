@@ -25,6 +25,7 @@ OPTIMIZATION_TASKS = {
     "es_step_size",
     "evo_dynamic",
     "fssp_gls",
+    "gnn_aggregation",
     "jssp_construct",
     "knapsack_construct",
     "large_scale_es",
@@ -99,6 +100,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.es_step_size.evaluation import ESStepSizeEvaluation
     from llm4ad.task.optimization.evo_dynamic.evaluation import EvoDynamicEvaluation
     from llm4ad.task.optimization.fssp_gls.evaluation import FSSPGLSEvaluation
+    from llm4ad.task.optimization.gnn_aggregation.evaluation import GNNAggregationEvaluation
     from llm4ad.task.optimization.jssp_construct.evaluation import JSSPEvaluation
     from llm4ad.task.optimization.knapsack_construct.evaluation import KnapsackEvaluation
     from llm4ad.task.optimization.large_scale_es.evaluation import LargeScaleESEvaluation
@@ -145,6 +147,7 @@ def test_default_evaluators_use_train_split():
         ESStepSizeEvaluation(lam=3, max_evals=20, n_runs=1),
         EvoDynamicEvaluation(pop_size=8, k_iter=2),
         FSSPGLSEvaluation(),
+        GNNAggregationEvaluation(),
         JSSPEvaluation(),
         KnapsackEvaluation(),
         LargeScaleESEvaluation(max_evals=20, n_runs=1),
