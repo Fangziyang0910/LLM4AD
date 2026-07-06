@@ -1,0 +1,161 @@
+{
+  "dataset_id": "deap_eaSimple_selection_v1",
+  "description": "Fixed EoH DEAP eaSimple parent-selection benchmark. The searched function selects parent indices from current fitness values.",
+  "generator": "llm4ad.task.optimization.deap_eaSimple_selection.dataset.write_default_dataset",
+  "paper": "papers/EoH",
+  "source": "reference_code/EoH/examples/deap_eaSimple_selection",
+  "splits": {
+    "test_full": {
+      "configs": [
+        {
+          "bounds": [
+            -5.12,
+            5.12
+          ],
+          "dim": 10,
+          "name": "sphere"
+        },
+        {
+          "bounds": [
+            -5.12,
+            5.12
+          ],
+          "dim": 20,
+          "name": "sphere"
+        },
+        {
+          "bounds": [
+            -5.12,
+            5.12
+          ],
+          "dim": 10,
+          "name": "rastrigin"
+        },
+        {
+          "bounds": [
+            -5.12,
+            5.12
+          ],
+          "dim": 20,
+          "name": "rastrigin"
+        },
+        {
+          "bounds": [
+            -32.768,
+            32.768
+          ],
+          "dim": 10,
+          "name": "ackley"
+        },
+        {
+          "bounds": [
+            -32.768,
+            32.768
+          ],
+          "dim": 20,
+          "name": "ackley"
+        },
+        {
+          "bounds": [
+            -2.048,
+            2.048
+          ],
+          "dim": 10,
+          "name": "rosenbrock"
+        },
+        {
+          "bounds": [
+            -2.048,
+            2.048
+          ],
+          "dim": 20,
+          "name": "rosenbrock"
+        },
+        {
+          "bounds": [
+            -600.0,
+            600.0
+          ],
+          "dim": 10,
+          "name": "griewank"
+        },
+        {
+          "bounds": [
+            -600.0,
+            600.0
+          ],
+          "dim": 20,
+          "name": "griewank"
+        }
+      ],
+      "cxpb": 0.9,
+      "eta_c": 15.0,
+      "eta_m": 20.0,
+      "mutpb": 0.1,
+      "n_gen": 200,
+      "n_instances": 10,
+      "n_runs": 10,
+      "note": "Original EoH post-hoc evaluator: 10-D and 20-D variants of each benchmark.",
+      "pop_size": 100,
+      "role": "test",
+      "tournament_size": 3
+    },
+    "train": {
+      "configs": [
+        {
+          "bounds": [
+            -5.12,
+            5.12
+          ],
+          "dim": 10,
+          "name": "sphere"
+        },
+        {
+          "bounds": [
+            -5.12,
+            5.12
+          ],
+          "dim": 10,
+          "name": "rastrigin"
+        },
+        {
+          "bounds": [
+            -32.768,
+            32.768
+          ],
+          "dim": 10,
+          "name": "ackley"
+        },
+        {
+          "bounds": [
+            -2.048,
+            2.048
+          ],
+          "dim": 10,
+          "name": "rosenbrock"
+        },
+        {
+          "bounds": [
+            -600.0,
+            600.0
+          ],
+          "dim": 10,
+          "name": "griewank"
+        }
+      ],
+      "cxpb": 0.9,
+      "eta_c": 15.0,
+      "eta_m": 20.0,
+      "mutpb": 0.1,
+      "n_gen": 100,
+      "n_instances": 5,
+      "n_runs": 3,
+      "note": "Original EoH search evaluator: five 10-D continuous benchmarks.",
+      "pop_size": 50,
+      "role": "train",
+      "tournament_size": 3
+    }
+  },
+  "task": "deap_eaSimple_selection",
+  "version": 1
+}

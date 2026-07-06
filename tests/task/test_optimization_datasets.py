@@ -20,6 +20,7 @@ OPTIMIZATION_TASKS = {
     "co_bench",
     "cvrp_aco",
     "cvrp_construct",
+    "deap_eaSimple_selection",
     "de_crossover_100d",
     "de_mutation",
     "dpp_ga",
@@ -98,6 +99,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.cmaes_cov_update.evaluation import CMAESCovUpdateEvaluation
     from llm4ad.task.optimization.cvrp_aco.evaluation import CVRPACOEvaluation
     from llm4ad.task.optimization.cvrp_construct.evaluation import CVRPEvaluation
+    from llm4ad.task.optimization.deap_eaSimple_selection.evaluation import EASimpleSelectionEvaluation
     from llm4ad.task.optimization.de_crossover_100d.evaluation import DECrossover100DEvaluation
     from llm4ad.task.optimization.de_mutation.evaluation import DEMutationEvaluation
     from llm4ad.task.optimization.dpp_ga.evaluation import DPPGAEvaluation
@@ -148,6 +150,7 @@ def test_default_evaluators_use_train_split():
         CMAESCovUpdateEvaluation(max_evals=20, n_runs=1),
         CVRPACOEvaluation(),
         CVRPEvaluation(),
+        EASimpleSelectionEvaluation(pop_size=8, n_gen=2, n_runs=1),
         DECrossover100DEvaluation(pop_size=5, max_evals=20, n_runs=1),
         DEMutationEvaluation(pop_size=5, max_evals=20, n_runs=1),
         DPPGAEvaluation(),

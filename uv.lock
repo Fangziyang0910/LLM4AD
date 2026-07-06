@@ -501,6 +501,19 @@ wheels = [
 ]
 
 [[package]]
+name = "deap"
+version = "1.4.4"
+source = { registry = "https://mirrors.aliyun.com/pypi/simple" }
+dependencies = [
+    { name = "moocore" },
+    { name = "numpy" },
+]
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/0c/74/31d2dc3bfcf36257ef4ef2d00a9451696d43d10284bf1495340b2e62aecc/deap-1.4.4.tar.gz", hash = "sha256:50d4bd924fca5a16a3dba8bfdb1140a55e9c24ce50816ab4f5683d2f31c2d734" }
+wheels = [
+    { url = "https://mirrors.aliyun.com/pypi/packages/7d/6e/4ba2e2e45fde8483b67e7bee7401a7f132e02c4058d31b6db301f546089a/deap-1.4.4-py3-none-any.whl", hash = "sha256:06c2fcf2e9f870da035c1372c9156ee817c2c31659ee70aae2dcc0849d2c8c49" },
+]
+
+[[package]]
 name = "deprecated"
 version = "1.3.1"
 source = { registry = "https://mirrors.aliyun.com/pypi/simple" }
@@ -1021,6 +1034,7 @@ source = { editable = "." }
 dependencies = [
     { name = "codebleu" },
     { name = "datasets" },
+    { name = "deap" },
     { name = "gym" },
     { name = "gymnasium" },
     { name = "huggingface-hub" },
@@ -1055,6 +1069,7 @@ dev = [
 requires-dist = [
     { name = "codebleu" },
     { name = "datasets" },
+    { name = "deap", specifier = ">=1.4.4" },
     { name = "gym" },
     { name = "gymnasium" },
     { name = "huggingface-hub" },
