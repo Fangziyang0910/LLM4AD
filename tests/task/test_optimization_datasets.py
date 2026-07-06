@@ -13,6 +13,7 @@ OPTIMIZATION_TASKS = {
     "bpp_offline_aco",
     "cflp_construct",
     "circle_packing",
+    "cmaes_cov_update",
     "co_bench",
     "cvrp_aco",
     "cvrp_construct",
@@ -76,6 +77,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.bpp_offline_aco.evaluation import BPPOfflineACOEvaluation
     from llm4ad.task.optimization.cflp_construct.evaluation import CFLPEvaluation
     from llm4ad.task.optimization.circle_packing.evaluation import CirclePackingEvaluation
+    from llm4ad.task.optimization.cmaes_cov_update.evaluation import CMAESCovUpdateEvaluation
     from llm4ad.task.optimization.cvrp_aco.evaluation import CVRPACOEvaluation
     from llm4ad.task.optimization.cvrp_construct.evaluation import CVRPEvaluation
     from llm4ad.task.optimization.de_crossover_100d.evaluation import DECrossover100DEvaluation
@@ -110,6 +112,7 @@ def test_default_evaluators_use_train_split():
         BPPOfflineACOEvaluation(),
         CFLPEvaluation(),
         CirclePackingEvaluation(),
+        CMAESCovUpdateEvaluation(max_evals=20, n_runs=1),
         CVRPACOEvaluation(),
         CVRPEvaluation(),
         DECrossover100DEvaluation(pop_size=5, max_evals=20, n_runs=1),

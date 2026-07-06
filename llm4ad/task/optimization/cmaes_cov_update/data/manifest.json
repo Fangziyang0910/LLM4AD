@@ -1,0 +1,66 @@
+{
+  "dataset_id": "cmaes_cov_update_v1",
+  "description": "Fixed EoH CMA-ES covariance-update benchmark. The searched function replaces the rank-1/rank-mu covariance update inside a CMA-ES loop.",
+  "generator": "llm4ad.task.optimization.cmaes_cov_update.dataset.write_default_dataset",
+  "paper": "papers/EoH",
+  "source": "reference_code/EoH/examples/cmaes_cov_update",
+  "splits": {
+    "test_full": {
+      "dimensions": [
+        10,
+        20
+      ],
+      "function_names": [
+        "sphere",
+        "rastrigin",
+        "ackley",
+        "rosenbrock",
+        "griewank"
+      ],
+      "max_evals": 10000,
+      "n_instances": 10,
+      "n_runs": 10,
+      "note": "Post-hoc evaluator from the EoH example: 10D and 20D variants.",
+      "role": "test",
+      "seed_start": 0
+    },
+    "test_ood_20d": {
+      "dimensions": [
+        20
+      ],
+      "function_names": [
+        "sphere",
+        "rastrigin",
+        "ackley",
+        "rosenbrock",
+        "griewank"
+      ],
+      "max_evals": 10000,
+      "n_instances": 5,
+      "n_runs": 10,
+      "note": "Dimension-generalization subset using only 20D benchmark variants.",
+      "role": "test",
+      "seed_start": 0
+    },
+    "train": {
+      "dimensions": [
+        10
+      ],
+      "function_names": [
+        "sphere",
+        "rastrigin",
+        "ackley",
+        "rosenbrock",
+        "griewank"
+      ],
+      "max_evals": 2000,
+      "n_instances": 5,
+      "n_runs": 3,
+      "note": "Original EoH search evaluator: five 10D continuous benchmark functions.",
+      "role": "train",
+      "seed_start": 0
+    }
+  },
+  "task": "cmaes_cov_update",
+  "version": 1
+}
