@@ -12,6 +12,7 @@ OPTIMIZATION_TASKS = {
     "cflp_construct",
     "co_bench",
     "cvrp_construct",
+    "fssp_gls",
     "jssp_construct",
     "knapsack_construct",
     "max_cut",
@@ -60,6 +61,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.bp_2d_construct.evaluation import BP2DEvaluation
     from llm4ad.task.optimization.cflp_construct.evaluation import CFLPEvaluation
     from llm4ad.task.optimization.cvrp_construct.evaluation import CVRPEvaluation
+    from llm4ad.task.optimization.fssp_gls.evaluation import FSSPGLSEvaluation
     from llm4ad.task.optimization.jssp_construct.evaluation import JSSPEvaluation
     from llm4ad.task.optimization.knapsack_construct.evaluation import KnapsackEvaluation
     from llm4ad.task.optimization.max_cut.evaluation import MaxCutEvaluation
@@ -80,6 +82,7 @@ def test_default_evaluators_use_train_split():
         BP2DEvaluation(),
         CFLPEvaluation(),
         CVRPEvaluation(),
+        FSSPGLSEvaluation(),
         JSSPEvaluation(),
         KnapsackEvaluation(),
         MaxCutEvaluation(),

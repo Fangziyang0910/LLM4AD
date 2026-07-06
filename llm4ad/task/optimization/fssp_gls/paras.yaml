@@ -1,0 +1,4 @@
+timeout_seconds: 120
+split: train
+time_max: 30.0
+iter_max: 1000
