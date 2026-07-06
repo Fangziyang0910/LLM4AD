@@ -24,6 +24,7 @@ OPTIMIZATION_TASKS = {
     "fssp_gls",
     "jssp_construct",
     "knapsack_construct",
+    "large_scale_es",
     "max_cut",
     "mkp_aco",
     "online_bin_packing",
@@ -87,6 +88,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.fssp_gls.evaluation import FSSPGLSEvaluation
     from llm4ad.task.optimization.jssp_construct.evaluation import JSSPEvaluation
     from llm4ad.task.optimization.knapsack_construct.evaluation import KnapsackEvaluation
+    from llm4ad.task.optimization.large_scale_es.evaluation import LargeScaleESEvaluation
     from llm4ad.task.optimization.max_cut.evaluation import MaxCutEvaluation
     from llm4ad.task.optimization.mkp_aco.evaluation import MKPACOEvaluation
     from llm4ad.task.optimization.online_bin_packing.evaluation import OBPEvaluation
@@ -122,6 +124,7 @@ def test_default_evaluators_use_train_split():
         FSSPGLSEvaluation(),
         JSSPEvaluation(),
         KnapsackEvaluation(),
+        LargeScaleESEvaluation(max_evals=20, n_runs=1),
         MaxCutEvaluation(),
         MKPACOEvaluation(),
         OBPEvaluation(),
