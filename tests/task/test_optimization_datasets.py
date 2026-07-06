@@ -23,6 +23,7 @@ OPTIMIZATION_TASKS = {
     "pymoo_moead",
     "qap_construct",
     "set_cover_construct",
+    "tsp_aco",
     "tsp_construct",
     "tsp_gls_2O",
     "vrptw_construct",
@@ -72,6 +73,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.pymoo_moead.evaluation import MOEAD_PYMOO_Evaluation
     from llm4ad.task.optimization.qap_construct.evaluation import QAPEvaluation
     from llm4ad.task.optimization.set_cover_construct.evaluation import SCPEvaluation
+    from llm4ad.task.optimization.tsp_aco.evaluation import TSPACOEvaluation
     from llm4ad.task.optimization.tsp_construct.evaluation import TSPEvaluation
     from llm4ad.task.optimization.tsp_gls_2O.evaluation import TSP_GLS_2O_Evaluation
     from llm4ad.task.optimization.vrptw_construct.evaluation import VRPTWEvaluation
@@ -93,6 +95,7 @@ def test_default_evaluators_use_train_split():
         MOEAD_PYMOO_Evaluation(),
         QAPEvaluation(),
         SCPEvaluation(),
+        TSPACOEvaluation(),
         TSPEvaluation(),
         TSP_GLS_2O_Evaluation(),
         VRPTWEvaluation(),
