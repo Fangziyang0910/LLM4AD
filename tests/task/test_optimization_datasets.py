@@ -16,6 +16,7 @@ OPTIMIZATION_TASKS = {
     "co_bench",
     "cvrp_aco",
     "cvrp_construct",
+    "de_mutation",
     "dpp_ga",
     "fssp_gls",
     "jssp_construct",
@@ -75,6 +76,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.circle_packing.evaluation import CirclePackingEvaluation
     from llm4ad.task.optimization.cvrp_aco.evaluation import CVRPACOEvaluation
     from llm4ad.task.optimization.cvrp_construct.evaluation import CVRPEvaluation
+    from llm4ad.task.optimization.de_mutation.evaluation import DEMutationEvaluation
     from llm4ad.task.optimization.dpp_ga.evaluation import DPPGAEvaluation
     from llm4ad.task.optimization.fssp_gls.evaluation import FSSPGLSEvaluation
     from llm4ad.task.optimization.jssp_construct.evaluation import JSSPEvaluation
@@ -106,6 +108,7 @@ def test_default_evaluators_use_train_split():
         CirclePackingEvaluation(),
         CVRPACOEvaluation(),
         CVRPEvaluation(),
+        DEMutationEvaluation(pop_size=5, max_evals=20, n_runs=1),
         DPPGAEvaluation(),
         FSSPGLSEvaluation(),
         JSSPEvaluation(),
