@@ -34,6 +34,7 @@ OPTIMIZATION_TASKS = {
     "mobbob_metaheuristic",
     "nurse_rostering",
     "nsga2_crowding",
+    "nsga2_pymoo",
     "online_bin_packing",
     "online_bin_packing_2O",
     "op_aco",
@@ -107,6 +108,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.mobbob_metaheuristic.evaluation import MoBBOBMetaheuristicEvaluation
     from llm4ad.task.optimization.nurse_rostering.evaluation import NurseRosteringEvaluation
     from llm4ad.task.optimization.nsga2_crowding.evaluation import NSGA2CrowdingEvaluation
+    from llm4ad.task.optimization.nsga2_pymoo.evaluation import NSGA2PymooEvaluation
     from llm4ad.task.optimization.online_bin_packing.evaluation import OBPEvaluation
     from llm4ad.task.optimization.online_bin_packing_2O.evaluation import OBP_2O_Evaluation
     from llm4ad.task.optimization.op_aco.evaluation import OPACOEvaluation
@@ -152,6 +154,7 @@ def test_default_evaluators_use_train_split():
         MoBBOBMetaheuristicEvaluation(budget=10, n_runs=1),
         NurseRosteringEvaluation(),
         NSGA2CrowdingEvaluation(pop_size=10, n_gen=2, n_runs=1),
+        NSGA2PymooEvaluation(pop_size=10, n_gen=2, n_runs=1),
         OBPEvaluation(),
         OBP_2O_Evaluation(),
         OPACOEvaluation(),
