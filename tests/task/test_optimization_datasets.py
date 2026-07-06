@@ -40,6 +40,7 @@ OPTIMIZATION_TASKS = {
     "qap_construct",
     "sa_acceptance",
     "set_cover_construct",
+    "tabu_tsp",
     "tsp_aco",
     "tsp_construct",
     "tsp_gls_2O",
@@ -107,6 +108,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.qap_construct.evaluation import QAPEvaluation
     from llm4ad.task.optimization.sa_acceptance.evaluation import SAAcceptanceEvaluation
     from llm4ad.task.optimization.set_cover_construct.evaluation import SCPEvaluation
+    from llm4ad.task.optimization.tabu_tsp.evaluation import TabuTSPEvaluation
     from llm4ad.task.optimization.tsp_aco.evaluation import TSPACOEvaluation
     from llm4ad.task.optimization.tsp_construct.evaluation import TSPEvaluation
     from llm4ad.task.optimization.tsp_gls_2O.evaluation import TSP_GLS_2O_Evaluation
@@ -146,6 +148,7 @@ def test_default_evaluators_use_train_split():
         QAPEvaluation(),
         SAAcceptanceEvaluation(max_iter=20, n_runs=1),
         SCPEvaluation(),
+        TabuTSPEvaluation(n_iter=5, n_runs=1),
         TSPACOEvaluation(),
         TSPEvaluation(),
         TSP_GLS_2O_Evaluation(),

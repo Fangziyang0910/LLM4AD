@@ -1,0 +1,55 @@
+{
+  "dataset_id": "tabu_tsp_v1",
+  "description": "Fixed EoH Tabu Search TSP benchmark. The searched function scores all candidate 2-opt moves at each Tabu Search iteration.",
+  "generator": "llm4ad.task.optimization.tabu_tsp.dataset.write_default_dataset",
+  "paper": "papers/EoH",
+  "source": "reference_code/EoH/examples/tabu_tsp",
+  "splits": {
+    "test_full": {
+      "filename": "test_full.pkl.gz",
+      "format": "pickle_gzip",
+      "groups": [
+        {
+          "label": "20-node",
+          "n_instances": 10,
+          "n_nodes": 20,
+          "seed": 100
+        },
+        {
+          "label": "30-node",
+          "n_instances": 10,
+          "n_nodes": 30,
+          "seed": 200
+        }
+      ],
+      "n_instances": 20,
+      "n_iter": 500,
+      "n_runs": 10,
+      "note": "Post-hoc evaluator from the EoH example: 20-node and 30-node instances.",
+      "role": "test",
+      "sha256": "958c36070226b1cd176ef3cf7fca99e2b0a3c723cfe3bedd4fcd0d4baecf9003",
+      "tabu_tenure": 7
+    },
+    "train": {
+      "filename": "train.pkl.gz",
+      "format": "pickle_gzip",
+      "groups": [
+        {
+          "label": "20-node",
+          "n_instances": 5,
+          "n_nodes": 20,
+          "seed": 42
+        }
+      ],
+      "n_instances": 5,
+      "n_iter": 200,
+      "n_runs": 3,
+      "note": "Original EoH search evaluator: five 20-node Euclidean TSP instances.",
+      "role": "train",
+      "sha256": "0ef4ff0046fa3e13bc8913e89f72bfd5e6acf6f436bbdc3f45bfa6983a1e674e",
+      "tabu_tenure": 7
+    }
+  },
+  "task": "tabu_tsp",
+  "version": 1
+}
