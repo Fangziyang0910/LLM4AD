@@ -32,6 +32,7 @@ OPTIMIZATION_TASKS = {
     "mkp_aco",
     "moead_decomposition",
     "nurse_rostering",
+    "nsga2_crowding",
     "online_bin_packing",
     "online_bin_packing_2O",
     "op_aco",
@@ -103,6 +104,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.mkp_aco.evaluation import MKPACOEvaluation
     from llm4ad.task.optimization.moead_decomposition.evaluation import MOEADDecompositionEvaluation
     from llm4ad.task.optimization.nurse_rostering.evaluation import NurseRosteringEvaluation
+    from llm4ad.task.optimization.nsga2_crowding.evaluation import NSGA2CrowdingEvaluation
     from llm4ad.task.optimization.online_bin_packing.evaluation import OBPEvaluation
     from llm4ad.task.optimization.online_bin_packing_2O.evaluation import OBP_2O_Evaluation
     from llm4ad.task.optimization.op_aco.evaluation import OPACOEvaluation
@@ -146,6 +148,7 @@ def test_default_evaluators_use_train_split():
         MKPACOEvaluation(),
         MOEADDecompositionEvaluation(n_gen=2, n_runs=1, hv_samples=500),
         NurseRosteringEvaluation(),
+        NSGA2CrowdingEvaluation(pop_size=10, n_gen=2, n_runs=1),
         OBPEvaluation(),
         OBP_2O_Evaluation(),
         OPACOEvaluation(),
