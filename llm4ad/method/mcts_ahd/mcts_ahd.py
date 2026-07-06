@@ -119,9 +119,9 @@ class MCTS_AHD:
 
         # population, sampler, and evaluator
         self._population = Population(init_pop_size=init_size, pop_size=self._pop_size)
-        self._sampler = MASampler(llm, self._template_program_str)
-        self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode, **kwargs)
         self._profiler = profiler
+        self._sampler = MASampler(llm, self._template_program_str, profiler=self._profiler)
+        self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode, **kwargs)
 
         # statistics
         self._tot_sample_nums = 0
@@ -149,6 +149,40 @@ class MCTS_AHD:
         # pass parameters to profiler
         if profiler is not None:
             self._profiler.record_parameters(llm, evaluation, self)  # ZL: necessary
+
+    def _log_message(self, message: str):
+        if isinstance(self._profiler, MAProfiler):
+            self._profiler.log_message(message)
+        else:
+            print(message)
+
+    def _log_mcts_state(self, mcts: MCTS, phase: str, selected_node: MCTSNode | None = None):
+        if isinstance(self._profiler, MAProfiler):
+            self._profiler.log_mcts_state(
+                phase=phase,
+                sample_order=self._tot_sample_nums,
+                max_sample_nums=self._max_sample_nums,
+                mcts=mcts,
+                selected_node=selected_node,
+            )
+
+    def _log_mcts_event(self, **payload):
+        if isinstance(self._profiler, MAProfiler):
+            self._profiler.log_mcts_event(**payload)
+
+    @staticmethod
+    def _node_score(node: MCTSNode):
+        raw_info = getattr(node, 'raw_info', None)
+        if raw_info is not None:
+            score = getattr(raw_info, 'score', None)
+            if score is not None:
+                return score
+        individual = getattr(node, 'individual', None)
+        if individual is not None:
+            score = getattr(individual, 'score', None)
+            if score is not None:
+                return score
+        return getattr(node, 'Q', None)
 
     def _adjust_pop_size(self):
         # adjust population size
@@ -182,14 +216,19 @@ class MCTS_AHD:
                 print(f'Warning: population size {self._pop_size} '
                       f'is not suitable, please reset it to 5.')
 
-    def _sample_evaluate_register(self, prompt, func_only=False):
+    def _sample_evaluate_register(self, prompt, func_only=False, operator=None):
         """Perform following steps:
         1. Sample an algorithm using the given prompt.
         2. Evaluate it by submitting to the process/thread pool, and get the results.
         3. Add the function to the population and register it to the profiler.
         """
         sample_start = time.time()
-        thought, func = self._sampler.get_thought_and_function(self._task_description_str, prompt)
+        thought, func = self._sampler.get_thought_and_function(
+            self._task_description_str,
+            prompt,
+            operator=operator,
+            sample_order=self._tot_sample_nums + 1,
+        )
         sample_time = time.time() - sample_start
         if thought is None or func is None:
             return False
@@ -207,6 +246,7 @@ class MCTS_AHD:
         func.evaluate_time = eval_time
         func.algorithm = thought
         func.sample_time = sample_time
+        func.operator = operator or 'Unknown'
         self._tot_sample_nums += 1
         if self._profiler is not None:
             self._profiler.register_function(func, program=str(program))
@@ -316,7 +356,7 @@ class MCTS_AHD:
             i = 0
             while i < 3:
                 prompt = MAPrompt.get_prompt_s1(self._task_description_str, path_set, self._function_to_evolve)
-                func = self._sample_evaluate_register(prompt, func_only=True)
+                func = self._sample_evaluate_register(prompt, func_only=True, operator=option)
                 if func is False:
                     is_valid_func = False
                     i += 1
@@ -333,7 +373,7 @@ class MCTS_AHD:
             if len(indivs) == 0:
                 return node_set
             prompt = MAPrompt.get_prompt_e1(self._task_description_str, indivs, self._function_to_evolve)
-            func = self._sample_evaluate_register(prompt, func_only=True)
+            func = self._sample_evaluate_register(prompt, func_only=True, operator=option)
             if func is False:
                 is_valid_func = False
             else:
@@ -351,7 +391,7 @@ class MCTS_AHD:
                 now_indiv = self._population.selection(elite_set)
                 prompt = MAPrompt.get_prompt_e2(self._task_description_str, [now_indiv, cur_node.individual],
                                                 self._function_to_evolve)
-                func = self._sample_evaluate_register(prompt, func_only=True)
+                func = self._sample_evaluate_register(prompt, func_only=True, operator=option)
                 if func is False:
                     is_valid_func = False
                     i += 1
@@ -368,7 +408,7 @@ class MCTS_AHD:
             while i < 3:
                 prompt = MAPrompt.get_prompt_m1(self._task_description_str, cur_node.individual,
                                                 self._function_to_evolve)
-                func = self._sample_evaluate_register(prompt, func_only=True)
+                func = self._sample_evaluate_register(prompt, func_only=True, operator=option)
                 if func is False:
                     is_valid_func = False
                     i += 1
@@ -385,7 +425,7 @@ class MCTS_AHD:
             while i < 3:
                 prompt = MAPrompt.get_prompt_m2(self._task_description_str, cur_node.individual,
                                                 self._function_to_evolve)
-                func = self._sample_evaluate_register(prompt, func_only=True)
+                func = self._sample_evaluate_register(prompt, func_only=True, operator=option)
                 if func is False:
                     is_valid_func = False
                     i += 1
@@ -401,18 +441,35 @@ class MCTS_AHD:
             assert False, 'Invalid option!'
 
         if not is_valid_func:
-            print(f"Timeout emerge, no expanding with action {option}.")
+            self._log_mcts_event(
+                event='expand',
+                status='invalid',
+                reason='timeout_or_invalid_function',
+                operator=option,
+                sample_order=self._tot_sample_nums,
+                parent_score=self._node_score(cur_node),
+                parent_depth=cur_node.depth,
+                parent_visits=cur_node.visits,
+            )
             return node_set
 
         if option != 'e1':
-            print(
-                f"Action: {option}, Father Obj: {cur_node.raw_info.score}, Now Obj: {func.score}, Depth: {cur_node.depth + 1}")
+            parent_score = self._node_score(cur_node)
         else:
             if self.check_duplicate_obj(node_set, func.score):
-                print(f"Duplicated e1, no action, Father is Root, Abandon Obj: {func.score}")
+                self._log_mcts_event(
+                    event='expand',
+                    status='duplicate',
+                    reason='duplicate_e1_objective',
+                    operator=option,
+                    sample_order=self._tot_sample_nums,
+                    parent_score=None,
+                    child_score=func.score,
+                    parent_depth=cur_node.depth,
+                    parent_visits=cur_node.visits,
+                )
                 return node_set
-            else:
-                print(f"Action: {option}, Father is Root, Now Obj: {func.score}")
+            parent_score = None
 
         if is_valid_func and func.score != float('-inf'):
             self._population.register_function(func)
@@ -424,6 +481,20 @@ class MCTS_AHD:
             mcts.backpropagate(now_node)
             if node_set is not cur_node.children:
                 node_set.append(now_node)
+            self._log_mcts_event(
+                event='expand',
+                status='expanded',
+                operator=option,
+                sample_order=self._tot_sample_nums,
+                parent_score=parent_score,
+                child_score=func.score,
+                parent_depth=cur_node.depth,
+                child_depth=now_node.depth,
+                parent_visits=cur_node.visits,
+                child_visits=now_node.visits,
+                parent_children_count=len(cur_node.children),
+                root_parent=cur_node.algorithm == 'Root',
+            )
         return node_set
 
     def _iteratively_init_population_root(self):
@@ -438,12 +509,12 @@ class MCTS_AHD:
                     continue
                 prompt = MAPrompt.get_prompt_e1(self._task_description_str, indivs,
                                                 self._function_to_evolve)
-                self._sample_evaluate_register(prompt)
+                self._sample_evaluate_register(prompt, operator='e1')
                 self._population.survival()
 
                 if self._tot_sample_nums >= self._initial_sample_nums_max:
                     # print(f'Warning: Initialization not accomplished in {self._initial_sample_nums_max} samples !!!')
-                    print(
+                    self._log_message(
                         f'Note: During initialization, EoH gets {len(self._population) + len(self._population._next_gen_pop)} algorithms '
                         f'after {self._initial_sample_nums_max} trails.')
                     break
@@ -458,7 +529,7 @@ class MCTS_AHD:
             try:
                 # get a new func using i1
                 prompt = MAPrompt.get_prompt_i1(self._task_description_str, self._function_to_evolve)
-                self._sample_evaluate_register(prompt)
+                self._sample_evaluate_register(prompt, operator='i1')
             except Exception:
                 if self._debug_mode:
                     traceback.print_exc()
@@ -501,7 +572,7 @@ class MCTS_AHD:
 
         # terminate searching if
         if len(self._population) < self._selection_num:
-            print(
+            self._log_message(
                 f'The search is terminated since MCTS_AHD unable to obtain {self._selection_num} feasible algorithms during initialization. '
                 f'Please increase the `initial_sample_nums_max` argument (currently {self._initial_sample_nums_max}). '
                 f'Please also check your evaluation implementation and LLM implementation.')
@@ -510,9 +581,7 @@ class MCTS_AHD:
         # evolutionary search
         while self._continue_loop():
             node_set = []
-            print(f"Current performances of MCTS nodes: {mcts.rank_list}")
-            print(
-                f"Current number of MCTS nodes in the subtree of each child of the root: {[len(node.subtree) for node in mcts.root.children]}")
+            self._log_mcts_state(mcts, phase='iteration_start')
             cur_node = mcts.root
             while len(cur_node.children) > 0 and cur_node.depth < mcts.max_depth:
                 uct_scores = [mcts.uct(node, self._eval_remain_ratio()) for node in
@@ -527,9 +596,18 @@ class MCTS_AHD:
                         op = 'e2'
                         self.expand(mcts, cur_node.children, cur_node, op)
                 cur_node = cur_node.children[selected_pair_idx]
+            self._log_mcts_state(mcts, phase='selected_leaf', selected_node=cur_node)
             for i in range(len(self._operators)):
                 op = self._operators[i]
-                print(f"Iter: {self._tot_sample_nums}/{self._max_sample_nums} OP: {op}", end="|")
+                self._log_mcts_event(
+                    event='operator_start',
+                    status='scheduled',
+                    operator=op,
+                    sample_order=self._tot_sample_nums,
+                    parent_score=self._node_score(cur_node),
+                    parent_depth=cur_node.depth,
+                    parent_visits=cur_node.visits,
+                )
                 op_w = self._operator_weights[i]
                 for j in range(op_w):
                     node_set = self.expand(mcts, node_set, cur_node, op)

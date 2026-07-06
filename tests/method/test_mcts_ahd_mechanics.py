@@ -1,11 +1,15 @@
 import math
+import json
 import random
+import tempfile
 import unittest
+from pathlib import Path
 
 from llm4ad.base import Function, TextFunctionProgramConverter
 from llm4ad.method.mcts_ahd.mcts import MCTS, MCTSNode
 from llm4ad.method.mcts_ahd.mcts_ahd import MCTS_AHD
 from llm4ad.method.mcts_ahd.population import Population
+from llm4ad.method.mcts_ahd.profiler import MAProfiler
 
 
 def make_function(label: int, score=None) -> Function:
@@ -63,7 +67,7 @@ class FakeSampler:
     def __init__(self, func: Function):
         self.func = func
 
-    def get_thought_and_function(self, task_description, prompt):
+    def get_thought_and_function(self, task_description, prompt, **kwargs):
         return "aligned description", self.func
 
 
@@ -81,7 +85,7 @@ class MCTSAHDMechanicsTest(unittest.TestCase):
         mcts = MCTS("Root", alpha=0.5, lambad0=0.1)
         parent = attach_node(mcts.root, make_function(1, 1.0), depth=3)
         parent.subtree.append(parent)
-        method._sample_evaluate_register = lambda prompt, func_only=False: make_function(2, 2.0)
+        method._sample_evaluate_register = lambda prompt, func_only=False, **kwargs: make_function(2, 2.0)
 
         method.expand(mcts, [], parent, "m1")
 
@@ -119,7 +123,7 @@ class MCTSAHDMechanicsTest(unittest.TestCase):
         node = attach_node(mcts.root, make_function(1, 1.0), depth=1)
         node.subtree.append(node)
 
-        def fail_if_called(prompt, func_only=False):
+        def fail_if_called(prompt, func_only=False, **kwargs):
             raise AssertionError("e1 should not sample with fewer than two root subtrees")
 
         method._sample_evaluate_register = fail_if_called
@@ -140,13 +144,23 @@ class MCTSAHDMechanicsTest(unittest.TestCase):
         self.assertEqual(method._tot_sample_nums, 1)
         self.assertEqual(func.score, 3.5)
 
+    def test_sample_register_sets_operator(self):
+        method = make_method()
+        method._sampler = FakeSampler(make_function(3))
+        method._evaluator = FakeEvaluator(score=3.5)
+        method._evaluation_executor = ImmediateExecutor()
+
+        func = method._sample_evaluate_register("prompt", func_only=True, operator="m1")
+
+        self.assertEqual(func.operator, "m1")
+
     def test_duplicate_e1_score_skips_child_and_backprop(self):
         method = make_method()
         mcts = MCTS("Root", alpha=0.5, lambad0=0.1)
         for i, score in enumerate([1.0, 2.0], start=1):
             node = attach_node(mcts.root, make_function(i, score), depth=1)
             node.subtree.append(node)
-        method._sample_evaluate_register = lambda prompt, func_only=False: make_function(9, 1.0)
+        method._sample_evaluate_register = lambda prompt, func_only=False, **kwargs: make_function(9, 1.0)
         before_children = len(mcts.root.children)
         before_visits = mcts.root.visits
 
@@ -193,7 +207,7 @@ class MCTSAHDMechanicsTest(unittest.TestCase):
         parent = attach_node(mcts.root, make_function(1, 1.0), depth=1)
         parent.subtree.append(parent)
         low = make_function(0, 0.0)
-        method._sample_evaluate_register = lambda prompt, func_only=False: low
+        method._sample_evaluate_register = lambda prompt, func_only=False, **kwargs: low
 
         method.expand(mcts, [], parent, "m1")
 
@@ -211,7 +225,7 @@ class MCTSAHDMechanicsTest(unittest.TestCase):
         parent = attach_node(mcts.root, parent_func, depth=1)
         captured = {}
 
-        def sample(prompt, func_only=False):
+        def sample(prompt, func_only=False, **kwargs):
             captured["prompt"] = prompt
             return make_function(2, 2.0)
 
@@ -220,6 +234,71 @@ class MCTSAHDMechanicsTest(unittest.TestCase):
         method.expand(mcts, [], parent, "e2")
 
         self.assertIn("algorithm-99", captured["prompt"])
+
+    def test_profiler_writes_mcts_state_and_events(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            profiler = MAProfiler(log_dir=tmpdir, create_random_path=False, log_style="simple")
+            mcts = MCTS("Root", alpha=0.5, lambad0=0.1)
+            child = attach_node(mcts.root, make_function(1, 1.5), depth=1)
+            child.subtree.append(child)
+            mcts.backpropagate(child)
+
+            profiler.log_mcts_state(
+                phase="iteration_start",
+                sample_order=3,
+                max_sample_nums=10,
+                mcts=mcts,
+            )
+            profiler.log_mcts_event(
+                event="operator_start",
+                status="scheduled",
+                operator="m1",
+                sample_order=3,
+                parent_score=1.5,
+            )
+            profiler.log_llm_call(
+                stage="generate",
+                operator="m1",
+                sample_order=3,
+                prompt="prompt",
+                response="response",
+            )
+
+            state = json.loads((Path(tmpdir) / "mcts_state.jsonl").read_text().splitlines()[0])
+            event = json.loads((Path(tmpdir) / "mcts_events.jsonl").read_text().splitlines()[0])
+            llm_call = json.loads((Path(tmpdir) / "llm_calls.jsonl").read_text().splitlines()[0])
+
+        self.assertEqual(state["phase"], "iteration_start")
+        self.assertEqual(state["sample_order"], 3)
+        self.assertEqual(state["root_children"][0]["score"], 1.5)
+        self.assertEqual(state["root_children"][0]["subtree_size"], 1)
+        self.assertEqual(event["operator"], "m1")
+        self.assertEqual(event["status"], "scheduled")
+        self.assertEqual(llm_call["prompt"], "prompt")
+        self.assertEqual(llm_call["response"], "response")
+
+    def test_expand_records_mcts_event(self):
+        method = make_method()
+        mcts = MCTS("Root", alpha=0.5, lambad0=0.1)
+        parent_func = make_function(1, 1.0)
+        parent = attach_node(mcts.root, parent_func, depth=1)
+        parent.subtree.append(parent)
+        method._tot_sample_nums = 7
+        method._sample_evaluate_register = lambda prompt, func_only=False, **kwargs: make_function(2, 2.0)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            method._profiler = MAProfiler(log_dir=tmpdir, create_random_path=False, log_style="simple")
+            method.expand(mcts, [], parent, "m1")
+            events = [
+                json.loads(line)
+                for line in (Path(tmpdir) / "mcts_events.jsonl").read_text().splitlines()
+            ]
+
+        expanded = [event for event in events if event["event"] == "expand"]
+        self.assertEqual(expanded[-1]["status"], "expanded")
+        self.assertEqual(expanded[-1]["operator"], "m1")
+        self.assertEqual(expanded[-1]["parent_score"], 1.0)
+        self.assertEqual(expanded[-1]["child_score"], 2.0)
 
 
 if __name__ == "__main__":

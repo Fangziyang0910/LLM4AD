@@ -38,9 +38,13 @@ class MAProfiler(ProfilerBase):
                          **kwargs)
         self._cur_gen = 0
         self._pop_lock = Lock()
+        self._mcts_lock = Lock()
         if self._log_dir:
             self._ckpt_dir = os.path.join(self._log_dir, 'population')
             os.makedirs(self._ckpt_dir, exist_ok=True)
+            self._mcts_state_path = os.path.join(self._log_dir, 'mcts_state.jsonl')
+            self._mcts_events_path = os.path.join(self._log_dir, 'mcts_events.jsonl')
+            self._llm_calls_path = os.path.join(self._log_dir, 'llm_calls.jsonl')
 
     def register_population(self, pop: Population):
         try:
@@ -65,6 +69,91 @@ class MAProfiler(ProfilerBase):
             if self._pop_lock.locked():
                 self._pop_lock.release()
 
+    def log_message(self, message: str):
+        if self._log_dir and self._logger_txt.handlers:
+            self._logger_txt.info(message)
+        else:
+            print(message)
+
+    def log_mcts_state(self, *, phase: str, sample_order: int, max_sample_nums, mcts, selected_node=None):
+        if not self._log_dir:
+            return
+        root_children = [self._node_summary(node) for node in mcts.root.children]
+        payload = {
+            'phase': phase,
+            'sample_order': sample_order,
+            'max_sample_nums': max_sample_nums,
+            'q_min': mcts.q_min,
+            'q_max': mcts.q_max,
+            'rank_list': list(mcts.rank_list),
+            'root_visits': mcts.root.visits,
+            'root_q': mcts.root.Q,
+            'root_children': root_children,
+        }
+        if selected_node is not None:
+            payload['selected_node'] = self._node_summary(selected_node)
+        self._append_jsonl(self._mcts_state_path, payload)
+
+        best = max(mcts.rank_list) if mcts.rank_list else None
+        subtree_sizes = [child['subtree_size'] for child in root_children]
+        self.log_message(
+            f"MCTS state {phase}: samples={sample_order}/{max_sample_nums}, "
+            f"rank_count={len(mcts.rank_list)}, best={best}, root_subtree_sizes={subtree_sizes}"
+        )
+
+    def log_mcts_event(self, **payload):
+        if not self._log_dir:
+            return
+        self._append_jsonl(self._mcts_events_path, payload)
+
+        event = payload.get('event', 'event')
+        status = payload.get('status')
+        operator = payload.get('operator')
+        sample_order = payload.get('sample_order')
+        parent_score = payload.get('parent_score')
+        child_score = payload.get('child_score')
+        self.log_message(
+            f"MCTS event {event}: status={status}, op={operator}, "
+            f"samples={sample_order}, parent_score={parent_score}, child_score={child_score}"
+        )
+
+    def log_llm_call(self, **payload):
+        if not self._log_dir:
+            return
+        self._append_jsonl(self._llm_calls_path, payload)
+
+    def _append_jsonl(self, path: str, payload: dict):
+        try:
+            self._mcts_lock.acquire()
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(payload, ensure_ascii=False) + '\n')
+        finally:
+            if self._mcts_lock.locked():
+                self._mcts_lock.release()
+
+    @staticmethod
+    def _node_summary(node):
+        individual = getattr(node, 'individual', None)
+        raw_info = getattr(node, 'raw_info', None)
+        score = None
+        if raw_info is not None:
+            score = getattr(raw_info, 'score', None)
+        if score is None and individual is not None:
+            score = getattr(individual, 'score', None)
+        return {
+            'score': score,
+            'q': getattr(node, 'Q', None),
+            'depth': getattr(node, 'depth', None),
+            'visits': getattr(node, 'visits', None),
+            'children_count': len(getattr(node, 'children', [])),
+            'subtree_size': len(getattr(node, 'subtree', [])),
+            'is_root_child': (
+                getattr(getattr(node, 'parent', None), 'is_root', False)
+                or getattr(getattr(node, 'parent', None), 'code', None) == 'Root'
+            ),
+        }
+
     def _write_json(self, function: Function, program='', *, record_type='history', record_sep=200):
         """Write function data to a JSON file.
         Args:
@@ -83,6 +172,7 @@ class MAProfiler(ProfilerBase):
             'algorithm': function.algorithm,  # Added when recording
             'function': str(function),
             'score': function.score,
+            'operator': getattr(function, 'operator', None),
             'program': program,
         }
 
