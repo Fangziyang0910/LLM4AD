@@ -12,6 +12,7 @@ OPTIMIZATION_TASKS = {
     "bp_2d_construct",
     "bpp_offline_aco",
     "cflp_construct",
+    "circle_packing",
     "co_bench",
     "cvrp_aco",
     "cvrp_construct",
@@ -68,6 +69,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.bp_2d_construct.evaluation import BP2DEvaluation
     from llm4ad.task.optimization.bpp_offline_aco.evaluation import BPPOfflineACOEvaluation
     from llm4ad.task.optimization.cflp_construct.evaluation import CFLPEvaluation
+    from llm4ad.task.optimization.circle_packing.evaluation import CirclePackingEvaluation
     from llm4ad.task.optimization.cvrp_aco.evaluation import CVRPACOEvaluation
     from llm4ad.task.optimization.cvrp_construct.evaluation import CVRPEvaluation
     from llm4ad.task.optimization.fssp_gls.evaluation import FSSPGLSEvaluation
@@ -95,6 +97,7 @@ def test_default_evaluators_use_train_split():
         BP2DEvaluation(),
         BPPOfflineACOEvaluation(),
         CFLPEvaluation(),
+        CirclePackingEvaluation(),
         CVRPACOEvaluation(),
         CVRPEvaluation(),
         FSSPGLSEvaluation(),
