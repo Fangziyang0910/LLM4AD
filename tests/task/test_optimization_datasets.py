@@ -18,6 +18,7 @@ OPTIMIZATION_TASKS = {
     "cvrp_construct",
     "de_mutation",
     "dpp_ga",
+    "es_step_size",
     "fssp_gls",
     "jssp_construct",
     "knapsack_construct",
@@ -78,6 +79,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.cvrp_construct.evaluation import CVRPEvaluation
     from llm4ad.task.optimization.de_mutation.evaluation import DEMutationEvaluation
     from llm4ad.task.optimization.dpp_ga.evaluation import DPPGAEvaluation
+    from llm4ad.task.optimization.es_step_size.evaluation import ESStepSizeEvaluation
     from llm4ad.task.optimization.fssp_gls.evaluation import FSSPGLSEvaluation
     from llm4ad.task.optimization.jssp_construct.evaluation import JSSPEvaluation
     from llm4ad.task.optimization.knapsack_construct.evaluation import KnapsackEvaluation
@@ -110,6 +112,7 @@ def test_default_evaluators_use_train_split():
         CVRPEvaluation(),
         DEMutationEvaluation(pop_size=5, max_evals=20, n_runs=1),
         DPPGAEvaluation(),
+        ESStepSizeEvaluation(lam=3, max_evals=20, n_runs=1),
         FSSPGLSEvaluation(),
         JSSPEvaluation(),
         KnapsackEvaluation(),
