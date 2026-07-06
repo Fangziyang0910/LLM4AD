@@ -50,6 +50,7 @@ OPTIMIZATION_TASKS = {
     "tabu_tsp",
     "tsp_aco",
     "tsp_construct",
+    "tsp_gls",
     "tsp_gls_2O",
     "vrptw_construct",
 }
@@ -125,6 +126,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.tabu_tsp.evaluation import TabuTSPEvaluation
     from llm4ad.task.optimization.tsp_aco.evaluation import TSPACOEvaluation
     from llm4ad.task.optimization.tsp_construct.evaluation import TSPEvaluation
+    from llm4ad.task.optimization.tsp_gls.evaluation import TSPGLSEvaluation
     from llm4ad.task.optimization.tsp_gls_2O.evaluation import TSP_GLS_2O_Evaluation
     from llm4ad.task.optimization.vrptw_construct.evaluation import VRPTWEvaluation
 
@@ -172,6 +174,7 @@ def test_default_evaluators_use_train_split():
         TabuTSPEvaluation(n_iter=5, n_runs=1),
         TSPACOEvaluation(),
         TSPEvaluation(),
+        TSPGLSEvaluation(),
         TSP_GLS_2O_Evaluation(),
         VRPTWEvaluation(),
     ]

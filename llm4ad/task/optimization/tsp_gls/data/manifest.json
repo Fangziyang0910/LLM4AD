@@ -1,0 +1,71 @@
+{
+  "dataset_id": "tsp_gls_v1",
+  "description": "Fixed EoH TSP Guided Local Search benchmark. The searched function updates edge distances to guide local search away from local optima.",
+  "generator": "llm4ad.task.optimization.tsp_gls.dataset.write_default_dataset",
+  "paper": "papers/EoH",
+  "source": "reference_code/EoH/examples/tsp_gls",
+  "splits": {
+    "test_full": {
+      "coordinates_shape": [
+        16,
+        20,
+        2
+      ],
+      "costs_shape": [
+        16
+      ],
+      "distance_matrices_shape": [
+        16,
+        20,
+        20
+      ],
+      "filename": "test_full.npz",
+      "format": "npz",
+      "ite_max": 1000,
+      "n_instances": 16,
+      "note": "Original EoH post-hoc evaluator: first 16 instances from TSP20.pkl.",
+      "optimal_tours_shape": [
+        16,
+        20
+      ],
+      "perturbation_moves": 1,
+      "problem_size": 20,
+      "role": "test",
+      "sha256": "8b73eaf9396d1cb3b8b2a8da83268af5a01724b92ba7a108d4d5aa393a75fed2",
+      "source_file": "TestingData/TSP20.pkl",
+      "time_limit": 10.0
+    },
+    "train": {
+      "coordinates_shape": [
+        3,
+        100,
+        2
+      ],
+      "costs_shape": [
+        3
+      ],
+      "distance_matrices_shape": [
+        3,
+        100,
+        100
+      ],
+      "filename": "train.npz",
+      "format": "npz",
+      "ite_max": 1000,
+      "n_instances": 3,
+      "note": "Original EoH search evaluator: first 3 instances from TSPAEL64.pkl.",
+      "optimal_tours_shape": [
+        3,
+        100
+      ],
+      "perturbation_moves": 1,
+      "problem_size": 100,
+      "role": "train",
+      "sha256": "53868ec4d544252ba5cdf70516ea46b77a5132e9b53716a6087f42d017942d8f",
+      "source_file": "TrainingData/TSPAEL64.pkl",
+      "time_limit": 10.0
+    }
+  },
+  "task": "tsp_gls",
+  "version": 1
+}
