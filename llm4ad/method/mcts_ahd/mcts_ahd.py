@@ -44,11 +44,16 @@ from ...tools.profiler import ProfilerBase
 
 
 class MCTS_AHD:
+    E1_MIN_REFS = 2
+    E1_MAX_REFS = 5
+    DEFAULT_OPERATORS = ('e1', 'e2', 'm1', 'm2', 's1')
+    DEFAULT_OPERATOR_WEIGHTS = (0, 1, 2, 2, 1)
+
     def __init__(self,
                  llm: LLM,
                  evaluation: Evaluation,
                  profiler: ProfilerBase = None,
-                 max_sample_nums: Optional[int] = 100,
+                 max_sample_nums: Optional[int] = 1000,
                  init_size: Optional[float] = 4,
                  pop_size: Optional[int] = 10,
                  selection_num: int = 2,
@@ -91,6 +96,10 @@ class MCTS_AHD:
         self._init_pop_size = init_size
         self._pop_size = pop_size
         self._selection_num = selection_num
+        self._e1_min_refs = self.E1_MIN_REFS
+        self._e1_max_refs = self.E1_MAX_REFS
+        self._operators = list(self.DEFAULT_OPERATORS)
+        self._operator_weights = list(self.DEFAULT_OPERATOR_WEIGHTS)
 
         # samplers and evaluators
         self._num_samplers = num_samplers
@@ -118,10 +127,13 @@ class MCTS_AHD:
         self._tot_sample_nums = 0
 
         # reset _initial_sample_nums_max
-        self._initial_sample_nums_max = min(
-            self._max_sample_nums,
-            10 * self._init_pop_size
-        )
+        if self._max_sample_nums is None:
+            self._initial_sample_nums_max = 10 * self._init_pop_size
+        else:
+            self._initial_sample_nums_max = min(
+                self._max_sample_nums,
+                10 * self._init_pop_size
+            )
 
         # multi-thread executor for evaluation
         assert multi_thread_or_process_eval in ['thread', 'process']
@@ -140,6 +152,11 @@ class MCTS_AHD:
 
     def _adjust_pop_size(self):
         # adjust population size
+        if self._pop_size is None:
+            self._pop_size = 10
+            return
+        if self._max_sample_nums is None:
+            return
         if self._max_sample_nums >= 10000:
             if self._pop_size is None:
                 self._pop_size = 40
@@ -190,11 +207,11 @@ class MCTS_AHD:
         func.evaluate_time = eval_time
         func.algorithm = thought
         func.sample_time = sample_time
+        self._tot_sample_nums += 1
         if self._profiler is not None:
             self._profiler.register_function(func, program=str(program))
             if isinstance(self._profiler, MAProfiler):
                 self._profiler.register_population(self._population)
-            self._tot_sample_nums += 1
         if func_only:
             return func
         if func.score is None:
@@ -212,15 +229,65 @@ class MCTS_AHD:
 
     def check_duplicate(self, population, code):
         for ind in population:
-            if code == ind.code:
+            ind_code = ind.code if isinstance(ind, MCTSNode) else str(ind)
+            if code == ind_code:
                 return True
         return False
 
-    def check_duplicate_obj(self, population, code):
+    def check_duplicate_obj(self, population, score):
         for ind in population:
-            if code == ind.individual.score:
+            if isinstance(ind, MCTSNode):
+                ind_score = ind.individual.score if ind.individual is not None else ind.Q
+            else:
+                ind_score = ind.score
+            if score == ind_score:
                 return True
         return False
+
+    def _eval_remain_ratio(self) -> float:
+        if self._max_sample_nums is None or self._max_sample_nums <= 0:
+            return 1.0
+        return max(1 - self._tot_sample_nums / self._max_sample_nums, 0)
+
+    def _sample_e1_references_from_population(self, population, allow_single=False):
+        candidates = list(population)
+        if len(candidates) < self._e1_min_refs:
+            return copy.deepcopy(candidates) if allow_single else []
+        ref_count = random.randint(self._e1_min_refs, min(self._e1_max_refs, len(candidates)))
+        return copy.deepcopy(random.sample(candidates, ref_count))
+
+    def _sample_e1_references_from_root(self, mcts: MCTS, allow_single=False):
+        candidate_children = [child for child in mcts.root.children if len(child.subtree) > 0]
+        if len(candidate_children) < self._e1_min_refs:
+            if not allow_single:
+                return []
+            selected_children = candidate_children
+        else:
+            ref_count = random.randint(self._e1_min_refs, min(self._e1_max_refs, len(candidate_children)))
+            selected_children = random.sample(candidate_children, ref_count)
+        return [
+            copy.deepcopy(random.choice(child.subtree).individual)
+            for child in selected_children
+        ]
+
+    def _current_elite_set(self):
+        candidates = list(self._population.population) + list(self._population.next_gen_pop)
+        unique_pop = []
+        unique_scores = []
+        for individual in candidates:
+            if individual.score is None or individual.score == float('-inf'):
+                continue
+            if individual.score not in unique_scores:
+                unique_pop.append(individual)
+                unique_scores.append(individual.score)
+
+        pop_size = getattr(self, '_pop_size', None)
+        if pop_size is None:
+            pop_size = getattr(self._population, '_pop_size', len(unique_pop))
+        return heapq.nlargest(pop_size, unique_pop, key=lambda x: x.score)
+
+    def _should_progressively_widen(self, mcts: MCTS, node: MCTSNode) -> bool:
+        return int(node.visits ** mcts.alpha) >= len(node.children)
 
     def population_management_s1(self, pop_input, size):
         unique_pop = []
@@ -262,9 +329,9 @@ class MCTS_AHD:
                     break
 
         elif option == 'e1':
-            indivs = [copy.deepcopy(children.subtree[random.choices(range(len(children.subtree)), k=1)[0]].individual)
-                      for
-                      children in mcts.root.children]
+            indivs = self._sample_e1_references_from_root(mcts)
+            if len(indivs) == 0:
+                return node_set
             prompt = MAPrompt.get_prompt_e1(self._task_description_str, indivs, self._function_to_evolve)
             func = self._sample_evaluate_register(prompt, func_only=True)
             if func is False:
@@ -275,11 +342,13 @@ class MCTS_AHD:
         elif option == 'e2':
             i = 0
             while i < 3:
-                now_indiv = None
-                while True:
-                    now_indiv = self._population.selection()
-                    if now_indiv != cur_node.individual:
-                        break
+                elite_set = [
+                    individual for individual in self._current_elite_set()
+                    if individual != cur_node.individual
+                ]
+                if len(elite_set) == 0:
+                    return node_set
+                now_indiv = self._population.selection(elite_set)
                 prompt = MAPrompt.get_prompt_e2(self._task_description_str, [now_indiv, cur_node.individual],
                                                 self._function_to_evolve)
                 func = self._sample_evaluate_register(prompt, func_only=True)
@@ -341,18 +410,20 @@ class MCTS_AHD:
         else:
             if self.check_duplicate_obj(node_set, func.score):
                 print(f"Duplicated e1, no action, Father is Root, Abandon Obj: {func.score}")
+                return node_set
             else:
                 print(f"Action: {option}, Father is Root, Now Obj: {func.score}")
 
         if is_valid_func and func.score != float('-inf'):
             self._population.register_function(func)
             now_node = MCTSNode(func.algorithm, str(func), -1 * func.score, individual=func,
-                                parent=cur_node, depth=1, visit=1, Q=func.score, raw_info=func)
+                                parent=cur_node, depth=cur_node.depth + 1, visit=1, Q=func.score, raw_info=func)
             if option == 'e1':
                 now_node.subtree.append(now_node)
             cur_node.add_child(now_node)
             mcts.backpropagate(now_node)
-            node_set.append(now_node)
+            if node_set is not cur_node.children:
+                node_set.append(now_node)
         return node_set
 
     def _iteratively_init_population_root(self):
@@ -362,7 +433,10 @@ class MCTS_AHD:
         while len(self._population.population) < self._init_pop_size:
             try:
                 # get a new func using e1
-                prompt = MAPrompt.get_prompt_e1(self._task_description_str, self._population.population,
+                indivs = self._sample_e1_references_from_population(self._population.population, allow_single=True)
+                if len(indivs) == 0:
+                    continue
+                prompt = MAPrompt.get_prompt_e1(self._task_description_str, indivs,
                                                 self._function_to_evolve)
                 self._sample_evaluate_register(prompt)
                 self._population.survival()
@@ -434,8 +508,6 @@ class MCTS_AHD:
             return
 
         # evolutionary search
-        n_op = ['e1', 'e2', 'm1', 'm2', 's1']
-        op_weights = [0, 1, 2, 2, 1]
         while self._continue_loop():
             node_set = []
             print(f"Current performances of MCTS nodes: {mcts.rank_list}")
@@ -443,10 +515,10 @@ class MCTS_AHD:
                 f"Current number of MCTS nodes in the subtree of each child of the root: {[len(node.subtree) for node in mcts.root.children]}")
             cur_node = mcts.root
             while len(cur_node.children) > 0 and cur_node.depth < mcts.max_depth:
-                uct_scores = [mcts.uct(node, max(1 - self._tot_sample_nums / self._max_sample_nums, 0)) for node in
+                uct_scores = [mcts.uct(node, self._eval_remain_ratio()) for node in
                               cur_node.children]
                 selected_pair_idx = uct_scores.index(max(uct_scores))
-                if int((cur_node.visits) ** mcts.alpha) > len(cur_node.children):
+                if self._should_progressively_widen(mcts, cur_node):
                     if cur_node == mcts.root:
                         op = 'e1'
                         self.expand(mcts, mcts.root.children, cur_node, op)
@@ -455,10 +527,10 @@ class MCTS_AHD:
                         op = 'e2'
                         self.expand(mcts, cur_node.children, cur_node, op)
                 cur_node = cur_node.children[selected_pair_idx]
-            for i in range(len(n_op)):
-                op = n_op[i]
+            for i in range(len(self._operators)):
+                op = self._operators[i]
                 print(f"Iter: {self._tot_sample_nums}/{self._max_sample_nums} OP: {op}", end="|")
-                op_w = op_weights[i]
+                op_w = self._operator_weights[i]
                 for j in range(op_w):
                     node_set = self.expand(mcts, node_set, cur_node, op)
             self._population.survival()
