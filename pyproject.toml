@@ -1,0 +1,41 @@
+[project]
+name = "llm4ad"
+version = "1.0"
+description = "Large Language Model for Algorithm Design Platform"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "numpy<2",
+    "torch",
+    "tensorboardX",
+    "tensorboard",
+    "wandb",
+    "scipy",
+    "tqdm",
+    "numba",
+    "requests",
+    "openai",
+    "pytz",
+    "matplotlib",
+    "python-docx",
+    "ttkbootstrap",
+    "pandas",
+    "pymoo",
+    "codebleu",
+    "tree-sitter-python==0.23",
+    "gym",
+    "gymnasium",
+    "datasets",
+    "huggingface_hub",
+    "networkx",
+    "llamea",
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.uv.sources]
+llamea = { git = "https://github.com/XAI-liacs/LLaMEA.git", rev = "main" }
