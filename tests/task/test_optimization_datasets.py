@@ -16,6 +16,7 @@ OPTIMIZATION_TASKS = {
     "co_bench",
     "cvrp_aco",
     "cvrp_construct",
+    "de_crossover_100d",
     "de_mutation",
     "dpp_ga",
     "es_step_size",
@@ -77,6 +78,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.circle_packing.evaluation import CirclePackingEvaluation
     from llm4ad.task.optimization.cvrp_aco.evaluation import CVRPACOEvaluation
     from llm4ad.task.optimization.cvrp_construct.evaluation import CVRPEvaluation
+    from llm4ad.task.optimization.de_crossover_100d.evaluation import DECrossover100DEvaluation
     from llm4ad.task.optimization.de_mutation.evaluation import DEMutationEvaluation
     from llm4ad.task.optimization.dpp_ga.evaluation import DPPGAEvaluation
     from llm4ad.task.optimization.es_step_size.evaluation import ESStepSizeEvaluation
@@ -110,6 +112,7 @@ def test_default_evaluators_use_train_split():
         CirclePackingEvaluation(),
         CVRPACOEvaluation(),
         CVRPEvaluation(),
+        DECrossover100DEvaluation(pop_size=5, max_evals=20, n_runs=1),
         DEMutationEvaluation(pop_size=5, max_evals=20, n_runs=1),
         DPPGAEvaluation(),
         ESStepSizeEvaluation(lam=3, max_evals=20, n_runs=1),
