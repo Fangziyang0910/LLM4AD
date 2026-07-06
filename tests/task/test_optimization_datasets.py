@@ -20,6 +20,7 @@ OPTIMIZATION_TASKS = {
     "max_cut",
     "online_bin_packing",
     "online_bin_packing_2O",
+    "op_aco",
     "orienteering_construct",
     "ovrp_construct",
     "pymoo_moead",
@@ -72,6 +73,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.max_cut.evaluation import MaxCutEvaluation
     from llm4ad.task.optimization.online_bin_packing.evaluation import OBPEvaluation
     from llm4ad.task.optimization.online_bin_packing_2O.evaluation import OBP_2O_Evaluation
+    from llm4ad.task.optimization.op_aco.evaluation import OPACOEvaluation
     from llm4ad.task.optimization.orienteering_construct.evaluation import OrienteeringEvaluation
     from llm4ad.task.optimization.ovrp_construct.evaluation import OVRPEvaluation
     from llm4ad.task.optimization.pymoo_moead.evaluation import MOEAD_PYMOO_Evaluation
@@ -96,6 +98,7 @@ def test_default_evaluators_use_train_split():
         MaxCutEvaluation(),
         OBPEvaluation(),
         OBP_2O_Evaluation(),
+        OPACOEvaluation(),
         OrienteeringEvaluation(),
         OVRPEvaluation(),
         MOEAD_PYMOO_Evaluation(),
