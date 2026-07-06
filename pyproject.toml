@@ -39,3 +39,11 @@ where = ["."]
 
 [tool.uv.sources]
 llamea = { git = "https://github.com/XAI-liacs/LLaMEA.git", rev = "main" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

@@ -24,12 +24,11 @@
 from __future__ import annotations
 
 import concurrent.futures
+import copy
 import time
-import traceback
-from threading import Thread
 from typing import Optional, Literal
 
-# from torch.utils.data import Sampler
+import numpy as np
 
 from .population import Population
 from .profiler import ReEvoProfiler
@@ -46,7 +45,8 @@ class ReEvo:
                  evaluation: Evaluation,
                  profiler: ProfilerBase = None,
                  max_sample_nums: Optional[int] = 100,
-                 pop_size: Optional[int] = 20,
+                 pop_size: int = 10,
+                 init_pop_size: int = 30,
                  mutation_rate: float = 0.5,
                  num_samplers: int = 1,
                  num_evaluators: int = 1,
@@ -55,55 +55,39 @@ class ReEvo:
                  debug_mode: bool = False,
                  multi_thread_or_process_eval: Literal['thread', 'process'] = 'thread',
                  **kwargs):
-        """Reflective Evolution.
-        Args:
-            llm             : an instance of 'llm4ad.base.LLM', which provides the way to query LLM.
-            evaluation      : an instance of 'llm4ad.base.Evaluator', which defines the way to calculate the score of a generated function.
-            profiler        : an instance of 'llm4ad.method.reevo.ReEvoProfiler'. If you do not want to use it, you can pass a 'None'.
-            max_generations : terminate after evolving 'max_generations' generations or reach 'max_sample_nums',
-                              pass 'None' to disable this termination condition.
-            max_sample_nums : terminate after evaluating max_sample_nums functions (no matter the function is valid or not) or reach 'max_generations',
-                              pass 'None' to disable this termination condition.
-            pop_size        : population size, if set to 'None', EoH will automatically adjust this parameter.
-            resume_mode     : in resume_mode, randsample will not evaluate the template_program, and will skip the init process. TODO: More detailed usage.
-            debug_mode      : if set to True, we will print detailed information.
-            multi_thread_or_process_eval: use 'concurrent.futures.ThreadPoolExecutor' or 'concurrent.futures.ProcessPoolExecutor' for the usage of
-                multi-core CPU while evaluation. Please note that both settings can leverage multi-core CPU. As a result on my personal computer (Mac OS, Intel chip),
-                setting this parameter to 'process' will faster than 'thread'. However, I do not sure if this happens on all platform so I set the default to 'thread'.
-                Please note that there is one case that cannot utilize multi-core CPU: if you set 'safe_evaluate' argument in 'evaluator' to 'False',
-                and you set this argument to 'thread'.
-            **kwargs        : some args pass to 'llm4ad.base.SecureEvaluator'. Such as 'fork_proc'.
+        """Reflective Evolution following the original ReEvo mechanics.
+
+        LLM4AD evaluators use higher scores for better programs. Internally,
+        every better/worse comparison follows that score convention.
         """
         self._template_program_str = evaluation.template_program
         self._task_description_str = evaluation.task_description
         self._max_sample_nums = max_sample_nums
         self._pop_size = pop_size
+        self._init_pop_size = init_pop_size
         self._mutation_rate = mutation_rate
 
-        # samplers and evaluators
         self._num_samplers = num_samplers
         self._num_evaluators = num_evaluators
         self._resume_mode = resume_mode
         self._debug_mode = debug_mode
         llm.debug_mode = debug_mode
         self._multi_thread_or_process_eval = multi_thread_or_process_eval
-        self._MAX_SHORT_TERM_REFLECTION_PROMPT = 5
 
-        # function to be evolved
         self._function_to_evolve: Function = TextFunctionProgramConverter.text_to_function(self._template_program_str)
         self._function_to_evolve_name: str = self._function_to_evolve.name
         self._template_program: Program = TextFunctionProgramConverter.text_to_program(self._template_program_str)
 
-        # population, sampler, and evaluator
         self._population = Population(pop_size=self._pop_size)
         self._sampler = SampleTrimmer(llm)
         self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode, **kwargs)
         self._profiler = profiler
 
-        # statistics
         self._tot_sample_nums = 0
+        self._seed_function: Function | None = None
+        self._elite_function: Function | None = None
+        self._long_term_reflection_str = ''
 
-        # multi-thread executor for evaluation
         assert multi_thread_or_process_eval in ['thread', 'process']
         if multi_thread_or_process_eval == 'thread':
             self._evaluation_executor = concurrent.futures.ThreadPoolExecutor(
@@ -114,176 +98,238 @@ class ReEvo:
                 max_workers=num_evaluators
             )
 
-        # pass parameters to profiler
         if profiler is not None:
-            self._profiler.record_parameters(llm, evaluation, self)  # ZL: necessary
+            self._profiler.record_parameters(llm, evaluation, self)
 
-    def _sample_evaluate_register(self, prompt):
-        """Perform following steps:
-        1. Sample an algorithm using the given prompt.
-        2. Evaluate it by submitting to the process/thread pool, and get the results.
-        3. Add the function to the population and register it to the profiler.
-        """
-        sample_start = time.time()
-        func = self._sampler.draw_sample(prompt)
-        func = SampleTrimmer.sample_to_function(func, self._template_program)
-        sample_time = time.time() - sample_start
-        if func is None:
+    def _has_budget(self) -> bool:
+        return self._max_sample_nums is None or self._tot_sample_nums < self._max_sample_nums
+
+    def _tag_function(self, func: Function, operator: str):
+        func.operator = operator
+        func.algorithm = operator
+
+    def _debug_print(self, title: str, content: str):
+        if self._debug_mode:
+            print('--------------------------------------------------------------------')
+            print(f'{title}: \n{content}')
+            print('--------------------------------------------------------------------\n')
+
+    def _register_population(self):
+        if isinstance(self._profiler, ReEvoProfiler):
+            self._profiler.register_population(self._population)
+
+    def _register_function(self, func: Function, program: Program):
+        if self._profiler is not None:
+            self._profiler.register_function(func, program=str(program))
+
+    def _update_elite(self, func: Function):
+        if not Population.is_valid_score(func.score):
             return
-        # convert to Program instance
-        program = TextFunctionProgramConverter.function_to_program(func, self._template_program)
+        if self._elite_function is None or func.score > self._elite_function.score:
+            self._elite_function = copy.deepcopy(func)
+
+    def _evaluate_function(
+            self,
+            func: Function,
+            operator: str,
+            *,
+            sample_time: float = 0.0,
+            program: Program | None = None,
+    ) -> Function | None:
+        if not self._has_budget():
+            return None
+
+        self._tag_function(func, operator)
         if program is None:
-            return
-        # evaluate
+            program = TextFunctionProgramConverter.function_to_program(func, self._template_program)
+        if program is None:
+            self._tot_sample_nums += 1
+            return None
+
         score, eval_time = self._evaluation_executor.submit(
             self._evaluator.evaluate_program_record_time,
             program
         ).result()
-        # register to profiler
+
         func.score = score
         func.evaluate_time = eval_time
         func.sample_time = sample_time
-        if self._profiler is not None:
-            self._profiler.register_function(func, program=str(program))
-            if isinstance(self._profiler, ReEvoProfiler):
-                self._profiler.register_population(self._population)
         self._tot_sample_nums += 1
+        self._register_function(func, program)
 
-        # register to the population
-        self._population.register_function(func)
+        if not Population.is_valid_score(func.score):
+            return None
 
-    def _iteratively_ga_evolve(self):
-        short_term_reflection_prompts = []
-        long_term_reflection_prompts = []
-        crx_samples_generated_by_cur_thread = 0
+        self._update_elite(func)
+        return func
 
-        while self._tot_sample_nums < self._max_sample_nums:
-            try:
-                # short term reflection
-                indivs = [self._population.selection() for _ in range(2)]
-                short_term_reflection_prompt = ReEvoPrompt.get_short_term_reflection_prompt(self._task_description_str,
-                                                                                            indivs)
+    def _sample_evaluate_register(self, prompt: str, operator: str, **llm_kwargs) -> Function | None:
+        if not self._has_budget():
+            return None
 
-                if self._debug_mode:
-                    print(f'--------------------------------------------------------------------')
-                    print(f'Short Term Reflection Prompt-1: \n{short_term_reflection_prompt}')
-                    print(f'--------------------------------------------------------------------\n\n')
+        sample_start = time.time()
+        generated_code = self._sampler.draw_sample(prompt, **llm_kwargs)
+        sample_time = time.time() - sample_start
 
-                short_term_reflection_prompt = self._sampler.llm.draw_sample(short_term_reflection_prompt)
-                short_term_reflection_prompts.append(short_term_reflection_prompt)
+        func = SampleTrimmer.sample_to_function(generated_code, self._template_program)
+        if func is None:
+            self._tot_sample_nums += 1
+            return None
 
-                if self._debug_mode:
-                    print(f'--------------------------------------------------------------------')
-                    print(f'Short Term Reflection Prompt-2: \n{short_term_reflection_prompt}')
-                    print(f'--------------------------------------------------------------------\n\n')
+        program = TextFunctionProgramConverter.function_to_program(func, self._template_program)
+        if program is None:
+            self._tot_sample_nums += 1
+            return None
 
-                # crossover
-                crx_prompt = ReEvoPrompt.get_crossover_prompt(self._task_description_str, short_term_reflection_prompt,
-                                                              indivs)
+        return self._evaluate_function(func, operator, sample_time=sample_time, program=program)
 
-                if self._debug_mode:
-                    print(f'--------------------------------------------------------------------')
-                    print(f'Crossover Prompt: \n{crx_prompt}')
-                    print(f'--------------------------------------------------------------------\n\n')
+    def _init_sampling_kwargs(self) -> dict:
+        temperature = getattr(self._sampler.llm, 'temperature', None)
+        if isinstance(temperature, (int, float)):
+            return {'temperature': temperature + 0.3}
+        return {}
 
-                self._sample_evaluate_register(crx_prompt)
-                crx_samples_generated_by_cur_thread += 1
-                if self._tot_sample_nums >= self._max_sample_nums:
-                    break
+    def _evaluate_seed(self) -> Function:
+        seed_func = copy.deepcopy(self._function_to_evolve)
+        seed = self._evaluate_function(
+            seed_func,
+            'seed',
+            sample_time=0.0,
+            program=copy.deepcopy(self._template_program),
+        )
+        if seed is None:
+            raise RuntimeError('ReEvo seed function is invalid. Check the evaluation template and task evaluator.')
+        self._seed_function = copy.deepcopy(seed)
+        return seed
 
-                # assume that current thread has generated a population of algorithms
-                if crx_samples_generated_by_cur_thread > 0 and crx_samples_generated_by_cur_thread % self._pop_size == 0:
-                    # long term reflection
-                    long_term_reflection_prompt = ReEvoPrompt.get_long_term_reflection_prompt(
-                        self._task_description_str,
-                        long_term_reflection_prompts[-1] if long_term_reflection_prompts else '',
-                        short_term_reflection_prompts[-self._MAX_SHORT_TERM_REFLECTION_PROMPT:],
-                    )
-
-                    if self._debug_mode:
-                        print(f'--------------------------------------------------------------------')
-                        print(f'Long Term Reflection Prompt-1: \n{long_term_reflection_prompt}')
-                        print(f'--------------------------------------------------------------------\n\n')
-
-                    long_term_reflection_prompt = self._sampler.llm.draw_sample(long_term_reflection_prompt)
-                    long_term_reflection_prompts.append(long_term_reflection_prompt)
-
-                    if self._debug_mode:
-                        print(f'--------------------------------------------------------------------')
-                        print(f'Long Term Reflection Prompt-2: \n{long_term_reflection_prompt}')
-                        print(f'--------------------------------------------------------------------\n\n')
-
-                    # mutation
-                    for _ in range(int(self._mutation_rate * self._pop_size)):
-                        func = self._population.elite_function
-                        mutation_prompt = ReEvoPrompt.get_elist_mutation_prompt(self._task_description_str,
-                                                                                long_term_reflection_prompt, func)
-
-                        if self._debug_mode:
-                            print(f'--------------------------------------------------------------------')
-                            print(f'Elite mutation: \n{mutation_prompt}')
-                            print(f'--------------------------------------------------------------------\n\n')
-
-                        self._sample_evaluate_register(mutation_prompt)
-
-                    if self._tot_sample_nums >= self._max_sample_nums:
-                        break
-
-            except KeyboardInterrupt:
+    def _initialize_population(self):
+        prompt = ReEvoPrompt.get_pop_init_prompt(self._task_description_str, self._function_to_evolve)
+        self._debug_print('Initial Population Prompt', prompt)
+        accepted = []
+        for _ in range(self._init_pop_size):
+            if not self._has_budget():
                 break
-            except Exception as e:
-                if self._debug_mode:
-                    traceback.print_exc()
-                    exit()
+            func = self._sample_evaluate_register(prompt, 'init', **self._init_sampling_kwargs())
+            if func is not None:
+                accepted.append(func)
+
+        self._population.set_population(accepted, increment_generation=True)
+        self._register_population()
+
+    def _selection_pool(self) -> list[Function]:
+        pool = list(self._population.valid_functions())
+        if self._elite_function is not None and Population.is_valid_score(self._elite_function.score):
+            if not any(str(func) == str(self._elite_function) for func in pool):
+                pool = [copy.deepcopy(self._elite_function)] + pool
+        return pool
+
+    def _select_parent_pairs(self) -> list[list[Function]]:
+        pool = self._selection_pool()
+        if len(pool) < 2:
+            raise RuntimeError('ReEvo selection failed: fewer than two valid functions are available.')
+        if len({float(func.score) for func in pool}) < 2:
+            raise RuntimeError('ReEvo selection failed: valid functions do not contain two distinct scores.')
+
+        selected_pairs = []
+        trial = 0
+        while len(selected_pairs) < self._pop_size:
+            trial += 1
+            parent_1, parent_2 = np.random.choice(pool, size=2, replace=False)
+            if parent_1 is parent_2:
                 continue
-
-        # shutdown evaluation_executor
-        try:
-            self._evaluation_executor.shutdown(cancel_futures=True)
-        except:
-            pass
-
-    def _iteratively_init_population(self):
-        """Let a thread repeat {sample -> evaluate -> register to population}
-        to initialize a population.
-        """
-        while self._population.generation == 0:
-            try:
-                # get a new func using i1
-                prompt = ReEvoPrompt.get_pop_init_prompt(self._task_description_str, self._function_to_evolve)
-                if self._debug_mode:
-                    print(f'Init Prompt: {prompt}')
-                self._sample_evaluate_register(prompt)
-            except Exception:
-                if self._debug_mode:
-                    traceback.print_exc()
-                    exit()
+            if parent_1.score == parent_2.score:
                 continue
+            selected_pairs.append([parent_1, parent_2])
+            if trial > 1000:
+                raise RuntimeError('ReEvo selection failed after 1000 trials.')
+        return selected_pairs
 
-    def _multi_threaded_sampling(self, fn: callable, *args, **kwargs):
-        """Execute `fn` using multithreading.
-        In EoH, `fn` can be `self._iteratively_init_population` or `self._iteratively_use_eoh_operator`.
-        """
-        # threads for sampling
-        sampler_threads = [
-            Thread(target=fn, args=args, kwargs=kwargs)
-            for _ in range(self._num_samplers)
-        ]
-        for t in sampler_threads:
-            t.start()
-        for t in sampler_threads:
-            t.join()
+    def _short_term_reflection(self, parents: list[Function]) -> str:
+        prompt = ReEvoPrompt.get_short_term_reflection_prompt(self._task_description_str, parents)
+        self._debug_print('Short-term Reflection Prompt', prompt)
+        reflection = self._sampler.llm.draw_sample(prompt)
+        self._debug_print('Short-term Reflection', reflection)
+        return reflection
+
+    def _crossover(self, parents: list[Function], short_term_reflection: str) -> Function | None:
+        prompt = ReEvoPrompt.get_crossover_prompt(self._task_description_str, short_term_reflection, parents)
+        self._debug_print('Crossover Prompt', prompt)
+        return self._sample_evaluate_register(prompt, 'crossover')
+
+    def _long_term_reflection(self, short_term_reflections: list[str]) -> str:
+        prompt = ReEvoPrompt.get_long_term_reflection_prompt(
+            self._task_description_str,
+            self._long_term_reflection_str,
+            short_term_reflections,
+        )
+        self._debug_print('Long-term Reflection Prompt', prompt)
+        self._long_term_reflection_str = self._sampler.llm.draw_sample(prompt)
+        self._debug_print('Long-term Reflection', self._long_term_reflection_str)
+        return self._long_term_reflection_str
+
+    def _mutate_elite(self) -> list[Function]:
+        if self._elite_function is None:
+            raise RuntimeError('ReEvo mutation failed: no valid elite function is available.')
+
+        prompt = ReEvoPrompt.get_elist_mutation_prompt(
+            self._task_description_str,
+            self._long_term_reflection_str,
+            self._elite_function,
+        )
+        self._debug_print('Elitist Mutation Prompt', prompt)
+
+        mutated = []
+        for _ in range(int(self._pop_size * self._mutation_rate)):
+            if not self._has_budget():
+                break
+            func = self._sample_evaluate_register(prompt, 'mutation')
+            if func is not None:
+                mutated.append(func)
+        return mutated
+
+    def _run_evolution_generation(self):
+        parent_pairs = self._select_parent_pairs()
+        short_term_reflections = [self._short_term_reflection(pair) for pair in parent_pairs]
+
+        crossed_population = []
+        for parents, reflection in zip(parent_pairs, short_term_reflections):
+            if not self._has_budget():
+                break
+            func = self._crossover(parents, reflection)
+            if func is not None:
+                crossed_population.append(func)
+
+        if not crossed_population:
+            return
+
+        self._population.set_population(crossed_population, increment_generation=True)
+        self._register_population()
+
+        if not self._has_budget():
+            return
+
+        self._long_term_reflection(short_term_reflections)
+        mutated_population = self._mutate_elite()
+        if mutated_population:
+            self._population.extend(mutated_population)
+            self._population.advance_generation()
+            self._register_population()
 
     def run(self):
-        if not self._resume_mode:
-            # do initialization
-            self._multi_threaded_sampling(self._iteratively_init_population)
+        try:
+            if not self._resume_mode:
+                if self._has_budget():
+                    self._evaluate_seed()
+                if self._has_budget():
+                    self._initialize_population()
 
-        # evolutionary search
-        self._multi_threaded_sampling(self._iteratively_ga_evolve)
-
-        # finish
-        if self._profiler is not None:
-            self._profiler.finish()
-
-        self._sampler.llm.close()
+            while self._has_budget():
+                self._run_evolution_generation()
+        finally:
+            try:
+                self._evaluation_executor.shutdown(cancel_futures=True)
+            except Exception:
+                pass
+            if self._profiler is not None:
+                self._profiler.finish()
+            self._sampler.llm.close()

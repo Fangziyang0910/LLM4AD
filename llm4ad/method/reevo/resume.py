@@ -17,8 +17,9 @@ def _get_latest_pop_json(log_path: str):
     path = os.path.join(log_path, 'population')
     orders = []
     for p in os.listdir(path):
-        order = int(p.split('.')[0].split('_')[1])
-        orders.append(order)
+        match = re.match(r'pop_(\d+)\.json$', p)
+        if match:
+            orders.append(int(match.group(1)))
     max_o = max(orders)
     return os.path.join(path, f'pop_{max_o}.json'), max_o
 
@@ -50,10 +51,10 @@ def _get_all_samples_and_scores(path, get_algorithm=True):
             samples = json.load(f)
             for sample in samples:
                 func = sample['function']
-                acc = sample['score'] if sample['score'] else float('-inf')
+                acc = sample['score'] if sample['score'] is not None else float('-inf')
                 all_func.append(func)
                 all_score.append(acc)
-                all_algorithm.append(sample['algorithm'])
+                all_algorithm.append(sample.get('algorithm', sample.get('operator', 'Unknown')))
                 max_o = sample['sample_order']
 
     if get_algorithm:
@@ -71,9 +72,10 @@ def _resume_pop(log_path: str, pop_size) -> Population:
         func = d['function']
         func = tfpc.text_to_function(func)
         score = d['score']
-        algorithm = d['algorithm']
+        algorithm = d.get('algorithm', d.get('operator', 'Unknown'))
         func.score = score
         func.algorithm = algorithm
+        func.operator = algorithm
         pop.register_function(func)
     pop._generation = max_gen
     return pop
@@ -113,7 +115,18 @@ def resume_reevo(reevo: ReEvo, path):
     reevo._population = pop
     # resume profiler
     template_func = reevo._function_to_evolve
-    _resume_pf(log_path, pf, template_func)
+    if pf is not None:
+        _resume_pf(log_path, pf, template_func)
     # resume reevo
-    _, _, sample_max_order, _ = _get_all_samples_and_scores(log_path)
+    funcs, scores, sample_max_order, algorithms = _get_all_samples_and_scores(log_path)
     reevo._tot_sample_nums = sample_max_order
+    reevo._long_term_reflection_str = getattr(reevo, '_long_term_reflection_str', '')
+    valid_funcs = []
+    for func_text, score, algorithm in zip(funcs, scores, algorithms):
+        func = _resume_text2func(func_text, score, template_func)
+        func.algorithm = algorithm
+        func.operator = algorithm
+        if Population.is_valid_score(func.score):
+            valid_funcs.append(func)
+    if valid_funcs:
+        reevo._elite_function = max(valid_funcs, key=lambda f: f.score)
