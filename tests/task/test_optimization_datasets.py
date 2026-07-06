@@ -11,6 +11,7 @@ OPTIMIZATION_TASKS = {
     "bp_2d_construct",
     "cflp_construct",
     "co_bench",
+    "cvrp_aco",
     "cvrp_construct",
     "fssp_gls",
     "jssp_construct",
@@ -61,6 +62,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.bp_1d_construct.evaluation import BP1DEvaluation
     from llm4ad.task.optimization.bp_2d_construct.evaluation import BP2DEvaluation
     from llm4ad.task.optimization.cflp_construct.evaluation import CFLPEvaluation
+    from llm4ad.task.optimization.cvrp_aco.evaluation import CVRPACOEvaluation
     from llm4ad.task.optimization.cvrp_construct.evaluation import CVRPEvaluation
     from llm4ad.task.optimization.fssp_gls.evaluation import FSSPGLSEvaluation
     from llm4ad.task.optimization.jssp_construct.evaluation import JSSPEvaluation
@@ -83,6 +85,7 @@ def test_default_evaluators_use_train_split():
         BP1DEvaluation(),
         BP2DEvaluation(),
         CFLPEvaluation(),
+        CVRPACOEvaluation(),
         CVRPEvaluation(),
         FSSPGLSEvaluation(),
         JSSPEvaluation(),
