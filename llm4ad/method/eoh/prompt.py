@@ -112,8 +112,27 @@ I have one algorithm with its code as follows. Algorithm description:
 {indi.algorithm}
 Code:
 {str(indi)}
-Please identify the main algorithm parameters and assist me in creating a new algorithm that has a different parameter settings of the score function provided.
+Please identify the main algorithm parameters and assist me in creating a new algorithm that has different parameter settings.
 1. First, describe your new algorithm and main steps in one sentence. The description must be inside within boxed {{}}.
+2. Next, implement the following Python function:
+{str(temp_func)}
+Do not give additional explanations.'''
+        return prompt_content
+
+    @classmethod
+    def get_prompt_m3(cls, task_prompt: str, indi: Function, template_function: Function):
+        assert hasattr(indi, 'algorithm')
+        temp_func = copy.deepcopy(template_function)
+        temp_func.body = ''
+        prompt_content = f'''{task_prompt}
+I have one algorithm with its code as follows. Algorithm description:
+{indi.algorithm}
+Code:
+{str(indi)}
+First, identify the main components in the code above.
+Next, analyze whether any components are redundant or overfit to in-distribution instances.
+Then, simplify the components to enhance generalization while keeping the function name, inputs, and outputs unchanged.
+1. First, describe your simplified algorithm and main steps in one sentence. The description must be inside within boxed {{}}.
 2. Next, implement the following Python function:
 {str(temp_func)}
 Do not give additional explanations.'''
