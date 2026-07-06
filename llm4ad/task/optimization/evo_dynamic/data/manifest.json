@@ -1,0 +1,78 @@
+{
+  "dataset_id": "evo_dynamic_v1",
+  "description": "Fixed EoH dynamic evolutionary optimisation benchmark. The searched function regenerates or adjusts a population after each objective shift.",
+  "generator": "llm4ad.task.optimization.evo_dynamic.dataset.write_default_dataset",
+  "paper": "papers/EoH",
+  "source": "reference_code/EoH/examples/evo_dynamic",
+  "splits": {
+    "test_full": {
+      "filename": "test_full.pkl.gz",
+      "format": "pickle_gzip",
+      "groups": [
+        {
+          "data_seed": 2024,
+          "label": "10D slow",
+          "n_changes": 15,
+          "n_dims": 10,
+          "n_instances": 16,
+          "sigma_change": 0.3
+        },
+        {
+          "data_seed": 2024,
+          "label": "10D fast",
+          "n_changes": 15,
+          "n_dims": 10,
+          "n_instances": 16,
+          "sigma_change": 0.8
+        },
+        {
+          "data_seed": 2024,
+          "label": "20D medium",
+          "n_changes": 15,
+          "n_dims": 20,
+          "n_instances": 16,
+          "sigma_change": 0.5
+        },
+        {
+          "data_seed": 2024,
+          "label": "20D rapid",
+          "n_changes": 15,
+          "n_dims": 20,
+          "n_instances": 16,
+          "sigma_change": 1.0
+        }
+      ],
+      "k_iter": 50,
+      "n_instances": 64,
+      "note": "Post-hoc evaluator from the EoH example: four dynamic scenarios.",
+      "pop_size": 30,
+      "role": "test",
+      "run_seed_mode": "local_id",
+      "sha256": "f33b615b6824c642cb260936c42e265bc83c5493f9d1be6f179c262552c28d07"
+    },
+    "train": {
+      "filename": "train.pkl.gz",
+      "format": "pickle_gzip",
+      "groups": [
+        {
+          "data_seed": 2024,
+          "label": "10D medium",
+          "n_changes": 10,
+          "n_dims": 10,
+          "n_instances": 5,
+          "sigma_change": 0.5
+        }
+      ],
+      "k_iter": 30,
+      "n_instances": 5,
+      "note": "Original EoH search evaluator: five 10D dynamic optimisation trajectories.",
+      "pop_size": 30,
+      "role": "train",
+      "run_seed": 42,
+      "run_seed_mode": "global",
+      "sha256": "cad54475b7db8eca37189bc3b663d3cd341eb8554e1b3181a8a82732ae261c2e"
+    }
+  },
+  "task": "evo_dynamic",
+  "version": 1
+}
