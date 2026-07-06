@@ -28,6 +28,7 @@ OPTIMIZATION_TASKS = {
     "large_scale_es",
     "max_cut",
     "mkp_aco",
+    "nurse_rostering",
     "online_bin_packing",
     "online_bin_packing_2O",
     "op_aco",
@@ -94,6 +95,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.large_scale_es.evaluation import LargeScaleESEvaluation
     from llm4ad.task.optimization.max_cut.evaluation import MaxCutEvaluation
     from llm4ad.task.optimization.mkp_aco.evaluation import MKPACOEvaluation
+    from llm4ad.task.optimization.nurse_rostering.evaluation import NurseRosteringEvaluation
     from llm4ad.task.optimization.online_bin_packing.evaluation import OBPEvaluation
     from llm4ad.task.optimization.online_bin_packing_2O.evaluation import OBP_2O_Evaluation
     from llm4ad.task.optimization.op_aco.evaluation import OPACOEvaluation
@@ -132,6 +134,7 @@ def test_default_evaluators_use_train_split():
         LargeScaleESEvaluation(max_evals=20, n_runs=1),
         MaxCutEvaluation(),
         MKPACOEvaluation(),
+        NurseRosteringEvaluation(),
         OBPEvaluation(),
         OBP_2O_Evaluation(),
         OPACOEvaluation(),
