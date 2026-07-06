@@ -9,6 +9,7 @@ OPTIMIZATION_TASKS = {
     "admissible_set",
     "bp_1d_construct",
     "bp_2d_construct",
+    "bpp_offline_aco",
     "cflp_construct",
     "co_bench",
     "cvrp_aco",
@@ -61,6 +62,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.admissible_set.evaluation import ASPEvaluation
     from llm4ad.task.optimization.bp_1d_construct.evaluation import BP1DEvaluation
     from llm4ad.task.optimization.bp_2d_construct.evaluation import BP2DEvaluation
+    from llm4ad.task.optimization.bpp_offline_aco.evaluation import BPPOfflineACOEvaluation
     from llm4ad.task.optimization.cflp_construct.evaluation import CFLPEvaluation
     from llm4ad.task.optimization.cvrp_aco.evaluation import CVRPACOEvaluation
     from llm4ad.task.optimization.cvrp_construct.evaluation import CVRPEvaluation
@@ -84,6 +86,7 @@ def test_default_evaluators_use_train_split():
         ASPEvaluation(),
         BP1DEvaluation(),
         BP2DEvaluation(),
+        BPPOfflineACOEvaluation(),
         CFLPEvaluation(),
         CVRPACOEvaluation(),
         CVRPEvaluation(),
