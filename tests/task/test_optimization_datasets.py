@@ -40,6 +40,7 @@ OPTIMIZATION_TASKS = {
     "nsga2_pymoo",
     "online_bin_packing",
     "online_bin_packing_2O",
+    "one_plus_one",
     "op_aco",
     "orienteering_construct",
     "ovrp_construct",
@@ -120,6 +121,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.nsga2_pymoo.evaluation import NSGA2PymooEvaluation
     from llm4ad.task.optimization.online_bin_packing.evaluation import OBPEvaluation
     from llm4ad.task.optimization.online_bin_packing_2O.evaluation import OBP_2O_Evaluation
+    from llm4ad.task.optimization.one_plus_one.evaluation import OnePlusOneEvaluation
     from llm4ad.task.optimization.op_aco.evaluation import OPACOEvaluation
     from llm4ad.task.optimization.orienteering_construct.evaluation import OrienteeringEvaluation
     from llm4ad.task.optimization.ovrp_construct.evaluation import OVRPEvaluation
@@ -172,6 +174,7 @@ def test_default_evaluators_use_train_split():
         NSGA2PymooEvaluation(pop_size=10, n_gen=2, n_runs=1),
         OBPEvaluation(),
         OBP_2O_Evaluation(),
+        OnePlusOneEvaluation(max_evals=6, n_runs=1),
         OPACOEvaluation(),
         OrienteeringEvaluation(),
         OVRPEvaluation(),
