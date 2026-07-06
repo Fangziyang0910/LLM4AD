@@ -7,6 +7,7 @@ import pytest
 
 OPTIMIZATION_TASKS = {
     "admissible_set",
+    "bo_acquisition",
     "bp_1d_construct",
     "bp_2d_construct",
     "bpp_offline_aco",
@@ -62,6 +63,7 @@ def test_default_dataset_manifests_exist_for_generated_tasks():
 
 def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.admissible_set.evaluation import ASPEvaluation
+    from llm4ad.task.optimization.bo_acquisition.evaluation import BOAcquisitionEvaluation
     from llm4ad.task.optimization.bp_1d_construct.evaluation import BP1DEvaluation
     from llm4ad.task.optimization.bp_2d_construct.evaluation import BP2DEvaluation
     from llm4ad.task.optimization.bpp_offline_aco.evaluation import BPPOfflineACOEvaluation
@@ -88,6 +90,7 @@ def test_default_evaluators_use_train_split():
 
     evaluators = [
         ASPEvaluation(),
+        BOAcquisitionEvaluation(),
         BP1DEvaluation(),
         BP2DEvaluation(),
         BPPOfflineACOEvaluation(),
