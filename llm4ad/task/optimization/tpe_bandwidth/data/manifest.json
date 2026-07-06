@@ -1,0 +1,108 @@
+{
+  "dataset_id": "tpe_bandwidth_v1",
+  "description": "Fixed EoH Optuna TPE observation-weight benchmark. The searched function computes weights for the good-group Parzen estimator.",
+  "generator": "llm4ad.task.optimization.tpe_bandwidth.dataset.write_default_dataset",
+  "paper": "papers/EoH",
+  "source": "reference_code/EoH/examples/tpe_bandwidth",
+  "splits": {
+    "test_full": {
+      "configs": [
+        {
+          "hi": 5.12,
+          "lo": -5.12,
+          "name": "sphere"
+        },
+        {
+          "hi": 50.0,
+          "lo": -50.0,
+          "name": "sphere"
+        },
+        {
+          "hi": 5.12,
+          "lo": -5.12,
+          "name": "rastrigin"
+        },
+        {
+          "hi": 2.0,
+          "lo": -2.0,
+          "name": "rastrigin"
+        },
+        {
+          "hi": 32.768,
+          "lo": -32.768,
+          "name": "ackley"
+        },
+        {
+          "hi": 5.0,
+          "lo": -5.0,
+          "name": "ackley"
+        },
+        {
+          "hi": 100.0,
+          "lo": -100.0,
+          "name": "griewank"
+        },
+        {
+          "hi": 10.0,
+          "lo": -10.0,
+          "name": "griewank"
+        },
+        {
+          "hi": 1.0,
+          "lo": 0.0,
+          "name": "narrow"
+        },
+        {
+          "hi": 1.5,
+          "lo": -0.5,
+          "name": "narrow"
+        }
+      ],
+      "n_ei_candidates": 64,
+      "n_instances": 10,
+      "n_iter": 60,
+      "n_runs": 10,
+      "n_startup": 20,
+      "note": "Original EoH post-hoc evaluator: base and wider-domain variants.",
+      "role": "test"
+    },
+    "train": {
+      "configs": [
+        {
+          "hi": 5.12,
+          "lo": -5.12,
+          "name": "sphere"
+        },
+        {
+          "hi": 5.12,
+          "lo": -5.12,
+          "name": "rastrigin"
+        },
+        {
+          "hi": 32.768,
+          "lo": -32.768,
+          "name": "ackley"
+        },
+        {
+          "hi": 100.0,
+          "lo": -100.0,
+          "name": "griewank"
+        },
+        {
+          "hi": 1.0,
+          "lo": 0.0,
+          "name": "narrow"
+        }
+      ],
+      "n_ei_candidates": 64,
+      "n_instances": 5,
+      "n_iter": 30,
+      "n_runs": 3,
+      "n_startup": 10,
+      "note": "Original EoH search evaluator: five 1-D benchmarks.",
+      "role": "train"
+    }
+  },
+  "task": "tpe_bandwidth",
+  "version": 1
+}

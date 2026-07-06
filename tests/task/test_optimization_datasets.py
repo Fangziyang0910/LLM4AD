@@ -55,6 +55,7 @@ OPTIMIZATION_TASKS = {
     "tsp_gls",
     "tsp_gls_2O",
     "tsp_rnr",
+    "tpe_bandwidth",
     "vrptw_construct",
 }
 
@@ -134,6 +135,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.tsp_gls.evaluation import TSPGLSEvaluation
     from llm4ad.task.optimization.tsp_gls_2O.evaluation import TSP_GLS_2O_Evaluation
     from llm4ad.task.optimization.tsp_rnr.evaluation import TSPRnrEvaluation
+    from llm4ad.task.optimization.tpe_bandwidth.evaluation import TPEBandwidthEvaluation
     from llm4ad.task.optimization.vrptw_construct.evaluation import VRPTWEvaluation
 
     evaluators = [
@@ -185,6 +187,7 @@ def test_default_evaluators_use_train_split():
         TSPGLSEvaluation(),
         TSP_GLS_2O_Evaluation(),
         TSPRnrEvaluation(),
+        TPEBandwidthEvaluation(n_startup=2, n_iter=3, n_runs=1),
         VRPTWEvaluation(),
     ]
 
