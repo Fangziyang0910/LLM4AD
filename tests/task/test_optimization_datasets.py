@@ -31,6 +31,7 @@ OPTIMIZATION_TASKS = {
     "max_cut",
     "mkp_aco",
     "moead_decomposition",
+    "mobbob_metaheuristic",
     "nurse_rostering",
     "nsga2_crowding",
     "online_bin_packing",
@@ -103,6 +104,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.max_cut.evaluation import MaxCutEvaluation
     from llm4ad.task.optimization.mkp_aco.evaluation import MKPACOEvaluation
     from llm4ad.task.optimization.moead_decomposition.evaluation import MOEADDecompositionEvaluation
+    from llm4ad.task.optimization.mobbob_metaheuristic.evaluation import MoBBOBMetaheuristicEvaluation
     from llm4ad.task.optimization.nurse_rostering.evaluation import NurseRosteringEvaluation
     from llm4ad.task.optimization.nsga2_crowding.evaluation import NSGA2CrowdingEvaluation
     from llm4ad.task.optimization.online_bin_packing.evaluation import OBPEvaluation
@@ -147,6 +149,7 @@ def test_default_evaluators_use_train_split():
         MaxCutEvaluation(),
         MKPACOEvaluation(),
         MOEADDecompositionEvaluation(n_gen=2, n_runs=1, hv_samples=500),
+        MoBBOBMetaheuristicEvaluation(budget=10, n_runs=1),
         NurseRosteringEvaluation(),
         NSGA2CrowdingEvaluation(pop_size=10, n_gen=2, n_runs=1),
         OBPEvaluation(),

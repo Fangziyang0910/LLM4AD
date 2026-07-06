@@ -1,0 +1,41 @@
+{
+  "dataset_id": "mobbob_metaheuristic_v1",
+  "description": "Fixed EoH multi-objective black-box metaheuristic design benchmark. The searched program returns a decision-space Pareto-front approximation.",
+  "generator": "llm4ad.task.optimization.mobbob_metaheuristic.dataset.write_default_dataset",
+  "paper": "papers/EoH",
+  "source": "reference_code/EoH/examples/mobbob_metaheuristic",
+  "splits": {
+    "test_full": {
+      "budget": 5000,
+      "dim": 10,
+      "function_names": [
+        "zdt1",
+        "zdt2",
+        "zdt3",
+        "zdt4"
+      ],
+      "n_instances": 4,
+      "n_runs": 5,
+      "note": "Post-hoc evaluator from the EoH example: ZDT1-4, dim=10, five seeds.",
+      "role": "test",
+      "seed_start": 0
+    },
+    "train": {
+      "budget": 10000,
+      "dim": 10,
+      "function_names": [
+        "zdt1",
+        "zdt2",
+        "zdt3",
+        "zdt4"
+      ],
+      "n_instances": 4,
+      "n_runs": 3,
+      "note": "Original EoH search evaluator: ZDT1-4, dim=10, budget=10000, three seeds.",
+      "role": "train",
+      "seed_start": 0
+    }
+  },
+  "task": "mobbob_metaheuristic",
+  "version": 1
+}
