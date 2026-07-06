@@ -1,6 +1,6 @@
 task_description = """
 You are tasked with designing a key component for a Multi-Objective Evolutionary Algorithm based on Decomposition (MOEA/D).
-Your objective is to create a novel decomposition strategy that effectively transforms the multi-objective DTLZ1 problem
+Your objective is to create a novel decomposition strategy that effectively transforms the multi-objective DTLZ4 problem
 into a series of single-objective subproblems. The performance of your strategy will be measured by the hypervolume (HV)
 of the resulting Pareto front; a higher HV indicates a better set of solutions.
 """
@@ -31,4 +31,3 @@ def custom_decomposition(F: np.ndarray,
     v = np.abs(F - ideal_point) * weights
     return np.max(v, axis=1)
 '''
-

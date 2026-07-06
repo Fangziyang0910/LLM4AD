@@ -6,10 +6,7 @@
 #
 # Parameters:
 #   - timeout_seconds: Maximum allowed time (in seconds) for the evaluation process: int (default: 30).
-#   - n_instance: Number of problem instances to generate: int (default: 5).
-#   - n_elements: Number of elements in the universal set: int (default: 10).
-#   - n_subsets: Number of subsets in the collection: int (default: 15).
-#   - max_subset_size: Maximum size of each subset: int (default: 5).
+#   - split: Fixed dataset split used for evaluation.
 # 
 # References:
 #   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
@@ -38,7 +35,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from llm4ad.base import Evaluation
-from llm4ad.task.optimization.set_cover_construct.get_instance import GetData
+from llm4ad.task.optimization.set_cover_construct.dataset import (
+    DEFAULT_SPLIT,
+    load_split_instances,
+)
 from llm4ad.task.optimization.set_cover_construct.template import template_program, task_description
 
 __all__ = ['SCPEvaluation']
@@ -51,17 +51,11 @@ class SCPEvaluation(Evaluation):
 
     def __init__(self,
                  timeout_seconds=30,
-                 n_instance: int = 16,
-                 n_elements: int = 50,
-                 n_subsets: int = 50,
-                 max_subset_size: int = 8,
-                 **kwargs):
+                 split: str = DEFAULT_SPLIT):
         """
         Args:
-            n_instance: Number of instances to generate.
-            n_elements: Number of elements in the universal set.
-            n_subsets: Number of subsets in the collection.
-            max_subset_size: Maximum size of each subset.
+            timeout_seconds: Maximum allowed time for one program evaluation.
+            split: Fixed dataset split used for evaluation.
         """
         super().__init__(
             template_program=template_program,
@@ -70,13 +64,11 @@ class SCPEvaluation(Evaluation):
             timeout_seconds=timeout_seconds
         )
 
-        self.n_instance = n_instance
-        self.n_elements = n_elements
-        self.n_subsets = n_subsets
-        self.max_subset_size = max_subset_size
-
-        getData = GetData(self.n_instance, self.n_elements, self.n_subsets, self.max_subset_size)
-        self._datasets = getData.generate_instances()
+        self._datasets, self.dataset_metadata = load_split_instances(split=split)
+        self.n_instance = int(self.dataset_metadata["n_instances"])
+        self.n_elements = int(self.dataset_metadata["n_elements"])
+        self.n_subsets = int(self.dataset_metadata["n_subsets"])
+        self.max_subset_size = int(self.dataset_metadata["max_subset_size"])
 
     def evaluate_program(self, program_str: str, callable_func: Callable) -> Any | None:
         """
@@ -154,6 +146,8 @@ class SCPEvaluation(Evaluation):
 
             if selected_subset is None:
                 break  # No more subsets to select
+            if selected_subset not in remaining_subsets:
+                return None, []
 
             # Add the selected subset to the list of selected subsets
             selected_subsets.append(selected_subset)
@@ -163,6 +157,9 @@ class SCPEvaluation(Evaluation):
             remaining_subsets.remove(selected_subset)
 
         # Calculate the number of subsets used
+        if remaining_elements:
+            return None, []
+
         used_subsets = len(selected_subsets)
         return used_subsets, selected_subsets
 
@@ -171,8 +168,6 @@ class SCPEvaluation(Evaluation):
         Evaluate the constructive heuristic for the Set Covering Problem.
 
         Args:
-            instance_data: List of tuples containing the universal set and subsets.
-            n_ins: Number of instances to evaluate.
             eva: The constructive heuristic function to evaluate.
 
         Returns:
@@ -183,6 +178,8 @@ class SCPEvaluation(Evaluation):
         for instance in self._datasets[:self.n_instance]:
             universal_set, subsets = instance
             num_subsets, _ = self.cover_subsets(universal_set, subsets, eva)
+            if num_subsets is None:
+                return None
             total_subsets += num_subsets
 
         average_subsets = total_subsets / self.n_instance

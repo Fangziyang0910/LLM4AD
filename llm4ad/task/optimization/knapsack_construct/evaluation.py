@@ -7,9 +7,7 @@
 #
 # Parameters:
 #    - timeout_seconds: Maximum allowed time (in seconds) for the evaluation process: int (default: 20).
-#    - n_instance: Number of problem instances to generate: int (default: 16).
-#    - n_items: Number of items available: int (default: 20).
-#    - knapsack_capacity: Maximum capacity of the knapsack: int (default: 50).
+#    - split: Fixed dataset split used for evaluation.
 #
 # References:
 #   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
@@ -37,7 +35,10 @@ from typing import Callable, Any, List, Tuple
 import matplotlib.pyplot as plt
 
 from llm4ad.base import Evaluation
-from llm4ad.task.optimization.knapsack_construct.get_instance import GetData
+from llm4ad.task.optimization.knapsack_construct.dataset import (
+    DEFAULT_SPLIT,
+    load_split_instances,
+)
 from llm4ad.task.optimization.knapsack_construct.template import template_program, task_description
 
 __all__ = ['KnapsackEvaluation']
@@ -48,10 +49,7 @@ class KnapsackEvaluation(Evaluation):
 
     def __init__(self,
                  timeout_seconds=20,
-                 n_instance=32,
-                 n_items=50,
-                 knapsack_capacity=100,
-                 **kwargs):
+                 split: str = DEFAULT_SPLIT):
         """
         Initialize the evaluator for the Knapsack Problem.
         """
@@ -62,11 +60,10 @@ class KnapsackEvaluation(Evaluation):
             timeout_seconds=timeout_seconds
         )
 
-        self.n_instance = n_instance
-        self.n_items = n_items
-        self.knapsack_capacity = knapsack_capacity
-        getData = GetData(self.n_instance, self.n_items, self.knapsack_capacity)
-        self._datasets = getData.generate_instances()
+        self._datasets, self.dataset_metadata = load_split_instances(split=split)
+        self.n_instance = int(self.dataset_metadata["n_instances"])
+        self.n_items = int(self.dataset_metadata["n_items"])
+        self.knapsack_capacity = float(self.dataset_metadata["capacity"])
 
     def evaluate_program(self, program_str: str, callable_func: Callable) -> Any | None:
         return self.evaluate(callable_func)
@@ -146,8 +143,6 @@ class KnapsackEvaluation(Evaluation):
         Evaluate the constructive heuristic for the Knapsack Problem.
 
         Args:
-            instance_data: List of tuples containing the item weights, values, and knapsack capacity.
-            n_ins: Number of instances to evaluate.
             eva: The constructive heuristic function to evaluate.
 
         Returns:

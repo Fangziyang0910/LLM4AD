@@ -7,8 +7,7 @@
 #
 # Parameters:
 #   - timeout_seconds: Maximum allowed time (in seconds) for the evaluation process: int (default: 30).
-#   - problem_size: Number of customers to serve (excluding the depot): int (default: 50).
-#   - n_instance: Number of problem instances to generate: int (default: 16).
+#   - split: Fixed dataset split used for evaluation.
 # 
 # References:
 #   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
@@ -37,16 +36,17 @@ from typing import Any
 import copy
 import numpy as np
 from llm4ad.base import Evaluation
-from llm4ad.task.optimization.vrptw_construct.get_instance import GetData
+from llm4ad.task.optimization.vrptw_construct.dataset import (
+    DEFAULT_SPLIT,
+    load_split_instances,
+)
 from llm4ad.task.optimization.vrptw_construct.template import template_program, task_description
 
 
 class VRPTWEvaluation(Evaluation):
     def __init__(self,
                  timeout_seconds=30,
-                 problem_size=50,
-                 n_instance=16,
-                 **kwargs):
+                 split: str = DEFAULT_SPLIT):
 
         super().__init__(
             template_program=template_program,
@@ -55,11 +55,9 @@ class VRPTWEvaluation(Evaluation):
             timeout_seconds=timeout_seconds
         )
 
-        self.problem_size = problem_size
-        self.n_instance = n_instance
-
-        getData = GetData(self.n_instance, self.problem_size + 1)
-        self._datasets = getData.generate_instances()
+        self._datasets, self.dataset_metadata = load_split_instances(split=split)
+        self.problem_size = int(self.dataset_metadata["problem_size"])
+        self.n_instance = int(self.dataset_metadata["n_instances"])
 
     def tour_cost(self, distance_matrix, solution, time_service, time_windows):
         cost = 0

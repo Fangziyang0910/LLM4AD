@@ -7,9 +7,7 @@
 #
 # Parameters:
 #    - timeout_seconds: Maximum allowed time (in seconds) for the evaluation process: int (default: 20).
-#    - n_instance: Number of problem instances to generate: int (default: 16).
-#    - n_jobs: Number of jobs to schedule: int (default: 10).
-#    - n_machines: Number of machines available: int (default: 5).
+#    - split: Fixed dataset split used for evaluation.
 # 
 # References:
 #   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
@@ -39,7 +37,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from llm4ad.base import Evaluation
-from llm4ad.task.optimization.jssp_construct.get_instance import GetData
+from llm4ad.task.optimization.jssp_construct.dataset import (
+    DEFAULT_SPLIT,
+    load_split_instances,
+)
 from llm4ad.task.optimization.jssp_construct.template import template_program, task_description
 
 __all__ = ['JSSPEvaluation']
@@ -50,10 +51,7 @@ class JSSPEvaluation(Evaluation):
 
     def __init__(self,
                  timeout_seconds=20,
-                 n_instance=16,
-                 n_jobs=50,
-                 n_machines=10,
-                 **kwargs):
+                 split: str = DEFAULT_SPLIT):
         """
         Args:
             None
@@ -68,11 +66,10 @@ class JSSPEvaluation(Evaluation):
             timeout_seconds=timeout_seconds
         )
 
-        self.n_instance = n_instance
-        self.n_jobs = n_jobs
-        self.n_machines = n_machines
-        getData = GetData(self.n_instance, self.n_jobs, self.n_machines)
-        self._datasets = getData.generate_instances()
+        self._datasets, self.dataset_metadata = load_split_instances(split=split)
+        self.n_instance = int(self.dataset_metadata["n_instances"])
+        self.n_jobs = int(self.dataset_metadata["n_jobs"])
+        self.n_machines = int(self.dataset_metadata["n_machines"])
 
     def evaluate_program(self, program_str: str, callable_func: Callable) -> Any | None:
         return self.evaluate(callable_func)
@@ -172,10 +169,6 @@ class JSSPEvaluation(Evaluation):
         Evaluate the constructive heuristic for JSSP.
         
         Args:
-            instance_data: List of tuples containing the processing times, number of jobs, and number of machines.
-            n_ins: Number of instances to evaluate.
-            n_jobs: Number of jobs.
-            n_machines: Number of machines.
             eva: The constructive heuristic function to evaluate.
         
         Returns:

@@ -6,12 +6,8 @@
 #              This module is part of the LLM4AD project (https://github.com/Optima-CityU/llm4ad).
 # 
 # Parameters:
-#    -   n_bins: number of bins: int (default: 10).
-#    -   n_instance: number of instances: int (default: 16).
-#    -   n_items: number of items: int (default: 10).
-#    -   bin_width: width of bins: int (default: 100).
-#    -   bin_height: height of bins: int (default: 100).
 #    -   timeout_seconds: int - Maximum allowed time (in seconds) for the evaluation process (default: 60).
+#    -   split: Fixed dataset split used for evaluation.
 # 
 # References:
 #   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
@@ -42,7 +38,10 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 from llm4ad.base import Evaluation
-from llm4ad.task.optimization.bp_2d_construct.get_instance import GetData
+from llm4ad.task.optimization.bp_2d_construct.dataset import (
+    DEFAULT_SPLIT,
+    load_split_instances,
+)
 from llm4ad.task.optimization.bp_2d_construct.template import template_program, task_description
 
 __all__ = ['BP2DEvaluation']
@@ -53,12 +52,7 @@ class BP2DEvaluation(Evaluation):
 
     def __init__(self,
                  timeout_seconds: int = 120,
-                 n_bins: int = 100,
-                 n_instance: int = 8,
-                 n_items: int = 100,
-                 bin_width: int = 100,
-                 bin_height: int = 100,
-                 **kwargs):
+                 split: str = DEFAULT_SPLIT):
         """
         Args:
             n_bins: The number of available bins at the beginning.
@@ -70,13 +64,12 @@ class BP2DEvaluation(Evaluation):
             timeout_seconds=timeout_seconds
         )
 
-        self.n_instance = n_instance
-        self.n_items = n_items
-        self.n_bins = n_bins
-        self.bin_width = bin_width
-        self.bin_height = bin_height
-        getData = GetData(self.n_instance, self.n_items, self.bin_width, self.bin_height)
-        self._datasets = getData.generate_instances()
+        self._datasets, self.dataset_metadata = load_split_instances(split=split)
+        self.n_instance = int(self.dataset_metadata["n_instances"])
+        self.n_items = int(self.dataset_metadata["n_items"])
+        self.n_bins = self.n_items
+        self.bin_width = int(self.dataset_metadata["bin_width"])
+        self.bin_height = int(self.dataset_metadata["bin_height"])
 
     def plot_solution(self, bins: List[List[Tuple[Tuple[int, int], Tuple[int, int]]]], bin_dimensions: Tuple[int, int]):
         """

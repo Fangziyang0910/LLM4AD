@@ -8,8 +8,7 @@
 #
 # Parameters:
 #    - timeout_seconds: Maximum allowed time (in seconds) for the evaluation process: int (default: 30).
-#    - n_instance: Number of problem instances to generate: int (default: 16).
-#    - problem_size: Number of customers to serve: int (default: 50).
+#    - split: Fixed dataset split used for evaluation. Search should use train; final reporting can use test splits.
 #
 # 
 # References:
@@ -36,7 +35,10 @@ from __future__ import annotations
 from typing import Any
 import numpy as np
 from llm4ad.base import Evaluation
-from llm4ad.task.optimization.tsp_construct.get_instance import GetData
+from llm4ad.task.optimization.tsp_construct.dataset import (
+    DEFAULT_SPLIT,
+    load_split_instances,
+)
 from llm4ad.task.optimization.tsp_construct.template import template_program, task_description
 
 __all__ = ['TSPEvaluation']
@@ -47,9 +49,7 @@ class TSPEvaluation(Evaluation):
 
     def __init__(self,
                  timeout_seconds=30,
-                 n_instance=16,
-                 problem_size=50,
-                 **kwargs):
+                 split: str = DEFAULT_SPLIT):
 
         """
             Args:
@@ -66,12 +66,11 @@ class TSPEvaluation(Evaluation):
             timeout_seconds=timeout_seconds
         )
 
-        self.n_instance = n_instance
-        self.problem_size = problem_size
-        getData = GetData(self.n_instance, self.problem_size)
-        self._datasets = getData.generate_instances()
+        self._datasets, self.dataset_metadata = load_split_instances(split=split)
+        self.n_instance = int(self.dataset_metadata["n_instances"])
+        self.problem_size = int(self.dataset_metadata["problem_size"])
 
-    def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
+    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
         return self.evaluate(callable_func)
 
     def tour_cost(self, instance, solution, problem_size):

@@ -6,11 +6,8 @@
 #              This module is part of the LLM4AD project (https://github.com/Optima-CityU/llm4ad).
 # 
 # Parameters:
-#    -   n_bins: number of bins: int (default: 10).
-#    -   n_instance: number of instances: int (default: 16).
-#    -   n_items: number of items: int (default: 10).
-#    -   bin_capacity: capacity of bins: int (default: 100).
 #    -   timeout_seconds: int - Maximum allowed time (in seconds) for the evaluation process (default: 60).
+#    -   split: Fixed dataset split used for evaluation.
 # 
 # References:
 #   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
@@ -40,7 +37,10 @@ from typing import Callable, Any, List, Tuple
 import copy
 
 from llm4ad.base import Evaluation
-from llm4ad.task.optimization.bp_1d_construct.get_instance import GetData
+from llm4ad.task.optimization.bp_1d_construct.dataset import (
+    DEFAULT_SPLIT,
+    load_split_instances,
+)
 from llm4ad.task.optimization.bp_1d_construct.template import template_program, task_description
 
 __all__ = ['BP1DEvaluation']
@@ -51,11 +51,7 @@ class BP1DEvaluation(Evaluation):
 
     def __init__(self,
                  timeout_seconds: int = 60,
-                 n_bins: int = 500,
-                 n_instance: int = 8,
-                 n_items: int = 500,
-                 bin_capacity: int = 100,
-                 **kwargs):
+                 split: str = DEFAULT_SPLIT):
         """
         Args:
             n_bins: The number of available bins at the beginning.
@@ -67,12 +63,11 @@ class BP1DEvaluation(Evaluation):
             timeout_seconds=timeout_seconds
         )
 
-        self.n_instance = n_instance
-        self.n_items = n_items
-        self.bin_capacity = bin_capacity
-        self.n_bins = n_bins
-        getData = GetData(self.n_instance, self.n_items, self.bin_capacity)
-        self._datasets = getData.generate_instances()
+        self._datasets, self.dataset_metadata = load_split_instances(split=split)
+        self.n_instance = int(self.dataset_metadata["n_instances"])
+        self.n_items = int(self.dataset_metadata["n_items"])
+        self.bin_capacity = int(self.dataset_metadata["bin_capacity"])
+        self.n_bins = self.n_items
 
     def plot_bins(self, bins: List[List[int]], bin_capacity: int):
         """
@@ -164,10 +159,7 @@ class BP1DEvaluation(Evaluation):
         Evaluate the constructive heuristic for the 1D Bin Packing Problem.
 
         Args:
-            instance_data: List of tuples containing the item weights and bin capacity.
-            n_ins: Number of instances to evaluate.
             eva: The constructive heuristic function to evaluate.
-            n_bins: The number of available bins at the beginning.
 
         Returns:
             The average number of bins used across all instances.

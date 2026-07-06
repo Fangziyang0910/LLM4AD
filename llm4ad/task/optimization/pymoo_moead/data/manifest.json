@@ -1,0 +1,87 @@
+{
+  "dataset_id": "pymoo_moead_v1",
+  "description": "Fixed pymoo MOEA/D benchmark scenarios and seeds for train/test evaluation.",
+  "generator": "llm4ad.task.optimization.pymoo_moead.dataset.write_default_dataset",
+  "splits": {
+    "test_id": {
+      "hv_ref": [
+        1.1,
+        1.1,
+        1.1
+      ],
+      "n_gen": 100,
+      "n_obj": 3,
+      "n_partitions": 12,
+      "n_var": 10,
+      "problem_name": "DTLZ4",
+      "role": "test",
+      "seeds": [
+        100,
+        101,
+        102,
+        103,
+        104
+      ]
+    },
+    "test_ood_obj5": {
+      "hv_ref": [
+        1.1,
+        1.1,
+        1.1,
+        1.1,
+        1.1
+      ],
+      "n_gen": 100,
+      "n_obj": 5,
+      "n_partitions": 6,
+      "n_var": 20,
+      "problem_name": "DTLZ4",
+      "role": "test",
+      "seeds": [
+        300,
+        301,
+        302
+      ]
+    },
+    "test_ood_var20": {
+      "hv_ref": [
+        1.1,
+        1.1,
+        1.1
+      ],
+      "n_gen": 100,
+      "n_obj": 3,
+      "n_partitions": 12,
+      "n_var": 20,
+      "problem_name": "DTLZ4",
+      "role": "test",
+      "seeds": [
+        200,
+        201,
+        202,
+        203,
+        204
+      ]
+    },
+    "train": {
+      "hv_ref": [
+        1.1,
+        1.1,
+        1.1
+      ],
+      "n_gen": 100,
+      "n_obj": 3,
+      "n_partitions": 12,
+      "n_var": 10,
+      "problem_name": "DTLZ4",
+      "role": "train",
+      "seeds": [
+        0,
+        1,
+        2
+      ]
+    }
+  },
+  "task": "pymoo_moead",
+  "version": 1
+}

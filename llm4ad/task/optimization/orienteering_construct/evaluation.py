@@ -7,7 +7,10 @@ from typing import Any
 import numpy as np
 
 from llm4ad.base import Evaluation
-from llm4ad.task.optimization.orienteering_construct.get_instance import GetData
+from llm4ad.task.optimization.orienteering_construct.dataset import (
+    DEFAULT_SPLIT,
+    load_split_instances,
+)
 from llm4ad.task.optimization.orienteering_construct.template import template_program, task_description
 
 __all__ = ['OrienteeringEvaluation']
@@ -19,11 +22,7 @@ class OrienteeringEvaluation(Evaluation):
     def __init__(
             self,
             timeout_seconds=30,
-            n_instance=16,
-            problem_size=50,
-            max_length_ratio=0.35,
-            seed=2024,
-            **kwargs):
+            split: str = DEFAULT_SPLIT):
         super().__init__(
             template_program=template_program,
             task_description=task_description,
@@ -31,16 +30,10 @@ class OrienteeringEvaluation(Evaluation):
             timeout_seconds=timeout_seconds
         )
 
-        self.n_instance = int(n_instance)
-        self.problem_size = int(problem_size)
-        self.max_length_ratio = float(max_length_ratio)
-        self.seed = int(seed)
-        self._datasets = GetData(
-            n_instance=self.n_instance,
-            problem_size=self.problem_size,
-            max_length_ratio=self.max_length_ratio,
-            seed=self.seed,
-        ).generate_instances()
+        self._datasets, self.dataset_metadata = load_split_instances(split=split)
+        self.n_instance = int(self.dataset_metadata["n_instances"])
+        self.problem_size = int(self.dataset_metadata["problem_size"])
+        self.max_length = float(self.dataset_metadata["max_length"])
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
         return self.evaluate(callable_func)
@@ -142,5 +135,5 @@ if __name__ == '__main__':
         scores = prizes[unvisited_nodes] / (travel_cost + return_cost + 1e-12)
         return int(unvisited_nodes[np.argmax(scores)])
 
-    evaluator = OrienteeringEvaluation(n_instance=4, problem_size=20)
+    evaluator = OrienteeringEvaluation()
     print(evaluator.evaluate(select_next_node))

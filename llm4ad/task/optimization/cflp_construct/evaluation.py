@@ -7,12 +7,7 @@
 #
 # Parameters:
 #    - timeout_seconds: Maximum allowed time (in seconds) for the evaluation process: int (default: 60).
-#    - n_instance: Number of problem instances to generate: int (default: 16).
-#    - n_facilities: Number of facilities: int (default: 5).
-#    - n_customers: Number of customers: int (default: 8).
-#    - max_capacity: Maximum capacity of each facility: int (default: 100).
-#    - max_demand: Maximum demand of each customer: int (default: 20).
-#    - max_cost: Maximum cost of assigning a customer to a facility: int (default: 50).
+#    - split: Fixed dataset split used for evaluation.
 # 
 # References:
 #   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
@@ -42,7 +37,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from llm4ad.base import Evaluation
-from llm4ad.task.optimization.cflp_construct.get_instance import GetData
+from llm4ad.task.optimization.cflp_construct.dataset import (
+    DEFAULT_SPLIT,
+    load_split_instances,
+)
 from llm4ad.task.optimization.cflp_construct.template import template_program, task_description
 
 __all__ = ['CFLPEvaluation']
@@ -53,13 +51,7 @@ class CFLPEvaluation(Evaluation):
 
     def __init__(self,
                  timeout_seconds: int = 60,
-                 n_instance: int = 16,
-                 n_facilities: int = 50,
-                 n_customers: int = 50,
-                 max_capacity: int = 100,
-                 max_demand: int = 20,
-                 max_cost: int = 50,
-                 **kwargs):
+                 split: str = DEFAULT_SPLIT):
         """
         Initialize the evaluator.
         """
@@ -70,14 +62,10 @@ class CFLPEvaluation(Evaluation):
             timeout_seconds=timeout_seconds
         )
 
-        self.n_instance = n_instance
-        self.n_facilities = n_facilities
-        self.n_customers = n_customers
-        self.max_capacity = max_capacity
-        self.max_demand = max_demand
-        self.max_cost = max_cost
-        getData = GetData(self.n_instance, self.n_facilities, self.n_customers, self.max_capacity, self.max_demand, self.max_cost)
-        self._datasets = getData.generate_instances()
+        self._datasets, self.dataset_metadata = load_split_instances(split=split)
+        self.n_instance = int(self.dataset_metadata["n_instances"])
+        self.n_facilities = int(self.dataset_metadata["n_facilities"])
+        self.n_customers = int(self.dataset_metadata["n_customers"])
 
     def evaluate_program(self, program_str: str, callable_func: Callable) -> Any | None:
         return self.evaluate_cflp(callable_func)
@@ -151,7 +139,9 @@ class CFLPEvaluation(Evaluation):
             # Use the heuristic to select the next customer-facility assignment
             selected_customer, selected_facility = eva(assignments, remaining_customers, remaining_capacities, customer_demands, assignment_costs)
 
-            if selected_facility is not None:
+            if selected_facility is not None and selected_customer in remaining_customers:
+                if remaining_capacities[selected_facility] < customer_demands[selected_customer]:
+                    return None, []
                 # Assign the selected customer to the selected facility
                 assignments[selected_facility].append(selected_customer)
                 # Update the remaining capacity of the selected facility
@@ -165,6 +155,9 @@ class CFLPEvaluation(Evaluation):
             # Remove the selected customer from the remaining customers
             remaining_customers.remove(selected_customer)
 
+        if remaining_customers:
+            return None, []
+
         return total_cost, assignments
 
     def evaluate_cflp(self, eva: Callable) -> float:
@@ -172,8 +165,6 @@ class CFLPEvaluation(Evaluation):
         Evaluate the constructive heuristic for the Capacitated Facility Location Problem.
 
         Args:
-            instance_data: List of dictionaries containing facility capacities, customer demands, and assignment costs.
-            n_ins: Number of instances to evaluate.
             eva: The constructive heuristic function to evaluate.
 
         Returns:
@@ -186,6 +177,8 @@ class CFLPEvaluation(Evaluation):
             customer_demands = instance["customer_demands"]
             assignment_costs = instance["assignment_costs"]
             cost, _ = self.assign_customers(facility_capacities, customer_demands, assignment_costs, eva)
+            if cost is None:
+                return None
             total_cost += cost
 
         average_cost = total_cost / self.n_instance

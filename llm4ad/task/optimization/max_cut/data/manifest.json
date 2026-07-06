@@ -1,0 +1,49 @@
+{
+  "dataset_id": "max_cut_v1",
+  "description": "Fixed MaxCut graph splits with stored local-search initial orders.",
+  "generator": "llm4ad.task.optimization.max_cut.dataset.write_default_dataset",
+  "splits": {
+    "test_id": {
+      "edge_probability": 0.5,
+      "filename": "test_id.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 100,
+      "n_nodes": 100,
+      "role": "test",
+      "seed": 6402,
+      "sha256": "86e99fd775b6999f6a45117b5594a29a51a75663e48d26679cbcfa0a99718eec"
+    },
+    "test_ood_200": {
+      "edge_probability": 0.5,
+      "filename": "test_ood_200.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 100,
+      "n_nodes": 200,
+      "role": "test",
+      "seed": 6403,
+      "sha256": "a53f2fcad237f8635b0163460d8861eed9163b1d41e2bbe293391a0f85697215"
+    },
+    "test_ood_sparse": {
+      "edge_probability": 0.2,
+      "filename": "test_ood_sparse.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 100,
+      "n_nodes": 100,
+      "role": "test",
+      "seed": 6404,
+      "sha256": "9c5d5eb764bec3431c02ee5f13255e210b3be77cec0a12bd6756191868cb2609"
+    },
+    "train": {
+      "edge_probability": 0.5,
+      "filename": "train.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 32,
+      "n_nodes": 100,
+      "role": "train",
+      "seed": 6401,
+      "sha256": "ffb4c2209f266333f35fc019a6b6b900dc5da6d446597532efcabdca0b28e34b"
+    }
+  },
+  "task": "max_cut",
+  "version": 1
+}

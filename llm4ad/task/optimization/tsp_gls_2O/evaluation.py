@@ -1,13 +1,18 @@
 # name: str: TSP_GLS_2O_Evaluation
 # Parameters:
 # timeout_seconds: int: 20
+# split: str: fixed dataset split used for evaluation
 # end
 from __future__ import annotations
 
 from typing import Tuple, Any
 import numpy as np
 from llm4ad.base import Evaluation
-from llm4ad.task.optimization.tsp_gls_2O.get_instance import GetData, TSPInstance
+from llm4ad.task.optimization.tsp_gls_2O.dataset import (
+    DEFAULT_SPLIT,
+    load_split_instances,
+)
+from llm4ad.task.optimization.tsp_gls_2O.get_instance import TSPInstance
 from llm4ad.task.optimization.tsp_gls_2O.template import template_program, task_description
 from .gls import guided_local_search_with_time
 
@@ -46,7 +51,7 @@ def evaluate(instance_data,n_ins,prob_size, eva: callable) -> np.ndarray:
 class TSP_GLS_2O_Evaluation(Evaluation):
     """Evaluator for traveling salesman problem."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, timeout_seconds=60, split: str = DEFAULT_SPLIT):
 
         """
             Args:
@@ -60,13 +65,12 @@ class TSP_GLS_2O_Evaluation(Evaluation):
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=20
+            timeout_seconds=timeout_seconds
         )
 
-        self.n_instance = 16
-        self.problem_size = 100
-        getData = GetData(self.n_instance, self.problem_size)
-        self._datasets = getData.generate_instances()
+        self._datasets, self.dataset_metadata = load_split_instances(split=split)
+        self.n_instance = int(self.dataset_metadata["n_instances"])
+        self.problem_size = int(self.dataset_metadata["problem_size"])
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
         return evaluate(self._datasets,self.n_instance,self.problem_size, callable_func)

@@ -1,0 +1,65 @@
+{
+  "dataset_id": "tsp_construct_v1",
+  "description": "Fixed TSP constructive train/test splits for LLM4AD heuristic search.",
+  "generator": "llm4ad.task.optimization.tsp_construct.dataset.write_default_dataset",
+  "splits": {
+    "test_id": {
+      "coordinate_shape": [
+        250,
+        50,
+        2
+      ],
+      "distribution": "uniform_unit_square",
+      "filename": "test_id.npz",
+      "n_instances": 250,
+      "problem_size": 50,
+      "role": "test",
+      "seed": 2025,
+      "sha256": "75be39a656adf1a59deed7c49122b0cc6ca6c2d66bbc68e14d58783bc8963a5f"
+    },
+    "test_ood_100": {
+      "coordinate_shape": [
+        250,
+        100,
+        2
+      ],
+      "distribution": "uniform_unit_square",
+      "filename": "test_ood_100.npz",
+      "n_instances": 250,
+      "problem_size": 100,
+      "role": "test",
+      "seed": 2026,
+      "sha256": "d2e1e97efa3a0b29959551cb6b338ab81a46fe8da8e5fc096082cb6b6ea4d4c7"
+    },
+    "test_ood_200": {
+      "coordinate_shape": [
+        250,
+        200,
+        2
+      ],
+      "distribution": "uniform_unit_square",
+      "filename": "test_ood_200.npz",
+      "n_instances": 250,
+      "problem_size": 200,
+      "role": "test",
+      "seed": 2027,
+      "sha256": "449a5cf6b1f0fe6440e170e8ca8553fcca13880b6933b0a94801678e19d3fd2a"
+    },
+    "train": {
+      "coordinate_shape": [
+        64,
+        50,
+        2
+      ],
+      "distribution": "uniform_unit_square",
+      "filename": "train.npz",
+      "n_instances": 64,
+      "problem_size": 50,
+      "role": "train",
+      "seed": 2024,
+      "sha256": "8da6a86eb69a10d85e53fd46c4ecbe776fc50e809c4441b62bcf3a37e6d60ef6"
+    }
+  },
+  "task": "tsp_construct",
+  "version": 1
+}

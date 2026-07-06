@@ -8,9 +8,7 @@
 #
 # Parameters:
 #    - timeout_seconds: Maximum allowed time (in seconds) for the evaluation process: int (default: 20).
-#    - n_instance: Number of problem instances to generate: int (default: 16).
-#    - problem_size: Number of customers to serve: int (default: 50).
-#    - capacity: Maximum capacity of each vehicle: int (default: 40).
+#    - split: Fixed dataset split used for evaluation.
 # 
 # References:
 #   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
@@ -41,17 +39,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from llm4ad.base import Evaluation
-from llm4ad.task.optimization.cvrp_construct.get_instance import GetData
+from llm4ad.task.optimization.cvrp_construct.dataset import (
+    DEFAULT_SPLIT,
+    load_split_instances,
+)
 from llm4ad.task.optimization.cvrp_construct.template import template_program, task_description
 
 
 class CVRPEvaluation(Evaluation):
     def __init__(self,
                  timeout_seconds=20,
-                 n_instance=16,
-                 problem_size=50,
-                 capacity=40,
-                 **kwargs):
+                 split: str = DEFAULT_SPLIT):
 
         super().__init__(
             template_program=template_program,
@@ -60,12 +58,10 @@ class CVRPEvaluation(Evaluation):
             timeout_seconds=timeout_seconds
         )
 
-        self.problem_size = problem_size + 1
-        self.n_instance = n_instance
-        self.capacity = capacity
-
-        getData = GetData(self.n_instance, self.problem_size, self.capacity)
-        self._datasets = getData.generate_instances()
+        self._datasets, self.dataset_metadata = load_split_instances(split=split)
+        self.problem_size = int(self.dataset_metadata["problem_size"]) + 1
+        self.n_instance = int(self.dataset_metadata["n_instances"])
+        self.capacity = int(self.dataset_metadata["capacity"])
 
     def plot_solution(self, instance: np.ndarray, route: list, demands: list, vehicle_capacity: int):
         """

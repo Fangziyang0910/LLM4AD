@@ -7,9 +7,7 @@
 #
 # Parameters:
 #    - timeout_seconds: Maximum allowed time (in seconds) for the evaluation process: int (default: 30).
-#    - n_instances: Number of problem instances to generate: int (default: 5).
-#    - n_items: Number of items to pack: int (default: 5000).
-#    - capacity: Maximum capacity of each bin: int (default: 100).
+#    - split: Fixed dataset split used for evaluation.
 #
 # References:
 #   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
@@ -39,8 +37,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from llm4ad.base import Evaluation
+from llm4ad.task.optimization.online_bin_packing.dataset import (
+    DEFAULT_SPLIT,
+    load_split_instances,
+)
 from llm4ad.task.optimization.online_bin_packing.template import template_program, task_description
-from llm4ad.task.optimization.online_bin_packing.generate_weibull_instances import generate_weibull_dataset
 
 __all__ = ['OBPEvaluation']
 
@@ -48,11 +49,7 @@ __all__ = ['OBPEvaluation']
 class OBPEvaluation(Evaluation):
     """Evaluator for online bin packing problem."""
 
-    def __init__(self, timeout_seconds=30,
-                 n_instances=5,
-                 n_items=5000,
-                 capacity=100,
-                 **kwargs):
+    def __init__(self, timeout_seconds=30, split: str = DEFAULT_SPLIT):
         """
         Args:
             - 'data_file' (str): The data file to load (default is 'weibull_5k_train.pkl').
@@ -70,11 +67,8 @@ class OBPEvaluation(Evaluation):
             timeout_seconds=timeout_seconds
         )
 
-        self.n_instances = n_instances
-        self.n_items = n_items
-        self.capacity = capacity
-
-        self._datasets = generate_weibull_dataset(self.n_instances, self.n_items, self.capacity)
+        self._datasets, self.dataset_metadata = load_split_instances(split=split)
+        self.n_instances = int(self.dataset_metadata["n_instances"])
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
         return self.evaluate(callable_func)

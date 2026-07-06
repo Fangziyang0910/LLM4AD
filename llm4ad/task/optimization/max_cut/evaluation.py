@@ -8,9 +8,7 @@
 #
 # Parameters:
 #    - timeout_seconds: Maximum allowed time (in seconds) for the evaluation process: int (default: 30).
-#    - n_instance: Number of problem instances to generate: int (default: 16).
-#    - n_nodes: Number of nodes in each graph: int (default: 100).
-#    - edge_probability: Probability of edge existence between any two nodes: float (default: 0.5).
+#    - split: Fixed dataset split used for evaluation.
 #    - max_flips: Maximum number of flips per local search run: int (default: n_nodes * 2).
 #
 # ------------------------------- Copyright --------------------------------
@@ -33,7 +31,10 @@ from __future__ import annotations
 from typing import Any
 import numpy as np
 from llm4ad.base import Evaluation
-from llm4ad.task.optimization.max_cut.get_instance import GetData
+from llm4ad.task.optimization.max_cut.dataset import (
+    DEFAULT_SPLIT,
+    load_split_instances,
+)
 from llm4ad.task.optimization.max_cut.template import template_program, task_description
 
 __all__ = ['MaxCutEvaluation']
@@ -44,11 +45,8 @@ class MaxCutEvaluation(Evaluation):
 
     def __init__(self,
                  timeout_seconds=30,
-                 n_instance=16,
-                 n_nodes=100,
-                 edge_probability=0.5,
-                 max_flips=None,
-                 **kwargs):
+                 split: str = DEFAULT_SPLIT,
+                 max_flips=None):
 
         super().__init__(
             template_program=template_program,
@@ -57,13 +55,11 @@ class MaxCutEvaluation(Evaluation):
             timeout_seconds=timeout_seconds
         )
 
-        self.n_instance = n_instance
-        self.n_nodes = n_nodes
-        self.edge_probability = edge_probability
-        self.max_flips = max_flips if max_flips else n_nodes * 2
-
-        getData = GetData(self.n_instance, self.n_nodes, self.edge_probability)
-        self._datasets = getData.generate_instances()
+        self._datasets, self.dataset_metadata = load_split_instances(split=split)
+        self.n_instance = int(self.dataset_metadata["n_instances"])
+        self.n_nodes = int(self.dataset_metadata["n_nodes"])
+        self.edge_probability = float(self.dataset_metadata["edge_probability"])
+        self.max_flips = max_flips if max_flips else self.n_nodes * 2
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
         return self.evaluate(callable_func)
@@ -114,11 +110,10 @@ class MaxCutEvaluation(Evaluation):
         cut_values = np.ones(self.n_instance)
         n_ins = 0
 
-        for adjacency, _ in self._datasets:
+        for adjacency, initial_order in self._datasets:
 
-            # Random initialization
-            all_nodes = list(adjacency.keys())
-            np.random.shuffle(all_nodes)
+            # Fixed initialization stored with the dataset.
+            all_nodes = list(initial_order)
             mid = len(all_nodes) // 2
             cut_S = all_nodes[:mid]
             cut_T = all_nodes[mid:]

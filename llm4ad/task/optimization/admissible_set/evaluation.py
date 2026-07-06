@@ -4,9 +4,8 @@
 #              This module is part of the LLM4AD project (https://github.com/Optima-CityU/llm4ad).
 # 
 # Parameters:
-#   - dimension: int - The dimension of the problem space (default: 15).
-#   - weight: int - The weight constraint for the admissible set (default: 10).
 #   - timeout_seconds: int - Maximum allowed time (in seconds) for the evaluation process (default: 60).
+#   - split: Fixed dataset split used for evaluation.
 # 
 # References:
 #   - Bernardino Romera-Paredes, Mohammadamin Barekatain, Alexander Novikov, 
@@ -38,6 +37,10 @@ from typing import Any, List, Tuple
 import numpy as np
 
 from llm4ad.base import Evaluation
+from llm4ad.task.optimization.admissible_set.dataset import (
+    DEFAULT_SPLIT,
+    load_split_case,
+)
 from llm4ad.task.optimization.admissible_set.template import template_program, task_description
 
 __all__ = ['ASPEvaluation']
@@ -45,7 +48,7 @@ __all__ = ['ASPEvaluation']
 class ASPEvaluation(Evaluation):
     """Evaluator for online bin packing problem."""
 
-    def __init__(self, timeout_seconds=60, dimension=15, weight=10, **kwargs):
+    def __init__(self, timeout_seconds=60, split: str = DEFAULT_SPLIT):
         """
             Args:
                 - 'dimension' (int): The dimension of tested case (default is 15).
@@ -59,8 +62,9 @@ class ASPEvaluation(Evaluation):
             timeout_seconds=timeout_seconds
         )
 
-        self.dimension = dimension
-        self.weight = weight
+        self.dataset_metadata = load_split_case(split=split)
+        self.dimension = int(self.dataset_metadata["dimension"])
+        self.weight = int(self.dataset_metadata["weight"])
 
         
         self.TRIPLES = [(0, 0, 0), (0, 0, 1), (0, 0, 2), (0, 1, 2), (0, 2, 1), (1, 1, 1), (2, 2, 2)]
@@ -158,7 +162,7 @@ class ASPEvaluation(Evaluation):
 
         admissible_set = np.array(self.expand_admissible_set(pre_admissible_set))
 
-        return (len(admissible_set) - self.Optimal_Set_Length[f"n{self.dimension}w{self.weight}"])
+        return len(admissible_set) - int(self.dataset_metadata["optimal_set_length"])
 
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:

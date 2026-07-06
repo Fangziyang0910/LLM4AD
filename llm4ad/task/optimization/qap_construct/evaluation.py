@@ -6,8 +6,7 @@
 #
 # Parameters:
 #   - timeout_seconds: Maximum allowed time (in seconds) for the evaluation process: int (default: 20).
-#   - n_facilities: Number of facilities to assign: int (default: 50).
-#   - n_instance: Number of problem instances to generate: int (default: 10).
+#   - split: Fixed dataset split used for evaluation.
 # 
 # References:
 #   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
@@ -36,7 +35,10 @@ from typing import Callable, Any, List, Tuple
 import matplotlib.pyplot as plt
 
 from llm4ad.base import Evaluation
-from llm4ad.task.optimization.qap_construct.get_instance import GetData
+from llm4ad.task.optimization.qap_construct.dataset import (
+    DEFAULT_SPLIT,
+    load_split_instances,
+)
 from llm4ad.task.optimization.qap_construct.template import template_program, task_description
 from copy import deepcopy
 __all__ = ['QAPEvaluation']
@@ -47,9 +49,7 @@ class QAPEvaluation(Evaluation):
 
     def __init__(self,
                  timeout_seconds=60,
-                 n_facilities=20,
-                 n_instance=8,
-                 **kwargs):
+                 split: str = DEFAULT_SPLIT):
         """
         Initializes the QAP evaluator.
         """
@@ -60,10 +60,9 @@ class QAPEvaluation(Evaluation):
             timeout_seconds=timeout_seconds
         )
 
-        self.n_instance = n_instance
-        self.n_facilities = n_facilities
-        self.data_generator = GetData(self.n_instance, self.n_facilities)
-        self._datasets = self.data_generator.generate_instances()
+        self._datasets, self.dataset_metadata = load_split_instances(split=split)
+        self.n_instance = int(self.dataset_metadata["n_instances"])
+        self.n_facilities = int(self.dataset_metadata["n_facilities"])
 
     def evaluate_program(self, program_str: str, callable_func: Callable) -> Any | None:
         """
@@ -146,8 +145,6 @@ class QAPEvaluation(Evaluation):
         Evaluate the constructive heuristic for the Quadratic Assignment Problem.
 
         Args:
-            instance_data: List of tuples containing the flow and distance matrices.
-            n_ins: Number of instances to evaluate.
             eva: The constructive heuristic function to evaluate.
 
         Returns:

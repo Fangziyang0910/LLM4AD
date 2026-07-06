@@ -1,0 +1,42 @@
+{
+  "dataset_id": "vrptw_construct_v1",
+  "description": "Fixed VRPTW constructive train/test splits using the platform time-window distribution.",
+  "generator": "llm4ad.task.optimization.vrptw_construct.dataset.write_default_dataset",
+  "splits": {
+    "test_id": {
+      "capacity": 40,
+      "filename": "test_id.pkl.gz",
+      "format": "pickle_gzip",
+      "max_time": 4.6,
+      "n_instances": 100,
+      "problem_size": 50,
+      "role": "test",
+      "seed": 6202,
+      "sha256": "8fa7e9e668ced6efd2c083792a91ab35fdeb05753033797b5bea0f1ac18842f3"
+    },
+    "test_ood_100": {
+      "capacity": 40,
+      "filename": "test_ood_100.pkl.gz",
+      "format": "pickle_gzip",
+      "max_time": 4.6,
+      "n_instances": 100,
+      "problem_size": 100,
+      "role": "test",
+      "seed": 6203,
+      "sha256": "4711de3419e9ea385405aa99c4d759f936ffe5600386e6e33ae99b1e2df1e60b"
+    },
+    "train": {
+      "capacity": 40,
+      "filename": "train.pkl.gz",
+      "format": "pickle_gzip",
+      "max_time": 4.6,
+      "n_instances": 16,
+      "problem_size": 50,
+      "role": "train",
+      "seed": 6201,
+      "sha256": "7c8812910cab8bd07b5562efd1819cd4be1c6d93a3c35a655feafc6a83f8342e"
+    }
+  },
+  "task": "vrptw_construct",
+  "version": 1
+}

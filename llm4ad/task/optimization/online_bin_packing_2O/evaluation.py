@@ -1,21 +1,22 @@
 # name: str: OBP_2O_Evaluation
 # Parameters:
 # timeout_seconds: int: 20
+# split: str: fixed dataset split used for evaluation
 # end
 from __future__ import annotations
 
-import os
-import pickle
 from typing import Any
 
 import numpy as np
 
 from llm4ad.base import Evaluation
+from llm4ad.task.optimization.online_bin_packing_2O.dataset import (
+    DEFAULT_SPLIT,
+    load_split_instances,
+)
 from llm4ad.task.optimization.online_bin_packing.template import template_program, task_description
-from llm4ad.task.optimization.online_bin_packing.generate_weibull_instances import generate_weibull_dataset
 
 import time
-from typing import Tuple
 
 __all__ = ['OBP_2O_Evaluation']
 
@@ -76,7 +77,7 @@ def evaluate(instances: dict, priority: callable) -> np.ndarray:
 class OBP_2O_Evaluation(Evaluation):
     """Evaluator for online bin packing problem."""
 
-    def __init__(self, timeout_seconds=60, data_file='weibull_train.pkl', data_key='weibull_5k_train', **kwargs):
+    def __init__(self, timeout_seconds=60, split: str = DEFAULT_SPLIT):
         """
         Args:
             - 'data_file' (str): The data file to load (default is 'weibull_5k_train.pkl').
@@ -94,7 +95,7 @@ class OBP_2O_Evaluation(Evaluation):
             timeout_seconds=timeout_seconds
         )
 
-        self._datasets = generate_weibull_dataset(5, 5000, 100)
+        self._datasets, self.dataset_metadata = load_split_instances(split=split)
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
         return evaluate(self._datasets, callable_func)

@@ -1,0 +1,78 @@
+{
+  "dataset_id": "online_bin_packing_2O_v1",
+  "description": "Two-objective online bin-packing uses the same fixed instances as online_bin_packing for direct comparability.",
+  "source_dataset_id": "online_bin_packing_v1",
+  "source_task": "online_bin_packing",
+  "splits": {
+    "test_id": {
+      "role": "test",
+      "scenarios": [
+        {
+          "capacity": 100,
+          "n_instances": 10,
+          "n_items": 1000
+        },
+        {
+          "capacity": 500,
+          "n_instances": 10,
+          "n_items": 1000
+        },
+        {
+          "capacity": 100,
+          "n_instances": 10,
+          "n_items": 5000
+        },
+        {
+          "capacity": 500,
+          "n_instances": 10,
+          "n_items": 5000
+        }
+      ],
+      "seed": 5556
+    },
+    "test_ood_10000": {
+      "role": "test",
+      "scenarios": [
+        {
+          "capacity": 100,
+          "n_instances": 10,
+          "n_items": 10000
+        },
+        {
+          "capacity": 500,
+          "n_instances": 10,
+          "n_items": 10000
+        }
+      ],
+      "seed": 5557
+    },
+    "train": {
+      "role": "train",
+      "scenarios": [
+        {
+          "capacity": 100,
+          "n_instances": 1,
+          "n_items": 1000
+        },
+        {
+          "capacity": 500,
+          "n_instances": 1,
+          "n_items": 1000
+        },
+        {
+          "capacity": 100,
+          "n_instances": 1,
+          "n_items": 5000
+        },
+        {
+          "capacity": 500,
+          "n_instances": 1,
+          "n_items": 5000
+        }
+      ],
+      "seed": 5555
+    }
+  },
+  "task": "online_bin_packing_2O",
+  "version": 1
+}

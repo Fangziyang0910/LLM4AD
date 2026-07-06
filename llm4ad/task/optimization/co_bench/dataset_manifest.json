@@ -1,0 +1,25 @@
+{
+  "dataset_id": "co_bench_official_v1",
+  "description": "Official CO-Bench dataset protocol. Data is loaded from Hugging Face or an external local cache; synthetic generation is intentionally not provided.",
+  "source": {
+    "repo_id": "CO-Bench/CO-Bench",
+    "type": "huggingface_dataset"
+  },
+  "splits": {
+    "development": {
+      "description": "CO-Bench development data visible during algorithm search.",
+      "role": "train"
+    },
+    "test": {
+      "description": "CO-Bench held-out test data for final reporting.",
+      "role": "test"
+    }
+  },
+  "storage_policy": {
+    "git": "do_not_commit_raw_data",
+    "local_cache": "llm4ad/task/optimization/co_bench/data is ignored by git",
+    "recommended_transfer": "external archive, Hugging Face cache, DVC, or Git LFS outside the source tree"
+  },
+  "task": "co_bench",
+  "version": 1
+}
