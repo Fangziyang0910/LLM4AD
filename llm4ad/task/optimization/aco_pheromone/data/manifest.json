@@ -1,0 +1,65 @@
+{
+  "dataset_id": "aco_pheromone_v1",
+  "description": "Fixed EoH ACO pheromone-update benchmark on Euclidean TSP. The searched function updates the pheromone matrix after each ACO iteration.",
+  "generator": "llm4ad.task.optimization.aco_pheromone.dataset.write_default_dataset",
+  "paper": "papers/EoH",
+  "source": "reference_code/EoH/examples/aco_pheromone",
+  "splits": {
+    "test_full": {
+      "alpha": 1.0,
+      "beta": 2.0,
+      "coordinate_shape": [
+        5,
+        50,
+        2
+      ],
+      "distance_shape": [
+        5,
+        50,
+        50
+      ],
+      "filename": "test_full.npz",
+      "format": "npz",
+      "iter_max": 200,
+      "n_ants": 25,
+      "n_cities": 50,
+      "n_instances": 5,
+      "n_runs": 10,
+      "note": "Post-hoc evaluator from the EoH example: five fixed 50-city instances.",
+      "rho": 0.1,
+      "role": "test",
+      "seed": 2024,
+      "seed_start": 0,
+      "sha256": "496097d90eda688971f3a2d41382e6f67bc5d6621e6971cf1eb29de32e984c69"
+    },
+    "train": {
+      "alpha": 1.0,
+      "beta": 2.0,
+      "coordinate_shape": [
+        3,
+        20,
+        2
+      ],
+      "distance_shape": [
+        3,
+        20,
+        20
+      ],
+      "filename": "train.npz",
+      "format": "npz",
+      "iter_max": 100,
+      "n_ants": 20,
+      "n_cities": 20,
+      "n_instances": 3,
+      "n_runs": 3,
+      "note": "Original EoH search evaluator: three fixed 20-city Euclidean TSP instances.",
+      "rho": 0.1,
+      "role": "train",
+      "seed": 2024,
+      "seed_start": 0,
+      "sha256": "efa93cd118ac5af355e25c986ae3b134731572ee8b5646145c64dbaaab60035f"
+    }
+  },
+  "task": "aco_pheromone",
+  "version": 1
+}
