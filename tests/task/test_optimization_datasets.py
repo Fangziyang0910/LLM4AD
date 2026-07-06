@@ -28,6 +28,7 @@ OPTIMIZATION_TASKS = {
     "orienteering_construct",
     "ovrp_construct",
     "pymoo_moead",
+    "pso_velocity",
     "qap_construct",
     "sa_acceptance",
     "set_cover_construct",
@@ -86,6 +87,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.orienteering_construct.evaluation import OrienteeringEvaluation
     from llm4ad.task.optimization.ovrp_construct.evaluation import OVRPEvaluation
     from llm4ad.task.optimization.pymoo_moead.evaluation import MOEAD_PYMOO_Evaluation
+    from llm4ad.task.optimization.pso_velocity.evaluation import PSOVelocityEvaluation
     from llm4ad.task.optimization.qap_construct.evaluation import QAPEvaluation
     from llm4ad.task.optimization.sa_acceptance.evaluation import SAAcceptanceEvaluation
     from llm4ad.task.optimization.set_cover_construct.evaluation import SCPEvaluation
@@ -116,6 +118,7 @@ def test_default_evaluators_use_train_split():
         OrienteeringEvaluation(),
         OVRPEvaluation(),
         MOEAD_PYMOO_Evaluation(),
+        PSOVelocityEvaluation(pop_size=5, max_iterations=3, n_runs=1),
         QAPEvaluation(),
         SAAcceptanceEvaluation(max_iter=20, n_runs=1),
         SCPEvaluation(),
