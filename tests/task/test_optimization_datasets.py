@@ -10,6 +10,7 @@ OPTIMIZATION_TASKS = {
     "aco_pheromone",
     "bbob_metaheuristic",
     "bo_acquisition",
+    "bp_online",
     "bp_1d_construct",
     "bp_2d_construct",
     "bpp_offline_aco",
@@ -88,6 +89,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.aco_pheromone.evaluation import ACOPheromoneEvaluation
     from llm4ad.task.optimization.bbob_metaheuristic.evaluation import BBOBMetaheuristicEvaluation
     from llm4ad.task.optimization.bo_acquisition.evaluation import BOAcquisitionEvaluation
+    from llm4ad.task.optimization.bp_online.evaluation import BPOnlineEvaluation
     from llm4ad.task.optimization.bp_1d_construct.evaluation import BP1DEvaluation
     from llm4ad.task.optimization.bp_2d_construct.evaluation import BP2DEvaluation
     from llm4ad.task.optimization.bpp_offline_aco.evaluation import BPPOfflineACOEvaluation
@@ -137,6 +139,7 @@ def test_default_evaluators_use_train_split():
         ACOPheromoneEvaluation(n_ants=3, iter_max=2, n_runs=1),
         BBOBMetaheuristicEvaluation(budget=10, n_runs=1),
         BOAcquisitionEvaluation(),
+        BPOnlineEvaluation(),
         BP1DEvaluation(),
         BP2DEvaluation(),
         BPPOfflineACOEvaluation(),
