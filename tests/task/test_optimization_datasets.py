@@ -33,6 +33,7 @@ OPTIMIZATION_TASKS = {
     "op_aco",
     "orienteering_construct",
     "ovrp_construct",
+    "portfolio_construct",
     "pymoo_moead",
     "pso_velocity",
     "qap_construct",
@@ -98,6 +99,7 @@ def test_default_evaluators_use_train_split():
     from llm4ad.task.optimization.op_aco.evaluation import OPACOEvaluation
     from llm4ad.task.optimization.orienteering_construct.evaluation import OrienteeringEvaluation
     from llm4ad.task.optimization.ovrp_construct.evaluation import OVRPEvaluation
+    from llm4ad.task.optimization.portfolio_construct.evaluation import PortfolioConstructEvaluation
     from llm4ad.task.optimization.pymoo_moead.evaluation import MOEAD_PYMOO_Evaluation
     from llm4ad.task.optimization.pso_velocity.evaluation import PSOVelocityEvaluation
     from llm4ad.task.optimization.qap_construct.evaluation import QAPEvaluation
@@ -135,6 +137,7 @@ def test_default_evaluators_use_train_split():
         OPACOEvaluation(),
         OrienteeringEvaluation(),
         OVRPEvaluation(),
+        PortfolioConstructEvaluation(),
         MOEAD_PYMOO_Evaluation(),
         PSOVelocityEvaluation(pop_size=5, max_iterations=3, n_runs=1),
         QAPEvaluation(),

@@ -1,0 +1,45 @@
+{
+  "dataset_id": "portfolio_construct_v1",
+  "description": "Fixed EoH greedy portfolio-construction benchmark. The searched function scores candidate assets for equal-weighted portfolio inclusion.",
+  "generator": "llm4ad.task.optimization.portfolio_construct.dataset.write_default_dataset",
+  "paper": "papers/EoH",
+  "source": "reference_code/EoH/examples/portfolio_construct",
+  "splits": {
+    "test_full": {
+      "filename": "test_full.npz",
+      "format": "npz",
+      "n_assets": 20,
+      "n_instances": 16,
+      "n_periods": 252,
+      "n_select": 5,
+      "note": "Post-hoc evaluator from the EoH example: sixteen synthetic one-factor return instances.",
+      "returns_shape": [
+        16,
+        20,
+        252
+      ],
+      "role": "test",
+      "seed": 2024,
+      "sha256": "9b3508001a2abbf82dc4f6b5f854402dbbbc798fd648b5cd945163b2df8aaddc"
+    },
+    "train": {
+      "filename": "train.npz",
+      "format": "npz",
+      "n_assets": 20,
+      "n_instances": 5,
+      "n_periods": 252,
+      "n_select": 5,
+      "note": "Original EoH search evaluator: five synthetic one-factor return instances.",
+      "returns_shape": [
+        5,
+        20,
+        252
+      ],
+      "role": "train",
+      "seed": 2024,
+      "sha256": "d9b1bdedbeb5f7cc64e9a0d22013172a4eca1ddf8e8924be922401b17a64e931"
+    }
+  },
+  "task": "portfolio_construct",
+  "version": 1
+}
