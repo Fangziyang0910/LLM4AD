@@ -30,10 +30,21 @@ import concurrent.futures
 import copy
 import time
 import traceback
-from threading import Thread
+from threading import Lock, Thread
 from typing import Literal, Optional
 
 from .profiler import HillClimbProfiler
+from .._observability import (
+    close_sampler_llm,
+    finish_profiler,
+    init_observability,
+    is_search_aborted,
+    log_event,
+    log_llm_call,
+    record_sample_failure,
+    reset_sample_failures,
+    shutdown_executor,
+)
 from ...base import *
 
 
@@ -48,6 +59,7 @@ class HillClimb:
                  *,
                  resume_mode: bool = False,
                  debug_mode: bool = False,
+                 max_consecutive_sample_failures: int = 20,
                  multi_thread_or_process_eval: Literal['thread', 'process'] = 'thread',
                  **kwargs):
         """Hill Climbing Search.
@@ -89,6 +101,8 @@ class HillClimb:
         # statistics
         self._tot_sample_nums = 0
         self._best_function_found = self._function_to_evolve  # set to the template function at the beginning
+        self._sample_lock = Lock()
+        init_observability(self, max_consecutive_sample_failures)
 
         # multi-thread executor for evaluation
         assert multi_thread_or_process_eval in ['thread', 'process']
@@ -109,6 +123,16 @@ class HillClimb:
         # pass parameters to profiler
         if profiler is not None:
             self._profiler.record_parameters(llm, evaluation, self)  # ZL: necessary
+
+    def _try_increment_sample_count(self) -> int | None:
+        self._sample_lock.acquire()
+        try:
+            if self._max_sample_nums is not None and self._tot_sample_nums >= self._max_sample_nums:
+                return None
+            self._tot_sample_nums += 1
+            return self._tot_sample_nums
+        finally:
+            self._sample_lock.release()
 
     def _init(self):
         # evaluate the template program, make sure the score of which is not 'None'
@@ -192,17 +216,31 @@ class HillClimb:
     #         pass
 
     def _sample_evaluate_register(self):
-        while (self._max_sample_nums is None) or (self._tot_sample_nums < self._max_sample_nums):
+        while (not is_search_aborted(self)) and (
+                (self._max_sample_nums is None) or (self._tot_sample_nums < self._max_sample_nums)):
             try:
                 # do sample
                 prompt_content = self._get_prompt()
+                sample_order = self._tot_sample_nums + 1
                 draw_sample_start = time.time()
                 sampled_func = self._sampler.draw_sample(prompt_content)
                 draw_sample_time = time.time() - draw_sample_start
+                reset_sample_failures(self)
 
                 # convert samples to program instances
                 program_to_be_eval = SampleTrimmer.sample_to_program(sampled_func, self._template_program)
+                log_llm_call(
+                    self,
+                    stage='generate',
+                    operator='hillclimb',
+                    sample_order=sample_order,
+                    prompt=prompt_content,
+                    response=sampled_func,
+                    function_parse_success=program_to_be_eval is not None,
+                )
                 if program_to_be_eval is None:
+                    log_event(self, event='sample_rejected', status='program_parse_failed',
+                              operator='hillclimb', sample_order=sample_order, counts_budget=False)
                     continue
 
                 # submit tasks to the thread pool and evaluate
@@ -215,24 +253,37 @@ class HillClimb:
 
                 # convert to Function instance
                 function = TextFunctionProgramConverter.program_to_function(program_to_be_eval)
+                sample_order = self._try_increment_sample_count()
+                if sample_order is None:
+                    break
 
                 # check if the function has converted to Function instance successfully
                 if function is None:
+                    log_event(self, event='sample_rejected', status='function_parse_failed',
+                              operator='hillclimb', sample_order=sample_order, counts_budget=True)
                     continue
                 function.score = score
                 function.evaluate_time = eval_time
                 function.sample_time = draw_sample_time
+                function.operator = 'hillclimb'
 
                 # update best function found
+                old_best = getattr(self._best_function_found, 'score', None)
                 if score is not None and score > self._best_function_found.score:
                     self._best_function_found = function
+                    status = 'accepted'
+                else:
+                    status = 'rejected'
 
                 # register to profiler
                 if self._profiler:
                     self._profiler.register_function(function, program=str(program_to_be_eval))
 
-                # update
-                self._tot_sample_nums += 1
+                log_event(self, event='hillclimb_step', status=status,
+                          operator='hillclimb', sample_order=sample_order,
+                          previous_best_score=old_best, score=score,
+                          current_best_score=getattr(self._best_function_found, 'score', None),
+                          counts_budget=True)
 
             except KeyboardInterrupt:
                 break
@@ -240,28 +291,35 @@ class HillClimb:
                 if self._debug_mode:
                     traceback.print_exc()
                     exit()
+                record_sample_failure(
+                    self,
+                    e,
+                    stage='sample',
+                    operator='hillclimb',
+                    sample_order=self._tot_sample_nums + 1,
+                    counts_budget=False,
+                )
+                if is_search_aborted(self):
+                    break
                 continue
 
         # shutdown evaluation_executor
-        try:
-            self._evaluation_executor.shutdown(cancel_futures=True)
-        except:
-            pass
+        shutdown_executor(self._evaluation_executor)
 
     def run(self):
-        if not self._resume_mode:
-            # do init
-            self._init()
+        try:
+            if not self._resume_mode:
+                # do init
+                self._init()
 
-        # start sampling using multiple threads
-        for t in self._sampler_threads:
-            t.start()
+            # start sampling using multiple threads
+            for t in self._sampler_threads:
+                t.start()
 
-        # join all threads to the main thread
-        for t in self._sampler_threads:
-            t.join()
-
-        if self._profiler is not None:
-            self._profiler.finish()
-
-        self._sampler.llm.close()
+            # join all threads to the main thread
+            for t in self._sampler_threads:
+                t.join()
+        finally:
+            finish_profiler(self, status='aborted' if is_search_aborted(self) else 'finished')
+            close_sampler_llm(self._sampler)
+            shutdown_executor(self._evaluation_executor)

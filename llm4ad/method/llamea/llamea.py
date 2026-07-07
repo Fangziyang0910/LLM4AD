@@ -1,8 +1,10 @@
 from llamea import LLaMEA as LLaMEA_Algorithm
 from ...base import LLM
+from ...tools.profiler import ProfilerBase
 
 from .evaluation import generate_evaluator
 from .sampler import LLaMEASampler
+from .profiler import LLaMEAProfilerAdapter
 
 from llm4ad.base import Evaluation
 
@@ -19,6 +21,7 @@ class LLaMEA(LLaMEA_Algorithm):
             example_prompt :str | None = None,
             minimization: bool = False,
             elitism: bool = True,
+            profiler: ProfilerBase | None = None,
             **kwargs
     ):
         """
@@ -35,7 +38,7 @@ class LLaMEA(LLaMEA_Algorithm):
             minimisation: Flag to define direction of optimality.
             elitism: A bool flag to run algorithm in (λ + µ) if set True, else (λ , µ).
         """    
-        evaluation_function = generate_evaluator(evaluator)
+        evaluation_function = generate_evaluator(evaluator, profiler=profiler)
         super().__init__(
             f=evaluation_function,
             llm=llm,
@@ -51,4 +54,10 @@ class LLaMEA(LLaMEA_Algorithm):
         )
         
         self.evaluator = evaluator
+        self._profiler = profiler
         self.sampler = LLaMEASampler(llm)
+        if profiler is not None:
+            self._profiler.record_parameters(llm, evaluator, self)
+            logger = getattr(llm, "set_profiler", None)
+            if callable(logger):
+                logger(profiler)

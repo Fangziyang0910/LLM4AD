@@ -48,7 +48,7 @@ class LHNSProfiler(ProfilerBase):
             self._ckpt_dir = os.path.join(self._log_dir, 'population')
             os.makedirs(self._ckpt_dir, exist_ok=True)
 
-    def _write_json(self, function: LHNSFunction, *, record_type='history', record_sep=200):
+    def _write_json(self, function: LHNSFunction, program='', *, record_type='history', record_sep=200):
         """Write function data to a JSON file.
         Args:
             function   : The function object containing score and string representation.
@@ -60,13 +60,14 @@ class LHNSProfiler(ProfilerBase):
         if not self._log_dir:
             return
 
-        sample_order = getattr(self.__class__, '_num_samples', 0)
+        sample_order = self._num_samples
         content = {
             'sample_order': sample_order,
             'algorithm': function.algorithm,  # Added when recording
             'function': str(function),
             'features': function.features,
-            'score': function.score
+            'score': function.score,
+            'program': program,
         }
 
         if record_type == 'history':

@@ -1,2 +1,8 @@
 from .partevo import PartEvo
-from .profiler import PartEvoProfiler, EoHTensorboardProfiler, EoHWandbProfiler
+from .profiler import (
+    PartEvoProfiler,
+    PartEvoTensorboardProfiler,
+    PartEvoWandbProfiler,
+    EoHTensorboardProfiler,
+    EoHWandbProfiler,
+)

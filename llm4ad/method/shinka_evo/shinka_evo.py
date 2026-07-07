@@ -7,6 +7,18 @@ from typing import Any, Callable, Optional, Sequence
 
 from ...base import Evaluation, Function, LLM, Program, SecureEvaluator, TextFunctionProgramConverter
 from ...tools.profiler import ProfilerBase
+from .._observability import (
+    close_llm,
+    finish_profiler,
+    init_observability,
+    is_search_aborted,
+    log_error,
+    log_event,
+    log_llm_call,
+    log_state,
+    record_sample_failure,
+    reset_sample_failures,
+)
 from .bandit import ShinkaLLMBandit
 from .population import ShinkaArchive, ShinkaProgram, is_valid_score
 from .profiler import ShinkaEvoProfiler
@@ -59,6 +71,7 @@ class ShinkaEvo:
             llm_ucb_exploration_coef: float = 1.0,
             llm_ucb_epsilon: float = 0.2,
             llm_ucb_auto_decay: float | None = 0.95,
+            max_consecutive_sample_failures: int = 20,
             **secure_evaluator_kwargs,
     ):
         self._template_program_str = evaluation.template_program
@@ -129,6 +142,7 @@ class ShinkaEvo:
         self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode, **secure_evaluator_kwargs)
         self._profiler = profiler
         self._tot_sample_nums = 0
+        init_observability(self, max_consecutive_sample_failures)
         self._generation = 0
         self._evaluated_since_meta: list[ShinkaProgram] = []
         self._meta_summary = ""
@@ -166,7 +180,7 @@ class ShinkaEvo:
         return unique
 
     def _has_budget(self) -> bool:
-        return self._max_sample_nums is None or self._tot_sample_nums < self._max_sample_nums
+        return not is_search_aborted(self) and (self._max_sample_nums is None or self._tot_sample_nums < self._max_sample_nums)
 
     def run(self):
         try:
@@ -181,9 +195,15 @@ class ShinkaEvo:
                 for event in self._archive.maybe_migrate(generation):
                     self._register_event("island_migration", {"generation": generation, **event})
                 generation += 1
+        except Exception as exc:
+            log_error(self, "run", exc, method="shinka_evo", counts_budget=False)
+            if self._debug_mode:
+                raise
         finally:
+            self._log_archive_state("final")
+            finish_profiler(self, status="aborted" if is_search_aborted(self) else "finished")
             for llm in self._all_llms():
-                llm.close()
+                close_llm(llm)
 
     def _evaluate_seed(self) -> ShinkaProgram:
         score, eval_time = self._evaluator.evaluate_program_record_time(program=self._template_program)
@@ -207,6 +227,7 @@ class ShinkaEvo:
             **result,
         )
         self._archive.seed_islands(seed)
+        reset_sample_failures(self)
         self._best_function_found = self.best_function
         self._register_function(seed)
         self._register_event("archive_update", {
@@ -214,6 +235,7 @@ class ShinkaEvo:
             "program_id": seed.id,
             "archive_ids": list(self._archive.archive_ids),
         })
+        self._log_archive_state("seed")
         return seed
 
     def _run_generation(self, generation: int) -> ShinkaProgram | None:
@@ -255,7 +277,41 @@ class ShinkaEvo:
                     previous_error=previous_error,
                     fix_mode=fix_mode,
                 )
-                response, sample_time = self._sampler.draw_sample(prompt)
+                try:
+                    response, sample_time = self._sampler.draw_sample(prompt)
+                except Exception as exc:
+                    aborted = record_sample_failure(
+                        self,
+                        exc,
+                        stage="patch",
+                        operator=patch_type,
+                        sample_order=self._tot_sample_nums + 1,
+                        prompt=prompt,
+                        generation=generation,
+                        arm=arm,
+                        parent_id=parent.id,
+                        island_idx=island_idx,
+                        counts_budget=False,
+                    )
+                    if aborted:
+                        return None
+                    last_error = str(exc)
+                    continue
+                log_llm_call(
+                    self,
+                    method="shinka_evo",
+                    stage="patch",
+                    operator=patch_type,
+                    sample_order=self._tot_sample_nums + 1,
+                    prompt=prompt,
+                    response=response,
+                    sample_time=sample_time,
+                    generation=generation,
+                    arm=arm,
+                    parent_id=parent.id,
+                    island_idx=island_idx,
+                    fix_mode=fix_mode,
+                )
                 patch = self._sampler.apply_response(response, parent, patch_type, fix_mode=fix_mode)
                 patch.metadata.update({
                     "novelty_attempt": novelty_attempt,
@@ -265,6 +321,7 @@ class ShinkaEvo:
                 })
                 self._register_patch_attempt(generation, parent, patch_type, patch)
                 if patch.success:
+                    reset_sample_failures(self)
                     novelty_ok, embedding, novelty_meta = self._assess_novelty(
                         patch,
                         parent,
@@ -292,6 +349,9 @@ class ShinkaEvo:
                     )
                 previous_error = patch.error
                 last_error = patch.error
+                log_error(self, "patch_apply", None, method="shinka_evo",
+                          operator=patch_type, generation=generation, parent_id=parent.id,
+                          error=patch.error, counts_budget=False)
         self._bandit.update(arm, None, None)
         return None
 
@@ -318,8 +378,22 @@ class ShinkaEvo:
     ) -> ShinkaProgram | None:
         if not self._has_budget() or patch.function is None or patch.program is None:
             return None
-        eval_result, eval_time = self._evaluator.evaluate_program_record_time(program=patch.program)
+        try:
+            eval_result, eval_time = self._evaluator.evaluate_program_record_time(program=patch.program)
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage="evaluate",
+                operator=patch_type,
+                sample_order=self._tot_sample_nums + 1,
+                generation=generation,
+                parent_id=parent.id,
+                counts_budget=False,
+            )
+            return None
         self._tot_sample_nums += 1
+        reset_sample_failures(self)
         result = self._coerce_evaluation_result(eval_result)
         func = copy.deepcopy(patch.function)
         func.score = result["combined_score"] if result["correct"] else None
@@ -373,6 +447,7 @@ class ShinkaEvo:
         self._maybe_update_meta()
         self._register_function(program)
         self._best_function_found = self.best_function
+        self._log_archive_state("candidate_evaluated")
         return program
 
     def _assess_novelty(
@@ -411,7 +486,34 @@ class ShinkaEvo:
             return False, embedding, metadata
         similar = self._archive.most_similar_program(embedding, parent.island_idx)
         prompt = self._novelty_prompt(str(patch.program), similar)
-        response = self._novelty_llm.draw_sample(prompt)
+        try:
+            response = self._novelty_llm.draw_sample(prompt)
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage="novelty",
+                operator="novelty",
+                sample_order=self._tot_sample_nums + 1,
+                prompt=prompt,
+                generation=generation,
+                parent_id=parent.id,
+                counts_budget=False,
+            )
+            metadata["novelty_explanation"] = f"Novelty request failed: {exc}"
+            return False, embedding, metadata
+        log_llm_call(
+            self,
+            method="shinka_evo",
+            stage="novelty",
+            operator="novelty",
+            sample_order=self._tot_sample_nums + 1,
+            prompt=prompt,
+            response=response,
+            generation=generation,
+            parent_id=parent.id,
+            accepted=self._is_novelty_response_accept(response),
+        )
         metadata["novelty_explanation"] = response
         return self._is_novelty_response_accept(response), embedding, metadata
 
@@ -472,11 +574,59 @@ class ShinkaEvo:
         recent = list(self._evaluated_since_meta)
         self._evaluated_since_meta = []
         summaries_prompt = self._meta_prompt_individual(recent)
-        summaries = self._meta_llm.draw_sample(summaries_prompt)
+        try:
+            summaries = self._meta_llm.draw_sample(summaries_prompt)
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage="meta_summary",
+                operator="meta_summary",
+                sample_order=self._tot_sample_nums + 1,
+                prompt=summaries_prompt,
+                generation=self._generation,
+                counts_budget=False,
+            )
+            return
+        log_llm_call(self, method="shinka_evo", stage="meta_summary", operator="meta_summary",
+                     sample_order=self._tot_sample_nums + 1, prompt=summaries_prompt,
+                     response=summaries, generation=self._generation)
         insights_prompt = self._meta_prompt_insights(summaries)
-        insights = self._meta_llm.draw_sample(insights_prompt)
+        try:
+            insights = self._meta_llm.draw_sample(insights_prompt)
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage="meta_insights",
+                operator="meta_insights",
+                sample_order=self._tot_sample_nums + 1,
+                prompt=insights_prompt,
+                generation=self._generation,
+                counts_budget=False,
+            )
+            return
+        log_llm_call(self, method="shinka_evo", stage="meta_insights", operator="meta_insights",
+                     sample_order=self._tot_sample_nums + 1, prompt=insights_prompt,
+                     response=insights, generation=self._generation)
         recommendations_prompt = self._meta_prompt_recommendations(insights)
-        recommendations = self._meta_llm.draw_sample(recommendations_prompt)
+        try:
+            recommendations = self._meta_llm.draw_sample(recommendations_prompt)
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage="meta_recommendations",
+                operator="meta_recommendations",
+                sample_order=self._tot_sample_nums + 1,
+                prompt=recommendations_prompt,
+                generation=self._generation,
+                counts_budget=False,
+            )
+            return
+        log_llm_call(self, method="shinka_evo", stage="meta_recommendations", operator="meta_recommendations",
+                     sample_order=self._tot_sample_nums + 1, prompt=recommendations_prompt,
+                     response=recommendations, generation=self._generation)
         self._meta_summary = (self._meta_summary + "\n\n" + summaries).strip() if self._meta_summary else summaries
         self._meta_scratch_pad = insights
         self._meta_recommendations = recommendations
@@ -564,6 +714,24 @@ class ShinkaEvo:
     def _register_event(self, event_type: str, content: dict[str, Any]) -> None:
         if isinstance(self._profiler, ShinkaEvoProfiler):
             self._profiler.register_event(event_type, content)
+        else:
+            log_event(self, event=event_type, method="shinka_evo", **content)
+
+    def _log_archive_state(self, phase: str) -> None:
+        best = self._archive.best_program
+        log_state(
+            self,
+            phase=phase,
+            method="shinka_evo",
+            generation=self._generation,
+            sample_count=self._tot_sample_nums,
+            archive_size=len(self._archive.archive_ids),
+            num_islands=len(self._archive.islands),
+            island_sizes=[len(self._archive.islands[idx]) for idx in sorted(self._archive.islands)],
+            best_program_id=best.id if best is not None else None,
+            best_score=best.combined_score if best is not None else None,
+            meta_recommendations_count=len(self._meta_recommendations_history),
+        )
 
 
 ShinkaEvolve = ShinkaEvo

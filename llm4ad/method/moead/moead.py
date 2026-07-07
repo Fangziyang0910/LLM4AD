@@ -35,6 +35,18 @@ from .population import Population
 from .profiler import MOEADProfiler
 from .prompt import MOEADPrompt
 from .sampler import MOEADSampler
+from .._observability import (
+    call_sampler_get_thought_and_function,
+    close_sampler_llm,
+    finish_profiler,
+    init_observability,
+    is_search_aborted,
+    log_event,
+    log_state,
+    record_sample_failure,
+    reset_sample_failures,
+    shutdown_executor,
+)
 from ...base import (
     Evaluation, LLM, Function, Program, TextFunctionProgramConverter, SecureEvaluator
 )
@@ -60,6 +72,7 @@ class MOEAD:
                  resume_mode: bool = False,
                  initial_sample_num: int | None = None,
                  debug_mode: bool = False,
+                 max_consecutive_sample_failures: int = 20,
                  multi_thread_or_process_eval: str = 'thread',
                  **kwargs):
         """
@@ -108,14 +121,15 @@ class MOEAD:
         # population, sampler, and evaluator
         self._population = Population(pop_size=self._pop_size)
         llm.debug_mode = debug_mode
-        self._sampler = MOEADSampler(llm, self._template_program_str)
-        self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode, **kwargs)
         self._profiler = profiler
+        self._sampler = MOEADSampler(llm, self._template_program_str, profiler=self._profiler)
+        self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode, **kwargs)
         if profiler is not None:
             self._profiler.record_parameters(llm, evaluation, self)  # ZL: Necessary
 
         # statistics
         self._tot_sample_nums = 0 if initial_sample_num is None else initial_sample_num
+        init_observability(self, max_consecutive_sample_failures)
 
         # multi-thread executor for evaluation
         assert multi_thread_or_process_eval in ['thread', 'process']
@@ -128,19 +142,43 @@ class MOEAD:
                 max_workers=num_evaluators
             )
 
-    def _sample_evaluate_register(self, prompt):
+    def _sample_evaluate_register(self, prompt, operator=None, **event_context):
         """Sample a function using the given prompt -> evaluate it by submitting to the process/thread pool ->
         add the function to the population and register it to the profiler.
         """
         sample_start = time.time()
-        thought, func = self._sampler.get_thought_and_function(prompt)
+        sample_order = self._tot_sample_nums + 1
+        try:
+            thought, func = call_sampler_get_thought_and_function(
+                self._sampler,
+                prompt,
+                operator=operator,
+                sample_order=sample_order,
+            )
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage='sample',
+                operator=operator,
+                sample_order=sample_order,
+                prompt=prompt,
+                counts_budget=False,
+                **event_context,
+            )
+            return
         sample_time = time.time() - sample_start
+        reset_sample_failures(self)
         if thought is None or func is None:
+            log_event(self, event='sample_rejected', status='parse_failed', operator=operator,
+                      sample_order=sample_order, counts_budget=False, **event_context)
             return
 
         # convert to Program instance
         program = TextFunctionProgramConverter.function_to_program(func, self._template_program)
         if program is None:
+            log_event(self, event='sample_rejected', status='program_parse_failed', operator=operator,
+                      sample_order=sample_order, counts_budget=False, **event_context)
             return
 
         # evaluate
@@ -154,21 +192,28 @@ class MOEAD:
         func.evaluate_time = eval_time
         func.algorithm = thought
         func.sample_time = sample_time
+        func.operator = operator or 'Unknown'
+        self._tot_sample_nums += 1
         try:
             if self._profiler is not None:
                 self._profiler.register_function(func, program=str(program))
                 if isinstance(self._profiler, MOEADProfiler):
                     self._profiler.register_population(self._population)
-                self._tot_sample_nums += 1
         except Exception as e:
             traceback.print_exc()
 
         # register to the population
         self._population.register_function(func)
+        log_event(self, event='sample_registered', status='evaluated', operator=operator,
+                  sample_order=self._tot_sample_nums, score=func.score, counts_budget=True, **event_context)
+        log_state(self, phase='population', method='moead', generation=self._population.generation,
+                  population_size=len(self._population), sample_count=self._tot_sample_nums)
 
     def _continue_sample(self):
         """Check if it meets the max_sample_nums restrictions.
         """
+        if is_search_aborted(self):
+            return False
         if self._max_generations is None and self._max_sample_nums is None:
             return True
         if self._max_generations is None and self._max_sample_nums is not None:
@@ -203,7 +248,7 @@ class MOEAD:
                         print(prompt)
                         input()
 
-                    self._sample_evaluate_register(prompt)
+                    self._sample_evaluate_register(prompt, operator='e1', weight_vector=crt_pref)
                     if not self._continue_sample():
                         break
 
@@ -216,7 +261,7 @@ class MOEAD:
                             print(prompt)
                             input()
 
-                        self._sample_evaluate_register(prompt)
+                        self._sample_evaluate_register(prompt, operator='e2', weight_vector=crt_pref)
                         if not self._continue_sample():
                             break
 
@@ -229,7 +274,7 @@ class MOEAD:
                             print(prompt)
                             input()
 
-                        self._sample_evaluate_register(prompt)
+                        self._sample_evaluate_register(prompt, operator='m1', weight_vector=crt_pref)
                         if not self._continue_sample():
                             break
 
@@ -242,7 +287,7 @@ class MOEAD:
                             print(prompt)
                             input()
 
-                        self._sample_evaluate_register(prompt)
+                        self._sample_evaluate_register(prompt, operator='m2', weight_vector=crt_pref)
                         if not self._continue_sample():
                             break
             except KeyboardInterrupt:
@@ -269,7 +314,7 @@ class MOEAD:
             try:
                 # get a new func using i1
                 prompt = MOEADPrompt.get_prompt_i1(self._task_description_str, self._function_to_evolve)
-                self._sample_evaluate_register(prompt)
+                self._sample_evaluate_register(prompt, operator='i1')
             except Exception as e:
                 if self._debug_mode:
                     traceback.print_exc()
@@ -300,18 +345,19 @@ class MOEAD:
             t.join()
 
     def run(self):
-        if not self._resume_mode:
-            # do init
-            self._population = Population(pop_size=self._pop_size)
-            self._init_population()
-            while len([f for f in self._population if not np.isinf(np.array(f.score)).any()]) < self._selection_num:
-                self._population._generation -= 1
+        try:
+            if not self._resume_mode:
+                # do init
+                self._population = Population(pop_size=self._pop_size)
                 self._init_population()
-        # do evolve
-        self._do_sample()
-
-        # finish
-        if self._profiler is not None:
-            self._profiler.finish()
-
-        self._sampler.llm.close()
+                while len([f for f in self._population if not np.isinf(np.array(f.score)).any()]) < self._selection_num:
+                    if is_search_aborted(self):
+                        break
+                    self._population._generation -= 1
+                    self._init_population()
+            # do evolve
+            self._do_sample()
+        finally:
+            finish_profiler(self, status='aborted' if is_search_aborted(self) else 'finished')
+            close_sampler_llm(self._sampler)
+            shutdown_executor(self._evaluation_executor)

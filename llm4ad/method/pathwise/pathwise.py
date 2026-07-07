@@ -15,6 +15,19 @@ from .prompt import PathWisePrompt
 from .sampler import PathWiseSampler
 from ...base import Evaluation, Function, LLM, Program, SecureEvaluator, TextFunctionProgramConverter
 from ...tools.profiler import ProfilerBase
+from .._observability import (
+    close_llm,
+    finish_profiler,
+    init_observability,
+    is_search_aborted,
+    log_error,
+    log_event,
+    log_llm_call,
+    log_state,
+    record_sample_failure,
+    reset_sample_failures,
+    shutdown_executor,
+)
 
 
 @dataclass
@@ -57,6 +70,7 @@ class PathWise:
             resume_mode: bool = False,
             debug_mode: bool = False,
             multi_thread_or_process_eval: Literal["thread", "process"] = "thread",
+            max_consecutive_sample_failures: int = 20,
             **kwargs,
     ):
         """PathWise integrated with the LLM4AD method/evaluation interfaces.
@@ -125,6 +139,7 @@ class PathWise:
         self._population = Population(pop_size=self._pop_size)
 
         self._tot_sample_nums = 0
+        init_observability(self, max_consecutive_sample_failures)
         self._outer_iteration = 0
         self._inner_step = 0
         self._node_counter = 0
@@ -161,7 +176,7 @@ class PathWise:
         return unique
 
     def _has_budget(self) -> bool:
-        return self._max_sample_nums is None or self._tot_sample_nums < self._max_sample_nums
+        return not is_search_aborted(self) and (self._max_sample_nums is None or self._tot_sample_nums < self._max_sample_nums)
 
     def _debug_print(self, title: str, content: str):
         if self._debug_mode:
@@ -246,17 +261,34 @@ class PathWise:
             program = TextFunctionProgramConverter.function_to_program(func, self._template_program)
         if program is None:
             self._tot_sample_nums += 1
+            log_event(self, event="sample_rejected", method="pathwise", status="program_parse_failed",
+                      operator=operator, node_id=node_id, sample_order=self._tot_sample_nums,
+                      counts_budget=True)
             return None
 
-        score, eval_time = self._evaluation_executor.submit(
-            self._evaluator.evaluate_program_record_time,
-            program,
-        ).result()
+        try:
+            score, eval_time = self._evaluation_executor.submit(
+                self._evaluator.evaluate_program_record_time,
+                program,
+            ).result()
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage="evaluate",
+                operator=operator,
+                sample_order=self._tot_sample_nums + 1,
+                node_id=node_id,
+                parent_ids=parent_ids or [],
+                counts_budget=False,
+            )
+            return None
 
         func.score = score
         func.evaluate_time = eval_time
         func.sample_time = sample_time
         self._tot_sample_nums += 1
+        reset_sample_failures(self)
 
         node = PathWiseNode(
             function=func,
@@ -267,6 +299,12 @@ class PathWise:
             parents=self._parent_info(parent_ids or [], graph),
         )
         self._register_node(node, program)
+        log_event(self, event="sample_registered", method="pathwise",
+                  status="evaluated" if self._valid_score(score) else "invalid",
+                  operator=operator, node_id=node_id, parent_ids=parent_ids or [],
+                  score=score, sample_order=self._tot_sample_nums, counts_budget=True)
+        log_state(self, phase="archive", method="pathwise", sample_count=self._tot_sample_nums,
+                  archive_size=len(self._all_nodes_archive), best_score=self._best_node.score if self._best_node else None)
 
         if not self._valid_score(score):
             return None
@@ -292,11 +330,38 @@ class PathWise:
             prompt = self._prompt.initialization_prompt(i, self._external_knowledge)
             self._debug_print("PathWise Initialization Prompt", prompt)
             sample_start = time.time()
-            response = self._policy_llm.draw_sample(prompt, **self._init_sampling_kwargs())
+            try:
+                response = self._policy_llm.draw_sample(prompt, **self._init_sampling_kwargs())
+            except Exception as exc:
+                record_sample_failure(
+                    self,
+                    exc,
+                    stage="initialization",
+                    operator="init",
+                    sample_order=self._tot_sample_nums + 1,
+                    prompt=prompt,
+                    role="policy",
+                    counts_budget=False,
+                )
+                continue
             sample_time = time.time() - sample_start
             parsed = PathWiseSampler.parse_initialization_response(response, self._template_program)
+            log_llm_call(
+                self,
+                method="pathwise",
+                stage="initialization",
+                role="policy",
+                operator="init",
+                sample_order=self._tot_sample_nums + 1,
+                prompt=prompt,
+                response=response,
+                parse_success=parsed is not None,
+                sample_time=sample_time,
+            )
             if parsed is None:
                 self._count_invalid_sample()
+                log_event(self, event="sample_rejected", method="pathwise", status="parse_failed",
+                          operator="init", sample_order=self._tot_sample_nums, counts_budget=True)
                 continue
             func, description, rationale = parsed
             node = self._evaluate_function(
@@ -322,6 +387,9 @@ class PathWise:
 
         self._population.set_nodes(selected[:self._pop_size], increment_generation=True)
         self._register_population()
+        log_state(self, phase="population", method="pathwise", generation=self._population.generation,
+                  sample_count=self._tot_sample_nums, population_size=len(self._population),
+                  node_ids=[node.node_id for node in self._population.nodes])
 
     def _fallback_action(self, state: list[PathWiseNode]) -> PathWiseAction:
         best = max(state, key=lambda node: node.score)
@@ -339,10 +407,40 @@ class PathWise:
                 perturbation=self._policy_perturbation(),
             )
             self._debug_print("PathWise Policy Prompt", prompt)
-            response = self._policy_llm.draw_sample(prompt)
+            try:
+                response = self._policy_llm.draw_sample(prompt)
+            except Exception as exc:
+                record_sample_failure(
+                    self,
+                    exc,
+                    stage="policy",
+                    operator="policy",
+                    sample_order=self._tot_sample_nums + 1,
+                    prompt=prompt,
+                    role="policy",
+                    counts_budget=False,
+                )
+                action = self._fallback_action(state)
+                actions.append(action)
+                continue
             action = PathWiseSampler.parse_policy_response(response, state)
+            log_llm_call(
+                self,
+                method="pathwise",
+                stage="policy",
+                role="policy",
+                operator="policy",
+                sample_order=self._tot_sample_nums + 1,
+                prompt=prompt,
+                response=response,
+                parse_success=action is not None,
+                state_node_ids=[node.node_id for node in state],
+            )
             if action is None:
                 action = self._fallback_action(state)
+                log_event(self, event="policy_fallback", method="pathwise", status="fallback",
+                          sample_order=self._tot_sample_nums + 1,
+                          state_node_ids=[node.node_id for node in state])
             actions.append(action)
         return actions
 
@@ -363,11 +461,44 @@ class PathWise:
         )
         self._debug_print("PathWise World Model Prompt", prompt)
         sample_start = time.time()
-        response = self._world_model_llm.draw_sample(prompt)
+        try:
+            response = self._world_model_llm.draw_sample(prompt)
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage="world_model",
+                operator="world_model",
+                sample_order=self._tot_sample_nums + 1,
+                prompt=prompt,
+                role="world_model",
+                action_idx=action_idx,
+                rollout_idx=rollout_idx,
+                counts_budget=False,
+            )
+            return _Rollout(None, float("-inf"), "World-model request failed.", action, 0.0)
         sample_time = time.time() - sample_start
         parsed = PathWiseSampler.parse_world_model_response(response, self._template_program)
+        log_llm_call(
+            self,
+            method="pathwise",
+            stage="world_model",
+            role="world_model",
+            operator="world_model",
+            sample_order=self._tot_sample_nums + 1,
+            prompt=prompt,
+            response=response,
+            parse_success=parsed is not None,
+            sample_time=sample_time,
+            action_idx=action_idx,
+            rollout_idx=rollout_idx,
+            parent_ids=action.parents,
+        )
         if parsed is None:
             self._count_invalid_sample()
+            log_event(self, event="sample_rejected", method="pathwise", status="parse_failed",
+                      operator="world_model", sample_order=self._tot_sample_nums,
+                      action_idx=action_idx, rollout_idx=rollout_idx, counts_budget=True)
             return _Rollout(None, float("-inf"), "Invalid world-model rollout.", action, sample_time)
 
         func, description = parsed
@@ -437,7 +568,31 @@ class PathWise:
                 summaries.append("No valid rollouts.")
         prompt = self._prompt.policy_critic_prompt(state, actions, summaries)
         self._debug_print("PathWise Policy Critic Prompt", prompt)
-        reflection = self._policy_critic_llm.draw_sample(prompt)
+        try:
+            reflection = self._policy_critic_llm.draw_sample(prompt)
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage="policy_critic",
+                operator="policy_critic",
+                sample_order=self._tot_sample_nums + 1,
+                prompt=prompt,
+                role="policy_critic",
+                counts_budget=False,
+            )
+            return self._policy_reflection
+        log_llm_call(
+            self,
+            method="pathwise",
+            stage="policy_critic",
+            role="policy_critic",
+            operator="policy_critic",
+            sample_order=self._tot_sample_nums + 1,
+            prompt=prompt,
+            response=reflection,
+            parse_success=bool(reflection and reflection.strip()),
+        )
         if reflection and reflection.strip():
             self._policy_reflection_history.append(reflection.strip())
             return reflection.strip()
@@ -455,7 +610,31 @@ class PathWise:
             return self._world_model_reflection
         prompt = self._prompt.world_model_critic_prompt(best, worst)
         self._debug_print("PathWise World Model Critic Prompt", prompt)
-        reflection = self._world_model_critic_llm.draw_sample(prompt)
+        try:
+            reflection = self._world_model_critic_llm.draw_sample(prompt)
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage="world_model_critic",
+                operator="world_model_critic",
+                sample_order=self._tot_sample_nums + 1,
+                prompt=prompt,
+                role="world_model_critic",
+                counts_budget=False,
+            )
+            return self._world_model_reflection
+        log_llm_call(
+            self,
+            method="pathwise",
+            stage="world_model_critic",
+            role="world_model_critic",
+            operator="world_model_critic",
+            sample_order=self._tot_sample_nums + 1,
+            prompt=prompt,
+            response=reflection,
+            parse_success=bool(reflection and reflection.strip()),
+        )
         if reflection and reflection.strip():
             self._world_model_reflection_history.append(reflection.strip())
             return reflection.strip()
@@ -594,6 +773,10 @@ class PathWise:
             self._all_nodes_archive[node.node_id] = copy.deepcopy(node)
             self._update_best(node)
         self._register_population()
+        log_state(self, phase="population", method="pathwise", generation=self._population.generation,
+                  sample_count=self._tot_sample_nums, population_size=len(self._population),
+                  node_ids=[node.node_id for node in self._population.nodes],
+                  best_score=self._best_node.score if self._best_node else None)
 
     def run(self):
         try:
@@ -608,6 +791,9 @@ class PathWise:
                     return
 
             while self._has_budget() and len(self._population) > 1:
+                log_event(self, event="outer_iteration_start", method="pathwise",
+                          outer_iteration=self._outer_iteration, sample_count=self._tot_sample_nums,
+                          population_size=len(self._population))
                 graph, final_node = self._construct_entailment_graph()
                 if final_node is None:
                     break
@@ -615,19 +801,21 @@ class PathWise:
                 self._outer_iteration += 1
         except KeyboardInterrupt:
             pass
-        except Exception:
+        except Exception as exc:
+            log_error(self, "run", exc, method="pathwise", counts_budget=False)
             if self._debug_mode:
                 traceback.print_exc()
                 raise
         finally:
-            try:
-                self._evaluation_executor.shutdown(cancel_futures=True)
-            except Exception:
-                pass
-            if self._profiler is not None:
-                self._profiler.finish()
+            shutdown_executor(self._evaluation_executor)
+            log_state(self, phase="final", method="pathwise", sample_count=self._tot_sample_nums,
+                      outer_iteration=self._outer_iteration,
+                      population_size=len(self._population),
+                      archive_size=len(self._all_nodes_archive),
+                      best_score=self._best_node.score if self._best_node else None)
+            finish_profiler(self, status="aborted" if is_search_aborted(self) else "finished")
             for agent_llm in self._llms():
-                agent_llm.close()
+                close_llm(agent_llm)
 
     @property
     def best_node(self) -> PathWiseNode | None:

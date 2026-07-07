@@ -37,6 +37,7 @@ from .mcts import MCTS, MCTSNode
 from .profiler import MAProfiler
 from .prompt import MAPrompt
 from .sampler import MASampler
+from .._observability import close_sampler_llm, finish_profiler, shutdown_executor
 from ...base import (
     Evaluation, LLM, Function, Program, TextFunctionProgramConverter, SecureEvaluator
 )
@@ -64,6 +65,7 @@ class MCTS_AHD:
                  *,
                  resume_mode: bool = False,
                  debug_mode: bool = False,
+                 max_consecutive_sample_failures: int = 20,
                  multi_thread_or_process_eval: Literal['thread', 'process'] = 'thread',
                  **kwargs):
         """Evolutionary of Heuristics.
@@ -81,6 +83,7 @@ class MCTS_AHD:
             lambda_0        : a parameter for the UCT formula, which is used to balance exploration and exploitation.
             resume_mode     : in resume_mode, randsample will not evaluate the template_program, and will skip the init process. TODO: More detailed usage.
             debug_mode      : if set to True, we will print detailed information.
+            max_consecutive_sample_failures: stop the search after this many consecutive LLM/sample failures.
             multi_thread_or_process_eval: use 'concurrent.futures.ThreadPoolExecutor' or 'concurrent.futures.ProcessPoolExecutor' for the usage of
                 multi-core CPU while evaluation. Please note that both settings can leverage multi-core CPU. As a result on my personal computer (Mac OS, Intel chip),
                 setting this parameter to 'process' will faster than 'thread'. However, I do not sure if this happens on all platform so I set the default to 'thread'.
@@ -125,6 +128,9 @@ class MCTS_AHD:
 
         # statistics
         self._tot_sample_nums = 0
+        self._consecutive_sample_failures = 0
+        self._max_consecutive_sample_failures = max(1, max_consecutive_sample_failures)
+        self._search_aborted = False
 
         # reset _initial_sample_nums_max
         if self._max_sample_nums is None:
@@ -169,6 +175,14 @@ class MCTS_AHD:
     def _log_mcts_event(self, **payload):
         if isinstance(self._profiler, MAProfiler):
             self._profiler.log_mcts_event(**payload)
+
+    def _log_llm_call(self, **payload):
+        logger = getattr(self._profiler, 'log_llm_call', None)
+        if callable(logger):
+            try:
+                logger(**payload)
+            except Exception:
+                pass
 
     @staticmethod
     def _node_score(node: MCTSNode):
@@ -223,13 +237,26 @@ class MCTS_AHD:
         3. Add the function to the population and register it to the profiler.
         """
         sample_start = time.time()
-        thought, func = self._sampler.get_thought_and_function(
-            self._task_description_str,
-            prompt,
-            operator=operator,
-            sample_order=self._tot_sample_nums + 1,
-        )
+        sample_order = self._tot_sample_nums + 1
+        try:
+            thought, func = self._sampler.get_thought_and_function(
+                self._task_description_str,
+                prompt,
+                operator=operator,
+                sample_order=sample_order,
+            )
+        except Exception as exc:
+            if getattr(self, '_debug_mode', False):
+                raise
+            self._record_sample_failure(
+                exc,
+                prompt=prompt,
+                operator=operator,
+                sample_order=sample_order,
+            )
+            return False
         sample_time = time.time() - sample_start
+        self._consecutive_sample_failures = 0
         if thought is None or func is None:
             return False
         # convert to Program instance
@@ -262,10 +289,61 @@ class MCTS_AHD:
         return True
 
     def _continue_loop(self) -> bool:
+        if getattr(self, '_search_aborted', False):
+            return False
         if self._max_sample_nums is None:
             return True
         else:
             return self._tot_sample_nums < self._max_sample_nums
+
+    def _record_sample_failure(self, exc: Exception, *, prompt, operator=None, sample_order=None):
+        if sample_order is None:
+            sample_order = self._tot_sample_nums + 1
+        self._consecutive_sample_failures = getattr(self, '_consecutive_sample_failures', 0) + 1
+        max_failures = getattr(self, '_max_consecutive_sample_failures', 20)
+        error_message = str(exc)
+        if len(error_message) > 500:
+            error_message = error_message[:497] + '...'
+
+        self._log_llm_call(
+            stage='sample_error',
+            operator=operator,
+            sample_order=sample_order,
+            prompt=prompt,
+            error_type=type(exc).__name__,
+            error=error_message,
+            consecutive_failures=self._consecutive_sample_failures,
+        )
+        self._log_mcts_event(
+            event='sample_error',
+            status='error',
+            reason='llm_sample_exception',
+            operator=operator,
+            sample_order=self._tot_sample_nums,
+            error_type=type(exc).__name__,
+            error=error_message,
+            consecutive_failures=self._consecutive_sample_failures,
+            max_consecutive_failures=max_failures,
+        )
+        logger = getattr(self._profiler, 'log_error', None)
+        if callable(logger):
+            logger(
+                'sample',
+                exc,
+                operator=operator,
+                sample_order=sample_order,
+                prompt=prompt,
+                counts_budget=False,
+                consecutive_failures=self._consecutive_sample_failures,
+                max_consecutive_failures=max_failures,
+            )
+
+        if self._consecutive_sample_failures >= max_failures:
+            self._search_aborted = True
+            self._log_message(
+                f'MCTS_AHD stops after {self._consecutive_sample_failures} consecutive sample failures. '
+                f'Last error: {type(exc).__name__}: {error_message}'
+            )
 
     def check_duplicate(self, population, code):
         for ind in population:
@@ -342,6 +420,8 @@ class MCTS_AHD:
         return pop_new
 
     def expand(self, mcts: MCTS, node_set, cur_node: MCTSNode, option: str):
+        if getattr(self, '_search_aborted', False):
+            return node_set
         is_valid_func = True
         if option == 's1':
             path_set = []
@@ -501,7 +581,7 @@ class MCTS_AHD:
         """Let a thread repeat {sample -> evaluate -> register to population}
         to initialize a population.
         """
-        while len(self._population.population) < self._init_pop_size:
+        while len(self._population.population) < self._init_pop_size and not getattr(self, '_search_aborted', False):
             try:
                 # get a new func using e1
                 indivs = self._sample_e1_references_from_population(self._population.population, allow_single=True)
@@ -525,7 +605,7 @@ class MCTS_AHD:
                 continue
 
     def _init_one_solution(self):
-        while len(self._population.next_gen_pop) == 0:
+        while len(self._population.next_gen_pop) == 0 and not getattr(self, '_search_aborted', False):
             try:
                 # get a new func using i1
                 prompt = MAPrompt.get_prompt_i1(self._task_description_str, self._function_to_evolve)
@@ -551,70 +631,80 @@ class MCTS_AHD:
             t.join()
 
     def run(self):
-        mcts = MCTS('Root', self.alpha, self.lambda_0)
-        # do initialization
+        try:
+            mcts = MCTS('Root', self.alpha, self.lambda_0)
+            # do initialization
 
-        # 1. first generate one solution as initialization
-        self._init_one_solution()
-        self._population.survival()
-
-        # 2. expand root
-        self._iteratively_init_population_root()
-
-        # 3. update mcts
-        for indiv in self._population.population:
-            now_node = MCTSNode(indiv.algorithm, str(indiv), -1 * indiv.score, individual=indiv,
-                                parent=mcts.root,
-                                depth=1, visit=1, Q=indiv.score, raw_info=indiv)
-            mcts.root.add_child(now_node)
-            mcts.backpropagate(now_node)
-            now_node.subtree.append(now_node)
-
-        # terminate searching if
-        if len(self._population) < self._selection_num:
-            self._log_message(
-                f'The search is terminated since MCTS_AHD unable to obtain {self._selection_num} feasible algorithms during initialization. '
-                f'Please increase the `initial_sample_nums_max` argument (currently {self._initial_sample_nums_max}). '
-                f'Please also check your evaluation implementation and LLM implementation.')
-            return
-
-        # evolutionary search
-        while self._continue_loop():
-            node_set = []
-            self._log_mcts_state(mcts, phase='iteration_start')
-            cur_node = mcts.root
-            while len(cur_node.children) > 0 and cur_node.depth < mcts.max_depth:
-                uct_scores = [mcts.uct(node, self._eval_remain_ratio()) for node in
-                              cur_node.children]
-                selected_pair_idx = uct_scores.index(max(uct_scores))
-                if self._should_progressively_widen(mcts, cur_node):
-                    if cur_node == mcts.root:
-                        op = 'e1'
-                        self.expand(mcts, mcts.root.children, cur_node, op)
-                    else:
-                        # i = random.randint(1, n_op - 1)
-                        op = 'e2'
-                        self.expand(mcts, cur_node.children, cur_node, op)
-                cur_node = cur_node.children[selected_pair_idx]
-            self._log_mcts_state(mcts, phase='selected_leaf', selected_node=cur_node)
-            for i in range(len(self._operators)):
-                op = self._operators[i]
-                self._log_mcts_event(
-                    event='operator_start',
-                    status='scheduled',
-                    operator=op,
-                    sample_order=self._tot_sample_nums,
-                    parent_score=self._node_score(cur_node),
-                    parent_depth=cur_node.depth,
-                    parent_visits=cur_node.visits,
-                )
-                op_w = self._operator_weights[i]
-                for j in range(op_w):
-                    node_set = self.expand(mcts, node_set, cur_node, op)
+            # 1. first generate one solution as initialization
+            self._init_one_solution()
             self._population.survival()
 
-        # finish
-        if self._profiler is not None:
-            self._profiler.finish()
+            # 2. expand root
+            self._iteratively_init_population_root()
 
-        self._sampler.llm.close()
+            # 3. update mcts
+            for indiv in self._population.population:
+                now_node = MCTSNode(indiv.algorithm, str(indiv), -1 * indiv.score, individual=indiv,
+                                    parent=mcts.root,
+                                    depth=1, visit=1, Q=indiv.score, raw_info=indiv)
+                mcts.root.add_child(now_node)
+                mcts.backpropagate(now_node)
+                now_node.subtree.append(now_node)
+
+            # terminate searching if
+            if len(self._population) < self._selection_num:
+                self._log_message(
+                    f'The search is terminated since MCTS_AHD unable to obtain {self._selection_num} feasible algorithms during initialization. '
+                    f'Please increase the `initial_sample_nums_max` argument (currently {self._initial_sample_nums_max}). '
+                    f'Please also check your evaluation implementation and LLM implementation.')
+                return
+
+            # evolutionary search
+            while self._continue_loop():
+                node_set = []
+                self._log_mcts_state(mcts, phase='iteration_start')
+                cur_node = mcts.root
+                while len(cur_node.children) > 0 and cur_node.depth < mcts.max_depth and self._continue_loop():
+                    uct_scores = [mcts.uct(node, self._eval_remain_ratio()) for node in
+                                  cur_node.children]
+                    selected_pair_idx = uct_scores.index(max(uct_scores))
+                    if self._should_progressively_widen(mcts, cur_node):
+                        if cur_node == mcts.root:
+                            op = 'e1'
+                            self.expand(mcts, mcts.root.children, cur_node, op)
+                        else:
+                            # i = random.randint(1, n_op - 1)
+                            op = 'e2'
+                            self.expand(mcts, cur_node.children, cur_node, op)
+                        if getattr(self, '_search_aborted', False):
+                            break
+                    cur_node = cur_node.children[selected_pair_idx]
+                if getattr(self, '_search_aborted', False):
+                    break
+                self._log_mcts_state(mcts, phase='selected_leaf', selected_node=cur_node)
+                for i in range(len(self._operators)):
+                    if not self._continue_loop():
+                        break
+                    op = self._operators[i]
+                    self._log_mcts_event(
+                        event='operator_start',
+                        status='scheduled',
+                        operator=op,
+                        sample_order=self._tot_sample_nums,
+                        parent_score=self._node_score(cur_node),
+                        parent_depth=cur_node.depth,
+                        parent_visits=cur_node.visits,
+                    )
+                    op_w = self._operator_weights[i]
+                    for j in range(op_w):
+                        if not self._continue_loop():
+                            break
+                        node_set = self.expand(mcts, node_set, cur_node, op)
+                self._population.survival()
+        finally:
+            finish_profiler(
+                self,
+                status='aborted' if getattr(self, '_search_aborted', False) else 'finished',
+            )
+            close_sampler_llm(self._sampler)
+            shutdown_executor(self._evaluation_executor)

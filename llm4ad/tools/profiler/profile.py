@@ -22,13 +22,14 @@ from __future__ import annotations
 import os
 import re
 import sys
-from typing import Literal, Optional, List, Tuple
+import traceback
+from typing import Any, Literal, Optional, List, Tuple
 
 import numpy as np
 import pytz
 import json
 import logging
-from threading import Lock
+from threading import Lock, RLock
 from datetime import datetime
 
 from ...base import Function
@@ -67,6 +68,12 @@ class ProfilerBase:
         self._evaluate_failed_program_num = 0
         self._tot_sample_time = 0
         self._tot_evaluate_time = 0
+        self._process_end_time = None
+        self._error_count = 0
+        self._llm_call_count = 0
+        self._method_event_count = 0
+        self._method_state_count = 0
+        self._finished = False
 
         self._parameters = None
         self._logger_txt = logging.getLogger('root')
@@ -81,6 +88,13 @@ class ProfilerBase:
 
         # lock for multi-thread invoking self.register_function(...)
         self._register_function_lock = Lock()
+        self._artifact_lock = RLock()
+        self._samples_json_dir = os.path.join(self._log_dir, 'samples') if self._log_dir else None
+        self._llm_calls_path = os.path.join(self._log_dir, 'llm_calls.jsonl') if self._log_dir else None
+        self._method_events_path = os.path.join(self._log_dir, 'method_events.jsonl') if self._log_dir else None
+        self._method_state_path = os.path.join(self._log_dir, 'method_state.jsonl') if self._log_dir else None
+        self._errors_path = os.path.join(self._log_dir, 'errors.jsonl') if self._log_dir else None
+        self._run_summary_path = os.path.join(self._log_dir, 'run_summary.json') if self._log_dir else None
 
     def record_parameters(self, llm, prob, method):
         self._parameters = [llm, prob, method]
@@ -93,7 +107,7 @@ class ProfilerBase:
             try:
                 self._register_function_lock.acquire()
                 self._num_samples += 1
-                self._record_and_print_verbose(function, resume_mode=resume_mode)
+                self._record_and_print_verbose(function, program=program, resume_mode=resume_mode)
                 if not resume_mode:
                     self._write_json(function, program)
             finally:
@@ -102,20 +116,103 @@ class ProfilerBase:
             try:
                 self._register_function_lock.acquire()
                 self._num_samples += 1
-                self._record_and_print_verbose(function, resume_mode=resume_mode)
+                self._record_and_print_verbose(function, program=program, resume_mode=resume_mode)
                 if not resume_mode:
                     self._write_json(function, program)
             finally:
                 self._register_function_lock.release()
 
     def finish(self):
-        pass
+        self.write_run_summary(status='finished')
 
     def get_logger(self):
-        pass
+        return self._logger_txt
 
     def resume(self, *args, **kwargs):
         pass
+
+    def log_message(self, message: str):
+        if self._log_dir and self._logger_txt.handlers:
+            self._logger_txt.info(message)
+        else:
+            print(message)
+
+    def log_llm_call(self, **payload):
+        """Append one LLM interaction or LLM-side failure to `llm_calls.jsonl`."""
+        if not self._log_dir:
+            return
+        payload = self._with_common_log_fields(payload)
+        with self._artifact_lock:
+            self._llm_call_count += 1
+            self._append_jsonl(self._llm_calls_path, payload)
+
+    def log_method_event(self, event: str | None = None, **payload):
+        """Append a method-level event such as operator start, accept, reject, or archive update."""
+        if not self._log_dir:
+            return
+        if event is not None:
+            payload.setdefault('event', event)
+        payload = self._with_common_log_fields(payload)
+        with self._artifact_lock:
+            self._method_event_count += 1
+            self._append_jsonl(self._method_events_path, payload)
+
+    def log_method_state(self, phase: str | None = None, **payload):
+        """Append a lightweight method state snapshot."""
+        if not self._log_dir:
+            return
+        if phase is not None:
+            payload.setdefault('phase', phase)
+        payload = self._with_common_log_fields(payload)
+        with self._artifact_lock:
+            self._method_state_count += 1
+            self._append_jsonl(self._method_state_path, payload)
+
+    def log_error(self, stage: str, exc: Exception | None = None, **payload):
+        """Append a structured error record without changing algorithm control flow."""
+        if not self._log_dir:
+            return
+        payload.setdefault('stage', stage)
+        if exc is not None:
+            payload.setdefault('error_type', type(exc).__name__)
+            payload.setdefault('error', self._truncate_text(str(exc), 1000))
+            payload.setdefault('traceback', self._truncate_text(
+                ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__)),
+                4000,
+            ))
+        payload = self._with_common_log_fields(payload)
+        with self._artifact_lock:
+            self._error_count += 1
+            self._append_jsonl(self._errors_path, payload)
+
+    def write_run_summary(self, **payload):
+        """Write the final run summary. This method is idempotent."""
+        with self._artifact_lock:
+            if not self._log_dir or self._finished:
+                return
+            self._process_end_time = datetime.now(pytz.timezone('Asia/Shanghai'))
+            summary = {
+                'status': payload.pop('status', 'finished'),
+                'started_at': self._process_start_time.isoformat(),
+                'finished_at': self._process_end_time.isoformat(),
+                'duration_seconds': (self._process_end_time - self._process_start_time).total_seconds(),
+                'num_samples': self._num_samples,
+                'evaluate_success_program_num': self._evaluate_success_program_num,
+                'evaluate_failed_program_num': self._evaluate_failed_program_num,
+                'best_sample_order': self._cur_best_program_sample_order,
+                'best_score': self._cur_best_program_score,
+                'total_sample_time': self._tot_sample_time,
+                'total_evaluate_time': self._tot_evaluate_time,
+                'llm_call_count': self._llm_call_count,
+                'method_event_count': self._method_event_count,
+                'method_state_count': self._method_state_count,
+                'error_count': self._error_count,
+            }
+            summary.update(payload)
+            os.makedirs(self._log_dir, exist_ok=True)
+            with open(self._run_summary_path, 'w', encoding='utf-8') as json_file:
+                json.dump(summary, json_file, indent=4, ensure_ascii=False, default=self._json_default)
+            self._finished = True
 
     def _write_json(self, function: Function, program: str, *, record_type: Literal['history', 'best'] = 'history',
                     record_sep=200):
@@ -127,6 +224,7 @@ class ProfilerBase:
         """
         if not self._log_dir:
             return
+        os.makedirs(self._samples_json_dir, exist_ok=True)
 
         sample_order = self._num_samples
         content = {
@@ -231,6 +329,11 @@ class ProfilerBase:
 
     def _create_log_path(self):
         self._samples_json_dir = os.path.join(self._log_dir, 'samples')
+        self._llm_calls_path = os.path.join(self._log_dir, 'llm_calls.jsonl')
+        self._method_events_path = os.path.join(self._log_dir, 'method_events.jsonl')
+        self._method_state_path = os.path.join(self._log_dir, 'method_state.jsonl')
+        self._errors_path = os.path.join(self._log_dir, 'errors.jsonl')
+        self._run_summary_path = os.path.join(self._log_dir, 'run_summary.json')
         os.makedirs(self._log_dir, exist_ok=True)
         os.makedirs(self._samples_json_dir, exist_ok=True)
 
@@ -280,6 +383,41 @@ class ProfilerBase:
                 self._logger_txt.info(f'  - {attr}: {value}')
 
         self._logger_txt.info('=====================================================================')
+
+    def _append_jsonl(self, path: str, payload: dict):
+        if not self._log_dir or path is None:
+            return
+        with self._artifact_lock:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, 'a', encoding='utf-8') as jsonl_file:
+                jsonl_file.write(json.dumps(payload, ensure_ascii=False, default=self._json_default) + '\n')
+
+    def _with_common_log_fields(self, payload: dict):
+        payload = dict(payload)
+        payload.setdefault('timestamp', datetime.now(pytz.timezone('Asia/Shanghai')).isoformat())
+        payload.setdefault('profiler_sample_order', self._num_samples)
+        return payload
+
+    @staticmethod
+    def _truncate_text(value: Any, limit: int) -> str:
+        text = '' if value is None else str(value)
+        if len(text) <= limit:
+            return text
+        return text[:limit - 3] + '...'
+
+    @staticmethod
+    def _json_default(value):
+        if isinstance(value, np.ndarray):
+            return value.tolist()
+        if isinstance(value, np.integer):
+            return int(value)
+        if isinstance(value, np.floating):
+            return float(value)
+        if isinstance(value, np.bool_):
+            return bool(value)
+        if hasattr(value, '__dict__'):
+            return value.__dict__
+        return str(value)
 
     @classmethod
     def load_logfile(cls, logdir, valid_only=False) -> Tuple[List[str], List[float]]:

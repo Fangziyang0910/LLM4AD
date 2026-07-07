@@ -33,6 +33,18 @@ import numpy as np
 from .population import Population
 from .profiler import ReEvoProfiler
 from .prompt import ReEvoPrompt
+from .._observability import (
+    close_sampler_llm,
+    finish_profiler,
+    init_observability,
+    is_search_aborted,
+    log_event,
+    log_llm_call,
+    log_state,
+    record_sample_failure,
+    reset_sample_failures,
+    shutdown_executor,
+)
 from ...base import (
     Evaluation, LLM, Function, Program, TextFunctionProgramConverter, SecureEvaluator, SampleTrimmer
 )
@@ -53,6 +65,7 @@ class ReEvo:
                  *,
                  resume_mode: bool = False,
                  debug_mode: bool = False,
+                 max_consecutive_sample_failures: int = 20,
                  multi_thread_or_process_eval: Literal['thread', 'process'] = 'thread',
                  **kwargs):
         """Reflective Evolution following the original ReEvo mechanics.
@@ -87,6 +100,7 @@ class ReEvo:
         self._seed_function: Function | None = None
         self._elite_function: Function | None = None
         self._long_term_reflection_str = ''
+        init_observability(self, max_consecutive_sample_failures)
 
         assert multi_thread_or_process_eval in ['thread', 'process']
         if multi_thread_or_process_eval == 'thread':
@@ -102,7 +116,10 @@ class ReEvo:
             self._profiler.record_parameters(llm, evaluation, self)
 
     def _has_budget(self) -> bool:
-        return self._max_sample_nums is None or self._tot_sample_nums < self._max_sample_nums
+        return (
+            not is_search_aborted(self)
+            and (self._max_sample_nums is None or self._tot_sample_nums < self._max_sample_nums)
+        )
 
     def _tag_function(self, func: Function, operator: str):
         func.operator = operator
@@ -168,20 +185,69 @@ class ReEvo:
             return None
 
         sample_start = time.time()
-        generated_code = self._sampler.draw_sample(prompt, **llm_kwargs)
+        sample_order = self._tot_sample_nums + 1
+        try:
+            generated_code = self._sampler.draw_sample(prompt, **llm_kwargs)
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage='sample',
+                operator=operator,
+                sample_order=sample_order,
+                prompt=prompt,
+                counts_budget=False,
+            )
+            return None
         sample_time = time.time() - sample_start
+        reset_sample_failures(self)
 
         func = SampleTrimmer.sample_to_function(generated_code, self._template_program)
+        log_llm_call(
+            self,
+            stage='generate',
+            operator=operator,
+            sample_order=sample_order,
+            prompt=prompt,
+            response=generated_code,
+            function_parse_success=func is not None,
+        )
         if func is None:
             self._tot_sample_nums += 1
+            log_event(
+                self,
+                event='sample_rejected',
+                status='parse_failed',
+                operator=operator,
+                sample_order=self._tot_sample_nums,
+                counts_budget=True,
+            )
             return None
 
         program = TextFunctionProgramConverter.function_to_program(func, self._template_program)
         if program is None:
             self._tot_sample_nums += 1
+            log_event(
+                self,
+                event='sample_rejected',
+                status='program_parse_failed',
+                operator=operator,
+                sample_order=self._tot_sample_nums,
+                counts_budget=True,
+            )
             return None
 
-        return self._evaluate_function(func, operator, sample_time=sample_time, program=program)
+        result = self._evaluate_function(func, operator, sample_time=sample_time, program=program)
+        log_event(
+            self,
+            event='sample_registered',
+            status='accepted' if result is not None else 'evaluated_invalid',
+            operator=operator,
+            sample_order=self._tot_sample_nums,
+            score=getattr(func, 'score', None),
+            counts_budget=True,
+        )
+        return result
 
     def _init_sampling_kwargs(self) -> dict:
         temperature = getattr(self._sampler.llm, 'temperature', None)
@@ -247,7 +313,28 @@ class ReEvo:
     def _short_term_reflection(self, parents: list[Function]) -> str:
         prompt = ReEvoPrompt.get_short_term_reflection_prompt(self._task_description_str, parents)
         self._debug_print('Short-term Reflection Prompt', prompt)
-        reflection = self._sampler.llm.draw_sample(prompt)
+        try:
+            reflection = self._sampler.llm.draw_sample(prompt)
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage='short_term_reflection',
+                operator='reflection',
+                sample_order=self._tot_sample_nums + 1,
+                prompt=prompt,
+                counts_budget=False,
+            )
+            return ''
+        reset_sample_failures(self)
+        log_llm_call(
+            self,
+            stage='short_term_reflection',
+            operator='reflection',
+            sample_order=self._tot_sample_nums + 1,
+            prompt=prompt,
+            response=reflection,
+        )
         self._debug_print('Short-term Reflection', reflection)
         return reflection
 
@@ -263,7 +350,35 @@ class ReEvo:
             short_term_reflections,
         )
         self._debug_print('Long-term Reflection Prompt', prompt)
-        self._long_term_reflection_str = self._sampler.llm.draw_sample(prompt)
+        try:
+            self._long_term_reflection_str = self._sampler.llm.draw_sample(prompt)
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage='long_term_reflection',
+                operator='reflection',
+                sample_order=self._tot_sample_nums + 1,
+                prompt=prompt,
+                counts_budget=False,
+            )
+            return self._long_term_reflection_str
+        reset_sample_failures(self)
+        log_llm_call(
+            self,
+            stage='long_term_reflection',
+            operator='reflection',
+            sample_order=self._tot_sample_nums + 1,
+            prompt=prompt,
+            response=self._long_term_reflection_str,
+        )
+        log_event(
+            self,
+            event='reflection_update',
+            status='updated',
+            operator='long_term_reflection',
+            sample_order=self._tot_sample_nums,
+        )
         self._debug_print('Long-term Reflection', self._long_term_reflection_str)
         return self._long_term_reflection_str
 
@@ -288,6 +403,13 @@ class ReEvo:
         return mutated
 
     def _run_evolution_generation(self):
+        log_event(
+            self,
+            event='generation_start',
+            status='scheduled',
+            sample_order=self._tot_sample_nums,
+            generation=self._population.generation,
+        )
         parent_pairs = self._select_parent_pairs()
         short_term_reflections = [self._short_term_reflection(pair) for pair in parent_pairs]
 
@@ -314,6 +436,15 @@ class ReEvo:
             self._population.extend(mutated_population)
             self._population.advance_generation()
             self._register_population()
+        log_state(
+            self,
+            phase='population',
+            method='reevo',
+            generation=self._population.generation,
+            population_size=len(self._population),
+            sample_count=self._tot_sample_nums,
+            elite_score=getattr(self._elite_function, 'score', None),
+        )
 
     def run(self):
         try:
@@ -326,10 +457,9 @@ class ReEvo:
             while self._has_budget():
                 self._run_evolution_generation()
         finally:
-            try:
-                self._evaluation_executor.shutdown(cancel_futures=True)
-            except Exception:
-                pass
-            if self._profiler is not None:
-                self._profiler.finish()
-            self._sampler.llm.close()
+            shutdown_executor(self._evaluation_executor)
+            finish_profiler(
+                self,
+                status='aborted' if is_search_aborted(self) else 'finished',
+            )
+            close_sampler_llm(self._sampler)

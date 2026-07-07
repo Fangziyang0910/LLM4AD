@@ -28,9 +28,21 @@ from __future__ import annotations
 import concurrent.futures
 import time
 import traceback
-from threading import Thread
+from threading import Lock, Thread
 from typing import Optional, Literal, Union, Dict, Tuple
 
+from .._observability import (
+    close_sampler_llm,
+    finish_profiler,
+    init_observability,
+    is_search_aborted,
+    log_error,
+    log_event,
+    log_state,
+    record_sample_failure,
+    reset_sample_failures,
+    shutdown_executor,
+)
 from .profiler import PartEvoProfiler
 from .prompt import PartEvoPrompt
 from .sampler import PartEvoSampler
@@ -72,6 +84,7 @@ class PartEvo:
 
                  use_resource_tilt: bool = False,
                  bert_model_path: str = '',
+                 max_consecutive_sample_failures: int = 20,
                  **kwargs):
 
         # Core components for evaluation and task context
@@ -124,12 +137,14 @@ class PartEvo:
                                     debug_flag=self._debug_mode)
 
         self.local_algo_base = local_algo_base
-        self._sampler = PartEvoSampler(llm, self._template_program_str)
+        self._sampler = PartEvoSampler(llm, self._template_program_str, profiler=profiler)
         self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode, **kwargs)
         self._profiler = profiler
 
         # Internal counters
         self._tot_sample_nums = 0
+        self._sample_lock = Lock()
+        init_observability(self, max_consecutive_sample_failures)
 
         # Setup parallel executor for performance evaluation
         assert multi_thread_or_process_eval in ['thread', 'process']
@@ -159,7 +174,8 @@ class PartEvo:
                 print('Batch Init Prompt: ', self.messages_to_string(messages))
             self._sample_evaluate_register(prompt="", operator_name='init',
                                            messages=messages, from_which_cluster=None)
-        except Exception:
+        except Exception as e:
+            log_error(self, 'init_batch', e, method='partevo', counts_budget=False)
             traceback.print_exc()
 
     def init_from_local_algo_base(self):
@@ -207,6 +223,9 @@ class PartEvo:
             func.prompt = None
             func.sample_num = self._tot_sample_nums + 1
 
+            if not self._try_increment_sample_count():
+                break
+
             # register to the population
             self._pool.register_function(offspring=func, from_which_cluster=None)
 
@@ -214,7 +233,10 @@ class PartEvo:
                 self._profiler.register_function(func)
                 if isinstance(self._profiler, PartEvoProfiler):
                     self._profiler.register_population(self._pool)
-                self._tot_sample_nums += 1
+            log_event(self, event='sample_registered', method='partevo', status='evaluated',
+                      operator=operator, score=func.score, sample_order=self._tot_sample_nums,
+                      source='local_seed')
+            self._log_pool_state('local_seed')
 
     def _sample_evaluate_register(self, prompt, image_prompt=None, messages=None, operator_name="", parent_number=None,
                                   from_which_cluster=None, reflction=None):
@@ -224,8 +246,37 @@ class PartEvo:
         2. Evaluate: Run the code in a secure parallel executor.
         3. Register: Store the individual in the population and log results.
         """
+        if is_search_aborted(self):
+            return
+
+        sample_order = self._tot_sample_nums + 1
+        log_event(self, event='operator_start', method='partevo', operator=operator_name,
+                  sample_order=sample_order, parent_ids=parent_number, cluster_id=from_which_cluster)
         sample_start = time.time()
-        thought, func, response = self._sampler.get_thought_and_function(prompt, image_prompt, messages)
+        try:
+            thought, func, response = self._sampler.get_thought_and_function(
+                prompt,
+                image_prompt,
+                messages,
+                operator=operator_name,
+                sample_order=sample_order,
+                parent_ids=parent_number,
+                cluster_id=from_which_cluster,
+            )
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage='sample',
+                operator=operator_name,
+                sample_order=sample_order,
+                prompt=prompt,
+                messages=messages,
+                parent_ids=parent_number,
+                cluster_id=from_which_cluster,
+                counts_budget=False,
+            )
+            return
         sample_time = time.time() - sample_start
 
         if thought is None:
@@ -237,17 +288,38 @@ class PartEvo:
                 '[Warning - Code 02] Failed to extract the "func" implementation. If this occurs frequently, please check the LLM output or the code parsing logic.')
 
         if thought is None or func is None:
+            log_event(self, event='sample_rejected', method='partevo', status='parse_failed',
+                      operator=operator_name, sample_order=sample_order,
+                      parent_ids=parent_number, cluster_id=from_which_cluster,
+                      thought_parse_success=thought is not None,
+                      function_parse_success=func is not None)
             return
 
         program = TextFunctionProgramConverter.function_to_program(func, self._template_program)
         if program is None:
+            log_event(self, event='sample_rejected', method='partevo', status='program_parse_failed',
+                      operator=operator_name, sample_order=sample_order,
+                      parent_ids=parent_number, cluster_id=from_which_cluster)
             return
 
         # Synchronously wait for parallel evaluation result
-        evaluation_return, eval_time = self._evaluation_executor.submit(
-            self._evaluator.evaluate_program_record_time,
-            program
-        ).result()
+        try:
+            evaluation_return, eval_time = self._evaluation_executor.submit(
+                self._evaluator.evaluate_program_record_time,
+                program
+            ).result()
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage='evaluate',
+                operator=operator_name,
+                sample_order=sample_order,
+                parent_ids=parent_number,
+                cluster_id=from_which_cluster,
+                counts_budget=False,
+            )
+            return
 
         # Update function object with evaluation feedback and lineage
         if evaluation_return is not None:
@@ -275,6 +347,10 @@ class PartEvo:
         if reflction:
             func.reflction = reflction
 
+        if not self._try_increment_sample_count():
+            return
+        reset_sample_failures(self)
+
         # register to the population
         self._pool.register_function(offspring=func, from_which_cluster=from_which_cluster)
 
@@ -283,10 +359,16 @@ class PartEvo:
             self._profiler.register_function(func, program=str(program))
             if isinstance(self._profiler, PartEvoProfiler):
                 self._profiler.register_population(self._pool)
-            self._tot_sample_nums += 1
+        log_event(self, event='sample_registered', method='partevo',
+                  status='evaluated' if func.score is not None else 'invalid',
+                  operator=operator_name, sample_order=self._tot_sample_nums,
+                  parent_ids=parent_number, cluster_id=from_which_cluster, score=func.score)
+        self._log_pool_state('sample_registered')
 
     def _continue_loop(self) -> bool:
         """Check if termination conditions (max generations or max samples) have been met."""
+        if is_search_aborted(self):
+            return False
         if self._max_sample_nums is None:
             return True
         elif self._max_generations is not None and self._max_sample_nums is None:
@@ -296,6 +378,29 @@ class PartEvo:
         else:
             return (self._pool.generation < self._max_generations
                     and self._tot_sample_nums < self._max_sample_nums)
+
+    def _try_increment_sample_count(self) -> bool:
+        with self._sample_lock:
+            if self._max_sample_nums is not None and self._tot_sample_nums >= self._max_sample_nums:
+                return False
+            self._tot_sample_nums += 1
+            return True
+
+    def _log_pool_state(self, phase: str):
+        archive = getattr(self._pool, 'external_archive', None)
+        log_state(
+            self,
+            phase=phase,
+            method='partevo',
+            generation=self._pool.generation,
+            sample_count=self._tot_sample_nums,
+            population_size=len(self._pool.population),
+            next_population_size=len(self._pool.next_pop),
+            initialized=self._pool.is_initialized,
+            cluster_ids=list(self._pool.cluster_units.keys()),
+            elite_archive_size=len(getattr(archive, 'elites', [])) if archive is not None else None,
+            hard_negative_size=len(getattr(archive, 'hard_negatives', [])) if archive is not None else None,
+        )
 
     def _partevo_multi_threaded_sampling(self, tid=0, *args, **kwargs):
         """
@@ -313,7 +418,13 @@ class PartEvo:
 
                 if operator_name == 'error':
                     print(f"\033[93m[Thread-{tid}] ❌ Warning: Parent selection failed. Please investigate.\033[0m")
+                    log_event(self, event='parent_selection', method='partevo', status='error',
+                              sample_order=self._tot_sample_nums + 1)
                     continue
+
+                log_event(self, event='parent_selection', method='partevo', status='selected',
+                          sample_order=self._tot_sample_nums + 1,
+                          operator=operator_name, cluster_id=working_cluster_id, parent_ids=parent_ids)
 
                 # --- Operator logic: RE (Reflection-based Evolution) ---
                 if operator_name == 're':
@@ -323,8 +434,32 @@ class PartEvo:
                                                                                      primary_parent,
                                                                                      self._function_to_evolve
                                                                                      )
-                    generated_reflection = self._sampler.get_reflection(prompt="",
-                                                                        messages=reflection_prompt_messages)
+                    try:
+                        generated_reflection = self._sampler.get_reflection(
+                            prompt="",
+                            messages=reflection_prompt_messages,
+                            operator='reflection',
+                            sample_order=self._tot_sample_nums + 1,
+                            parent_ids=[primary_parent_id],
+                            cluster_id=working_cluster_id,
+                        )
+                    except Exception as exc:
+                        record_sample_failure(
+                            self,
+                            exc,
+                            stage='reflection',
+                            operator='reflection',
+                            sample_order=self._tot_sample_nums + 1,
+                            messages=reflection_prompt_messages,
+                            parent_ids=[primary_parent_id],
+                            cluster_id=working_cluster_id,
+                            counts_budget=False,
+                        )
+                        generated_reflection = None
+                    log_event(self, event='reflection', method='partevo',
+                              status='parsed' if generated_reflection else 'parse_failed',
+                              sample_order=self._tot_sample_nums + 1,
+                              parent_ids=[primary_parent_id], cluster_id=working_cluster_id)
                     operator_messages = PartEvoPrompt.get_prompt_re(self._task_description_str,
                                                                     primary_parent,
                                                                     self._function_to_evolve,
@@ -354,8 +489,34 @@ class PartEvo:
                             summary_context_samples
                         )
 
-                        generated_summary = self._sampler.get_summary(prompt="", messages=summary_prompt_messages)
+                        try:
+                            generated_summary = self._sampler.get_summary(
+                                prompt="",
+                                messages=summary_prompt_messages,
+                                operator='summary',
+                                sample_order=self._tot_sample_nums + 1,
+                                parent_ids=[primary_parent_id],
+                                cluster_id=working_cluster_id,
+                            )
+                        except Exception as exc:
+                            record_sample_failure(
+                                self,
+                                exc,
+                                stage='summary',
+                                operator='summary',
+                                sample_order=self._tot_sample_nums + 1,
+                                messages=summary_prompt_messages,
+                                parent_ids=[primary_parent_id],
+                                cluster_id=working_cluster_id,
+                                counts_budget=False,
+                            )
+                            generated_summary = None
                         self._pool.external_archive.update_global_summary(generated_summary)
+                        log_event(self, event='archive_summary', method='partevo',
+                                  status='updated' if generated_summary else 'fallback',
+                                  sample_order=self._tot_sample_nums + 1,
+                                  parent_ids=[primary_parent_id], cluster_id=working_cluster_id,
+                                  context_keys=list(summary_context_samples.keys()))
                         if generated_summary and generated_summary.strip():
                             current_summary = generated_summary
                             print(f"\033[92m[Thread-{tid}] 🎉 Successfully generated a valid global summary.\033[0m")
@@ -424,6 +585,7 @@ class PartEvo:
                 if self._debug_mode:
                     traceback.print_exc()
                     # exit()
+                log_error(self, 'operator_loop', e, method='partevo', counts_budget=False)
                 continue
 
     def _multi_threaded_sampling(self, fn: callable, *args, **kwargs):
@@ -451,7 +613,7 @@ class PartEvo:
         batch_num = 0
         while len(
                 self._pool.population) + len(
-            self._pool.next_pop) < self._pop_size and self._tot_sample_nums <= self._initial_sample_nums_max:  # 当被注册的个数还没有超过pop_size初始种群要求大小时
+            self._pool.next_pop) < self._pop_size and self._tot_sample_nums <= self._initial_sample_nums_max and not is_search_aborted(self):  # 当被注册的个数还没有超过pop_size初始种群要求大小时
             batch_num += 1
             self._multi_threaded_sampling(self._extend_init_population, init_mode=True)
             print(f"Initialization of batch {batch_num} completed")
@@ -465,22 +627,24 @@ class PartEvo:
         2. Evolutionary training loop
         3. Final result cleanup.
         """
-        if not self._resume_mode:
-            # Phase 1: Population Initialization
-            print("🌱 Initializing population from database...")
-            self.init_from_local_algo_base()
+        try:
+            if not self._resume_mode:
+                # Phase 1: Population Initialization
+                print("🌱 Initializing population from database...")
+                self.init_from_local_algo_base()
 
-            if len(self._pool.population) < self._pop_size:
-                print("🌱 Initializing population by LLM...")
-                self.init_using_llms()
+                if len(self._pool.population) < self._pop_size:
+                    print("🌱 Initializing population by LLM...")
+                    self.init_using_llms()
 
-        # Phase 2: Evolutionary Search Loop
-        print("🧬 Starting evolutionary training pipeline...")
-        self._multi_threaded_sampling(self._partevo_multi_threaded_sampling)
-
-        # Phase 3: Cleanup and Reporting
-        if self._profiler is not None:
-            self._profiler.finish()
+            # Phase 2: Evolutionary Search Loop
+            print("🧬 Starting evolutionary training pipeline...")
+            self._multi_threaded_sampling(self._partevo_multi_threaded_sampling)
+        finally:
+            self._log_pool_state('final')
+            finish_profiler(self, status='aborted' if is_search_aborted(self) else 'finished')
+            close_sampler_llm(self._sampler)
+            shutdown_executor(self._evaluation_executor)
 
     def using_flow(self, worst_case_percent=10, top_k=None):
         """

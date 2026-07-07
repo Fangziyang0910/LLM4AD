@@ -40,6 +40,18 @@ from .func_ruin import LHNSFunctionRuin, LHNSFunction, LHNSProgram, LHNSTextFunc
 from .profiler import LHNSProfiler
 from .prompt import LHNSPrompt
 from .sampler import LHNSSampler
+from .._observability import (
+    call_sampler_get_thought_and_function,
+    close_sampler_llm,
+    finish_profiler,
+    init_observability,
+    is_search_aborted,
+    log_event,
+    log_state,
+    record_sample_failure,
+    reset_sample_failures,
+    shutdown_executor,
+)
 from ...base import (
     Evaluation, LLM, SecureEvaluator
 )
@@ -60,6 +72,7 @@ class LHNS:
                  *,
                  resume_mode: bool = False,
                  debug_mode: bool = False,
+                 max_consecutive_sample_failures: int = 20,
                  multi_thread_or_process_eval: Literal['thread', 'process'] = 'thread',
                  **kwargs):
         """Evolutionary of Heuristics.
@@ -108,12 +121,13 @@ class LHNS:
         # elite set, sampler, and evaluator
         self._method = method
         self._elite_set = EliteSet(elite_set_size=elite_set_size)
-        self._sampler = LHNSSampler(llm, self._template_program_str)
-        self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode, **kwargs)
         self._profiler = profiler
+        self._sampler = LHNSSampler(llm, self._template_program_str, profiler=self._profiler)
+        self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode, **kwargs)
 
         # statistics
         self._tot_sample_nums = 0
+        init_observability(self, max_consecutive_sample_failures)
 
         # reset _initial_sample_nums_max
         self._initial_sample_nums_max = 20
@@ -133,20 +147,43 @@ class LHNS:
         if profiler is not None:
             self._profiler.record_parameters(llm, evaluation, self)
 
-    def _sample_evaluate_register(self, prompt) -> LHNSFunction:
+    def _sample_evaluate_register(self, prompt, operator=None) -> LHNSFunction:
         """Perform following steps:
         1. Sample an algorithm using the given prompt.
         2. Evaluate it by submitting to the process/thread pool, and get the results.
         3. Add the function to the population and register it to the profiler.
         """
         sample_start = time.time()
-        thought, func = self._sampler.get_thought_and_function(prompt)
+        sample_order = self._tot_sample_nums + 1
+        try:
+            thought, func = call_sampler_get_thought_and_function(
+                self._sampler,
+                prompt,
+                operator=operator,
+                sample_order=sample_order,
+            )
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage='sample',
+                operator=operator,
+                sample_order=sample_order,
+                prompt=prompt,
+                counts_budget=False,
+            )
+            return
         sample_time = time.time() - sample_start
+        reset_sample_failures(self)
         if thought is None or func is None:
+            log_event(self, event='sample_rejected', status='parse_failed', operator=operator,
+                      sample_order=sample_order, counts_budget=False)
             return
         # convert to Program instance
         program = LHNSTextFunctionProgramConverter.function_to_program(func, self._template_program)
         if program is None:
+            log_event(self, event='sample_rejected', status='program_parse_failed', operator=operator,
+                      sample_order=sample_order, counts_budget=False)
             return
         # evaluate
         score, eval_time = self._evaluation_executor.submit(
@@ -158,14 +195,19 @@ class LHNS:
         func.evaluate_time = eval_time
         func.algorithm = thought
         func.sample_time = sample_time
+        func.operator = operator or 'Unknown'
+        self._tot_sample_nums += 1
         if self._profiler is not None:
-            self._profiler.register_function(func)
-            self._tot_sample_nums += 1
+            self._profiler.register_function(func, program=str(program))
 
+        log_event(self, event='sample_registered', status='evaluated', operator=operator,
+                  sample_order=self._tot_sample_nums, score=func.score, counts_budget=True)
         return func
 
 
     def _continue_loop(self) -> bool:
+        if is_search_aborted(self):
+            return False
         if self._max_sample_nums is None:
             return True
         else:
@@ -202,7 +244,7 @@ class LHNS:
                 prompt = LHNSPrompt.get_prompt_rr(self._task_description_str, self._current_function, cooling_rate, self._function_to_evolve)
                 if self._debug_mode:
                     print(f'VNS RR Prompt: {prompt}')
-                new_func = self._sample_evaluate_register(prompt)
+                new_func = self._sample_evaluate_register(prompt, operator='rr')
                 accept, trans_count = self.simulated_annealing(new_func, cooling_rate, trans_count)
 
                 if accept:
@@ -215,6 +257,11 @@ class LHNS:
                         cooling_rate += 0.1
                     else:
                         cooling_rate = self._cooling_rate
+                log_event(self, event='local_search_step', status='accepted' if accept else 'rejected',
+                          method='vns', operator='rr', sample_order=self._tot_sample_nums,
+                          cooling_rate=cooling_rate, trans_count=trans_count,
+                          current_score=getattr(self._current_function, 'score', None),
+                          best_score=getattr(self._best_function, 'score', None))
 
                 if not self._continue_loop():
                     break
@@ -252,7 +299,8 @@ class LHNS:
                     if self._debug_mode:
                         print(f'ILS RR Prompt: {prompt}')
 
-                new_func = self._sample_evaluate_register(prompt)
+                operator = 'm' if trans_count >= 10 else 'rr'
+                new_func = self._sample_evaluate_register(prompt, operator=operator)
                 accept, trans_count = self.simulated_annealing(new_func, cooling_rate, trans_count)
 
                 if accept:
@@ -262,6 +310,11 @@ class LHNS:
 
                 if not self._continue_loop():
                     break
+                log_event(self, event='local_search_step', status='accepted' if accept else 'rejected',
+                          method='ils', operator=operator, sample_order=self._tot_sample_nums,
+                          cooling_rate=cooling_rate, trans_count=trans_count,
+                          current_score=getattr(self._current_function, 'score', None),
+                          best_score=getattr(self._best_function, 'score', None))
 
 
             except KeyboardInterrupt:
@@ -297,7 +350,8 @@ class LHNS:
                     if self._debug_mode:
                         print(f'TS RR Prompt: {prompt}')
 
-                new_func = self._sample_evaluate_register(prompt)
+                operator = 'merge' if trans_count >= 10 else 'rr'
+                new_func = self._sample_evaluate_register(prompt, operator=operator)
                 self._current_function.features = LHNSFunctionRuin.find_code_features(self._current_function, new_func)
                 self._elite_set.update(new_func)
                 accept, trans_count = self.simulated_annealing(new_func, cooling_rate, trans_count)
@@ -309,6 +363,12 @@ class LHNS:
 
                 if not self._continue_loop():
                     break
+                log_event(self, event='local_search_step', status='accepted' if accept else 'rejected',
+                          method='ts', operator=operator, sample_order=self._tot_sample_nums,
+                          cooling_rate=cooling_rate, trans_count=trans_count,
+                          current_score=getattr(self._current_function, 'score', None),
+                          best_score=getattr(self._best_function, 'score', None),
+                          elite_size=len(self._elite_set))
 
 
             except KeyboardInterrupt:
@@ -340,10 +400,12 @@ class LHNS:
 
         trials = 1
         while True:
+            if is_search_aborted(self):
+                break
             try:
                 # get a new func using i1
                 prompt = LHNSPrompt.get_prompt_i1(self._task_description_str, self._function_to_evolve)
-                self._current_function = self._sample_evaluate_register(prompt)
+                self._current_function = self._sample_evaluate_register(prompt, operator='i1')
                 if self._current_function.score != float('-inf') or self._current_function.score is not None:
                     self._best_function = copy.deepcopy(self._current_function)
                     self._elite_set.update(self._current_function)
@@ -373,11 +435,17 @@ class LHNS:
             t.join()
 
     def run(self):
-        if not self._resume_mode:
-            # do initialization
-            self._multi_threaded_sampling(self._iteratively_init)
-        # evolutionary search
-        self._multi_threaded_sampling(self._iteratively_use_lhns_operator)
-        # finish
-        if self._profiler is not None:
-            self._profiler.finish()
+        try:
+            if not self._resume_mode:
+                # do initialization
+                self._multi_threaded_sampling(self._iteratively_init)
+            # evolutionary search
+            self._multi_threaded_sampling(self._iteratively_use_lhns_operator)
+            log_state(self, phase='final', method='lhns', sample_count=self._tot_sample_nums,
+                      current_score=getattr(self._current_function, 'score', None),
+                      best_score=getattr(self._best_function, 'score', None),
+                      elite_size=len(self._elite_set))
+        finally:
+            finish_profiler(self, status='aborted' if is_search_aborted(self) else 'finished')
+            close_sampler_llm(self._sampler)
+            shutdown_executor(self._evaluation_executor)

@@ -28,9 +28,21 @@ from __future__ import annotations
 import concurrent.futures
 import time
 import traceback
-from threading import Thread
+from threading import Lock, Thread
 from typing import Optional, Literal
 
+from .._observability import (
+    close_sampler_llm,
+    finish_profiler,
+    init_observability,
+    is_search_aborted,
+    log_error,
+    log_event,
+    log_state,
+    record_sample_failure,
+    reset_sample_failures,
+    shutdown_executor,
+)
 from .population import Population
 from .profiler import MLESProfiler
 from .prompt import MLESPrompt
@@ -64,6 +76,7 @@ class MLES:
                  debug_mode: bool = False,
                  multi_thread_or_process_eval: Literal['thread', 'process'] = 'thread',
                  seed_path="",
+                 max_consecutive_sample_failures: int = 20,
                  **kwargs):
         """Evolutionary of Heuristics.
         Args:
@@ -118,12 +131,14 @@ class MLES:
 
         # Initialize core modules: Population storage, LLM sampler, and Secure evaluator
         self._population = Population(pop_size=self._pop_size)
-        self._sampler = MLESSampler(llm, self._template_program_str)
+        self._sampler = MLESSampler(llm, self._template_program_str, profiler=profiler)
         self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode, **kwargs)
         self._profiler = profiler
 
         # Internal counters
         self._tot_sample_nums = 0
+        self._sample_lock = Lock()
+        init_observability(self, max_consecutive_sample_failures)
         self._initial_sample_nums_max = max(
             self._initial_sample_nums_max,
             2 * self._pop_size
@@ -191,6 +206,9 @@ class MLES:
             func.algorithm = seed_algorithm
             func.sample_time = 0
 
+            if not self._try_increment_sample_count():
+                break
+
             # register to the population
             self._population.register_function(func)
 
@@ -198,6 +216,9 @@ class MLES:
                 self._profiler.register_function(func, program=str(program))
                 if isinstance(self._profiler, MLESProfiler):
                     self._profiler.register_population(self._population)
+            log_event(self, event='sample_registered', method='mles', status='evaluated',
+                      operator=operator, score=func.score, sample_order=self._tot_sample_nums,
+                      source='local_seed')
 
     def _sample_evaluate_register(self, prompt, image_prompt=None, messages=None, operator_name="", parent_number=None):
         """
@@ -206,22 +227,68 @@ class MLES:
         2. Evaluate: Run the code in a secure parallel executor.
         3. Register: Store the individual in the population and log results.
         """
+        if is_search_aborted(self):
+            return
+
+        sample_order = self._tot_sample_nums + 1
+        log_event(self, event='operator_start', method='mles', operator=operator_name,
+                  sample_order=sample_order, parent_ids=parent_number)
         sample_start = time.time()
-        thought, func, response = self._sampler.get_thought_and_function(prompt, image_prompt, messages)
+        try:
+            thought, func, response = self._sampler.get_thought_and_function(
+                prompt,
+                image_prompt,
+                messages,
+                operator=operator_name,
+                sample_order=sample_order,
+                parent_ids=parent_number,
+            )
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage='sample',
+                operator=operator_name,
+                sample_order=sample_order,
+                prompt=prompt,
+                messages=messages,
+                parent_ids=parent_number,
+                counts_budget=False,
+            )
+            return
         sample_time = time.time() - sample_start
 
         if thought is None or func is None:
+            log_event(self, event='sample_rejected', method='mles', status='parse_failed',
+                      operator=operator_name, sample_order=sample_order,
+                      thought_parse_success=thought is not None,
+                      function_parse_success=func is not None,
+                      parent_ids=parent_number)
             return
 
         program = TextFunctionProgramConverter.function_to_program(func, self._template_program)
         if program is None:
+            log_event(self, event='sample_rejected', method='mles', status='program_parse_failed',
+                      operator=operator_name, sample_order=sample_order, parent_ids=parent_number)
             return
 
         # Synchronously wait for parallel evaluation result
-        score_images_dict, eval_time = self._evaluation_executor.submit(
-            self._evaluator.evaluate_program_record_time,
-            program
-        ).result()
+        try:
+            score_images_dict, eval_time = self._evaluation_executor.submit(
+                self._evaluator.evaluate_program_record_time,
+                program
+            ).result()
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage='evaluate',
+                operator=operator_name,
+                sample_order=sample_order,
+                parent_ids=parent_number,
+                counts_budget=False,
+            )
+            return
 
         # Update function object with evaluation feedback and lineage
         if score_images_dict is not None:
@@ -239,6 +306,10 @@ class MLES:
         func.response = response
         func.prompt = prompt
 
+        if not self._try_increment_sample_count():
+            return
+        reset_sample_failures(self)
+
         # register to the population
         self._population.register_function(func)
 
@@ -247,10 +318,18 @@ class MLES:
             self._profiler.register_function(func, program=str(program))
             if isinstance(self._profiler, MLESProfiler):
                 self._profiler.register_population(self._population)
-            self._tot_sample_nums += 1
+        log_event(self, event='sample_registered', method='mles',
+                  status='evaluated' if func.score is not None else 'invalid',
+                  operator=operator_name, sample_order=self._tot_sample_nums,
+                  parent_ids=parent_number, score=func.score,
+                  has_image=hasattr(func, 'image64'), has_observation=hasattr(func, 'observation'))
+        log_state(self, phase='population', method='mles', generation=self._population.generation,
+                  sample_count=self._tot_sample_nums, population_size=len(self._population))
 
     def _continue_loop(self) -> bool:
         """Check if termination conditions (max generations or max samples) have been met."""
+        if is_search_aborted(self):
+            return False
         if self._max_generations is None and self._max_sample_nums is None:
             return True
         elif self._max_generations is not None and self._max_sample_nums is None:
@@ -260,6 +339,13 @@ class MLES:
         else:
             return (self._population.generation < self._max_generations
                     and self._tot_sample_nums < self._max_sample_nums)
+
+    def _try_increment_sample_count(self) -> bool:
+        with self._sample_lock:
+            if self._max_sample_nums is not None and self._tot_sample_nums >= self._max_sample_nums:
+                return False
+            self._tot_sample_nums += 1
+            return True
 
     def _iteratively_use_mles_operator(self, tid=0):
         """
@@ -413,8 +499,14 @@ class MLES:
                     parents_pop_register_number = [indiv.pop_register_number]
                     messages = MLESPrompt.get_prompt_image_description(self._task_description_str, indiv,
                                                                        self._function_to_evolve)
-                    description, response = self._sampler.get_image_description(prompt="", image64s=None,
-                                                                                messages=messages)
+                    description, response = self._sampler.get_image_description(
+                        prompt="",
+                        image64s=None,
+                        messages=messages,
+                        operator=operator,
+                        sample_order=self._tot_sample_nums + 1,
+                        parent_ids=parents_pop_register_number,
+                    )
                     messages = MLESPrompt.get_prompt_m1_M_image_description(self._task_description_str, indiv,
                                                                             self._function_to_evolve, description)
                     if self._debug_mode:
@@ -433,8 +525,14 @@ class MLES:
                     parents_pop_register_number = [indiv.pop_register_number]
                     messages = MLESPrompt.get_prompt_image_description(self._task_description_str, indiv,
                                                                        self._function_to_evolve)
-                    description, response = self._sampler.get_image_description(prompt="", image64s=None,
-                                                                                messages=messages)
+                    description, response = self._sampler.get_image_description(
+                        prompt="",
+                        image64s=None,
+                        messages=messages,
+                        operator=operator,
+                        sample_order=self._tot_sample_nums + 1,
+                        parent_ids=parents_pop_register_number,
+                    )
                     messages = MLESPrompt.get_prompt_m2_M_image_description(self._task_description_str, indiv,
                                                                             self._function_to_evolve, description)
                     if self._debug_mode:
@@ -522,6 +620,7 @@ class MLES:
                 if self._debug_mode:
                     traceback.print_exc()
                     # exit()
+                log_error(self, 'operator_loop', e, method='mles', counts_budget=False)
                 continue
 
         # shutdown evaluation_executor
@@ -550,7 +649,8 @@ class MLES:
                 if self._tot_sample_nums > self._initial_sample_nums_max:
                     print(f'Warning: Initialization not accomplished in {self._initial_sample_nums_max} samples !!!')
                     break
-            except Exception:
+            except Exception as e:
+                log_error(self, 'initialization_loop', e, method='mles', counts_budget=False)
                 if self._debug_mode:
                     traceback.print_exc()
                     exit()
@@ -578,29 +678,32 @@ class MLES:
         2. Evolve: Run the iterative mutation/crossover pipeline until termination.
         3. Finalize: Shut down profilers and save final results.
         """
-        if not self._resume_mode:
-            # Phase 1: Population Initialization
-            print("🌱 Initializing population from database...")
-            self.init_from_local_algo_base()
+        try:
+            if not self._resume_mode:
+                # Phase 1: Population Initialization
+                print("🌱 Initializing population from database...")
+                self.init_from_local_algo_base()
 
-            print("🌱 Initializing population by LLM...")
-            self._multi_threaded_sampling(self._iteratively_init_population)
+                print("🌱 Initializing population by LLM...")
+                self._multi_threaded_sampling(self._iteratively_init_population)
 
-            # Validation: Ensure we have enough individuals to perform evolutionary operators
-            if len(self._population) < self._selection_num:
-                print(
-                    f'The search is terminated since EoH unable to obtain {self._selection_num} feasible algorithms during initialization. '
-                    f'Please increase the `initial_sample_nums_max` argument (currently {self._initial_sample_nums_max}). '
-                    f'Please also check your evaluation implementation and LLM implementation.')
-                return
+                # Validation: Ensure we have enough individuals to perform evolutionary operators
+                if len(self._population) < self._selection_num:
+                    print(
+                        f'The search is terminated since EoH unable to obtain {self._selection_num} feasible algorithms during initialization. '
+                        f'Please increase the `initial_sample_nums_max` argument (currently {self._initial_sample_nums_max}). '
+                        f'Please also check your evaluation implementation and LLM implementation.')
+                    return
 
-        # Phase 2: Evolutionary Search Loop
-        print("🧬 Starting evolutionary training pipeline...")
-        self._multi_threaded_sampling(self._iteratively_use_mles_operator)
-
-        # Phase 3: Cleanup and Reporting
-        if self._profiler is not None:
-            self._profiler.finish()
+            # Phase 2: Evolutionary Search Loop
+            print("🧬 Starting evolutionary training pipeline...")
+            self._multi_threaded_sampling(self._iteratively_use_mles_operator)
+        finally:
+            log_state(self, phase='final', method='mles', sample_count=self._tot_sample_nums,
+                      generation=self._population.generation, population_size=len(self._population))
+            finish_profiler(self, status='aborted' if is_search_aborted(self) else 'finished')
+            close_sampler_llm(self._sampler)
+            shutdown_executor(self._evaluation_executor)
 
     def using_flow(self, worst_case_percent=10, top_k=None):
         """

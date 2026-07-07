@@ -11,6 +11,18 @@ from .population import Population
 from .profiler import HSEvoProfiler
 from .prompt import HSEvoPrompt
 from .sampler import HSEvoSampler
+from .._observability import (
+    close_sampler_llm,
+    finish_profiler,
+    init_observability,
+    is_search_aborted,
+    log_event,
+    log_llm_call,
+    log_state,
+    record_sample_failure,
+    reset_sample_failures,
+    shutdown_executor,
+)
 from ...base import Evaluation, Function, LLM, Program, SecureEvaluator, TextFunctionProgramConverter
 from ...tools.profiler import ProfilerBase
 
@@ -37,6 +49,7 @@ class HSEvo:
             external_knowledge: str = "",
             resume_mode: bool = False,
             debug_mode: bool = False,
+            max_consecutive_sample_failures: int = 20,
             multi_thread_or_process_eval: Literal["thread", "process"] = "thread",
             **kwargs,
     ):
@@ -84,6 +97,7 @@ class HSEvo:
         self._comprehensive_memory = self._external_knowledge
         self._good_reflections: list[str] = []
         self._bad_reflections: list[str] = []
+        init_observability(self, max_consecutive_sample_failures)
 
         assert multi_thread_or_process_eval in ["thread", "process"]
         if multi_thread_or_process_eval == "thread":
@@ -95,7 +109,10 @@ class HSEvo:
             self._profiler.record_parameters(llm, evaluation, self)
 
     def _has_budget(self) -> bool:
-        return self._max_sample_nums is None or self._tot_sample_nums < self._max_sample_nums
+        return (
+            not is_search_aborted(self)
+            and (self._max_sample_nums is None or self._tot_sample_nums < self._max_sample_nums)
+        )
 
     def _debug_print(self, title: str, content: str):
         if self._debug_mode:
@@ -172,17 +189,66 @@ class HSEvo:
         if not self._has_budget():
             return None
         sample_start = time.time()
-        response = self._sampler.draw_sample(prompt, **llm_kwargs)
+        sample_order = self._tot_sample_nums + 1
+        try:
+            response = self._sampler.draw_sample(prompt, **llm_kwargs)
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage='sample',
+                operator=operator,
+                sample_order=sample_order,
+                prompt=prompt,
+                counts_budget=False,
+            )
+            return None
         sample_time = time.time() - sample_start
+        reset_sample_failures(self)
         func = self._sampler.response_to_function(response)
+        log_llm_call(
+            self,
+            stage='generate',
+            operator=operator,
+            sample_order=sample_order,
+            prompt=prompt,
+            response=response,
+            function_parse_success=func is not None,
+        )
         if func is None:
             self._tot_sample_nums += 1
+            log_event(
+                self,
+                event='sample_rejected',
+                status='parse_failed',
+                operator=operator,
+                sample_order=self._tot_sample_nums,
+                counts_budget=True,
+            )
             return None
         program = TextFunctionProgramConverter.function_to_program(func, self._template_program)
         if program is None:
             self._tot_sample_nums += 1
+            log_event(
+                self,
+                event='sample_rejected',
+                status='program_parse_failed',
+                operator=operator,
+                sample_order=self._tot_sample_nums,
+                counts_budget=True,
+            )
             return None
-        return self._evaluate_function(func, operator, sample_time=sample_time, program=program)
+        result = self._evaluate_function(func, operator, sample_time=sample_time, program=program)
+        log_event(
+            self,
+            event='sample_registered',
+            status='accepted' if result is not None else 'evaluated_invalid',
+            operator=operator,
+            sample_order=self._tot_sample_nums,
+            score=getattr(func, 'score', None),
+            counts_budget=True,
+        )
+        return result
 
     def _init_sampling_kwargs(self) -> dict:
         temperature = getattr(self._sampler.llm, "temperature", None)
@@ -246,8 +312,30 @@ class HSEvo:
     def _flash_reflection(self, selected_population: list[Function]) -> dict[str, str]:
         prompt = self._prompt.flash_reflection_prompt(selected_population)
         self._debug_print("Flash Reflection Prompt", prompt)
-        response = self._sampler.llm.draw_sample(prompt)
+        try:
+            response = self._sampler.llm.draw_sample(prompt)
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage='flash_reflection',
+                operator='reflection',
+                sample_order=self._tot_sample_nums + 1,
+                prompt=prompt,
+                counts_budget=False,
+            )
+            return self._flash_memory
+        reset_sample_failures(self)
         self._flash_memory = HSEvoSampler.parse_reflection(response)
+        log_llm_call(
+            self,
+            stage='flash_reflection',
+            operator='reflection',
+            sample_order=self._tot_sample_nums + 1,
+            prompt=prompt,
+            response=response,
+            parse_success=bool(self._flash_memory.get("analyze") or self._flash_memory.get("exp")),
+        )
         self._debug_print("Flash Reflection", str(self._flash_memory))
         return self._flash_memory
 
@@ -256,9 +344,30 @@ class HSEvo:
         bad = "\n\n".join(self._bad_reflections) if self._bad_reflections else "None"
         prompt = self._prompt.comprehensive_reflection_prompt(self._flash_memory.get("exp", ""), good, bad)
         self._debug_print("Comprehensive Reflection Prompt", prompt)
-        response = self._sampler.llm.draw_sample(prompt)
+        try:
+            response = self._sampler.llm.draw_sample(prompt)
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage='comprehensive_reflection',
+                operator='reflection',
+                sample_order=self._tot_sample_nums + 1,
+                prompt=prompt,
+                counts_budget=False,
+            )
+            return self._comprehensive_memory
+        reset_sample_failures(self)
         self._comprehensive_memory = "\n".join(
             part for part in [self._external_knowledge, response] if part
+        )
+        log_llm_call(
+            self,
+            stage='comprehensive_reflection',
+            operator='reflection',
+            sample_order=self._tot_sample_nums + 1,
+            prompt=prompt,
+            response=response,
         )
         self._debug_print("Comprehensive Reflection", self._comprehensive_memory)
         self._register_reflection()
@@ -344,8 +453,32 @@ class HSEvo:
 
         prompt = self._prompt.harmony_search_prompt(candidate)
         self._debug_print("Harmony Search Prompt", prompt)
-        response = self._sampler.llm.draw_sample(prompt)
+        try:
+            response = self._sampler.llm.draw_sample(prompt)
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage='harmony_search',
+                operator='harmony_search',
+                sample_order=self._tot_sample_nums + 1,
+                prompt=prompt,
+                counts_budget=False,
+                source_score=candidate.score,
+            )
+            return None
+        reset_sample_failures(self)
         parameter_ranges, function_source = HSEvoSampler.parse_harmony_response(response)
+        log_llm_call(
+            self,
+            stage='harmony_search',
+            operator='harmony_search',
+            sample_order=self._tot_sample_nums + 1,
+            prompt=prompt,
+            response=response,
+            parse_success=parameter_ranges is not None and function_source is not None,
+            source_score=candidate.score,
+        )
         if parameter_ranges is None or function_source is None:
             self._register_harmony_summary({"status": "parse_failed", "source_score": candidate.score})
             return None
@@ -427,6 +560,15 @@ class HSEvo:
 
         if self._has_budget():
             self._run_harmony_search_attempts()
+        log_state(
+            self,
+            phase='population',
+            method='hsevo',
+            generation=self._population.generation,
+            population_size=len(self._population),
+            sample_count=self._tot_sample_nums,
+            elite_score=getattr(self._elite_function, 'score', None),
+        )
 
     def run(self):
         try:
@@ -439,11 +581,9 @@ class HSEvo:
             while self._has_budget():
                 self._run_evolution_generation()
         finally:
-            try:
-                self._evaluation_executor.shutdown(cancel_futures=True)
-            except Exception:
-                pass
-            if self._profiler is not None:
-                self._profiler.finish()
-            self._sampler.llm.close()
-
+            shutdown_executor(self._evaluation_executor)
+            finish_profiler(
+                self,
+                status='aborted' if is_search_aborted(self) else 'finished',
+            )
+            close_sampler_llm(self._sampler)

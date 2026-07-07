@@ -30,6 +30,10 @@ def make_method() -> MCTS_AHD:
     method._e1_max_refs = MCTS_AHD.E1_MAX_REFS
     method._max_sample_nums = 1000
     method._tot_sample_nums = 0
+    method._consecutive_sample_failures = 0
+    method._max_consecutive_sample_failures = 20
+    method._search_aborted = False
+    method._debug_mode = False
     method._profiler = None
     return method
 
@@ -69,6 +73,14 @@ class FakeSampler:
 
     def get_thought_and_function(self, task_description, prompt, **kwargs):
         return "aligned description", self.func
+
+
+class FailingSampler:
+    def __init__(self, exc: Exception):
+        self.exc = exc
+
+    def get_thought_and_function(self, task_description, prompt, **kwargs):
+        raise self.exc
 
 
 class FakeEvaluator:
@@ -153,6 +165,48 @@ class MCTSAHDMechanicsTest(unittest.TestCase):
         func = method._sample_evaluate_register("prompt", func_only=True, operator="m1")
 
         self.assertEqual(func.operator, "m1")
+
+    def test_sample_exception_is_invalid_sample_without_incrementing_count(self):
+        method = make_method()
+        method._sampler = FailingSampler(TimeoutError("request timed out"))
+        method._evaluator = FakeEvaluator(score=3.5)
+        method._evaluation_executor = ImmediateExecutor()
+        method._max_consecutive_sample_failures = 2
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            method._profiler = MAProfiler(log_dir=tmpdir, create_random_path=False, log_style="simple")
+            result = method._sample_evaluate_register("prompt", func_only=True, operator="s1")
+            events = [
+                json.loads(line)
+                for line in (Path(tmpdir) / "mcts_events.jsonl").read_text().splitlines()
+            ]
+            llm_calls = [
+                json.loads(line)
+                for line in (Path(tmpdir) / "llm_calls.jsonl").read_text().splitlines()
+            ]
+
+        self.assertFalse(result)
+        self.assertEqual(method._tot_sample_nums, 0)
+        self.assertEqual(method._consecutive_sample_failures, 1)
+        self.assertFalse(method._search_aborted)
+        self.assertEqual(events[-1]["event"], "sample_error")
+        self.assertEqual(events[-1]["error_type"], "TimeoutError")
+        self.assertEqual(llm_calls[-1]["stage"], "sample_error")
+
+    def test_consecutive_sample_failures_abort_search_loop(self):
+        method = make_method()
+        method._sampler = FailingSampler(TimeoutError("request timed out"))
+        method._evaluator = FakeEvaluator(score=3.5)
+        method._evaluation_executor = ImmediateExecutor()
+        method._max_consecutive_sample_failures = 1
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            method._profiler = MAProfiler(log_dir=tmpdir, create_random_path=False, log_style="simple")
+            result = method._sample_evaluate_register("prompt", func_only=True, operator="s1")
+
+        self.assertFalse(result)
+        self.assertTrue(method._search_aborted)
+        self.assertFalse(method._continue_loop())
 
     def test_duplicate_e1_score_skips_child_and_backprop(self):
         method = make_method()

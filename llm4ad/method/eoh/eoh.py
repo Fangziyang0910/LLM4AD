@@ -36,6 +36,18 @@ from .population import Population
 from .profiler import EoHProfiler
 from .prompt import EoHPrompt
 from .sampler import EoHSampler
+from .._observability import (
+    call_sampler_get_thought_and_function,
+    close_sampler_llm,
+    finish_profiler,
+    init_observability,
+    is_search_aborted,
+    log_event,
+    log_state,
+    record_sample_failure,
+    reset_sample_failures,
+    shutdown_executor,
+)
 from ...base import (
     Evaluation, LLM, Function, Program, TextFunctionProgramConverter, SecureEvaluator
 )
@@ -62,6 +74,7 @@ class EoH:
                  operator_weights: Optional[list[float]] = None,
                  resume_mode: bool = False,
                  debug_mode: bool = False,
+                 max_consecutive_sample_failures: int = 20,
                  multi_thread_or_process_eval: Literal['thread', 'process'] = 'thread',
                  **kwargs):
         """Evolutionary of Heuristics.
@@ -120,13 +133,14 @@ class EoH:
 
         # population, sampler, and evaluator
         self._population = Population(pop_size=self._pop_size)
-        self._sampler = EoHSampler(llm, self._template_program_str)
-        self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode, **kwargs)
         self._profiler = profiler
+        self._sampler = EoHSampler(llm, self._template_program_str, profiler=self._profiler)
+        self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode, **kwargs)
 
         # statistics
         self._tot_sample_nums = 0
         self._sample_lock = Lock()
+        init_observability(self, max_consecutive_sample_failures)
 
         # reset _initial_sample_nums_max
         self._initial_sample_nums_max = 2 * self._pop_size
@@ -203,20 +217,55 @@ class EoH:
                 print(f'Warning: population size {self._pop_size} '
                       f'is not suitable, please reset it to 5.')
 
-    def _sample_evaluate_register(self, prompt, *, register=True, count_sample=True):
+    def _sample_evaluate_register(self, prompt, *, register=True, count_sample=True, operator=None):
         """Perform following steps:
         1. Sample an algorithm using the given prompt.
         2. Evaluate it by submitting to the process/thread pool, and get the results.
         3. Add the function to the population and register it to the profiler.
         """
         sample_start = time.time()
-        thought, func = self._sampler.get_thought_and_function(prompt)
+        sample_order = self._tot_sample_nums + 1
+        try:
+            thought, func = call_sampler_get_thought_and_function(
+                self._sampler,
+                prompt,
+                operator=operator,
+                sample_order=sample_order,
+            )
+        except Exception as exc:
+            record_sample_failure(
+                self,
+                exc,
+                stage='sample',
+                operator=operator,
+                sample_order=sample_order,
+                prompt=prompt,
+                counts_budget=False,
+            )
+            return None
         sample_time = time.time() - sample_start
+        reset_sample_failures(self)
         if thought is None or func is None:
+            log_event(
+                self,
+                event='sample_rejected',
+                status='parse_failed',
+                operator=operator,
+                sample_order=sample_order,
+                counts_budget=False,
+            )
             return
         # convert to Program instance
         program = TextFunctionProgramConverter.function_to_program(func, self._template_program)
         if program is None:
+            log_event(
+                self,
+                event='sample_rejected',
+                status='program_parse_failed',
+                operator=operator,
+                sample_order=sample_order,
+                counts_budget=False,
+            )
             return
         # evaluate
         score, eval_time = self._evaluation_executor.submit(
@@ -230,6 +279,7 @@ class EoH:
         func.evaluate_time = eval_time
         func.algorithm = thought
         func.sample_time = sample_time
+        func.operator = operator or 'Unknown'
         should_advance_generation = False
         if count_sample:
             sample_order = self._try_increment_sample_count()
@@ -247,6 +297,24 @@ class EoH:
             self._profiler.register_function(func, program=str(program))
             if isinstance(self._profiler, EoHProfiler):
                 self._profiler.register_population(self._population)
+        log_event(
+            self,
+            event='sample_registered',
+            status='accepted' if accepted else 'rejected',
+            operator=operator,
+            sample_order=self._tot_sample_nums,
+            score=func.score,
+            generation=self._population.generation,
+            counts_budget=count_sample,
+        )
+        log_state(
+            self,
+            phase='population',
+            method='eoh',
+            generation=self._population.generation,
+            population_size=len(self._population),
+            sample_count=self._tot_sample_nums,
+        )
 
         return func if accepted else None
 
@@ -272,6 +340,8 @@ class EoH:
                 lock.release()
 
     def _continue_loop(self) -> bool:
+        if is_search_aborted(self):
+            return False
         budget = self._sample_budget()
         if budget is None:
             return True
@@ -303,7 +373,20 @@ class EoH:
         prompt = self._build_operator_prompt(operator)
         if self._debug_mode:
             print(f'{operator.upper()} Prompt: {prompt}')
-        return self._sample_evaluate_register(prompt, register=True, count_sample=True) is not None
+        log_event(
+            self,
+            event='operator_start',
+            status='scheduled',
+            operator=operator,
+            sample_order=self._tot_sample_nums,
+            generation=self._population.generation,
+        )
+        return self._sample_evaluate_register(
+            prompt,
+            register=True,
+            count_sample=True,
+            operator=operator,
+        ) is not None
 
     def _iteratively_use_eoh_operator(self):
         while self._continue_loop():
@@ -330,7 +413,7 @@ class EoH:
         for _ in range(initial_sample_nums_max):
             try:
                 prompt = EoHPrompt.get_prompt_i1(self._task_description_str, self._function_to_evolve)
-                func = self._sample_evaluate_register(prompt, register=False, count_sample=False)
+                func = self._sample_evaluate_register(prompt, register=False, count_sample=False, operator='i1')
                 if func is not None:
                     raw_population.append(func)
             except Exception:
@@ -362,22 +445,24 @@ class EoH:
             t.join()
 
     def run(self):
-        if not self._resume_mode:
-            # do initialization
-            self._initialize_population()
-            # terminate searching if
-            if len(self._population) == 0:
-                print(
-                    f'The search is terminated since EoH unable to obtain any feasible algorithm during initialization. '
-                    f'Please increase the `initial_sample_nums_max` argument (currently {self._initial_sample_nums_max}). '
-                    f'Please also check your evaluation implementation and LLM implementation.')
-                return
+        try:
+            if not self._resume_mode:
+                # do initialization
+                self._initialize_population()
+                # terminate searching if
+                if len(self._population) == 0:
+                    print(
+                        f'The search is terminated since EoH unable to obtain any feasible algorithm during initialization. '
+                        f'Please increase the `initial_sample_nums_max` argument (currently {self._initial_sample_nums_max}). '
+                        f'Please also check your evaluation implementation and LLM implementation.')
+                    return
 
-        # evolutionary search
-        self._multi_threaded_sampling(self._iteratively_use_eoh_operator)
-
-        # finish
-        if self._profiler is not None:
-            self._profiler.finish()
-
-        self._sampler.llm.close()
+            # evolutionary search
+            self._multi_threaded_sampling(self._iteratively_use_eoh_operator)
+        finally:
+            finish_profiler(
+                self,
+                status='aborted' if is_search_aborted(self) else 'finished',
+            )
+            close_sampler_llm(self._sampler)
+            shutdown_executor(self._evaluation_executor)

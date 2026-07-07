@@ -29,10 +29,21 @@ import concurrent.futures
 import copy
 import time
 import traceback
-from threading import Thread
+from threading import Lock, Thread
 from typing import Optional, Literal
 
 from .profiler import RandSampleProfiler
+from .._observability import (
+    close_sampler_llm,
+    finish_profiler,
+    init_observability,
+    is_search_aborted,
+    log_event,
+    log_llm_call,
+    record_sample_failure,
+    reset_sample_failures,
+    shutdown_executor,
+)
 from ...base import *
 
 
@@ -47,6 +58,7 @@ class RandSample:
                  *,
                  resume_mode: bool = False,
                  debug_mode: bool = False,
+                 max_consecutive_sample_failures: int = 20,
                  multi_thread_or_process_eval: Literal['thread', 'process'] = 'thread',
                  **kwargs):
         """Random Sampling
@@ -87,6 +99,8 @@ class RandSample:
 
         # statistics
         self._tot_sample_nums = 0
+        self._sample_lock = Lock()
+        init_observability(self, max_consecutive_sample_failures)
 
         # multi-thread executor for evaluation
         assert multi_thread_or_process_eval in ['thread', 'process']
@@ -111,6 +125,16 @@ class RandSample:
         if profiler is not None:
             self._profiler.record_parameters(llm, evaluation, self)  # ZL: necessary
 
+    def _try_increment_sample_count(self) -> int | None:
+        self._sample_lock.acquire()
+        try:
+            if self._max_sample_nums is not None and self._tot_sample_nums >= self._max_sample_nums:
+                return None
+            self._tot_sample_nums += 1
+            return self._tot_sample_nums
+        finally:
+            self._sample_lock.release()
+
     def _get_prompt(self) -> str:
         template = copy.deepcopy(self._template_program)
         template.functions[0].name += '_v0'
@@ -121,21 +145,36 @@ class RandSample:
         return '\n'.join([str(template), str(func_to_be_complete)])
 
     def _sample_evaluate_register(self):
-        while (self._max_sample_nums is None) or (self._tot_sample_nums < self._max_sample_nums):
+        while (not is_search_aborted(self)) and (
+                (self._max_sample_nums is None) or (self._tot_sample_nums < self._max_sample_nums)):
             try:
                 # do sample
+                sample_order = self._tot_sample_nums + 1
                 draw_sample_start = time.time()
                 sampled_funcs = self._sampler.draw_samples([self._prompt_content])
                 draw_sample_times = time.time() - draw_sample_start
                 avg_time_for_each_sample = draw_sample_times / len(sampled_funcs)
+                reset_sample_failures(self)
 
                 # convert to program instance
                 programs_to_be_eval = []
                 for func in sampled_funcs:
                     program = SampleTrimmer.sample_to_program(func, self._template_program)
+                    log_llm_call(
+                        self,
+                        stage='generate',
+                        operator='random_sample',
+                        sample_order=sample_order,
+                        prompt=self._prompt_content,
+                        response=func,
+                        function_parse_success=program is not None,
+                    )
                     # if sample to program success
                     if program is not None:
                         programs_to_be_eval.append(program)
+                    else:
+                        log_event(self, event='sample_rejected', status='program_parse_failed',
+                                  operator='random_sample', sample_order=sample_order, counts_budget=False)
 
                 # submit tasks to the thread pool and evaluate
                 futures = []
@@ -148,54 +187,70 @@ class RandSample:
 
                 # register to program database
                 for program, score, eval_time in zip(programs_to_be_eval, scores, times):
+                    sample_order = self._try_increment_sample_count()
+                    if sample_order is None:
+                        break
                     function = TextFunctionProgramConverter.program_to_function(program)
                     # check if the function has converted to Function instance successfully
                     if function is None:
+                        log_event(self, event='sample_rejected', status='function_parse_failed',
+                                  operator='random_sample', sample_order=sample_order, counts_budget=True)
                         continue
                     # register to profiler
                     if self._profiler:
                         function.score = score
                         function.evaluate_time = eval_time
                         function.sample_time = avg_time_for_each_sample
+                        function.operator = 'random_sample'
                         self._profiler.register_function(function)
-                    # update
-                    self._tot_sample_nums += 1
+                    log_event(self, event='sample_registered', status='evaluated',
+                              operator='random_sample', sample_order=sample_order,
+                              score=score, counts_budget=True)
             except KeyboardInterrupt:
                 break
             except Exception as e:
                 if self._debug_mode:
                     traceback.print_exc()
                     exit()
+                record_sample_failure(
+                    self,
+                    e,
+                    stage='sample',
+                    operator='random_sample',
+                    sample_order=self._tot_sample_nums + 1,
+                    prompt=getattr(self, '_prompt_content', None),
+                    counts_budget=False,
+                )
+                if is_search_aborted(self):
+                    break
                 continue
 
         # shutdown evaluation_executor
-        try:
-            self._evaluation_executor.shutdown(cancel_futures=True)
-        except:
-            pass
+        shutdown_executor(self._evaluation_executor)
 
     def run(self):
-        if not self._resume_mode:
-            # evaluate the template program, make sure the score of which is not 'None'
-            score, eval_time = self._evaluator.evaluate_program_record_time(program=self._template_program)
-            if score is None:
-                raise RuntimeError('The score of the template function must not be "None".')
+        try:
+            if not self._resume_mode:
+                # evaluate the template program, make sure the score of which is not 'None'
+                score, eval_time = self._evaluator.evaluate_program_record_time(program=self._template_program)
+                if score is None:
+                    raise RuntimeError('The score of the template function must not be "None".')
 
-            # register the template program to the program database
-            if self._profiler:
-                self._function_to_evolve.score = score
-                self._function_to_evolve.evaluate_time = eval_time
-                self._profiler.register_function(self._function_to_evolve, program=str(self._template_program))
+                # register the template program to the program database
+                if self._profiler:
+                    self._function_to_evolve.score = score
+                    self._function_to_evolve.evaluate_time = eval_time
+                    self._function_to_evolve.operator = 'seed'
+                    self._profiler.register_function(self._function_to_evolve, program=str(self._template_program))
 
-        # start sampling using multiple threads
-        for t in self._sampler_threads:
-            t.start()
+            # start sampling using multiple threads
+            for t in self._sampler_threads:
+                t.start()
 
-        # join all threads to the main thread
-        for t in self._sampler_threads:
-            t.join()
-
-        if self._profiler is not None:
-            self._profiler.finish()
-
-        self._sampler.llm.close()
+            # join all threads to the main thread
+            for t in self._sampler_threads:
+                t.join()
+        finally:
+            finish_profiler(self, status='aborted' if is_search_aborted(self) else 'finished')
+            close_sampler_llm(self._sampler)
+            shutdown_executor(self._evaluation_executor)

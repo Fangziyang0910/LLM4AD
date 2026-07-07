@@ -59,6 +59,10 @@ class LlameaLLM(HttpsApi):
             if cs_pattern != None
             else r"space\s*:\s*\n*```\n*(?:python)?\n(.*?)\n```"
         )
+        self._profiler = None
+
+    def set_profiler(self, profiler):
+        self._profiler = profiler
 
     # @abstractmethod
     # def query(self, session: list):
@@ -123,7 +127,25 @@ class LlameaLLM(HttpsApi):
         if self.log:
             self.logger.log_conversation(self.model, message)
 
-        code_block = self.extract_algorithm_code(message)
+        try:
+            code_block = self.extract_algorithm_code(message)
+        except Exception as exc:
+            self._log_llm_call(
+                stage="sample_solution",
+                method="llamea",
+                messages=session_messages,
+                response=message,
+                parent_ids=parent_ids,
+                code_parse_success=False,
+                diff_mode=diff_mode,
+                hpo=HPO,
+                error_type=type(exc).__name__,
+                error=str(exc),
+            )
+            error_logger = getattr(self._profiler, "log_error", None)
+            if callable(error_logger):
+                error_logger("llamea_code_extraction", exc, method="llamea", parent_ids=parent_ids)
+            raise
         code = ""
         success = False  # <- Flag to Implement fall back to code block update, when LLM fails to adhere to diff mode.
         if diff_mode:
@@ -157,8 +179,28 @@ class LlameaLLM(HttpsApi):
             code=code,
             parent_ids=parent_ids,
         )
+        self._log_llm_call(
+            stage="sample_solution",
+            method="llamea",
+            messages=session_messages,
+            response=message,
+            parent_ids=parent_ids,
+            solution_name=name,
+            description=desc,
+            code_parse_success=bool(code),
+            diff_mode=diff_mode,
+            hpo=HPO,
+        )
 
         return new_individual
+
+    def _log_llm_call(self, **payload):
+        logger = getattr(self._profiler, "log_llm_call", None)
+        if callable(logger):
+            try:
+                logger(**payload)
+            except Exception:
+                pass
 
     def extract_configspace(self, message):
         """

@@ -33,6 +33,7 @@ class ShinkaEvoProfiler(ProfilerBase):
 
     def register_event(self, event_type: str, content: dict[str, Any]) -> None:
         self._append_event(f"{event_type}.jsonl", content)
+        self.log_method_event(method="shinka_evo", event=event_type, **content)
 
     def _append_event(self, filename: str, content: dict[str, Any]) -> None:
         if not self._log_dir:

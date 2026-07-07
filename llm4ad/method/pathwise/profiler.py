@@ -86,6 +86,26 @@ class PathWiseProfiler(ProfilerBase):
             "policy_reflection": policy_reflection,
             "world_model_reflection": world_model_reflection,
         })
+        self.log_method_event(
+            method="pathwise",
+            event="entailment_step",
+            outer_iteration=outer_iteration,
+            inner_step=inner_step,
+            actions=[action.__dict__ for action in actions],
+            selected_node_id=selected_node.node_id,
+            selected_score=selected_node.score,
+            edge=edge.__dict__,
+            policy_reflection=policy_reflection,
+            world_model_reflection=world_model_reflection,
+        )
+        self.log_method_state(
+            method="pathwise",
+            phase="entailment_graph",
+            outer_iteration=outer_iteration,
+            inner_step=inner_step,
+            selected_node_id=selected_node.node_id,
+            selected_score=selected_node.score,
+        )
 
     def _append_event(self, filename: str, content: dict):
         if not self._log_dir:

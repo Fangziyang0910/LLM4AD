@@ -46,7 +46,7 @@ class MLESProfiler(ProfilerBase):
                  log_dir: Optional[str] = None,
                  *,
                  evaluation_name='Problem',
-                 method_name='EoH',
+                 method_name='MLES',
                  initial_num_samples=0,
                  log_style='complex',
                  create_random_path=True,
@@ -205,7 +205,7 @@ class MLESProfiler(ProfilerBase):
             json.dump(final_results, json_file, indent=4)
 
 
-class EoHTensorboardProfiler(TensorboardProfiler, MLESProfiler):
+class MLESTensorboardProfiler(TensorboardProfiler, MLESProfiler):
 
     def __init__(self,
                  log_dir: str | None = None,
@@ -214,7 +214,7 @@ class EoHTensorboardProfiler(TensorboardProfiler, MLESProfiler):
                  log_style='complex',
                  create_random_path=True,
                  **kwargs):
-        """EoH Profiler for Tensorboard.
+        """MLES Profiler for Tensorboard.
         Args:
             log_dir            : the directory of current run
             evaluation_name    : the name of the evaluation instance (the name of the problem to be solved).
@@ -240,7 +240,7 @@ class EoHTensorboardProfiler(TensorboardProfiler, MLESProfiler):
             self._writer.close()
 
 
-class EoHWandbProfiler(WandBProfiler, MLESProfiler):
+class MLESWandbProfiler(WandBProfiler, MLESProfiler):
     def __init__(self,
                  wandb_project_name: str,
                  log_dir: str | None = None,
@@ -249,7 +249,7 @@ class EoHWandbProfiler(WandBProfiler, MLESProfiler):
                  log_style='complex',
                  create_random_path=True,
                  **kwargs):
-        """EoH Profiler for Wandb.
+        """MLES Profiler for Wandb.
         Args:
             wandb_project_name : the name of the wandb project
             log_dir            : the directory of current run
@@ -279,3 +279,7 @@ class EoHWandbProfiler(WandBProfiler, MLESProfiler):
 
     def finish(self):
         wandb.finish()
+
+
+EoHTensorboardProfiler = MLESTensorboardProfiler
+EoHWandbProfiler = MLESWandbProfiler

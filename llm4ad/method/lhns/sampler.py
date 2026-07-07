@@ -1,31 +1,29 @@
 from __future__ import annotations
 
-import re
-from typing import Tuple, List, Dict
+from typing import Tuple
 
-from .prompt import LHNSPrompt
 from .func_ruin import LHNSFunction, LHNSProgram
-from ...base import LLM, SampleTrimmer
+from .._sampling import sample_thought_and_function, trim_braced_thought
+from ...base import LLM
 
 
 class LHNSSampler:
-    def __init__(self, sampler: LLM, template_program: str | LHNSProgram):
+    def __init__(self, sampler: LLM, template_program: str | LHNSProgram, profiler=None):
         self._sampler = sampler
         self._template_program = template_program
+        self._profiler = profiler
 
-    def get_thought_and_function(self, prompt: str) -> Tuple[str, LHNSFunction]:
-        response = self._sampler.draw_sample(prompt)
-        thought = self.__class__.trim_thought_from_response(response)
-        code = SampleTrimmer.trim_preface_of_function(response)
-        function = SampleTrimmer.sample_to_function(code, self._template_program)
-        function = LHNSFunction.convert_function_to_lhnsfunction(function)
-        return thought, function
+    def get_thought_and_function(self, prompt: str, *, operator=None, sample_order=None) -> Tuple[str, LHNSFunction]:
+        return sample_thought_and_function(
+            self._sampler,
+            prompt,
+            self._template_program,
+            profiler=self._profiler,
+            operator=operator,
+            sample_order=sample_order,
+            postprocess=LHNSFunction.convert_function_to_lhnsfunction,
+        )
 
     @classmethod
     def trim_thought_from_response(cls, response: str) -> str | None:
-        try:
-            pattern = r'\{.*?\}'  # Compared with r'\{(.*)\}'
-            bracketed_texts = re.findall(pattern, response)
-            return bracketed_texts[0]
-        except:
-            return None
+        return trim_braced_thought(response)

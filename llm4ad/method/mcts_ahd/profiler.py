@@ -93,6 +93,7 @@ class MAProfiler(ProfilerBase):
         if selected_node is not None:
             payload['selected_node'] = self._node_summary(selected_node)
         self._append_jsonl(self._mcts_state_path, payload)
+        self.log_method_state(method='mcts_ahd', **payload)
 
         best = max(mcts.rank_list) if mcts.rank_list else None
         subtree_sizes = [child['subtree_size'] for child in root_children]
@@ -105,6 +106,7 @@ class MAProfiler(ProfilerBase):
         if not self._log_dir:
             return
         self._append_jsonl(self._mcts_events_path, payload)
+        self.log_method_event(method='mcts_ahd', **payload)
 
         event = payload.get('event', 'event')
         status = payload.get('status')
@@ -118,9 +120,7 @@ class MAProfiler(ProfilerBase):
         )
 
     def log_llm_call(self, **payload):
-        if not self._log_dir:
-            return
-        self._append_jsonl(self._llm_calls_path, payload)
+        super().log_llm_call(**payload)
 
     def _append_jsonl(self, path: str, payload: dict):
         try:
