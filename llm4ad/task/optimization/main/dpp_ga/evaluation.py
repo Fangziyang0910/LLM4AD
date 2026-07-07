@@ -5,6 +5,7 @@ from typing import Any, Callable
 import numpy as np
 
 from llm4ad.base import Evaluation
+from llm4ad.task.optimization.instance_parallel import evaluate_instances, validate_backend
 from llm4ad.task.optimization.main.dpp_ga.dataset import (
     DEFAULT_SPLIT,
     load_problem_arrays,
@@ -157,6 +158,69 @@ def _selection(population: np.ndarray, rewards: np.ndarray) -> np.ndarray:
     return population[int(len(population) / 2):]
 
 
+def _run_dpp_ga_instance(crossover: Callable, instance: dict[str, Any], context: dict[str, Any]) -> float:
+    probe = int(instance["probe"])
+    keepout = np.asarray(instance["keepout"], dtype=int)
+    prohibit = keepout[:int(instance["keepout_num"])]
+    size = context["n"] * context["m"]
+
+    population = _generate_population(
+        n_pop=context["n_pop"],
+        n_decap=context["n_decap"],
+        probe=probe,
+        prohibit=prohibit,
+        size=size,
+    )
+    rewards = _eval_population(
+        population,
+        probe=probe,
+        arrays=context["arrays"],
+        n=context["n"],
+        m=context["m"],
+        freq_pts=context["freq_pts"],
+    )
+
+    n_elite = max(1, int(context["n_pop"] * context["elite_rate"]))
+    for _ in range(context["n_iter"]):
+        sorted_idx = rewards.argsort()
+        population = population[sorted_idx]
+        rewards = rewards[sorted_idx]
+        selected_population = _selection(population, rewards)
+        elites = population[-n_elite:]
+        elite_rewards = rewards[-n_elite:]
+
+        next_population = np.asarray(
+            crossover(selected_population, n_pop=context["n_pop"] - n_elite),
+            dtype=int,
+        )
+        if next_population.shape != (context["n_pop"] - n_elite, context["n_decap"]):
+            raise ValueError("DPP-GA crossover returned an invalid offspring shape.")
+        next_population = _validate_population(
+            next_population,
+            probe=probe,
+            prohibit=prohibit,
+            size=size,
+        )
+        next_rewards = _eval_population(
+            next_population,
+            probe=probe,
+            arrays=context["arrays"],
+            n=context["n"],
+            m=context["m"],
+            freq_pts=context["freq_pts"],
+        )
+        population = np.concatenate([elites, next_population], axis=0)
+        rewards = np.concatenate([elite_rewards, next_rewards], axis=0)
+
+    return float(np.max(rewards))
+
+
+def _evaluate_dpp_ga_instance(crossover: Callable, payload, context) -> float:
+    idx, instance = payload
+    np.random.seed(context["seed"] + idx)
+    return _run_dpp_ga_instance(crossover, instance, context)
+
+
 class DPPGAEvaluation(Evaluation):
     """Evaluator for ReEvo's DPP genetic-algorithm crossover task."""
 
@@ -170,6 +234,8 @@ class DPPGAEvaluation(Evaluation):
             elite_rate: float | None = None,
             seed: int = 5678,
             max_instances: int | None = None,
+            eval_workers: int = 1,
+            eval_backend: str = "sequential",
     ):
         super().__init__(
             template_program=template_program,
@@ -196,6 +262,10 @@ class DPPGAEvaluation(Evaluation):
         self.elite_rate = float(elite_rate if elite_rate is not None else params["elite_rate"])
         self.seed = int(seed)
         self._arrays: dict[str, np.ndarray] | None = None
+        self.eval_workers = max(1, int(eval_workers))
+        self.eval_backend = validate_backend(eval_backend, daemon_eval_process=self.daemon_eval_process)
+        if self.eval_backend == "thread":
+            raise ValueError("DPPGAEvaluation supports sequential or process eval_backend only.")
 
     @property
     def arrays(self) -> dict[str, np.ndarray]:
@@ -204,7 +274,37 @@ class DPPGAEvaluation(Evaluation):
         return self._arrays
 
     def evaluate_program(self, program_str: str, callable_func: Callable) -> Any | None:
-        return self.evaluate(callable_func)
+        if callable_func is not None and (
+                self.eval_backend == "sequential"
+                or self.eval_workers == 1
+                or self.n_instance <= 1
+        ):
+            return self.evaluate(callable_func)
+
+        try:
+            rewards = evaluate_instances(
+                program_str=program_str,
+                callable_func=callable_func,
+                payloads=list(enumerate(self._instances)),
+                instance_eval=_evaluate_dpp_ga_instance,
+                context={
+                    "arrays": self.arrays,
+                    "n": self.n,
+                    "m": self.m,
+                    "freq_pts": self.freq_pts,
+                    "n_pop": self.n_pop,
+                    "n_iter": self.n_iter,
+                    "n_decap": self.n_decap,
+                    "elite_rate": self.elite_rate,
+                    "seed": self.seed,
+                },
+                backend=self.eval_backend,
+                workers=self.eval_workers,
+                timeout_seconds=self.timeout_seconds,
+            )
+            return float(np.mean(rewards))
+        except Exception:
+            return None
 
     def evaluate(self, crossover: Callable) -> float | None:
         try:
@@ -218,57 +318,17 @@ class DPPGAEvaluation(Evaluation):
             return None
 
     def _run_instance(self, crossover: Callable, instance: dict[str, Any]) -> float:
-        probe = int(instance["probe"])
-        keepout = np.asarray(instance["keepout"], dtype=int)
-        prohibit = keepout[:int(instance["keepout_num"])]
-        size = self.n * self.m
-
-        population = _generate_population(
-            n_pop=self.n_pop,
-            n_decap=self.n_decap,
-            probe=probe,
-            prohibit=prohibit,
-            size=size,
+        return _run_dpp_ga_instance(
+            crossover,
+            instance,
+            {
+                "arrays": self.arrays,
+                "n": self.n,
+                "m": self.m,
+                "freq_pts": self.freq_pts,
+                "n_pop": self.n_pop,
+                "n_iter": self.n_iter,
+                "n_decap": self.n_decap,
+                "elite_rate": self.elite_rate,
+            },
         )
-        rewards = _eval_population(
-            population,
-            probe=probe,
-            arrays=self.arrays,
-            n=self.n,
-            m=self.m,
-            freq_pts=self.freq_pts,
-        )
-
-        n_elite = max(1, int(self.n_pop * self.elite_rate))
-        for _ in range(self.n_iter):
-            sorted_idx = rewards.argsort()
-            population = population[sorted_idx]
-            rewards = rewards[sorted_idx]
-            selected_population = _selection(population, rewards)
-            elites = population[-n_elite:]
-            elite_rewards = rewards[-n_elite:]
-
-            next_population = np.asarray(
-                crossover(selected_population, n_pop=self.n_pop - n_elite),
-                dtype=int,
-            )
-            if next_population.shape != (self.n_pop - n_elite, self.n_decap):
-                raise ValueError("DPP-GA crossover returned an invalid offspring shape.")
-            next_population = _validate_population(
-                next_population,
-                probe=probe,
-                prohibit=prohibit,
-                size=size,
-            )
-            next_rewards = _eval_population(
-                next_population,
-                probe=probe,
-                arrays=self.arrays,
-                n=self.n,
-                m=self.m,
-                freq_pts=self.freq_pts,
-            )
-            population = np.concatenate([elites, next_population], axis=0)
-            rewards = np.concatenate([elite_rewards, next_rewards], axis=0)
-
-        return float(np.max(rewards))

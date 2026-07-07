@@ -161,6 +161,7 @@ def _guided_local_search_with_time(
     best_cost = _calculate_cost(distmat, best_tour)
     # k = 0.1 * best_cost / distmat.shape[0]
     cur_tour = best_tour.copy()
+    running_time = time.monotonic() - start_time
 
     for _ in range(iter_limit):
         _perturbation(distmat, guide, penalty, cur_tour, update_edge_distance, perturbation_moves)

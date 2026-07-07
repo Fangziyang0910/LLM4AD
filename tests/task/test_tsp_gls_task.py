@@ -1,9 +1,21 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from llm4ad.task.optimization.main.tsp_gls.dataset import load_split_instances
 from llm4ad.task.optimization.main.tsp_gls.evaluation import TSPGLSEvaluation
+
+IDENTITY_UPDATE_PROGRAM = """
+import numpy as np
+
+def identity_update(
+        edge_distance: np.ndarray,
+        local_opt_tour: np.ndarray,
+        edge_n_used: np.ndarray,
+) -> np.ndarray:
+    return edge_distance.copy()
+"""
 
 
 def identity_update(
@@ -59,6 +71,22 @@ def test_tsp_gls_evaluates_identity_update_quickly():
     assert isinstance(score, float)
     assert np.isfinite(score)
     assert score <= 0.0
+
+
+def test_tsp_gls_process_parallel_matches_sequential():
+    sequential = TSPGLSEvaluation(split="train", time_limit=0.0, ite_max=0)
+    parallel = TSPGLSEvaluation(
+        split="train",
+        time_limit=0.0,
+        ite_max=0,
+        eval_workers=2,
+        eval_backend="process",
+    )
+
+    expected = sequential.evaluate_program(IDENTITY_UPDATE_PROGRAM, None)
+    actual = parallel.evaluate_program(IDENTITY_UPDATE_PROGRAM, None)
+
+    assert actual == pytest.approx(expected)
 
 
 def test_tsp_gls_penalizes_invalid_update():

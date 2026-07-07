@@ -53,6 +53,62 @@ def test_tsp_evaluation_can_select_test_split():
     assert evaluator.problem_size == 100
 
 
+def test_tsp_evaluation_thread_workers_match_sequential_score():
+    def select_nearest_node(current_node, destination_node, unvisited_nodes, distance_matrix):
+        distances = distance_matrix[current_node][unvisited_nodes]
+        return unvisited_nodes[np.argmin(distances)]
+
+    sequential = TSPEvaluation(split="train", eval_workers=1)
+    parallel = TSPEvaluation(split="train", eval_workers=4, eval_backend="thread")
+
+    assert parallel.eval_workers == 4
+    assert parallel.eval_backend == "thread"
+    assert parallel.evaluate(select_nearest_node) == pytest.approx(
+        sequential.evaluate(select_nearest_node)
+    )
+
+
+def test_tsp_evaluation_process_workers_match_sequential_score():
+    program = """
+import numpy as np
+
+def select_next_node(current_node: int, destination_node: int, unvisited_nodes: np.ndarray, distance_matrix: np.ndarray) -> int:
+    distances = distance_matrix[current_node][unvisited_nodes]
+    return unvisited_nodes[np.argmin(distances)]
+"""
+
+    sequential = TSPEvaluation(split="train", eval_workers=1)
+    process_parallel = TSPEvaluation(split="train", eval_workers=4, eval_backend="process")
+    namespace = {}
+    exec(program, namespace)
+
+    assert process_parallel.eval_workers == 4
+    assert process_parallel.eval_backend == "process"
+    assert process_parallel.evaluate_program(program, None) == pytest.approx(
+        sequential.evaluate(namespace["select_next_node"])
+    )
+
+
+def test_tsp_evaluation_parallel_workers_preserve_invalid_route_result():
+    def select_current_node(current_node, destination_node, unvisited_nodes, distance_matrix):
+        return current_node
+
+    evaluator = TSPEvaluation(split="train", eval_workers=4, eval_backend="thread")
+
+    assert evaluator.evaluate(select_current_node) is None
+
+
+def test_tsp_evaluation_process_workers_preserve_invalid_route_result():
+    program = """
+def select_next_node(current_node: int, destination_node: int, unvisited_nodes, distance_matrix) -> int:
+    return current_node
+"""
+
+    evaluator = TSPEvaluation(split="train", eval_workers=4, eval_backend="process")
+
+    assert evaluator.evaluate_program(program, None) is None
+
+
 def test_tsp_evaluation_rejects_legacy_generated_mode():
     with pytest.raises(TypeError):
         TSPEvaluation(n_instance=16, problem_size=50)

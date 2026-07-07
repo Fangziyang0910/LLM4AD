@@ -35,6 +35,7 @@ from typing import Callable, Any, List, Tuple
 import matplotlib.pyplot as plt
 
 from llm4ad.base import Evaluation
+from llm4ad.task.optimization.instance_parallel import evaluate_instances, validate_backend
 from llm4ad.task.optimization.main.knapsack_construct.dataset import (
     DEFAULT_SPLIT,
     load_split_instances,
@@ -44,12 +45,47 @@ from llm4ad.task.optimization.main.knapsack_construct.template import template_p
 __all__ = ['KnapsackEvaluation']
 
 
+def _pack_items(
+        item_weights: List[int],
+        item_values: List[int],
+        knapsack_capacity: int,
+        eva: Callable,
+) -> Tuple[int, List[int]]:
+    remaining_items = list(zip(item_weights, item_values, range(len(item_weights))))
+    selected_items = []
+    remaining_capacity = knapsack_capacity
+    total_value = 0
+
+    while remaining_items and remaining_capacity > 0:
+        selected_item = eva(remaining_capacity, remaining_items)
+
+        if selected_item is None:
+            break
+
+        weight, value, index = selected_item
+        if weight <= remaining_capacity:
+            selected_items.append(index)
+            total_value += value
+            remaining_capacity -= weight
+        remaining_items.remove(selected_item)
+
+    return total_value, selected_items
+
+
+def _evaluate_knapsack_instance(eva: Callable, instance, context) -> float:
+    item_weights, item_values, knapsack_capacity = instance
+    value, _ = _pack_items(item_weights, item_values, knapsack_capacity, eva)
+    return float(value)
+
+
 class KnapsackEvaluation(Evaluation):
     """Evaluator for the Knapsack Problem."""
 
     def __init__(self,
                  timeout_seconds=20,
-                 split: str = DEFAULT_SPLIT):
+                 split: str = DEFAULT_SPLIT,
+                 eval_workers: int = 1,
+                 eval_backend: str = "sequential"):
         """
         Initialize the evaluator for the Knapsack Problem.
         """
@@ -64,9 +100,23 @@ class KnapsackEvaluation(Evaluation):
         self.n_instance = int(self.dataset_metadata["n_instances"])
         self.n_items = int(self.dataset_metadata["n_items"])
         self.knapsack_capacity = float(self.dataset_metadata["capacity"])
+        self.eval_workers = max(1, int(eval_workers))
+        self.eval_backend = validate_backend(eval_backend, daemon_eval_process=self.daemon_eval_process)
 
     def evaluate_program(self, program_str: str, callable_func: Callable) -> Any | None:
-        return self.evaluate(callable_func)
+        try:
+            values = evaluate_instances(
+                program_str=program_str,
+                callable_func=callable_func,
+                payloads=list(self._datasets[:self.n_instance]),
+                instance_eval=_evaluate_knapsack_instance,
+                backend=self.eval_backend,
+                workers=self.eval_workers,
+                timeout_seconds=self.timeout_seconds,
+            )
+            return -float(sum(values) / self.n_instance)
+        except Exception:
+            return None
 
     def plot_solution(self, item_weights: list, item_values: list, selected_indices: list, knapsack_capacity: int):
         """
@@ -115,28 +165,7 @@ class KnapsackEvaluation(Evaluation):
             - The total value of the selected items.
             - A list of selected item indices.
         """
-        remaining_items = list(zip(item_weights, item_values, range(len(item_weights))))  # Track weights, values, and indices
-        selected_items = []  # List of selected item indices
-        remaining_capacity = knapsack_capacity  # Track remaining capacity
-        total_value = 0  # Track total value of selected items
-
-        while remaining_items and remaining_capacity > 0:
-            # Use the heuristic to select the next item
-            selected_item = eva(remaining_capacity, remaining_items)
-
-            if selected_item is not None:
-                weight, value, index = selected_item
-                if weight <= remaining_capacity:
-                    # Add the selected item to the knapsack
-                    selected_items.append(index)
-                    total_value += value
-                    remaining_capacity -= weight
-                # Remove the selected item from the remaining items
-                remaining_items.remove(selected_item)
-            else:
-                break
-
-        return total_value, selected_items
+        return _pack_items(item_weights, item_values, knapsack_capacity, eva)
 
     def evaluate(self, eva: Callable) -> float:
         """

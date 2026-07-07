@@ -17,6 +17,7 @@ from typing import Any, Callable
 import numpy as np
 
 from llm4ad.base import Evaluation
+from llm4ad.task.optimization.instance_parallel import evaluate_instances, validate_backend
 from llm4ad.task.optimization.main.fssp_gls.dataset import (
     DEFAULT_SPLIT,
     load_split_instances,
@@ -177,6 +178,18 @@ def guided_local_search(
     return float(cmax_best)
 
 
+def _evaluate_fssp_gls_instance(heuristic: Callable, instance, context) -> float:
+    tasks = np.asarray(instance["processing_times"], dtype=float)
+    return guided_local_search(
+        tasks_val=int(instance["n_jobs"]),
+        tasks=tasks,
+        machines_val=int(instance["n_machines"]),
+        time_max=context["time_max"],
+        iter_max=context["iter_max"],
+        heuristic=heuristic,
+    )
+
+
 class FSSPGLSEvaluation(Evaluation):
     """Evaluator for FSSP guided local search perturbation heuristics."""
 
@@ -186,6 +199,8 @@ class FSSPGLSEvaluation(Evaluation):
             split: str = DEFAULT_SPLIT,
             time_max: float = 30.0,
             iter_max: int = 1000,
+            eval_workers: int = 1,
+            eval_backend: str = "sequential",
     ):
         super().__init__(
             template_program=template_program,
@@ -198,9 +213,27 @@ class FSSPGLSEvaluation(Evaluation):
         self.n_instance = int(self.dataset_metadata["n_instances"])
         self.time_max = float(time_max)
         self.iter_max = int(iter_max)
+        self.eval_workers = max(1, int(eval_workers))
+        self.eval_backend = validate_backend(eval_backend, daemon_eval_process=self.daemon_eval_process)
 
     def evaluate_program(self, program_str: str, callable_func: Callable) -> Any | None:
-        return self.evaluate(callable_func)
+        try:
+            makespans = evaluate_instances(
+                program_str=program_str,
+                callable_func=callable_func,
+                payloads=list(self._datasets),
+                instance_eval=_evaluate_fssp_gls_instance,
+                context={
+                    "time_max": self.time_max,
+                    "iter_max": self.iter_max,
+                },
+                backend=self.eval_backend,
+                workers=self.eval_workers,
+                timeout_seconds=self.timeout_seconds,
+            )
+            return -float(np.mean(makespans))
+        except Exception:
+            return None
 
     def evaluate(self, heuristic: Callable) -> float:
         makespans = []

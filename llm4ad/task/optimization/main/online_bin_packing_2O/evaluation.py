@@ -10,6 +10,7 @@ from typing import Any
 import numpy as np
 
 from llm4ad.base import Evaluation
+from llm4ad.task.optimization.instance_parallel import evaluate_instances, validate_backend
 from llm4ad.task.optimization.main.online_bin_packing_2O.dataset import (
     DEFAULT_SPLIT,
     load_split_instances,
@@ -74,10 +75,27 @@ def evaluate(instances: dict, priority: callable) -> np.ndarray:
     return np.array([-np.mean(num_bins), -running_time/len(instances)])
 
 
+def _evaluate_obp_2o_instance(priority: callable, payload, context) -> tuple[float, float]:
+    _name, instance = payload
+    start_time = time.time()
+    capacity = instance['capacity']
+    items = instance['items']
+    bins = np.array([capacity for _ in range(instance['num_items'])])
+    _, bins_packed = online_binpack(items, bins, priority)
+    running_time = time.time() - start_time
+    return float((bins_packed != capacity).sum()), running_time
+
+
 class OBP_2O_Evaluation(Evaluation):
     """Evaluator for online bin packing problem."""
 
-    def __init__(self, timeout_seconds=60, split: str = DEFAULT_SPLIT):
+    def __init__(
+            self,
+            timeout_seconds=60,
+            split: str = DEFAULT_SPLIT,
+            eval_workers: int = 1,
+            eval_backend: str = "sequential",
+    ):
         """
         Args:
             - 'data_file' (str): The data file to load (default is 'weibull_5k_train.pkl').
@@ -96,9 +114,24 @@ class OBP_2O_Evaluation(Evaluation):
         )
 
         self._datasets, self.dataset_metadata = load_split_instances(split=split)
+        self.eval_workers = max(1, int(eval_workers))
+        self.eval_backend = validate_backend(eval_backend, daemon_eval_process=self.daemon_eval_process)
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
-        return evaluate(self._datasets, callable_func)
+        try:
+            results = evaluate_instances(
+                program_str=program_str,
+                callable_func=callable_func,
+                payloads=list(self._datasets.items()),
+                instance_eval=_evaluate_obp_2o_instance,
+                backend=self.eval_backend,
+                workers=self.eval_workers,
+                timeout_seconds=self.timeout_seconds,
+            )
+            objs = np.asarray(results, dtype=float)
+            return -np.mean(objs, axis=0)
+        except Exception:
+            return None
 
 
 if __name__ == '__main__':

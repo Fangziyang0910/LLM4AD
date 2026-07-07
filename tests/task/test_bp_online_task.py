@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from llm4ad.task.optimization.main.bp_online.dataset import load_split_instances
 from llm4ad.task.optimization.main.bp_online.evaluation import BPOnlineEvaluation
+
+BEST_FIT_SCORE_PROGRAM = """
+import numpy as np
+
+def best_fit_score(item: int, bins: np.ndarray) -> np.ndarray:
+    return -bins
+"""
 
 
 def best_fit_score(item: int, bins: np.ndarray) -> np.ndarray:
@@ -55,6 +63,16 @@ def test_bp_online_evaluates_best_fit():
     assert isinstance(score, float)
     assert np.isfinite(score)
     assert score <= 0.0
+
+
+def test_bp_online_process_parallel_matches_sequential():
+    sequential = BPOnlineEvaluation(split="train")
+    parallel = BPOnlineEvaluation(split="train", eval_workers=2, eval_backend="process")
+
+    expected = sequential.evaluate_program(BEST_FIT_SCORE_PROGRAM, None)
+    actual = parallel.evaluate_program(BEST_FIT_SCORE_PROGRAM, None)
+
+    assert actual == pytest.approx(expected)
 
 
 def test_bp_online_rejects_invalid_scores():

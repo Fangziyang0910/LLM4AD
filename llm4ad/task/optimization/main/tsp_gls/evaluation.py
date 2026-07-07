@@ -5,12 +5,24 @@ from typing import Any, Callable
 import numpy as np
 
 from llm4ad.base import Evaluation
+from llm4ad.task.optimization.instance_parallel import evaluate_instances, validate_backend
 from llm4ad.task.optimization.dataset_io import DEFAULT_SPLIT
 from llm4ad.task.optimization.main.tsp_gls.dataset import load_split_instances
 from llm4ad.task.optimization.main.tsp_gls.gls import solve_instance
 from llm4ad.task.optimization.main.tsp_gls.template import task_description, template_program
 
 __all__ = ["TSPGLSEvaluation"]
+
+
+def _evaluate_tsp_gls_instance(update_fn: Callable, instance, context) -> float:
+    return solve_instance(
+        instance["optimal_cost"],
+        instance["distance_matrix"],
+        context["time_limit"],
+        context["ite_max"],
+        context["perturbation_moves"],
+        update_fn,
+    )
 
 
 class TSPGLSEvaluation(Evaluation):
@@ -23,6 +35,8 @@ class TSPGLSEvaluation(Evaluation):
             time_limit: float | None = None,
             ite_max: int | None = None,
             perturbation_moves: int | None = None,
+            eval_workers: int = 1,
+            eval_backend: str = "sequential",
     ):
         super().__init__(
             template_program=template_program,
@@ -43,9 +57,28 @@ class TSPGLSEvaluation(Evaluation):
             if perturbation_moves is not None
             else self.dataset_metadata["perturbation_moves"]
         )
+        self.eval_workers = max(1, int(eval_workers))
+        self.eval_backend = validate_backend(eval_backend, daemon_eval_process=self.daemon_eval_process)
 
     def evaluate_program(self, program_str: str, callable_func: Callable) -> Any | None:
-        return self.evaluate(callable_func)
+        try:
+            gaps = evaluate_instances(
+                program_str=program_str,
+                callable_func=callable_func,
+                payloads=list(self._instances),
+                instance_eval=_evaluate_tsp_gls_instance,
+                context={
+                    "time_limit": self.time_limit,
+                    "ite_max": self.ite_max,
+                    "perturbation_moves": self.perturbation_moves,
+                },
+                backend=self.eval_backend,
+                workers=self.eval_workers,
+                timeout_seconds=self.timeout_seconds,
+            )
+            return -float(np.mean(gaps))
+        except Exception:
+            return None
 
     def evaluate(self, update_fn: Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray]) -> float | None:
         try:

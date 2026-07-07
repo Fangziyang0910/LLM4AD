@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import Tuple, Any
 import numpy as np
 from llm4ad.base import Evaluation
+from llm4ad.task.optimization.instance_parallel import evaluate_instances, validate_backend
 from llm4ad.task.optimization.main.tsp_gls_2O.dataset import (
     DEFAULT_SPLIT,
     load_split_instances,
@@ -26,9 +27,20 @@ def calculate_cost(inst: TSPInstance, path: np.ndarray) -> float:
     # assert (np.sort(path) == np.arange(inst.n)).all(), 'Illegal path'
     return inst.distmat[path, np.roll(path, 1)].sum().item()
 
-def solve_with_time(inst: TSPInstance, eva) -> Tuple[float, float]:
+def solve_with_time(
+        inst: TSPInstance,
+        eva,
+        perturbation_moves_val: int = perturbation_moves,
+        iter_limit_val: int = iter_limit,
+) -> Tuple[float, float]:
     try:
-        result, running_time = guided_local_search_with_time(inst.distmat, inst.distmat.copy(), eva, perturbation_moves, iter_limit)
+        result, running_time = guided_local_search_with_time(
+            inst.distmat,
+            inst.distmat.copy(),
+            eva,
+            perturbation_moves_val,
+            iter_limit_val,
+        )
         cost = calculate_cost(inst, result)
     except Exception as e:
         # cost, running_time = 1E10, 1E10
@@ -48,10 +60,27 @@ def evaluate(instance_data,n_ins,prob_size, eva: callable) -> np.ndarray:
     return -obj
 
 
+def _evaluate_tsp_gls_2o_instance(eva: callable, inst: TSPInstance, context) -> Tuple[float, float]:
+    return solve_with_time(
+        inst,
+        eva,
+        context["perturbation_moves"],
+        context["iter_limit"],
+    )
+
+
 class TSP_GLS_2O_Evaluation(Evaluation):
     """Evaluator for traveling salesman problem."""
 
-    def __init__(self, timeout_seconds=60, split: str = DEFAULT_SPLIT):
+    def __init__(
+            self,
+            timeout_seconds=60,
+            split: str = DEFAULT_SPLIT,
+            perturbation_moves_val: int = perturbation_moves,
+            iter_limit_val: int = iter_limit,
+            eval_workers: int = 1,
+            eval_backend: str = "sequential",
+    ):
 
         """
             Args:
@@ -71,9 +100,29 @@ class TSP_GLS_2O_Evaluation(Evaluation):
         self._datasets, self.dataset_metadata = load_split_instances(split=split)
         self.n_instance = int(self.dataset_metadata["n_instances"])
         self.problem_size = int(self.dataset_metadata["problem_size"])
+        self.perturbation_moves = int(perturbation_moves_val)
+        self.iter_limit = int(iter_limit_val)
+        self.eval_workers = max(1, int(eval_workers))
+        self.eval_backend = validate_backend(eval_backend, daemon_eval_process=self.daemon_eval_process)
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
-        return evaluate(self._datasets,self.n_instance,self.problem_size, callable_func)
+        try:
+            objs = evaluate_instances(
+                program_str=program_str,
+                callable_func=callable_func,
+                payloads=list(self._datasets),
+                instance_eval=_evaluate_tsp_gls_2o_instance,
+                context={
+                    "perturbation_moves": self.perturbation_moves,
+                    "iter_limit": self.iter_limit,
+                },
+                backend=self.eval_backend,
+                workers=self.eval_workers,
+                timeout_seconds=self.timeout_seconds,
+            )
+            return -np.mean(np.asarray(objs, dtype=float), axis=0)
+        except Exception:
+            return None
     
 
 if __name__ == '__main__':

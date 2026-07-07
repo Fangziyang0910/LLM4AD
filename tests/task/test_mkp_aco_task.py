@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from llm4ad.task.optimization.main.mkp_aco.dataset import load_split_instances
 from llm4ad.task.optimization.main.mkp_aco.evaluation import MKPACOEvaluation
+
+PRIZE_WEIGHT_RATIO_PROGRAM = """
+import numpy as np
+
+def prize_weight_ratio(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    return prize / (np.sum(weight, axis=1) + 1e-9)
+"""
 
 
 def prize_weight_ratio(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
@@ -29,3 +37,19 @@ def test_mkp_aco_evaluates_seed_heuristic_quickly():
 
     assert isinstance(score, float)
     assert score > 0
+
+
+def test_mkp_aco_process_parallel_matches_sequential():
+    sequential = MKPACOEvaluation(split="train", n_ants=2, n_iterations=1)
+    parallel = MKPACOEvaluation(
+        split="train",
+        n_ants=2,
+        n_iterations=1,
+        eval_workers=2,
+        eval_backend="process",
+    )
+
+    expected = sequential.evaluate_program(PRIZE_WEIGHT_RATIO_PROGRAM, None)
+    actual = parallel.evaluate_program(PRIZE_WEIGHT_RATIO_PROGRAM, None)
+
+    assert actual == pytest.approx(expected)

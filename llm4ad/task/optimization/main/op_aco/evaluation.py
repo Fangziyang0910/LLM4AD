@@ -5,6 +5,7 @@ from typing import Any, Callable
 import numpy as np
 
 from llm4ad.base import Evaluation
+from llm4ad.task.optimization.instance_parallel import evaluate_instances, validate_backend
 from llm4ad.task.optimization.main.op_aco.dataset import (
     DEFAULT_SPLIT,
     load_split_instances,
@@ -172,6 +173,21 @@ def solve(coordinates: np.ndarray, heuristic: Callable, n_ants: int, n_iteration
     return float(obj)
 
 
+def _evaluate_op_aco_instance(heuristic: Callable, payload, context) -> float:
+    idx, coordinates = payload
+    rng = np.random.default_rng(None if context["seed"] is None else int(context["seed"]) + idx)
+    try:
+        return solve(
+            coordinates=np.asarray(coordinates, dtype=float),
+            heuristic=heuristic,
+            n_ants=context["n_ants"],
+            n_iterations=context["n_iterations"],
+            rng=rng,
+        )
+    except Exception:
+        return float("-inf")
+
+
 class OPACOEvaluation(Evaluation):
     """Evaluator for OP ant colony optimization heuristic matrices."""
 
@@ -182,6 +198,8 @@ class OPACOEvaluation(Evaluation):
             n_ants: int = 20,
             n_iterations: int = 50,
             seed: int | None = 1234,
+            eval_workers: int = 1,
+            eval_backend: str = "sequential",
     ):
         super().__init__(
             template_program=template_program,
@@ -196,9 +214,28 @@ class OPACOEvaluation(Evaluation):
         self.n_ants = int(n_ants)
         self.n_iterations = int(n_iterations)
         self.seed = seed
+        self.eval_workers = max(1, int(eval_workers))
+        self.eval_backend = validate_backend(eval_backend, daemon_eval_process=self.daemon_eval_process)
 
     def evaluate_program(self, program_str: str, callable_func: Callable) -> Any | None:
-        return self.evaluate(callable_func)
+        try:
+            objs = evaluate_instances(
+                program_str=program_str,
+                callable_func=callable_func,
+                payloads=list(enumerate(self._datasets)),
+                instance_eval=_evaluate_op_aco_instance,
+                context={
+                    "n_ants": self.n_ants,
+                    "n_iterations": self.n_iterations,
+                    "seed": self.seed,
+                },
+                backend=self.eval_backend,
+                workers=self.eval_workers,
+                timeout_seconds=self.timeout_seconds,
+            )
+            return float(np.mean(objs))
+        except Exception:
+            return None
 
     def evaluate(self, heuristic: Callable) -> float:
         objs = []

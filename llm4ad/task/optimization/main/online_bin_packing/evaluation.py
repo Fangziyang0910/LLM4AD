@@ -37,6 +37,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from llm4ad.base import Evaluation
+from llm4ad.task.optimization.instance_parallel import evaluate_instances, validate_backend
 from llm4ad.task.optimization.main.online_bin_packing.dataset import (
     DEFAULT_SPLIT,
     load_split_instances,
@@ -46,10 +47,43 @@ from llm4ad.task.optimization.main.online_bin_packing.template import template_p
 __all__ = ['OBPEvaluation']
 
 
+def get_valid_bin_indices(item: float, bins: np.ndarray) -> np.ndarray:
+    return np.nonzero((bins - item) >= 0)[0]
+
+
+def online_binpack(
+        items: tuple[float, ...], bins: np.ndarray, priority: callable
+) -> tuple[list[list[float, ...], ...], np.ndarray]:
+    packing = [[] for _ in bins]
+    for item in items:
+        valid_bin_indices = get_valid_bin_indices(item, bins)
+        priorities = priority(item, bins[valid_bin_indices])
+        best_bin = valid_bin_indices[np.argmax(priorities)]
+        bins[best_bin] -= item
+        packing[best_bin].append(item)
+    packing = [bin_items for bin_items in packing if bin_items]
+    return packing, bins
+
+
+def _evaluate_obp_instance(priority: callable, payload, context) -> int:
+    _name, instance = payload
+    capacity = instance['capacity']
+    items = instance['items']
+    bins = np.array([capacity for _ in range(instance['num_items'])])
+    _, bins_packed = online_binpack(items, bins, priority)
+    return int((bins_packed != capacity).sum())
+
+
 class OBPEvaluation(Evaluation):
     """Evaluator for online bin packing problem."""
 
-    def __init__(self, timeout_seconds=30, split: str = DEFAULT_SPLIT):
+    def __init__(
+            self,
+            timeout_seconds=30,
+            split: str = DEFAULT_SPLIT,
+            eval_workers: int = 1,
+            eval_backend: str = "sequential",
+    ):
         """
         Args:
             - 'data_file' (str): The data file to load (default is 'weibull_5k_train.pkl').
@@ -69,9 +103,23 @@ class OBPEvaluation(Evaluation):
 
         self._datasets, self.dataset_metadata = load_split_instances(split=split)
         self.n_instances = int(self.dataset_metadata["n_instances"])
+        self.eval_workers = max(1, int(eval_workers))
+        self.eval_backend = validate_backend(eval_backend, daemon_eval_process=self.daemon_eval_process)
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
-        return self.evaluate(callable_func)
+        try:
+            num_bins = evaluate_instances(
+                program_str=program_str,
+                callable_func=callable_func,
+                payloads=list(self._datasets.items()),
+                instance_eval=_evaluate_obp_instance,
+                backend=self.eval_backend,
+                workers=self.eval_workers,
+                timeout_seconds=self.timeout_seconds,
+            )
+            return -float(np.mean(num_bins))
+        except Exception:
+            return None
 
     def plot_solution(self, bins_packed: np.ndarray, items: list, capacity: int, max_unused_bins: int = 5):
         """
@@ -162,27 +210,13 @@ class OBPEvaluation(Evaluation):
 
     def get_valid_bin_indices(self, item: float, bins: np.ndarray) -> np.ndarray:
         """Returns indices of bins in which item can fit."""
-        return np.nonzero((bins - item) >= 0)[0]
+        return get_valid_bin_indices(item, bins)
 
     def online_binpack(self,
                        items: tuple[float, ...], bins: np.ndarray, priority: callable
                        ) -> tuple[list[list[float, ...], ...], np.ndarray]:
         """Performs online binpacking of `items` into `bins`."""
-        # Track which items are added to each bin.
-        packing = [[] for _ in bins]
-        # Add items to bins.
-        for item in items:
-            # Extract bins that have sufficient space to fit item.
-            valid_bin_indices = self.get_valid_bin_indices(item, bins)
-            # Score each bin based on heuristic.
-            priorities = priority(item, bins[valid_bin_indices])
-            # Add item to bin with highest priority.
-            best_bin = valid_bin_indices[np.argmax(priorities)]
-            bins[best_bin] -= item
-            packing[best_bin].append(item)
-        # Remove unused bins from packing.
-        packing = [bin_items for bin_items in packing if bin_items]
-        return packing, bins
+        return online_binpack(items, bins, priority)
 
     def evaluate(self, priority: callable) -> float:
         """Evaluate heuristic function on a set of online binpacking instances."""
