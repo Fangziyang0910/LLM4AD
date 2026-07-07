@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.tsp_aco.dataset import load_split_instances
-from llm4ad.task.optimization.tsp_aco.evaluation import TSPACOEvaluation
+from llm4ad.task.optimization.main.tsp_aco.dataset import load_split_instances
+from llm4ad.task.optimization.main.tsp_aco.evaluation import TSPACOEvaluation
 
 
 def inverse_distance(distance_matrix: np.ndarray) -> np.ndarray:

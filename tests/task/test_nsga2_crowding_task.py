@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.nsga2_crowding.dataset import load_split_instances
-from llm4ad.task.optimization.nsga2_crowding.evaluation import NSGA2CrowdingEvaluation
+from llm4ad.task.optimization.other.nsga2_crowding.dataset import load_split_instances
+from llm4ad.task.optimization.other.nsga2_crowding.evaluation import NSGA2CrowdingEvaluation
 
 
 def standard_crowding(F: np.ndarray) -> np.ndarray:

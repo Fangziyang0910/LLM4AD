@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.de_crossover_100d.dataset import load_split_instances
-from llm4ad.task.optimization.de_crossover_100d.evaluation import DECrossover100DEvaluation
+from llm4ad.task.optimization.other.de_crossover_100d.dataset import load_split_instances
+from llm4ad.task.optimization.other.de_crossover_100d.evaluation import DECrossover100DEvaluation
 
 
 def binomial_crossover(

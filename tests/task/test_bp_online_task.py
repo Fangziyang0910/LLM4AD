@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.bp_online.dataset import load_split_instances
-from llm4ad.task.optimization.bp_online.evaluation import BPOnlineEvaluation
+from llm4ad.task.optimization.main.bp_online.dataset import load_split_instances
+from llm4ad.task.optimization.main.bp_online.evaluation import BPOnlineEvaluation
 
 
 def best_fit_score(item: int, bins: np.ndarray) -> np.ndarray:

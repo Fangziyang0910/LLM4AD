@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.aco_pheromone.dataset import load_split_instances
-from llm4ad.task.optimization.aco_pheromone.evaluation import ACOPheromoneEvaluation
+from llm4ad.task.optimization.other.aco_pheromone.dataset import load_split_instances
+from llm4ad.task.optimization.other.aco_pheromone.evaluation import ACOPheromoneEvaluation
 
 
 def ant_system_update(

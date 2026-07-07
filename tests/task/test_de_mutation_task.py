@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.de_mutation.dataset import load_split_instances
-from llm4ad.task.optimization.de_mutation.evaluation import DEMutationEvaluation
+from llm4ad.task.optimization.other.de_mutation.dataset import load_split_instances
+from llm4ad.task.optimization.other.de_mutation.evaluation import DEMutationEvaluation
 
 
 def de_rand_1(

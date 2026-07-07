@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.nurse_rostering.dataset import load_split_instances
-from llm4ad.task.optimization.nurse_rostering.evaluation import NurseRosteringEvaluation
+from llm4ad.task.optimization.other.nurse_rostering.dataset import load_split_instances
+from llm4ad.task.optimization.other.nurse_rostering.evaluation import NurseRosteringEvaluation
 
 
 def linear_score(

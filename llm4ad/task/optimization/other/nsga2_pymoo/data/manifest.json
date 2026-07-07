@@ -1,0 +1,73 @@
+{
+  "dataset_id": "nsga2_pymoo_v1",
+  "description": "Fixed EoH pymoo-backed NSGA-II crossover benchmark. The searched function recombines two parent decision vectors into two offspring.",
+  "generator": "llm4ad.task.optimization.other.nsga2_pymoo.dataset.write_default_dataset",
+  "paper": "papers/EoH",
+  "source": "reference_code/EoH/examples/nsga2_pymoo",
+  "splits": {
+    "test_full": {
+      "configs": [
+        {
+          "n_var": 30,
+          "name": "zdt1",
+          "ref_point": [
+            1.1,
+            1.1
+          ]
+        },
+        {
+          "n_var": 30,
+          "name": "zdt2",
+          "ref_point": [
+            1.1,
+            1.1
+          ]
+        },
+        {
+          "n_var": 30,
+          "name": "zdt3",
+          "ref_point": [
+            1.1,
+            1.1
+          ]
+        }
+      ],
+      "n_gen": 200,
+      "n_instances": 3,
+      "n_runs": 10,
+      "note": "Post-hoc evaluator from the EoH example: pymoo ZDT1, ZDT2, and ZDT3.",
+      "pop_size": 100,
+      "role": "test",
+      "seed_start": 0
+    },
+    "train": {
+      "configs": [
+        {
+          "n_var": 30,
+          "name": "zdt1",
+          "ref_point": [
+            1.1,
+            1.1
+          ]
+        },
+        {
+          "n_var": 30,
+          "name": "zdt2",
+          "ref_point": [
+            1.1,
+            1.1
+          ]
+        }
+      ],
+      "n_gen": 100,
+      "n_instances": 2,
+      "n_runs": 3,
+      "note": "Original EoH search evaluator: pymoo ZDT1 and ZDT2.",
+      "pop_size": 100,
+      "role": "train",
+      "seed_start": 0
+    }
+  },
+  "task": "nsga2_pymoo",
+  "version": 1
+}

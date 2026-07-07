@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import gzip
 import hashlib
 import json
@@ -31,6 +32,105 @@ def _json_safe(value: Any) -> Any:
     if hasattr(value, "item"):
         return value.item()
     return value
+
+
+def make_manifest(
+        *,
+        dataset_id: str,
+        task: str,
+        version: int,
+        description: str,
+        generator: str,
+        splits: dict[str, Any],
+        **extra_fields: Any,
+) -> dict[str, Any]:
+    manifest = {
+        "dataset_id": dataset_id,
+        "task": task,
+        "version": version,
+        "description": description,
+        "generator": generator,
+        "splits": splits,
+    }
+    manifest.update(extra_fields)
+    return _json_safe(manifest)
+
+
+def write_manifest(data_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
+    data_dir.mkdir(parents=True, exist_ok=True)
+    safe_manifest = _json_safe(manifest)
+    with (data_dir / "manifest.json").open("w", encoding="utf-8") as handle:
+        json.dump(safe_manifest, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+    return safe_manifest
+
+
+def write_dataset_manifest(
+        *,
+        data_dir: Path,
+        dataset_id: str,
+        task: str,
+        version: int,
+        description: str,
+        generator: str,
+        splits: dict[str, Any],
+        **extra_fields: Any,
+) -> dict[str, Any]:
+    return write_manifest(
+        data_dir,
+        make_manifest(
+            dataset_id=dataset_id,
+            task=task,
+            version=version,
+            description=description,
+            generator=generator,
+            splits=splits,
+            **extra_fields,
+        ),
+    )
+
+
+def get_split_info(
+        manifest: dict[str, Any],
+        split: str = DEFAULT_SPLIT,
+        *,
+        label: str = "dataset",
+) -> dict[str, Any]:
+    splits = manifest.get("splits", {})
+    if split not in splits:
+        available = ", ".join(sorted(splits))
+        raise ValueError(f"Unknown {label} split `{split}`. Available splits: {available}")
+    return splits[split]
+
+
+def build_split_metadata(
+        manifest: dict[str, Any],
+        split: str,
+        split_info: dict[str, Any],
+        *,
+        path: Path | None = None,
+) -> dict[str, Any]:
+    metadata = {
+        "dataset_id": manifest["dataset_id"],
+        "task": manifest["task"],
+        "split": split,
+        **split_info,
+    }
+    if path is not None:
+        metadata["path"] = str(path)
+    return metadata
+
+
+def verify_file_sha256(
+        path: Path,
+        expected_sha256: str,
+        *,
+        label: str = "Dataset file",
+) -> None:
+    if not path.exists():
+        raise FileNotFoundError(f"{label} not found: {path}")
+    if file_sha256(path) != expected_sha256:
+        raise ValueError(f"{label} checksum mismatch: {path}")
 
 
 def write_pickle_splits(
@@ -68,20 +168,61 @@ def write_pickle_splits(
         }
         splits[split] = _json_safe(split_info)
 
-    manifest = {
-        "dataset_id": dataset_id,
-        "task": task,
-        "version": version,
-        "description": description,
-        "generator": generator,
-        "splits": splits,
-    }
-    manifest_path = data_dir / "manifest.json"
-    with manifest_path.open("w", encoding="utf-8") as handle:
-        json.dump(manifest, handle, indent=2, sort_keys=True)
-        handle.write("\n")
+    return write_dataset_manifest(
+        data_dir=data_dir,
+        dataset_id=dataset_id,
+        task=task,
+        version=version,
+        description=description,
+        generator=generator,
+        splits=splits,
+    )
 
-    return manifest
+
+def write_npz_splits(
+        *,
+        data_dir: Path,
+        dataset_id: str,
+        task: str,
+        version: int,
+        description: str,
+        split_specs: dict[str, dict[str, Any]],
+        generate_split: Callable[[str, dict[str, Any]], Any],
+        generator: str,
+) -> dict[str, Any]:
+    import numpy as np
+
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    splits: dict[str, Any] = {}
+    for split, spec in split_specs.items():
+        filename = spec.get("filename", f"{split}.npz")
+        path = data_dir / filename
+        generated = generate_split(split, spec)
+        if isinstance(generated, tuple):
+            arrays, extra_info = generated
+        else:
+            arrays, extra_info = generated, {}
+        np.savez_compressed(path, **arrays)
+
+        split_info = {
+            **{k: v for k, v in spec.items() if k != "filename"},
+            **extra_info,
+            "filename": filename,
+            "format": "npz_compressed",
+            "sha256": file_sha256(path),
+        }
+        splits[split] = _json_safe(split_info)
+
+    return write_dataset_manifest(
+        data_dir=data_dir,
+        dataset_id=dataset_id,
+        task=task,
+        version=version,
+        description=description,
+        generator=generator,
+        splits=splits,
+    )
 
 
 def load_manifest(data_dir: Path) -> dict[str, Any]:
@@ -98,26 +239,65 @@ def load_pickle_split(
         split: str = DEFAULT_SPLIT,
 ) -> tuple[Any, dict[str, Any]]:
     manifest = load_manifest(data_dir)
-    splits = manifest.get("splits", {})
-    if split not in splits:
-        available = ", ".join(sorted(splits))
-        raise ValueError(f"Unknown dataset split `{split}`. Available splits: {available}")
-
-    split_info = splits[split]
+    split_info = get_split_info(manifest, split)
     path = data_dir / split_info["filename"]
-    if not path.exists():
-        raise FileNotFoundError(f"Dataset split file not found: {path}")
-    if file_sha256(path) != split_info["sha256"]:
-        raise ValueError(f"Dataset split checksum mismatch: {path}")
+    verify_file_sha256(path, split_info["sha256"], label="Dataset split file")
 
     with gzip.open(path, "rb") as handle:
         instances = pickle.load(handle)
 
-    metadata = {
-        "dataset_id": manifest["dataset_id"],
-        "task": manifest["task"],
-        "split": split,
-        "path": str(path),
-        **split_info,
-    }
-    return instances, metadata
+    return instances, build_split_metadata(manifest, split, split_info, path=path)
+
+
+def load_npz_split(
+        *,
+        data_dir: Path,
+        split: str = DEFAULT_SPLIT,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    import numpy as np
+
+    manifest = load_manifest(data_dir)
+    split_info = get_split_info(manifest, split)
+    path = data_dir / split_info["filename"]
+    verify_file_sha256(path, split_info["sha256"], label="Dataset split file")
+
+    with np.load(path) as data:
+        arrays = {name: data[name] for name in data.files}
+
+    return arrays, build_split_metadata(manifest, split, split_info, path=path)
+
+
+def format_dataset_summary(manifest: dict[str, Any], *, note: str | None = None) -> str:
+    dataset_id = manifest["dataset_id"]
+    n_splits = len(manifest.get("splits", {}))
+    if n_splits:
+        message = f"Wrote {dataset_id} with {n_splits} splits."
+    else:
+        message = f"Wrote {dataset_id} manifest."
+
+    files = manifest.get("files")
+    if isinstance(files, dict) and files:
+        size_bytes = sum(int(info.get("bytes", 0)) for info in files.values())
+        message = message[:-1] + f" and {size_bytes / 1024 / 1024:.1f} MiB of data."
+
+    if note:
+        message = message[:-1] + f". {note}"
+    return message
+
+
+def run_dataset_cli(
+        write_default_dataset: Callable[..., dict[str, Any]],
+        *,
+        description: str | None = None,
+        source_dir_help: str | None = None,
+        note: str | None = None,
+) -> None:
+    kwargs: dict[str, Any] = {}
+    if source_dir_help is not None:
+        parser = argparse.ArgumentParser(description=description)
+        parser.add_argument("--source-dir", default=None, help=source_dir_help)
+        args = parser.parse_args()
+        kwargs["source_dir"] = args.source_dir
+
+    manifest = write_default_dataset(**kwargs)
+    print(format_dataset_summary(manifest, note=note))

@@ -1,0 +1,75 @@
+{
+  "dataset_id": "de_mutation_v1",
+  "description": "Fixed EoH Differential Evolution mutation benchmark. The searched function creates mutant vectors inside a standard DE loop.",
+  "generator": "llm4ad.task.optimization.other.de_mutation.dataset.write_default_dataset",
+  "paper": "papers/EoH",
+  "source": "reference_code/EoH/examples/de_mutation",
+  "splits": {
+    "test_full": {
+      "CR": 0.9,
+      "F": 0.5,
+      "dimensions": [
+        10,
+        20
+      ],
+      "function_names": [
+        "sphere",
+        "rastrigin",
+        "ackley",
+        "rosenbrock",
+        "griewank"
+      ],
+      "max_evals": 20000,
+      "n_instances": 10,
+      "n_runs": 10,
+      "note": "Post-hoc evaluator from the EoH example: 10D and 20D variants.",
+      "pop_size": 50,
+      "role": "test",
+      "seed_start": 0
+    },
+    "test_ood_20d": {
+      "CR": 0.9,
+      "F": 0.5,
+      "dimensions": [
+        20
+      ],
+      "function_names": [
+        "sphere",
+        "rastrigin",
+        "ackley",
+        "rosenbrock",
+        "griewank"
+      ],
+      "max_evals": 20000,
+      "n_instances": 5,
+      "n_runs": 10,
+      "note": "Dimension-generalization subset using only 20D benchmark variants.",
+      "pop_size": 50,
+      "role": "test",
+      "seed_start": 0
+    },
+    "train": {
+      "CR": 0.9,
+      "F": 0.5,
+      "dimensions": [
+        10
+      ],
+      "function_names": [
+        "sphere",
+        "rastrigin",
+        "ackley",
+        "rosenbrock",
+        "griewank"
+      ],
+      "max_evals": 5000,
+      "n_instances": 5,
+      "n_runs": 3,
+      "note": "Original EoH search evaluator: five 10D continuous benchmark functions.",
+      "pop_size": 20,
+      "role": "train",
+      "seed_start": 0
+    }
+  },
+  "task": "de_mutation",
+  "version": 1
+}

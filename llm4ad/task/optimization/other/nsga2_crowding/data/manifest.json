@@ -1,0 +1,78 @@
+{
+  "dataset_id": "nsga2_crowding_v1",
+  "description": "Fixed EoH NSGA-II crowding-operator benchmark. The searched function computes a diversity score for each solution in one non-dominated front.",
+  "generator": "llm4ad.task.optimization.other.nsga2_crowding.dataset.write_default_dataset",
+  "paper": "papers/EoH",
+  "source": "reference_code/EoH/examples/nsga2_crowding",
+  "splits": {
+    "test_full": {
+      "configs": [
+        {
+          "n_obj": 2,
+          "n_var": 30,
+          "name": "ZDT1",
+          "ref_point": [
+            1.1,
+            1.1
+          ]
+        },
+        {
+          "n_obj": 2,
+          "n_var": 30,
+          "name": "ZDT2",
+          "ref_point": [
+            1.1,
+            1.1
+          ]
+        },
+        {
+          "n_obj": 2,
+          "n_var": 30,
+          "name": "ZDT3",
+          "ref_point": [
+            1.1,
+            1.1
+          ]
+        }
+      ],
+      "n_gen": 200,
+      "n_instances": 3,
+      "n_runs": 10,
+      "note": "Post-hoc evaluator from the EoH example: ZDT1, ZDT2, and ZDT3.",
+      "pop_size": 100,
+      "role": "test",
+      "seed_start": 0
+    },
+    "train": {
+      "configs": [
+        {
+          "n_obj": 2,
+          "n_var": 30,
+          "name": "ZDT1",
+          "ref_point": [
+            1.1,
+            1.1
+          ]
+        },
+        {
+          "n_obj": 2,
+          "n_var": 30,
+          "name": "ZDT2",
+          "ref_point": [
+            1.1,
+            1.1
+          ]
+        }
+      ],
+      "n_gen": 100,
+      "n_instances": 2,
+      "n_runs": 3,
+      "note": "Original EoH search evaluator: ZDT1 and ZDT2 with 30 variables.",
+      "pop_size": 100,
+      "role": "train",
+      "seed_start": 0
+    }
+  },
+  "task": "nsga2_crowding",
+  "version": 1
+}

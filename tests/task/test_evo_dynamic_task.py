@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.evo_dynamic.dataset import load_split_instances
-from llm4ad.task.optimization.evo_dynamic.evaluation import EvoDynamicEvaluation
+from llm4ad.task.optimization.other.evo_dynamic.dataset import load_split_instances
+from llm4ad.task.optimization.other.evo_dynamic.evaluation import EvoDynamicEvaluation
 
 
 def hypermutation(

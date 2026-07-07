@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.portfolio_construct.dataset import load_split_instances
-from llm4ad.task.optimization.portfolio_construct.evaluation import PortfolioConstructEvaluation
+from llm4ad.task.optimization.other.portfolio_construct.dataset import load_split_instances
+from llm4ad.task.optimization.other.portfolio_construct.evaluation import PortfolioConstructEvaluation
 
 
 def individual_sharpe(

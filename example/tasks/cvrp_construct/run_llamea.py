@@ -8,8 +8,8 @@ from llm4ad.method.llamea import LLaMEA
 from llm4ad.method.llamea.llamea_llm import LlameaLLM
 
 # Example optimization task – Capacitated Vehicle Routing Problem (CVRP)
-from llm4ad.task.optimization.cvrp_construct import CVRPEvaluation
-from llm4ad.task.optimization.cvrp_construct.template import (
+from llm4ad.task.optimization.other.cvrp_construct import CVRPEvaluation
+from llm4ad.task.optimization.other.cvrp_construct.template import (
     task_description,
     template_program,
 )

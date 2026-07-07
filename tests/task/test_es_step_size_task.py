@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.es_step_size.dataset import load_split_instances
-from llm4ad.task.optimization.es_step_size.evaluation import ESStepSizeEvaluation
+from llm4ad.task.optimization.other.es_step_size.dataset import load_split_instances
+from llm4ad.task.optimization.other.es_step_size.evaluation import ESStepSizeEvaluation
 
 
 def one_fifth_rule(

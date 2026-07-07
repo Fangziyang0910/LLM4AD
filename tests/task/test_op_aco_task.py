@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.op_aco.dataset import load_split_instances
-from llm4ad.task.optimization.op_aco.evaluation import OPACOEvaluation
+from llm4ad.task.optimization.main.op_aco.dataset import load_split_instances
+from llm4ad.task.optimization.main.op_aco.evaluation import OPACOEvaluation
 
 
 def prize_over_distance(prize: np.ndarray, distance: np.ndarray, maxlen: float) -> np.ndarray:

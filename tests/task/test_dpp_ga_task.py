@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.dpp_ga.dataset import load_split_instances
-from llm4ad.task.optimization.dpp_ga.evaluation import DPPGAEvaluation, seed_crossover
+from llm4ad.task.optimization.main.dpp_ga.dataset import load_split_instances
+from llm4ad.task.optimization.main.dpp_ga.evaluation import DPPGAEvaluation, seed_crossover
 
 
 def bad_crossover(parents: np.ndarray, n_pop: int) -> np.ndarray:

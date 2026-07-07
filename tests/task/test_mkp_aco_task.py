@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.mkp_aco.dataset import load_split_instances
-from llm4ad.task.optimization.mkp_aco.evaluation import MKPACOEvaluation
+from llm4ad.task.optimization.main.mkp_aco.dataset import load_split_instances
+from llm4ad.task.optimization.main.mkp_aco.evaluation import MKPACOEvaluation
 
 
 def prize_weight_ratio(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:

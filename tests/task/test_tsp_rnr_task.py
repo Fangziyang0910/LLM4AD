@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.tsp_rnr.dataset import load_split_instances
-from llm4ad.task.optimization.tsp_rnr.evaluation import TSPRnrEvaluation
+from llm4ad.task.optimization.other.tsp_rnr.dataset import load_split_instances
+from llm4ad.task.optimization.other.tsp_rnr.evaluation import TSPRnrEvaluation
 
 
 def first_nodes(current_tour: np.ndarray, distance_matrix: np.ndarray, n_destroy: int) -> np.ndarray:

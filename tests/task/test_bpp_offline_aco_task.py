@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.bpp_offline_aco.dataset import load_split_instances
-from llm4ad.task.optimization.bpp_offline_aco.evaluation import BPPOfflineACOEvaluation
+from llm4ad.task.optimization.main.bpp_offline_aco.dataset import load_split_instances
+from llm4ad.task.optimization.main.bpp_offline_aco.evaluation import BPPOfflineACOEvaluation
 
 
 def demand_similarity(demand: np.ndarray, capacity: int) -> np.ndarray:

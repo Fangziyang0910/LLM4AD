@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.cvrp_aco.dataset import load_split_instances
-from llm4ad.task.optimization.cvrp_aco.evaluation import CVRPACOEvaluation
+from llm4ad.task.optimization.main.cvrp_aco.dataset import load_split_instances
+from llm4ad.task.optimization.main.cvrp_aco.evaluation import CVRPACOEvaluation
 
 
 def inverse_distance(

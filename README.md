@@ -123,7 +123,7 @@ $ pip install llm4ad
 > 3) Set `model`: 'deepseek-chat'
 
 ```python
-from llm4ad.task.optimization.online_bin_packing import OBPEvaluation
+from llm4ad.task.optimization.main.online_bin_packing import OBPEvaluation
 from llm4ad.tools.llm.llm_api_https import HttpsApi
 from llm4ad.method.eoh import EoH, EoHProfiler
 

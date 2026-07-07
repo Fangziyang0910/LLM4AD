@@ -1,0 +1,79 @@
+{
+  "dataset_id": "op_aco_v1",
+  "description": "Fixed OP-ACO splits from the HSEvo OP-ACO benchmark data.",
+  "generator": "llm4ad.task.optimization.main.op_aco.dataset.write_default_dataset",
+  "splits": {
+    "test_100": {
+      "filename": "test_100.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 64,
+      "problem_size": 100,
+      "role": "test",
+      "sha256": "d34e659a62c94fe5e5d15448333aac8c641f7a2b3a79b45618b5cea15719c8c5",
+      "source": "hsevo_op_aco_dataset",
+      "source_file": "test100_dataset.npz"
+    },
+    "test_200": {
+      "filename": "test_200.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 64,
+      "problem_size": 200,
+      "role": "test",
+      "sha256": "d392e08461c615ef3ec986f170aed681362c0207e8508f20aa9bfa4212713705",
+      "source": "hsevo_op_aco_dataset",
+      "source_file": "test200_dataset.npz"
+    },
+    "test_50": {
+      "filename": "test_50.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 64,
+      "problem_size": 50,
+      "role": "test",
+      "sha256": "a9bad3036484dba79fff810db9c75684c317274b5ad91805ee14b1ba48a452ea",
+      "source": "hsevo_op_aco_dataset",
+      "source_file": "test50_dataset.npz"
+    },
+    "train": {
+      "filename": "train.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 5,
+      "problem_size": 50,
+      "role": "train",
+      "sha256": "276f382a1b4e1c4bca1b8aafda3ce1bfd86276e157accf5f0e42911fac2c7dcd",
+      "source": "hsevo_op_aco_dataset",
+      "source_file": "train50_dataset.npz"
+    },
+    "val_100": {
+      "filename": "val_100.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 64,
+      "problem_size": 100,
+      "role": "validation",
+      "sha256": "6af96bbb88b078d48ee6485b27d2262820aff4b48a0b3f1e7dc542795e8f049c",
+      "source": "hsevo_op_aco_dataset",
+      "source_file": "val100_dataset.npz"
+    },
+    "val_200": {
+      "filename": "val_200.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 64,
+      "problem_size": 200,
+      "role": "validation",
+      "sha256": "4b170040fbebfc00d93dc2ae1afaa0fd425744cb95408464016fdd8d56849749",
+      "source": "hsevo_op_aco_dataset",
+      "source_file": "val200_dataset.npz"
+    },
+    "val_50": {
+      "filename": "val_50.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 64,
+      "problem_size": 50,
+      "role": "validation",
+      "sha256": "b37825e852793a0ce732ab080a414bacdd023aada0ca72e7bc535420c373412d",
+      "source": "hsevo_op_aco_dataset",
+      "source_file": "val50_dataset.npz"
+    }
+  },
+  "task": "op_aco",
+  "version": 1
+}

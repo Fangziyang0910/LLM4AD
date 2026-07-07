@@ -82,7 +82,7 @@ You can quickly set up the required Python environment using the provided `envir
 In just about an hour of automated discovery, the following script will use PartEvo to evolve a high-performing algorithm for the **Online Bin Packing (OBP)** problem.
 
 ```python
-from llm4ad.task.optimization.online_bin_packing import OBPEvaluation
+from llm4ad.task.optimization.main.online_bin_packing import OBPEvaluation
 from llm4ad.tools.llm.llm_api_https import HttpsApi
 from llm4ad.method.partevo import PartEvo
 from llm4ad.method.partevo import PartEvoProfiler

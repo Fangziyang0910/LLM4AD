@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.tpe_bandwidth.dataset import load_split_instances
-from llm4ad.task.optimization.tpe_bandwidth.evaluation import TPEBandwidthEvaluation
+from llm4ad.task.optimization.other.tpe_bandwidth.dataset import load_split_instances
+from llm4ad.task.optimization.other.tpe_bandwidth.evaluation import TPEBandwidthEvaluation
 
 
 def default_weights(n: int) -> np.ndarray:

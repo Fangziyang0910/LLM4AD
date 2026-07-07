@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.moead_decomposition.dataset import load_split_instances
-from llm4ad.task.optimization.moead_decomposition.evaluation import MOEADDecompositionEvaluation
+from llm4ad.task.optimization.other.moead_decomposition.dataset import load_split_instances
+from llm4ad.task.optimization.other.moead_decomposition.evaluation import MOEADDecompositionEvaluation
 
 
 def tchebycheff(F: np.ndarray, weights: np.ndarray, ideal_point: np.ndarray) -> np.ndarray:

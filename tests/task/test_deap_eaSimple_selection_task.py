@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.deap_eaSimple_selection.dataset import load_split_instances
-from llm4ad.task.optimization.deap_eaSimple_selection.evaluation import EASimpleSelectionEvaluation
+from llm4ad.task.optimization.other.deap_eaSimple_selection.dataset import load_split_instances
+from llm4ad.task.optimization.other.deap_eaSimple_selection.evaluation import EASimpleSelectionEvaluation
 
 
 def tournament_select(fitnesses: np.ndarray, k: int, tournament_size: int) -> np.ndarray:

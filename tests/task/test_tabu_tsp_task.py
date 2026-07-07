@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.tabu_tsp.dataset import load_split_instances
-from llm4ad.task.optimization.tabu_tsp.evaluation import TabuTSPEvaluation
+from llm4ad.task.optimization.other.tabu_tsp.dataset import load_split_instances
+from llm4ad.task.optimization.other.tabu_tsp.evaluation import TabuTSPEvaluation
 
 
 def best_non_tabu(

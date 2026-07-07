@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.sa_acceptance.dataset import load_split_instances
-from llm4ad.task.optimization.sa_acceptance.evaluation import SAAcceptanceEvaluation
+from llm4ad.task.optimization.other.sa_acceptance.dataset import load_split_instances
+from llm4ad.task.optimization.other.sa_acceptance.evaluation import SAAcceptanceEvaluation
 
 
 def boltzmann(delta_fitness: float, temperature: float, iteration: int, max_iterations: int) -> float:

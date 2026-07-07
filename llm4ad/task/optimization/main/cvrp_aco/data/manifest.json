@@ -1,0 +1,86 @@
+{
+  "dataset_id": "cvrp_aco_v1",
+  "description": "Fixed CVRP-ACO splits from the MCTS-AHD CVRP-ACO benchmark data.",
+  "generator": "llm4ad.task.optimization.main.cvrp_aco.dataset.write_default_dataset",
+  "splits": {
+    "test_100": {
+      "capacity": 50,
+      "filename": "test_100.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 64,
+      "problem_size": 100,
+      "role": "test",
+      "sha256": "27a917ed3de79335365a1de4dabefee60102d741a04a9f3af177aaa9813d02d1",
+      "source": "mcts_ahd_cvrp_aco_dataset",
+      "source_file": "test100_dataset.npy"
+    },
+    "test_20": {
+      "capacity": 50,
+      "filename": "test_20.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 64,
+      "problem_size": 20,
+      "role": "test",
+      "sha256": "83e41f1ee282b2cf6c53d2a4ede5337a62ef0a7d8a33d80f392fc203ac1f5095",
+      "source": "mcts_ahd_cvrp_aco_dataset",
+      "source_file": "test20_dataset.npy"
+    },
+    "test_50": {
+      "capacity": 50,
+      "filename": "test_50.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 64,
+      "problem_size": 50,
+      "role": "test",
+      "sha256": "ceb62cbd2483af769f000f890327b78ec098413479751ca60c6339c062ad92cd",
+      "source": "mcts_ahd_cvrp_aco_dataset",
+      "source_file": "test50_dataset.npy"
+    },
+    "train": {
+      "capacity": 50,
+      "filename": "train.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 10,
+      "problem_size": 50,
+      "role": "train",
+      "sha256": "5bb5e5f37aad6d0846501ec68dbd7a548e3bf8e45bae4e9edcb4f900a841e024",
+      "source": "mcts_ahd_cvrp_aco_dataset",
+      "source_file": "train50_dataset.npy"
+    },
+    "val_100": {
+      "capacity": 50,
+      "filename": "val_100.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 64,
+      "problem_size": 100,
+      "role": "validation",
+      "sha256": "aa6db3c0cdd5fbd2181e801caa987780a37ea55df15ded48d1fdac87a12cb9e9",
+      "source": "mcts_ahd_cvrp_aco_dataset",
+      "source_file": "val100_dataset.npy"
+    },
+    "val_20": {
+      "capacity": 50,
+      "filename": "val_20.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 64,
+      "problem_size": 20,
+      "role": "validation",
+      "sha256": "82baff82338509a0cb278dc279e610124d4523930502588d284d8de9de903537",
+      "source": "mcts_ahd_cvrp_aco_dataset",
+      "source_file": "val20_dataset.npy"
+    },
+    "val_50": {
+      "capacity": 50,
+      "filename": "val_50.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 64,
+      "problem_size": 50,
+      "role": "validation",
+      "sha256": "0c16659344c4be46c69d77cc0a7666fddf0312d02b5c7ebbb3c6d415a0474b3c",
+      "source": "mcts_ahd_cvrp_aco_dataset",
+      "source_file": "val50_dataset.npy"
+    }
+  },
+  "task": "cvrp_aco",
+  "version": 1
+}

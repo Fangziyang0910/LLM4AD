@@ -3,7 +3,7 @@ import sys
 # (Not required if you installed the package via pip, but useful for local development)
 sys.path.append('../../../../')  # This is for finding all the modules
 
-from llm4ad.task.optimization.tsp_construct import TSPEvaluation
+from llm4ad.task.optimization.main.tsp_construct import TSPEvaluation
 from llm4ad.tools.llm.llm_api_https import HttpsApi
 from llm4ad.method.partevo import PartEvo
 from llm4ad.method.partevo import PartEvoProfiler

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.fssp_gls.dataset import load_split_instances
-from llm4ad.task.optimization.fssp_gls.evaluation import FSSPGLSEvaluation
+from llm4ad.task.optimization.main.fssp_gls.dataset import load_split_instances
+from llm4ad.task.optimization.main.fssp_gls.evaluation import FSSPGLSEvaluation
 
 
 def simple_perturbation(current_sequence: list, time_matrix: np.ndarray, m: int, n: int):

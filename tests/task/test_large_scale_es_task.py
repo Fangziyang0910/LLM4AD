@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.large_scale_es.dataset import load_split_instances
-from llm4ad.task.optimization.large_scale_es.evaluation import LargeScaleESEvaluation
+from llm4ad.task.optimization.other.large_scale_es.dataset import load_split_instances
+from llm4ad.task.optimization.other.large_scale_es.evaluation import LargeScaleESEvaluation
 
 
 def separable_rank_update(

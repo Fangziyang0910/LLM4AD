@@ -3,13 +3,13 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from llm4ad.task.optimization.tsp_construct.dataset import (
+from llm4ad.task.optimization.main.tsp_construct.dataset import (
     DATA_DIR,
     DEFAULT_DATASET_ID,
     load_manifest,
     load_split_instances,
 )
-from llm4ad.task.optimization.tsp_construct.evaluation import TSPEvaluation
+from llm4ad.task.optimization.main.tsp_construct.evaluation import TSPEvaluation
 
 
 def test_default_tsp_evaluation_uses_fixed_train_split():

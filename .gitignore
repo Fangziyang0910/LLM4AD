@@ -27,4 +27,4 @@ llm4ad.egg-info/dependency_links.txt
 .venv/
 #LLaMEA logs content in this directory.
 **/exp-*
-llm4ad/task/optimization/co_bench/data/
+llm4ad/task/optimization/cobench/data/

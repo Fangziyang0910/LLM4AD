@@ -1,0 +1,124 @@
+{
+  "dataset_id": "fssp_gls_v1",
+  "description": "Fixed FSSP guided local search splits from the EoH FSSP benchmark.",
+  "generator": "llm4ad.task.optimization.main.fssp_gls.dataset.write_default_dataset",
+  "splits": {
+    "test_taillard_100_m10": {
+      "filename": "test_taillard_100_m10.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 10,
+      "role": "test",
+      "sha256": "6e0d672aadedbbf3af59dbb1f66a68dfed4dde03feb84bb06f242b970bb6efde",
+      "source": "taillard",
+      "source_file": "t_j100_m10.txt"
+    },
+    "test_taillard_100_m20": {
+      "filename": "test_taillard_100_m20.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 10,
+      "role": "test",
+      "sha256": "943716d1081341b334bcd0c9d5d140639e783724b5f4fda4339445ba4c63859d",
+      "source": "taillard",
+      "source_file": "t_j100_m20.txt"
+    },
+    "test_taillard_100_m5": {
+      "filename": "test_taillard_100_m5.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 10,
+      "role": "test",
+      "sha256": "13c46d335061db73233f8aa1de97b45985c0f89980de67fc196b89290808a77f",
+      "source": "taillard",
+      "source_file": "t_j100_m5.txt"
+    },
+    "test_taillard_200_m10": {
+      "filename": "test_taillard_200_m10.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 10,
+      "role": "test",
+      "sha256": "bdd0765d789b831769871bca2370e2a58c9c080a8ad2a3bbc29d0476d53b6905",
+      "source": "taillard",
+      "source_file": "t_j200_m10.txt"
+    },
+    "test_taillard_200_m20": {
+      "filename": "test_taillard_200_m20.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 10,
+      "role": "test",
+      "sha256": "8ae84dfd51f7f4a5dccd00e0e754c10c55f7c0b41db1b4ce1dbd3060c3554a4b",
+      "source": "taillard",
+      "source_file": "t_j200_m20.txt"
+    },
+    "test_taillard_20_m10": {
+      "filename": "test_taillard_20_m10.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 10,
+      "role": "test",
+      "sha256": "74c04acc54f017b4dcc63d1a0e8005b2c720423ddc5150076ebd136a560dc092",
+      "source": "taillard",
+      "source_file": "t_j20_m10.txt"
+    },
+    "test_taillard_20_m20": {
+      "filename": "test_taillard_20_m20.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 10,
+      "role": "test",
+      "sha256": "4aeafc196ffcee8ddfab4ce1e95fa3d35c2d886ea68e06c72b7cfb9ce2dfaeaa",
+      "source": "taillard",
+      "source_file": "t_j20_m20.txt"
+    },
+    "test_taillard_20_m5": {
+      "filename": "test_taillard_20_m5.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 10,
+      "role": "test",
+      "sha256": "14eb3178075e408c668f24304308f23553e3832f3bdf3a38130637155c93983b",
+      "source": "taillard",
+      "source_file": "t_j20_m5.txt"
+    },
+    "test_taillard_50_m10": {
+      "filename": "test_taillard_50_m10.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 10,
+      "role": "test",
+      "sha256": "183ed615abad99429d71430ee0068a9bd9b4290d482ab31182840e9750d618e5",
+      "source": "taillard",
+      "source_file": "t_j50_m10.txt"
+    },
+    "test_taillard_50_m20": {
+      "filename": "test_taillard_50_m20.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 10,
+      "role": "test",
+      "sha256": "f4d6d5683c9898bfa4c4d68ae01874e7e05181f03dda170cf10ece130836f9b7",
+      "source": "taillard",
+      "source_file": "t_j50_m20.txt"
+    },
+    "test_taillard_50_m5": {
+      "filename": "test_taillard_50_m5.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 10,
+      "role": "test",
+      "sha256": "0b0fcb7fa98a4f2000400004f093873071bb06d27b3f6057d624ed21adadd822",
+      "source": "taillard",
+      "source_file": "t_j50_m5.txt"
+    },
+    "train": {
+      "filename": "train.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 3,
+      "role": "train",
+      "sha256": "6a7fae0fa080dffdd0964fb178e880bc09880398bccc5b762d1622ca5d496ccb",
+      "source": "eoh_training_data"
+    },
+    "train_full": {
+      "filename": "train_full.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 64,
+      "role": "train",
+      "sha256": "63beededdf95ca8f081cdb8cee5fc95be1269513fbc6fed5a5b666a91bed5f10",
+      "source": "eoh_training_data"
+    }
+  },
+  "task": "fssp_gls",
+  "version": 1
+}

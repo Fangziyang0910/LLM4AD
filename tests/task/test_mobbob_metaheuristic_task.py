@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.mobbob_metaheuristic.dataset import load_split_instances
-from llm4ad.task.optimization.mobbob_metaheuristic.evaluation import MoBBOBMetaheuristicEvaluation
+from llm4ad.task.optimization.other.mobbob_metaheuristic.dataset import load_split_instances
+from llm4ad.task.optimization.other.mobbob_metaheuristic.evaluation import MoBBOBMetaheuristicEvaluation
 
 
 def random_front(func, dim: int, bounds: np.ndarray, budget: int, n_obj: int) -> np.ndarray:

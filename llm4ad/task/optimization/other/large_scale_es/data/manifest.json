@@ -1,0 +1,66 @@
+{
+  "dataset_id": "large_scale_es_v1",
+  "description": "Fixed EoH large-scale separable CMA-ES benchmark. The searched function updates diagonal variance factors inside a high-dimensional sep-CMA-ES loop.",
+  "generator": "llm4ad.task.optimization.other.large_scale_es.dataset.write_default_dataset",
+  "paper": "papers/EoH",
+  "source": "reference_code/EoH/examples/large_scale_es",
+  "splits": {
+    "test_full": {
+      "dimensions": [
+        100,
+        200
+      ],
+      "function_names": [
+        "sphere",
+        "rastrigin",
+        "ackley",
+        "rosenbrock",
+        "griewank"
+      ],
+      "max_evals": 60000,
+      "n_instances": 10,
+      "n_runs": 10,
+      "note": "Post-hoc evaluator from the EoH example: 100D and 200D variants.",
+      "role": "test",
+      "seed_start": 0
+    },
+    "test_ood_200d": {
+      "dimensions": [
+        200
+      ],
+      "function_names": [
+        "sphere",
+        "rastrigin",
+        "ackley",
+        "rosenbrock",
+        "griewank"
+      ],
+      "max_evals": 60000,
+      "n_instances": 5,
+      "n_runs": 10,
+      "note": "Dimension-generalization subset using only 200D benchmark variants.",
+      "role": "test",
+      "seed_start": 0
+    },
+    "train": {
+      "dimensions": [
+        100
+      ],
+      "function_names": [
+        "sphere",
+        "rastrigin",
+        "ackley",
+        "rosenbrock",
+        "griewank"
+      ],
+      "max_evals": 30000,
+      "n_instances": 5,
+      "n_runs": 3,
+      "note": "Original EoH search evaluator: five 100D continuous benchmark functions.",
+      "role": "train",
+      "seed_start": 0
+    }
+  },
+  "task": "large_scale_es",
+  "version": 1
+}

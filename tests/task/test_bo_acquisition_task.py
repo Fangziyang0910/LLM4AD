@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.bo_acquisition.dataset import load_split_instances
-from llm4ad.task.optimization.bo_acquisition.evaluation import BOAcquisitionEvaluation
+from llm4ad.task.optimization.main.bo_acquisition.dataset import load_split_instances
+from llm4ad.task.optimization.main.bo_acquisition.evaluation import BOAcquisitionEvaluation
 
 
 def lcb(mu: np.ndarray, sigma: np.ndarray, f_best: float) -> np.ndarray:

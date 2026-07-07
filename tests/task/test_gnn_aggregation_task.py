@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.gnn_aggregation.dataset import load_split_instances
-from llm4ad.task.optimization.gnn_aggregation.evaluation import GNNAggregationEvaluation
+from llm4ad.task.optimization.other.gnn_aggregation.dataset import load_split_instances
+from llm4ad.task.optimization.other.gnn_aggregation.evaluation import GNNAggregationEvaluation
 
 
 def mean_aggregate(node_features: np.ndarray, adj_matrix: np.ndarray, iteration: int) -> np.ndarray:

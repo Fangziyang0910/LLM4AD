@@ -1,0 +1,59 @@
+{
+  "dataset_id": "knapsack_construct_v1",
+  "description": "Fixed KP constructive train/test splits following MCTS-AHD/PathWise settings.",
+  "generator": "llm4ad.task.optimization.main.knapsack_construct.dataset.write_default_dataset",
+  "splits": {
+    "test_id": {
+      "capacity": 25.0,
+      "filename": "test_id.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 250,
+      "n_items": 100,
+      "role": "test",
+      "seed": 3334,
+      "sha256": "5ce9f701acb8692861e6e977c7927013b881e49df9da7a567618e5df0b9486a4"
+    },
+    "test_ood_200": {
+      "capacity": 25.0,
+      "filename": "test_ood_200.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 250,
+      "n_items": 200,
+      "role": "test",
+      "seed": 3336,
+      "sha256": "a7c09e10ea3d77b1cb520bb04102f51794d167d91fc3ff1504ba2a33e37714a4"
+    },
+    "test_ood_50": {
+      "capacity": 12.5,
+      "filename": "test_ood_50.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 250,
+      "n_items": 50,
+      "role": "test",
+      "seed": 3335,
+      "sha256": "90c27d79052546a57970cdcb00801bd6fb394e55ca11ce791afe602fe6db7108"
+    },
+    "test_ood_500": {
+      "capacity": 25.0,
+      "filename": "test_ood_500.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 250,
+      "n_items": 500,
+      "role": "test",
+      "seed": 3337,
+      "sha256": "a2200aad2ebe9502af207a26dc1a129ddd2dcd3d9669caa44ec60ceda80ab798"
+    },
+    "train": {
+      "capacity": 25.0,
+      "filename": "train.pkl.gz",
+      "format": "pickle_gzip",
+      "n_instances": 64,
+      "n_items": 100,
+      "role": "train",
+      "seed": 3333,
+      "sha256": "8805bab40596109737379c7a207afce018c88024c54234e242bf3c095c9d6206"
+    }
+  },
+  "task": "knapsack_construct",
+  "version": 1
+}

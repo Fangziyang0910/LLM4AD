@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.nsga2_pymoo.dataset import load_split_instances
-from llm4ad.task.optimization.nsga2_pymoo.evaluation import NSGA2PymooEvaluation
+from llm4ad.task.optimization.other.nsga2_pymoo.dataset import load_split_instances
+from llm4ad.task.optimization.other.nsga2_pymoo.evaluation import NSGA2PymooEvaluation
 
 
 def sbx(x1: np.ndarray, x2: np.ndarray) -> tuple:

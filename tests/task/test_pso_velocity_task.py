@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from llm4ad.task.optimization.pso_velocity.dataset import load_split_instances
-from llm4ad.task.optimization.pso_velocity.evaluation import PSOVelocityEvaluation
+from llm4ad.task.optimization.other.pso_velocity.dataset import load_split_instances
+from llm4ad.task.optimization.other.pso_velocity.evaluation import PSOVelocityEvaluation
 
 
 def standard_pso_update(
