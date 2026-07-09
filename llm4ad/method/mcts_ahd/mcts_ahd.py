@@ -372,21 +372,44 @@ class MCTS_AHD:
         if len(candidates) < self._e1_min_refs:
             return copy.deepcopy(candidates) if allow_single else []
         ref_count = random.randint(self._e1_min_refs, min(self._e1_max_refs, len(candidates)))
-        return copy.deepcopy(random.sample(candidates, ref_count))
+        return copy.deepcopy(random.choices(candidates, k=ref_count))
 
     def _sample_e1_references_from_root(self, mcts: MCTS, allow_single=False):
-        candidate_children = [child for child in mcts.root.children if len(child.subtree) > 0]
-        if len(candidate_children) < self._e1_min_refs:
+        candidates = [
+            random.choice(child.subtree).individual
+            for child in mcts.root.children
+            if len(child.subtree) > 0
+        ]
+        if len(candidates) < self._e1_min_refs:
             if not allow_single:
                 return []
-            selected_children = candidate_children
-        else:
-            ref_count = random.randint(self._e1_min_refs, min(self._e1_max_refs, len(candidate_children)))
-            selected_children = random.sample(candidate_children, ref_count)
-        return [
-            copy.deepcopy(random.choice(child.subtree).individual)
-            for child in selected_children
-        ]
+            return copy.deepcopy(candidates)
+        ref_count = random.randint(self._e1_min_refs, min(self._e1_max_refs, len(candidates)))
+        return copy.deepcopy(random.choices(candidates, k=ref_count))
+
+    @staticmethod
+    def _individual_from_entry(entry):
+        if isinstance(entry, MCTSNode):
+            return entry.individual
+        return entry
+
+    def population_management(self, pop_input, size):
+        pop = []
+        for entry in pop_input:
+            individual = self._individual_from_entry(entry)
+            if individual is not None and individual.score is not None:
+                pop.append(individual)
+        if size > len(pop):
+            size = len(pop)
+
+        unique_pop = []
+        unique_scores = []
+        for individual in pop:
+            if individual.score not in unique_scores:
+                unique_pop.append(individual)
+                unique_scores.append(individual.score)
+
+        return heapq.nlargest(size, unique_pop, key=lambda x: x.score)
 
     def _current_elite_set(self):
         candidates = list(self._population.population) + list(self._population.next_gen_pop)
@@ -405,19 +428,54 @@ class MCTS_AHD:
         return heapq.nlargest(pop_size, unique_pop, key=lambda x: x.score)
 
     def _should_progressively_widen(self, mcts: MCTS, node: MCTSNode) -> bool:
-        return int(node.visits ** mcts.alpha) >= len(node.children)
+        return int(node.visits ** mcts.alpha) > len(node.children)
 
     def population_management_s1(self, pop_input, size):
+        pop = []
+        for entry in pop_input:
+            individual = self._individual_from_entry(entry)
+            if individual is not None and individual.score is not None:
+                pop.append(individual)
+        if size > len(pop):
+            size = len(pop)
+
         unique_pop = []
         unique_algorithms = []
-        for individual in pop_input:
-            if str(individual) not in unique_algorithms:
+        for individual in pop:
+            algorithm = getattr(individual, 'algorithm', str(individual))
+            if algorithm not in unique_algorithms:
                 unique_pop.append(individual)
-                unique_algorithms.append(str(individual))
-        # Delete the worst individual
-        # pop_new = heapq.nsmallest(size, pop, key=lambda x: x['objective'])
-        pop_new = heapq.nlargest(size, unique_pop, key=lambda x: x.score)
-        return pop_new
+                unique_algorithms.append(algorithm)
+
+        # The reference code orders s1 paths with nlargest(objective). LLM4AD
+        # scores are sign-flipped objectives, so the equivalent order is
+        # nsmallest(score).
+        return heapq.nsmallest(size, unique_pop, key=lambda x: x.score)
+
+    def _select_e2_reference(self, node_set, father):
+        candidates = []
+        for entry in node_set:
+            individual = self._individual_from_entry(entry)
+            if individual is not None and individual.score is not None and individual.score != float('-inf'):
+                candidates.append(individual)
+        if not candidates:
+            candidates = self._current_elite_set()
+
+        other = [individual for individual in candidates if individual != father]
+        if len(other) == 0:
+            return None
+
+        other = sorted(other, key=lambda f: f.score, reverse=True)
+        probs = [1 / (rank + 1 + len(other)) for rank in range(len(other))]
+        return random.choices(other, weights=probs, k=1)[0]
+
+    def _add_root_child(self, mcts: MCTS, func: Function):
+        now_node = MCTSNode(func.algorithm, str(func), -1 * func.score, individual=func,
+                            parent=mcts.root, depth=1, visit=1, Q=func.score, raw_info=func)
+        mcts.root.add_child(now_node)
+        mcts.backpropagate(now_node)
+        now_node.subtree.append(now_node)
+        return now_node
 
     def expand(self, mcts: MCTS, node_set, cur_node: MCTSNode, option: str):
         if getattr(self, '_search_aborted', False):
@@ -441,7 +499,7 @@ class MCTS_AHD:
                     is_valid_func = False
                     i += 1
                     continue
-                is_valid_func = (func.score is not None) and not self.check_duplicate(node_set, str(func))
+                is_valid_func = (func.score is not None) and not self.check_duplicate(indivs, str(func))
                 if is_valid_func is False:
                     i += 1
                     continue
@@ -449,26 +507,30 @@ class MCTS_AHD:
                     break
 
         elif option == 'e1':
-            indivs = self._sample_e1_references_from_root(mcts)
+            indivs = self._sample_e1_references_from_root(mcts, allow_single=True)
             if len(indivs) == 0:
                 return node_set
-            prompt = MAPrompt.get_prompt_e1(self._task_description_str, indivs, self._function_to_evolve)
-            func = self._sample_evaluate_register(prompt, func_only=True, operator=option)
-            if func is False:
-                is_valid_func = False
-            else:
-                is_valid_func = (func.score is not None)
+            i = 0
+            while i < 3:
+                prompt = MAPrompt.get_prompt_e1(self._task_description_str, indivs, self._function_to_evolve)
+                func = self._sample_evaluate_register(prompt, func_only=True, operator=option)
+                if func is False:
+                    is_valid_func = False
+                    i += 1
+                    continue
+                is_valid_func = (func.score is not None) and not self.check_duplicate(node_set, str(func))
+                if is_valid_func is False:
+                    i += 1
+                    continue
+                else:
+                    break
 
         elif option == 'e2':
             i = 0
             while i < 3:
-                elite_set = [
-                    individual for individual in self._current_elite_set()
-                    if individual != cur_node.individual
-                ]
-                if len(elite_set) == 0:
+                now_indiv = self._select_e2_reference(node_set, cur_node.individual)
+                if now_indiv is None:
                     return node_set
-                now_indiv = self._population.selection(elite_set)
                 prompt = MAPrompt.get_prompt_e2(self._task_description_str, [now_indiv, cur_node.individual],
                                                 self._function_to_evolve)
                 func = self._sample_evaluate_register(prompt, func_only=True, operator=option)
@@ -536,7 +598,7 @@ class MCTS_AHD:
         if option != 'e1':
             parent_score = self._node_score(cur_node)
         else:
-            if self.check_duplicate_obj(node_set, func.score):
+            if self.check_duplicate_obj(mcts.root.children, func.score):
                 self._log_mcts_event(
                     event='expand',
                     status='duplicate',
@@ -560,7 +622,9 @@ class MCTS_AHD:
             cur_node.add_child(now_node)
             mcts.backpropagate(now_node)
             if node_set is not cur_node.children:
-                node_set.append(now_node)
+                node_set.append(func)
+                size_act = min(len(node_set), self._pop_size)
+                node_set = self.population_management(node_set, size_act)
             self._log_mcts_event(
                 event='expand',
                 status='expanded',
@@ -577,25 +641,43 @@ class MCTS_AHD:
             )
         return node_set
 
-    def _iteratively_init_population_root(self):
-        """Let a thread repeat {sample -> evaluate -> register to population}
-        to initialize a population.
-        """
-        while len(self._population.population) < self._init_pop_size and not getattr(self, '_search_aborted', False):
+    def _initialize_mcts_root(self, mcts: MCTS):
+        brothers = []
+        target_size = int(self._init_pop_size)
+
+        while len(brothers) == 0 and self._continue_loop():
             try:
-                # get a new func using e1
-                indivs = self._sample_e1_references_from_population(self._population.population, allow_single=True)
+                prompt = MAPrompt.get_prompt_i1(self._task_description_str, self._function_to_evolve)
+                func = self._sample_evaluate_register(prompt, func_only=True, operator='i1')
+                if func is False or func.score is None or func.score == float('-inf'):
+                    continue
+                brothers.append(func)
+                self._population.register_function(func)
+                self._add_root_child(mcts, func)
+            except Exception:
+                if self._debug_mode:
+                    traceback.print_exc()
+                    exit()
+                continue
+
+        while len(brothers) < target_size and self._continue_loop() and not getattr(self, '_search_aborted', False):
+            try:
+                indivs = self._sample_e1_references_from_population(brothers, allow_single=True)
                 if len(indivs) == 0:
                     continue
-                prompt = MAPrompt.get_prompt_e1(self._task_description_str, indivs,
-                                                self._function_to_evolve)
-                self._sample_evaluate_register(prompt, operator='e1')
-                self._population.survival()
+                prompt = MAPrompt.get_prompt_e1(self._task_description_str, indivs, self._function_to_evolve)
+                func = self._sample_evaluate_register(prompt, func_only=True, operator='e1')
+                if func is False or func.score is None or func.score == float('-inf'):
+                    continue
+                if self.check_duplicate_obj(brothers, func.score) or self.check_duplicate(brothers, str(func)):
+                    continue
+                brothers.append(func)
+                self._population.register_function(func)
+                self._add_root_child(mcts, func)
 
                 if self._tot_sample_nums >= self._initial_sample_nums_max:
-                    # print(f'Warning: Initialization not accomplished in {self._initial_sample_nums_max} samples !!!')
                     self._log_message(
-                        f'Note: During initialization, EoH gets {len(self._population) + len(self._population._next_gen_pop)} algorithms '
+                        f'Note: During initialization, MCTS_AHD gets {len(brothers)} algorithms '
                         f'after {self._initial_sample_nums_max} trails.')
                     break
             except Exception:
@@ -604,17 +686,8 @@ class MCTS_AHD:
                     exit()
                 continue
 
-    def _init_one_solution(self):
-        while len(self._population.next_gen_pop) == 0 and not getattr(self, '_search_aborted', False):
-            try:
-                # get a new func using i1
-                prompt = MAPrompt.get_prompt_i1(self._task_description_str, self._function_to_evolve)
-                self._sample_evaluate_register(prompt, operator='i1')
-            except Exception:
-                if self._debug_mode:
-                    traceback.print_exc()
-                    exit()
-                continue
+        self._population.survival()
+        return brothers
 
     def _multi_threaded_sampling(self, fn: callable, *args, **kwargs):
         """Execute `fn` using multithreading.
@@ -633,26 +706,11 @@ class MCTS_AHD:
     def run(self):
         try:
             mcts = MCTS('Root', self.alpha, self.lambda_0)
-            # do initialization
-
-            # 1. first generate one solution as initialization
-            self._init_one_solution()
-            self._population.survival()
-
-            # 2. expand root
-            self._iteratively_init_population_root()
-
-            # 3. update mcts
-            for indiv in self._population.population:
-                now_node = MCTSNode(indiv.algorithm, str(indiv), -1 * indiv.score, individual=indiv,
-                                    parent=mcts.root,
-                                    depth=1, visit=1, Q=indiv.score, raw_info=indiv)
-                mcts.root.add_child(now_node)
-                mcts.backpropagate(now_node)
-                now_node.subtree.append(now_node)
+            brothers = self._initialize_mcts_root(mcts)
+            nodes_set = self.population_management(brothers, min(len(brothers), self._pop_size))
 
             # terminate searching if
-            if len(self._population) < self._selection_num:
+            if len(brothers) < self._selection_num:
                 self._log_message(
                     f'The search is terminated since MCTS_AHD unable to obtain {self._selection_num} feasible algorithms during initialization. '
                     f'Please increase the `initial_sample_nums_max` argument (currently {self._initial_sample_nums_max}). '
@@ -661,7 +719,6 @@ class MCTS_AHD:
 
             # evolutionary search
             while self._continue_loop():
-                node_set = []
                 self._log_mcts_state(mcts, phase='iteration_start')
                 cur_node = mcts.root
                 while len(cur_node.children) > 0 and cur_node.depth < mcts.max_depth and self._continue_loop():
@@ -671,11 +728,11 @@ class MCTS_AHD:
                     if self._should_progressively_widen(mcts, cur_node):
                         if cur_node == mcts.root:
                             op = 'e1'
-                            self.expand(mcts, mcts.root.children, cur_node, op)
+                            nodes_set = self.expand(mcts, nodes_set, cur_node, op)
                         else:
                             # i = random.randint(1, n_op - 1)
                             op = 'e2'
-                            self.expand(mcts, cur_node.children, cur_node, op)
+                            nodes_set = self.expand(mcts, nodes_set, cur_node, op)
                         if getattr(self, '_search_aborted', False):
                             break
                     cur_node = cur_node.children[selected_pair_idx]
@@ -699,8 +756,9 @@ class MCTS_AHD:
                     for j in range(op_w):
                         if not self._continue_loop():
                             break
-                        node_set = self.expand(mcts, node_set, cur_node, op)
+                        nodes_set = self.expand(mcts, nodes_set, cur_node, op)
                 self._population.survival()
+                nodes_set = self.population_management(nodes_set, min(len(nodes_set), self._pop_size))
         finally:
             finish_profiler(
                 self,

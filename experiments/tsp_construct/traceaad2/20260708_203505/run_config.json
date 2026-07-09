@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "created_by": "migration",
+  "created_at": "2026-07-09T12:55:00+08:00",
+  "legacy_path": "experiments/traceaad2_tsp_construct_vllm_20260708_203505",
+  "run_dir": "experiments/tsp_construct/traceaad2/20260708_203505",
+  "task": "tsp_construct",
+  "method": "traceaad2",
+  "timestamp": "20260708_203505",
+  "llm": {
+    "base_url": "http://222.201.145.8:8080/v1",
+    "api_key": "EMPTY",
+    "model": "qwen3.6-27b-awq",
+    "timeout": 600.0,
+    "max_tokens": 16384,
+    "temperature": 1.0,
+    "enable_thinking": false
+  },
+  "task_eval": {
+    "split": "train",
+    "timeout_seconds": 20,
+    "eval_workers": 16,
+    "eval_backend": "process"
+  },
+  "method_params": {
+    "max_sample_nums": 1000,
+    "n_init": 4,
+    "actions_per_iteration": 2,
+    "max_trajectory_length": 8,
+    "max_active_trajectories": 1000,
+    "sampling_strategy": "trajectory_ucb",
+    "top_k": 5,
+    "trajectory_temperature": 0.8,
+    "n_islands": 4,
+    "max_per_island": 40,
+    "novelty_threshold": 0.92,
+    "k_distill": 10,
+    "patience_reflect": 8,
+    "num_evaluators": 4,
+    "max_consecutive_sample_failures": 20,
+    "eval_executor": "thread"
+  },
+  "provenance": {
+    "source": "recovered from tmux_run.log and migrated run script",
+    "previous_crash_backup": "logs_run1_crash_at_212",
+    "future_runner": "experiments/tsp_construct/traceaad2/run_experiment.py"
+  }
+}

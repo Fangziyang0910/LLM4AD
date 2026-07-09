@@ -55,8 +55,7 @@ def test_tsp_evaluation_can_select_test_split():
 
 def test_tsp_evaluation_thread_workers_match_sequential_score():
     def select_nearest_node(current_node, destination_node, unvisited_nodes, distance_matrix):
-        distances = distance_matrix[current_node][unvisited_nodes]
-        return unvisited_nodes[np.argmin(distances)]
+        return min(unvisited_nodes, key=lambda node: distance_matrix[current_node][node])
 
     sequential = TSPEvaluation(split="train", eval_workers=1)
     parallel = TSPEvaluation(split="train", eval_workers=4, eval_backend="thread")
@@ -72,9 +71,8 @@ def test_tsp_evaluation_process_workers_match_sequential_score():
     program = """
 import numpy as np
 
-def select_next_node(current_node: int, destination_node: int, unvisited_nodes: np.ndarray, distance_matrix: np.ndarray) -> int:
-    distances = distance_matrix[current_node][unvisited_nodes]
-    return unvisited_nodes[np.argmin(distances)]
+def select_next_node(current_node: int, destination_node: int, unvisited_nodes: set, distance_matrix: np.ndarray) -> int:
+    return min(unvisited_nodes, key=lambda node: distance_matrix[current_node][node])
 """
 
     sequential = TSPEvaluation(split="train", eval_workers=1)
@@ -87,6 +85,20 @@ def select_next_node(current_node: int, destination_node: int, unvisited_nodes: 
     assert process_parallel.evaluate_program(program, None) == pytest.approx(
         sequential.evaluate(namespace["select_next_node"])
     )
+
+
+def test_tsp_evaluation_passes_unvisited_nodes_as_set():
+    observed_types = []
+
+    def select_nearest_node(current_node, destination_node, unvisited_nodes, distance_matrix):
+        observed_types.append(type(unvisited_nodes))
+        return min(unvisited_nodes, key=lambda node: distance_matrix[current_node][node])
+
+    evaluator = TSPEvaluation(split="train", eval_workers=1)
+
+    assert evaluator.evaluate(select_nearest_node) is not None
+    assert observed_types
+    assert set(observed_types) == {set}
 
 
 def test_tsp_evaluation_parallel_workers_preserve_invalid_route_result():

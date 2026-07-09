@@ -9,6 +9,7 @@ from llm4ad.base import Function, TextFunctionProgramConverter
 from llm4ad.method.mcts_ahd.mcts import MCTS, MCTSNode
 from llm4ad.method.mcts_ahd.mcts_ahd import MCTS_AHD
 from llm4ad.method.mcts_ahd.population import Population
+from llm4ad.method.mcts_ahd.prompt import MAPrompt
 from llm4ad.method.mcts_ahd.profiler import MAProfiler
 
 
@@ -104,7 +105,7 @@ class MCTSAHDMechanicsTest(unittest.TestCase):
         self.assertEqual(parent.children[-1].depth, 4)
         self.assertEqual(mcts.max_depth, 10)
 
-    def test_e1_samples_two_to_five_distinct_root_subtrees(self):
+    def test_e1_samples_two_to_five_root_subtree_refs(self):
         random.seed(7)
         method = make_method()
         mcts = MCTS("Root", alpha=0.5, lambad0=0.1)
@@ -116,7 +117,6 @@ class MCTSAHDMechanicsTest(unittest.TestCase):
 
         self.assertGreaterEqual(len(refs), 2)
         self.assertLessEqual(len(refs), 5)
-        self.assertEqual(len({ref.algorithm for ref in refs}), len(refs))
 
     def test_e1_uses_exactly_two_refs_when_two_root_subtrees_exist(self):
         method = make_method()
@@ -129,21 +129,26 @@ class MCTSAHDMechanicsTest(unittest.TestCase):
 
         self.assertEqual(len(refs), 2)
 
-    def test_progressive_root_e1_noops_with_fewer_than_two_subtrees(self):
+    def test_progressive_root_e1_allows_single_root_subtree(self):
         method = make_method()
         mcts = MCTS("Root", alpha=0.5, lambad0=0.1)
         node = attach_node(mcts.root, make_function(1, 1.0), depth=1)
         node.subtree.append(node)
-
-        def fail_if_called(prompt, func_only=False, **kwargs):
-            raise AssertionError("e1 should not sample with fewer than two root subtrees")
-
-        method._sample_evaluate_register = fail_if_called
         before = len(mcts.root.children)
+        captured = {}
+
+        def sample(prompt, func_only=False, **kwargs):
+            captured["prompt"] = prompt
+            captured["operator"] = kwargs["operator"]
+            return make_function(2, 2.0)
+
+        method._sample_evaluate_register = sample
 
         method.expand(mcts, mcts.root.children, mcts.root, "e1")
 
-        self.assertEqual(len(mcts.root.children), before)
+        self.assertEqual(captured["operator"], "e1")
+        self.assertIn("algorithm-1", captured["prompt"])
+        self.assertEqual(len(mcts.root.children), before + 1)
 
     def test_eval_counter_increments_without_profiler(self):
         method = make_method()
@@ -165,6 +170,23 @@ class MCTSAHDMechanicsTest(unittest.TestCase):
         func = method._sample_evaluate_register("prompt", func_only=True, operator="m1")
 
         self.assertEqual(func.operator, "m1")
+
+    def test_prompt_contract_uses_reference_style_names(self):
+        template = Function(
+            name="select_next_node",
+            args="current_node: int, destination_node: int, unvisited_nodes: set, distance_matrix: np.ndarray",
+            body="    return current_node",
+        )
+
+        prompt = MAPrompt.get_prompt_i1("Task.", template)
+
+        self.assertIn("function named 'select_next_node'", prompt)
+        self.assertIn("'current_node'", prompt)
+        self.assertIn("'destination_node'", prompt)
+        self.assertIn("'unvisited_nodes'", prompt)
+        self.assertIn("'distance_matrix'", prompt)
+        self.assertNotIn("'current_node: int'", prompt)
+        self.assertIn("return 1 output(s): 'next_node'", prompt)
 
     def test_sample_exception_is_invalid_sample_without_incrementing_count(self):
         method = make_method()
@@ -223,7 +245,7 @@ class MCTSAHDMechanicsTest(unittest.TestCase):
         self.assertEqual(len(mcts.root.children), before_children)
         self.assertEqual(mcts.root.visits, before_visits)
 
-    def test_progressive_widening_triggers_on_equal_threshold(self):
+    def test_progressive_widening_requires_threshold_greater_than_children(self):
         method = make_method()
         mcts = MCTS("Root", alpha=0.5, lambad0=0.1)
         node = MCTSNode("parent", "code", 0, depth=1, visit=4, Q=0)
@@ -232,9 +254,68 @@ class MCTSAHDMechanicsTest(unittest.TestCase):
             MCTSNode("child-2", "code-2", 0, parent=node, visit=1, Q=0),
         ]
 
-        self.assertTrue(method._should_progressively_widen(mcts, node))
-        node.children.append(MCTSNode("child-3", "code-3", 0, parent=node, visit=1, Q=0))
         self.assertFalse(method._should_progressively_widen(mcts, node))
+        node.children.pop()
+        self.assertTrue(method._should_progressively_widen(mcts, node))
+
+    def test_population_management_s1_uses_reference_order_under_negative_scores(self):
+        method = make_method()
+        best = make_function(1, -1.0)
+        middle = make_function(2, -5.0)
+        worst = make_function(3, -10.0)
+
+        managed = method.population_management_s1([best, middle, worst], 3)
+
+        self.assertEqual([func.score for func in managed], [-10.0, -5.0, -1.0])
+
+    def test_e2_selects_reference_from_nodes_set_before_population(self):
+        method = make_method()
+        parent_func = make_function(1, 1.0)
+        node_set_reference = make_function(42, 42.0)
+        population_reference = make_function(99, 99.0)
+        method._population._population = [parent_func, population_reference]
+        mcts = MCTS("Root", alpha=0.5, lambad0=0.1)
+        parent = attach_node(mcts.root, parent_func, depth=1)
+        captured = {}
+
+        def sample(prompt, func_only=False, **kwargs):
+            captured["prompt"] = prompt
+            return make_function(2, 2.0)
+
+        method._sample_evaluate_register = sample
+
+        method.expand(mcts, [parent_func, node_set_reference], parent, "e2")
+
+        self.assertIn("algorithm-42", captured["prompt"])
+        self.assertNotIn("algorithm-99", captured["prompt"])
+
+    def test_initialization_adds_i1_then_e1_brothers_to_root_before_survival(self):
+        method = make_method()
+        method._init_pop_size = 4
+        method._selection_num = 2
+        method._initial_sample_nums_max = 40
+        method._population = Population(init_pop_size=4, pop_size=1)
+        mcts = MCTS("Root", alpha=0.5, lambad0=0.1)
+        generated = [
+            make_function(1, 1.0),
+            make_function(2, 2.0),
+            make_function(3, 3.0),
+            make_function(4, 4.0),
+        ]
+        calls = []
+
+        def sample(prompt, func_only=False, **kwargs):
+            calls.append(kwargs["operator"])
+            return generated[len(calls) - 1]
+
+        method._sample_evaluate_register = sample
+
+        brothers = method._initialize_mcts_root(mcts)
+
+        self.assertEqual(calls, ["i1", "e1", "e1", "e1"])
+        self.assertEqual([func.score for func in brothers], [1.0, 2.0, 3.0, 4.0])
+        self.assertEqual([child.individual.score for child in mcts.root.children], [1.0, 2.0, 3.0, 4.0])
+        self.assertEqual([func.score for func in method._population.population], [4.0])
 
     def test_uct_with_equal_q_bounds_does_not_crash(self):
         mcts = MCTS("Root", alpha=0.5, lambad0=0.1)

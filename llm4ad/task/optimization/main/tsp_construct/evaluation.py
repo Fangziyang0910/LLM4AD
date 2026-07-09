@@ -49,7 +49,6 @@ __all__ = ['TSPEvaluation']
 
 _PROCESS_EVA = None
 _PROCESS_DATASETS = None
-_PROCESS_NEIGHBOR_MATRICES = None
 _PROCESS_PROBLEM_SIZE = None
 
 
@@ -61,41 +60,36 @@ def _tour_cost(instance, solution, problem_size):
     return cost
 
 
-def _evaluate_instance(eva: callable, dataset_entry, neighbor_matrix, problem_size) -> float | None:
+def _evaluate_instance(eva: callable, dataset_entry, problem_size) -> float | None:
     instance, distance_matrix = dataset_entry
     destination_node = 0
     current_node = 0
 
-    route = np.zeros(problem_size)
-    # print(">>> Step 0 : select node "+str(instance[0][0])+", "+str(instance[0][1]))
-    for i in range(1, problem_size - 1):
-        near_nodes = neighbor_matrix[current_node][1:]
-        mask = ~np.isin(near_nodes, route[:i])
-        unvisited_near_nodes = near_nodes[mask]
-        next_node = eva(current_node, destination_node, unvisited_near_nodes, distance_matrix)
+    route = [current_node]
+    unvisited = set(range(problem_size))
+    unvisited.remove(current_node)
+    for _ in range(problem_size - 1):
+        next_node = eva(current_node, destination_node, set(unvisited), distance_matrix)
 
-        if next_node in route:
-            # print("wrong algorithm select duplicate node, retrying ...")
+        try:
+            if next_node not in unvisited:
+                return None
+        except TypeError:
             return None
 
-        current_node = next_node
-        route[i] = current_node
-
-    mask = ~np.isin(np.arange(problem_size), route[:problem_size - 1])
-    last_node = np.arange(problem_size)[mask]
-    current_node = last_node[0]
-    route[problem_size - 1] = current_node
+        current_node = int(next_node)
+        route.append(current_node)
+        unvisited.remove(current_node)
 
     return _tour_cost(instance, route, problem_size)
 
 
-def _init_process_worker(program_str, function_name, datasets, neighbor_matrices, problem_size):
-    global _PROCESS_EVA, _PROCESS_DATASETS, _PROCESS_NEIGHBOR_MATRICES, _PROCESS_PROBLEM_SIZE
+def _init_process_worker(program_str, function_name, datasets, problem_size):
+    global _PROCESS_EVA, _PROCESS_DATASETS, _PROCESS_PROBLEM_SIZE
     namespace = {}
     exec(program_str, namespace)
     _PROCESS_EVA = namespace[function_name]
     _PROCESS_DATASETS = datasets
-    _PROCESS_NEIGHBOR_MATRICES = neighbor_matrices
     _PROCESS_PROBLEM_SIZE = problem_size
 
 
@@ -103,7 +97,6 @@ def _evaluate_process_index(index: int) -> float | None:
     return _evaluate_instance(
         _PROCESS_EVA,
         _PROCESS_DATASETS[index],
-        _PROCESS_NEIGHBOR_MATRICES[index],
         _PROCESS_PROBLEM_SIZE,
     )
 
@@ -141,10 +134,6 @@ class TSPEvaluation(Evaluation):
         if eval_backend == "process" and self.daemon_eval_process:
             raise ValueError("process eval_backend is incompatible with daemon_eval_process=True")
         self.eval_backend = eval_backend
-        self._neighborhood_matrices = [
-            self.generate_neighborhood_matrix(instance)
-            for instance, _ in self._datasets
-        ]
 
     def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
         if self.eval_backend == "process" and self.eval_workers > 1:
@@ -154,33 +143,21 @@ class TSPEvaluation(Evaluation):
     def tour_cost(self, instance, solution, problem_size):
         return _tour_cost(instance, solution, problem_size)
 
-    def generate_neighborhood_matrix(self, instance):
-        instance = np.array(instance)
-        n = len(instance)
-        neighborhood_matrix = np.zeros((n, n), dtype=int)
-
-        for i in range(n):
-            distances = np.linalg.norm(instance[i] - instance, axis=1)
-            sorted_indices = np.argsort(distances)  # sort indices based on distances
-            neighborhood_matrix[i] = sorted_indices
-
-        return neighborhood_matrix
-
-    def _evaluate_instance(self, eva: callable, dataset_entry, neighbor_matrix) -> float | None:
-        return _evaluate_instance(eva, dataset_entry, neighbor_matrix, self.problem_size)
+    def _evaluate_instance(self, eva: callable, dataset_entry) -> float | None:
+        return _evaluate_instance(eva, dataset_entry, self.problem_size)
 
     def evaluate(self, eva: callable) -> float:
         if self.eval_backend != "thread" or self.eval_workers == 1 or self.n_instance <= 1:
             distances = [
-                self._evaluate_instance(eva, dataset_entry, neighbor_matrix)
-                for dataset_entry, neighbor_matrix in zip(self._datasets, self._neighborhood_matrices)
+                self._evaluate_instance(eva, dataset_entry)
+                for dataset_entry in self._datasets
             ]
         else:
             max_workers = min(self.eval_workers, self.n_instance)
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 distances = list(executor.map(
-                    lambda args: self._evaluate_instance(eva, *args),
-                    zip(self._datasets, self._neighborhood_matrices),
+                    lambda dataset_entry: self._evaluate_instance(eva, dataset_entry),
+                    self._datasets,
                 ))
 
         if any(distance is None for distance in distances):
@@ -205,7 +182,6 @@ class TSPEvaluation(Evaluation):
                 program_str,
                 function_name,
                 self._datasets,
-                self._neighborhood_matrices,
                 self.problem_size,
             ),
         )
@@ -238,26 +214,20 @@ if __name__ == '__main__':
     print(sys.path)
 
 
-    def select_next_node(current_node: int, destination_node: int, unvisited_nodes: np.ndarray, distance_matrix: np.ndarray) -> int:
+    def select_next_node(current_node: int, destination_node: int, unvisited_nodes: set, distance_matrix: np.ndarray) -> int:
         """
         Design a novel algorithm to select the next node in each step.
 
         Args:
         current_node: ID of the current node.
         destination_node: ID of the destination node.
-        unvisited_nodes: Array of IDs of unvisited nodes.
+        unvisited_nodes: Set of IDs of unvisited nodes.
         distance_matrix: Distance matrix of nodes.
 
         Return:
         ID of the next node to visit.
         """
-        distances_to_destination = distance_matrix[current_node][unvisited_nodes]
-
-        # Find the index of the unvisited node with the smallest distance to the destination
-        next_node_index = np.argmin(distances_to_destination)
-
-        # Get the ID of the next node to visit
-        next_node = unvisited_nodes[next_node_index]
+        next_node = min(unvisited_nodes, key=lambda node: distance_matrix[current_node][node])
 
         return next_node
 

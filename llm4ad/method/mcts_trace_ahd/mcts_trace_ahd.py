@@ -7,7 +7,7 @@ from .prompt import MCTSTracePrompt
 
 
 class MCTS_Trace_AHD(MCTS_AHD):
-    """MCTS-AHD variant that injects ordered trace context into s1/m1/m2."""
+    """MCTS-AHD variant that injects trace guidance into all expansion operators."""
 
     def _ordered_trace_from_node(self, cur_node: MCTSNode):
         trace = []
@@ -52,7 +52,7 @@ class MCTS_Trace_AHD(MCTS_AHD):
             indivs = self._sample_e1_references_from_root(mcts)
             if len(indivs) == 0:
                 return node_set
-            prompt = MCTSTracePrompt.get_prompt_e1(self._task_description_str, indivs, self._function_to_evolve)
+            prompt = MCTSTracePrompt.get_prompt_e1_trace(self._task_description_str, indivs, self._function_to_evolve)
             func = self._sample_evaluate_register(prompt, func_only=True, operator=option)
             if func is False:
                 is_valid_func = False
@@ -69,8 +69,12 @@ class MCTS_Trace_AHD(MCTS_AHD):
                 if len(elite_set) == 0:
                     return node_set
                 now_indiv = self._population.selection(elite_set)
-                prompt = MCTSTracePrompt.get_prompt_e2(self._task_description_str, [now_indiv, cur_node.individual],
-                                                       self._function_to_evolve)
+                prompt = MCTSTracePrompt.get_prompt_e2_trace(
+                    self._task_description_str,
+                    [now_indiv, cur_node.individual],
+                    self._function_to_evolve,
+                    trace_indivs,
+                )
                 func = self._sample_evaluate_register(prompt, func_only=True, operator=option)
                 if func is False:
                     is_valid_func = False

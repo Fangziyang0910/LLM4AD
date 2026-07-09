@@ -80,13 +80,34 @@ class MCTSTraceAHDMechanicsTest(unittest.TestCase):
 
         self.assertIn("[Algorithm Improvement Trace]", prompt)
         self.assertIn("State 1:", prompt)
-        self.assertIn("Change from previous: start", prompt)
-        self.assertIn("Change from previous: improved", prompt)
-        self.assertIn("Change from previous: regressed", prompt)
+        self.assertIn("Change from previous full-trace state: start", prompt)
+        self.assertIn("Change from previous full-trace state: improved", prompt)
+        self.assertIn("Change from previous full-trace state: regressed", prompt)
+        self.assertIn("Trace focus for this operator: s1 synthesizes useful parts", prompt)
+        self.assertIn("which path-level ideas should be combined, simplified, or left out", prompt)
+        self.assertIn("not merely copy the highest-scoring ancestor", prompt)
         self.assertIn("[Current Algorithm To Improve]", prompt)
         self.assertNotIn("return 1", prompt)
         self.assertNotIn("return 2", prompt)
         self.assertIn("return 3", prompt)
+
+    def test_trace_prompt_is_depth_limited_without_historical_code(self):
+        prompt = MCTSTracePrompt.get_prompt_m1_trace(
+            "Task.",
+            make_function(12, 12.0),
+            make_function(0),
+            [make_function(i, float(i)) for i in range(1, 13)],
+        )
+
+        self.assertIn("Showing 10 of 12 trace states", prompt)
+        self.assertEqual(prompt.count("State "), 10)
+        self.assertIn("algorithm-1", prompt)
+        self.assertNotIn("algorithm-2", prompt)
+        self.assertNotIn("algorithm-3", prompt)
+        self.assertIn("algorithm-4", prompt)
+        self.assertIn("algorithm-12", prompt)
+        self.assertNotIn("    return 1\n\n", prompt)
+        self.assertIn("return 12", prompt)
 
     def test_m1_and_m2_expansion_include_trace_context(self):
         for op in ("m1", "m2"):
@@ -110,9 +131,15 @@ class MCTSTraceAHDMechanicsTest(unittest.TestCase):
                 self.assertIn("[Algorithm Improvement Trace]", captured["prompt"])
                 self.assertIn("State 1:", captured["prompt"])
                 self.assertIn("State 2:", captured["prompt"])
-                self.assertIn("Use the ordered trace above", captured["prompt"])
+                self.assertIn("[Operator-Specific Trace Use]", captured["prompt"])
+                if op == "m1":
+                    self.assertIn("m1 performs a structural mutation", captured["prompt"])
+                    self.assertIn("Prefer a different mechanism, control flow, or equation family", captured["prompt"])
+                else:
+                    self.assertIn("m2 performs a parameter, weighting, threshold, or equation-level mutation", captured["prompt"])
+                    self.assertIn("Keep the main algorithmic structure recognizable", captured["prompt"])
 
-    def test_e2_prompt_remains_without_trace_context(self):
+    def test_e2_prompt_includes_trace_context(self):
         method = make_method()
         parent_func = make_function(1, 1.0)
         elite = make_function(99, 99.0)
@@ -131,8 +158,37 @@ class MCTSTraceAHDMechanicsTest(unittest.TestCase):
         method.expand(mcts, [], parent, "e2")
 
         self.assertEqual(captured["operator"], "e2")
-        self.assertNotIn("[Algorithm Improvement Trace]", captured["prompt"])
+        self.assertIn("[Algorithm Improvement Trace]", captured["prompt"])
+        self.assertIn("e2 improves the current branch by borrowing from an elite reference", captured["prompt"])
+        self.assertIn("Borrow from the elite reference only where it resolves a weakness", captured["prompt"])
+        self.assertIn("For e2, treat No.1 as the elite reference", captured["prompt"])
         self.assertIn("algorithm-99", captured["prompt"])
+
+    def test_e1_prompt_has_root_level_trace_guidance(self):
+        method = make_method()
+        ref_a = make_function(1, 1.0)
+        ref_b = make_function(2, 2.0)
+        mcts = MCTS("Root", alpha=0.5, lambad0=0.1)
+        child_a = attach_node(mcts.root, ref_a, depth=1)
+        child_b = attach_node(mcts.root, ref_b, depth=1)
+        child_a.subtree.append(child_a)
+        child_b.subtree.append(child_b)
+        captured = {}
+
+        def sample(prompt, func_only=False, **kwargs):
+            captured["prompt"] = prompt
+            captured["operator"] = kwargs["operator"]
+            return make_function(3, 3.0)
+
+        method._sample_evaluate_register = sample
+
+        method.expand(mcts, mcts.root.children, mcts.root, "e1")
+
+        self.assertEqual(captured["operator"], "e1")
+        self.assertIn("[Search Evidence From Existing Branches]", captured["prompt"])
+        self.assertIn("No ordered ancestry trace is available for e1", captured["prompt"])
+        self.assertIn("create a new root-level exploration branch", captured["prompt"])
+        self.assertIn("avoid repeating already-covered idea families", captured["prompt"])
 
     def test_s1_noops_for_single_state_trace(self):
         method = make_method()
