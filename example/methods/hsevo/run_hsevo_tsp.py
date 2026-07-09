@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 from llm4ad.method.hsevo import HSEvo, HSEvoProfiler
-from llm4ad.task.optimization.main.tsp_construct import TSPEvaluation
+from llm4ad.task.optimization.tsp_construct import TSPEvaluation
 from llm4ad.tools.llm.llm_api_https import HttpsApi
 
 

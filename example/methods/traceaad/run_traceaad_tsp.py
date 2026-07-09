@@ -8,7 +8,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from llm4ad.method.traceaad import TraceAAD, TraceAADProfiler
-from llm4ad.task.optimization.main.tsp_construct import TSPEvaluation
+from llm4ad.task.optimization.tsp_construct import TSPEvaluation
 from llm4ad.tools.llm.vllm_openai_api import VLLMOpenAIAPI
 
 

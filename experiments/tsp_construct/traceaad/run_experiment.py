@@ -11,7 +11,8 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from llm4ad.method.traceaad import TraceAAD, TraceAADProfiler
-from llm4ad.task.optimization.main.tsp_construct import TSPEvaluation
+from llm4ad.task.optimization.generated_data_config import get_generated_task_kwargs
+from llm4ad.task.optimization.tsp_construct import TSPEvaluation
 from llm4ad.tools.llm.vllm_openai_api import VLLMOpenAIAPI
 
 
@@ -29,10 +30,8 @@ LLM_TIMEOUT = 600
 MAX_TOKENS = 16384
 LLM_TEMPERATURE = 1.0
 
-SPLIT = "train"
-TASK_TIMEOUT_SECONDS = 20
-EVAL_WORKERS = 16
-EVAL_BACKEND = "process"
+TASK_SPLIT = "train"
+TASK_KWARGS = get_generated_task_kwargs(TASK, TASK_SPLIT)
 
 MAX_SAMPLE_NUMS = 1000
 N_INIT = 4
@@ -73,12 +72,7 @@ def write_run_config() -> None:
             "temperature": LLM_TEMPERATURE,
             "enable_thinking": False,
         },
-        "task_eval": {
-            "split": SPLIT,
-            "timeout_seconds": TASK_TIMEOUT_SECONDS,
-            "eval_workers": EVAL_WORKERS,
-            "eval_backend": EVAL_BACKEND,
-        },
+        "task_eval": {"split": TASK_SPLIT, **TASK_KWARGS},
         "method_params": {
             "max_sample_nums": MAX_SAMPLE_NUMS,
             "n_init": N_INIT,
@@ -119,12 +113,7 @@ def build_method() -> TraceAAD:
         temperature=LLM_TEMPERATURE,
         enable_thinking=False,
     )
-    task = TSPEvaluation(
-        timeout_seconds=TASK_TIMEOUT_SECONDS,
-        split=SPLIT,
-        eval_workers=EVAL_WORKERS,
-        eval_backend=EVAL_BACKEND,
-    )
+    task = TSPEvaluation(**TASK_KWARGS)
     return TraceAAD(
         llm=llm,
         evaluation=task,

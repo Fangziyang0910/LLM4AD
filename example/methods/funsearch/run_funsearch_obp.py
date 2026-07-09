@@ -4,7 +4,7 @@ import sys
 
 sys.path.append('../../')  # This is for finding all the modules
 
-from llm4ad.task.optimization.main.online_bin_packing import OBPEvaluation
+from llm4ad.task.optimization.online_bin_packing import OBPEvaluation
 from llm4ad.tools.llm.llm_api_https import HttpsApi
 from llm4ad.method.funsearch import FunSearch
 from llm4ad.tools.profiler import ProfilerBase

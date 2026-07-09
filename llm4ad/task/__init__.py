@@ -21,7 +21,7 @@ for dirpath, _, filenames in os.walk(package_dir):
             submodule_suffix = rel_path.replace(os.path.sep, '.') + '.evaluation'
             
         try:
-            # Import the module (e.g., llm4ad.task.optimization.other.cvrp_construct.evaluation)
+            # Import the module (e.g., llm4ad.task.optimization.cvrp_construct.evaluation)
             module = importlib.import_module(f'.{submodule_suffix}', package=root_package)
             
             # Iterate over the attributes of the module
