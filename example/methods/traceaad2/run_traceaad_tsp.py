@@ -13,7 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from llm4ad.method.traceaad2 import TraceAAD2, TraceAAD2Profiler
+from llm4ad.method.traceaad2 import TraceAAD2, TraceAAD2Profiler, ValueWeights
 from llm4ad.task.optimization.tsp_construct import TSPEvaluation
 from llm4ad.tools.llm.vllm_openai_api import VLLMOpenAIAPI
 
@@ -33,15 +33,17 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--actions-per-iteration", type=int, default=2)
     p.add_argument("--max-trajectory-length", type=int, default=8)
     p.add_argument("--n-islands", type=int, default=4)
-    p.add_argument("--max-active-trajectories", type=int, default=1000)
+    p.add_argument("--max-per-island", type=int, default=40)
+    p.add_argument("--max-active-trajectories", type=int, default=160)
     p.add_argument("--novelty-threshold", type=float, default=0.92)
-    p.add_argument("--num-evaluators", type=int, default=4)
+    p.add_argument("--num-evaluators", type=int, default=1)
     p.add_argument("--eval-workers", type=int, default=32)
     p.add_argument("--eval-backend", choices=["sequential", "thread", "process"], default="process")
     p.add_argument("--eval-executor", choices=["thread", "process"], default="thread")
     p.add_argument("--task-timeout-seconds", type=float, default=20)
     p.add_argument("--split", default="train")
     p.add_argument("--max-consecutive-sample-failures", type=int, default=20)
+    p.add_argument("--search-seed", type=int, default=2024)
     p.add_argument("--debug", action="store_true")
     return p.parse_args()
 
@@ -65,11 +67,27 @@ def main() -> None:
         actions_per_iteration=args.actions_per_iteration,
         max_trajectory_length=args.max_trajectory_length,
         n_islands=args.n_islands,
+        max_per_island=args.max_per_island,
         max_active_trajectories=args.max_active_trajectories,
         novelty_threshold=args.novelty_threshold,
+        k_distill=20,
+        patience_reflect=20,
+        migration_interval=20,
+        min_reflect_new_edges=8,
+        has_generalization_evidence=False,
+        value_weights=ValueWeights(
+            w_quality=0.50,
+            w_potential=0.20,
+            w_diversity=0.15,
+            w_novelty=0.15,
+            w_generalization=0.0,
+            top_k=12,
+            temperature=0.8,
+        ),
         num_evaluators=args.num_evaluators,
         multi_thread_or_process_eval=args.eval_executor,
         max_consecutive_sample_failures=args.max_consecutive_sample_failures,
+        random_seed=args.search_seed,
         debug_mode=args.debug,
     )
     method.run()

@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import json
 import sys
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
@@ -10,7 +11,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from llm4ad.method.traceaad2 import TraceAAD2, TraceAAD2Profiler, ValueWeights
+from llm4ad.method.traceaad2 import (
+    PortfolioWeights,
+    TraceAAD2,
+    TraceAAD2Profiler,
+    ValueWeights,
+)
 from llm4ad.task.optimization.generated_data_config import get_generated_task_kwargs
 from llm4ad.task.optimization.tsp_construct import TSPEvaluation
 from llm4ad.tools.llm.vllm_openai_api import VLLMOpenAIAPI
@@ -37,30 +43,42 @@ MAX_SAMPLE_NUMS = 1000
 N_INIT = 4
 ACTIONS_PER_ITERATION = 2
 MAX_TRAJECTORY_LENGTH = 8
-MAX_ACTIVE_TRAJECTORIES = 1000
+MAX_ACTIVE_TRAJECTORIES = 160
 SAMPLING_STRATEGY = "trajectory_ucb"
-TOP_K = 5
+TOP_K = 12
 TRAJECTORY_TEMPERATURE = 0.8
 N_ISLANDS = 4
 MAX_PER_ISLAND = 40
 NOVELTY_THRESHOLD = 0.92
-K_DISTILL = 10
-PATIENCE_REFLECT = 8
-NUM_EVALUATORS = 4
+K_DISTILL = 20
+PATIENCE_REFLECT = 20
+MIGRATION_INTERVAL = 20
+MIN_REFLECT_NEW_EDGES = 8
+HAS_GENERALIZATION_EVIDENCE = False
+NUM_EVALUATORS = 1
 MAX_CONSECUTIVE_SAMPLE_FAILURES = 20
+MAX_STALLED_ITERATIONS = 20
+SEARCH_SEED = 2024
 EVAL_EXECUTOR = "thread"
 DEBUG = False
 
-W_QUALITY = 0.30
-W_POTENTIAL = 0.25
-W_DIVERSITY = 0.10
-W_NOVELTY = 0.10
-W_GENERALIZATION = 0.25
+W_QUALITY = 0.50
+W_POTENTIAL = 0.20
+W_DIVERSITY = 0.15
+W_NOVELTY = 0.15
+W_GENERALIZATION = 0.0
 DISCOUNT = 0.8
 W_CONSISTENCY = 0.25
 W_DOWNSIDE = 0.5
 POSITIVE_THRESHOLD = 1e-6
 C0 = 0.4
+FITNESS_CLIP_QUANTILE = 0.10
+POTENTIAL_QUALITY_FLOOR = 0.50
+UCB_FLOOR = 0.05
+STAGNATION_UCB_BOOST = 0.20
+ELITE_SAMPLING_PROB = 0.15
+ISLAND_TOP_K = 1
+PORTFOLIO_WEIGHTS = PortfolioWeights()
 
 
 def write_run_config() -> None:
@@ -94,8 +112,13 @@ def write_run_config() -> None:
             "novelty_threshold": NOVELTY_THRESHOLD,
             "k_distill": K_DISTILL,
             "patience_reflect": PATIENCE_REFLECT,
+            "migration_interval": MIGRATION_INTERVAL,
+            "min_reflect_new_edges": MIN_REFLECT_NEW_EDGES,
+            "has_generalization_evidence": HAS_GENERALIZATION_EVIDENCE,
             "num_evaluators": NUM_EVALUATORS,
             "max_consecutive_sample_failures": MAX_CONSECUTIVE_SAMPLE_FAILURES,
+            "max_stalled_iterations": MAX_STALLED_ITERATIONS,
+            "random_seed": SEARCH_SEED,
             "eval_executor": EVAL_EXECUTOR,
             "debug": DEBUG,
             "value_weights": {
@@ -109,7 +132,14 @@ def write_run_config() -> None:
                 "w_downside": W_DOWNSIDE,
                 "positive_threshold": POSITIVE_THRESHOLD,
                 "c0": C0,
+                "fitness_clip_quantile": FITNESS_CLIP_QUANTILE,
+                "potential_quality_floor": POTENTIAL_QUALITY_FLOOR,
+                "ucb_floor": UCB_FLOOR,
+                "stagnation_ucb_boost": STAGNATION_UCB_BOOST,
+                "elite_sampling_prob": ELITE_SAMPLING_PROB,
+                "island_top_k": ISLAND_TOP_K,
             },
+            "portfolio_weights": asdict(PORTFOLIO_WEIGHTS),
         },
     }
     (RUN_DIR / "run_config.json").write_text(
@@ -144,6 +174,9 @@ def build_method() -> TraceAAD2:
         novelty_threshold=NOVELTY_THRESHOLD,
         k_distill=K_DISTILL,
         patience_reflect=PATIENCE_REFLECT,
+        migration_interval=MIGRATION_INTERVAL,
+        min_reflect_new_edges=MIN_REFLECT_NEW_EDGES,
+        has_generalization_evidence=HAS_GENERALIZATION_EVIDENCE,
         value_weights=ValueWeights(
             w_quality=W_QUALITY,
             w_potential=W_POTENTIAL,
@@ -157,9 +190,18 @@ def build_method() -> TraceAAD2:
             w_downside=W_DOWNSIDE,
             positive_threshold=POSITIVE_THRESHOLD,
             c0=C0,
+            fitness_clip_quantile=FITNESS_CLIP_QUANTILE,
+            potential_quality_floor=POTENTIAL_QUALITY_FLOOR,
+            ucb_floor=UCB_FLOOR,
+            stagnation_ucb_boost=STAGNATION_UCB_BOOST,
+            elite_sampling_prob=ELITE_SAMPLING_PROB,
+            island_top_k=ISLAND_TOP_K,
         ),
+        portfolio_weights=PORTFOLIO_WEIGHTS,
         num_evaluators=NUM_EVALUATORS,
         max_consecutive_sample_failures=MAX_CONSECUTIVE_SAMPLE_FAILURES,
+        max_stalled_iterations=MAX_STALLED_ITERATIONS,
+        random_seed=SEARCH_SEED,
         multi_thread_or_process_eval=EVAL_EXECUTOR,
         debug_mode=DEBUG,
     )

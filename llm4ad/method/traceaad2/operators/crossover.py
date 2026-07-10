@@ -1,6 +1,7 @@
 """Mechanism Crossover —— recombination（design §4.3）。从互补 donor 迁移单个稳定机制。"""
 from __future__ import annotations
 
+from ..credit import normalize_fitness
 from ..schema import NodeId, OperatorName, Trajectory
 from ..similarity import mechanism_profile, mechanism_similarity
 from .base import Operator, OperatorContext
@@ -9,6 +10,9 @@ from .base import Operator, OperatorContext
 class MechanismCrossoverOp(Operator):
     name = OperatorName.CROSSOVER
     role = "recombine"
+    donor_quality_floor = 0.5
+    complementarity_floor = 0.5
+    pattern_success_weight = 0.5
 
     def trigger(self, ctx: OperatorContext) -> bool:
         node = ctx.graph.get_node(ctx.selected.endpoint_id)
@@ -21,18 +25,67 @@ class MechanismCrossoverOp(Operator):
         candidates = [t for t in ctx.memory.active() if t.id != ctx.selected.id]
         if not candidates:
             return None
+        fitnesses = [
+            node.fitness
+            for t in ctx.memory.active()
+            if (node := ctx.graph.get_node(t.endpoint_id)).is_valid
+            and node.fitness is not None
+        ]
+        fmin = min(fitnesses) if fitnesses else None
+        fmax = max(fitnesses) if fitnesses else None
         best: Trajectory | None = None
         best_score = -1.0
         for t in candidates:
             prof = mechanism_profile(ctx.graph, t)
             complementary = 1.0 - mechanism_similarity(sel_profile, prof)
-            if complementary < 0.5:  # 必须足够互补
+            if complementary < self.complementarity_floor:
                 continue
-            value = t.scalar_value if t.scalar_value is not None else 0.0
-            score = complementary + 0.3 * value
+            endpoint = ctx.graph.get_node(t.endpoint_id)
+            if not endpoint.is_valid or endpoint.fitness is None:
+                continue
+            quality = (
+                t.value.quality
+                if t.value is not None
+                else normalize_fitness(endpoint.fitness, fmin, fmax, ctx.maximize)
+            )
+            if quality < self.donor_quality_floor:
+                continue
+            mechanism_tag = endpoint.mechanism_tag
+            if self._is_anti_pattern(ctx, mechanism_tag):
+                continue
+            success_rate = self._improve_rate(ctx, mechanism_tag)
+            score = (
+                complementary
+                + 0.3 * quality
+                + self.pattern_success_weight * (0.5 if success_rate is None else success_rate)
+            )
             if score > best_score:
                 best_score, best = score, t
         return best
+
+    def _improve_rate(self, ctx: OperatorContext, mechanism_tag: str) -> float | None:
+        conditioned = getattr(ctx.pattern_memory, "operator_mechanism_improve_rate", None)
+        if callable(conditioned):
+            return conditioned(str(self.name), mechanism_tag)
+        improve_rate = getattr(ctx.pattern_memory, "mechanism_improve_rate", None)
+        if not callable(improve_rate):
+            return None
+        try:
+            return improve_rate(mechanism_tag, operator=str(self.name))
+        except TypeError:
+            return improve_rate(mechanism_tag)
+
+    def _is_anti_pattern(self, ctx: OperatorContext, mechanism_tag: str) -> bool:
+        conditioned = getattr(ctx.pattern_memory, "is_operator_anti_pattern", None)
+        if callable(conditioned):
+            return bool(conditioned(str(self.name), mechanism_tag))
+        is_anti_pattern = getattr(ctx.pattern_memory, "is_anti_pattern", None)
+        if not callable(is_anti_pattern):
+            return False
+        try:
+            return bool(is_anti_pattern(mechanism_tag, operator=str(self.name)))
+        except TypeError:
+            return bool(is_anti_pattern(mechanism_tag))
 
     def select_base(self, ctx: OperatorContext) -> tuple[NodeId | None, str]:
         donor = self._select_donor(ctx)

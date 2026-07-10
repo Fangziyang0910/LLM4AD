@@ -27,7 +27,14 @@ class BacktrackBranchOp(Operator):
                 continue
             outcomes = trajectory_step_outcomes(ctx.graph, t, ctx.maximize, ctx.positive_threshold)
             if outcomes and outcomes[-1][3] in ("regress", "plateau"):
-                out.append((t, branch_score(ctx.graph, t, t.endpoint_id, ctx.maximize)))
+                base_id, _ = select_base_node(
+                    graph=ctx.graph,
+                    trajectory=t,
+                    maximize=ctx.maximize,
+                    positive_threshold=ctx.positive_threshold,
+                )
+                if base_id != t.endpoint_id:
+                    out.append((t, branch_score(ctx.graph, t, base_id, ctx.maximize)))
         return out
 
     def select_trajectory(self, ctx: OperatorContext) -> Trajectory | None:
@@ -46,8 +53,6 @@ class BacktrackBranchOp(Operator):
             graph=ctx.graph, trajectory=ctx.selected,
             maximize=ctx.maximize, positive_threshold=ctx.positive_threshold,
         )
-        if reason == "endpoint":
-            reason = "backtrack_internal"
         return node_id, reason
 
     def build_constraint(self, ctx: OperatorContext, base_node_id: int | None) -> str:

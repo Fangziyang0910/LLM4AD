@@ -52,13 +52,13 @@ class PatternKind(StrEnum):
 class EvalResult:
     """单次程序评估的富结果。
 
-    fitness_vector 默认 None：现有平台 task 只返回标量，未来 task 提供 per-instance
-    时可填，用于升级为真·跨 instance 泛化信用。当前泛化信号用 robustness 近似。
+    fitness_vector 默认 None：现有平台 task 只返回标量；支持 held-out/per-instance
+    结果的 evaluator 可同时返回 vector 与 robustness，供真实跨实例信用使用。
     """
     fitness: float | None
     runtime: float = 0.0
     complexity: int = 0
-    robustness: float = 1.0
+    robustness: float = 0.0
     confidence: float = 1.0
     fitness_vector: tuple[float, ...] | None = None
 
@@ -72,7 +72,8 @@ class ProgramNode:
     is_valid: bool
     runtime: float = 0.0
     complexity: int = 0
-    robustness: float = 1.0
+    robustness: float = 0.0
+    fitness_vector: tuple[float, ...] | None = None
     mechanism_tag: str = "other"
     confidence: float = 1.0
     iteration: int | None = None
@@ -122,6 +123,10 @@ class Trajectory:
     @property
     def length(self) -> int:
         return len(self.node_ids)
+
+    @property
+    def path_key(self) -> tuple[tuple[NodeId, ...], tuple[EdgeId, ...]]:
+        return self.node_ids, self.edge_ids
 
 
 @dataclass(frozen=True, slots=True)

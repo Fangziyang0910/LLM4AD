@@ -6,6 +6,7 @@
 """
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
@@ -24,7 +25,7 @@ _MECHANISM_KEYWORDS: dict[str, tuple[str, ...]] = {
     "nn_rank": ("nearest neighbor rank", "nn rank", "neighbor rank", "ranking"),
     "row_normalize": ("row-wise", "row normalization", "normalize row", "normaliz"),
     "edge_contrast": ("edge contrast", "contrast", "difference-based"),
-    "sparsified_candidate": ("sparsif", "candidate list", "prune candidate", "candidate"),
+    "sparsified_candidate": ("sparsif", "candidate list", "prune candidate"),
     "adaptive_exponent": ("adaptive exponent", "exponent", "power law", "weighting exponent"),
     "hybrid_distance": ("hybrid distance", "distance-statistical", "distance and statistic"),
     "randomization": ("random", "stochastic", "noise", "probabilistic"),
@@ -32,13 +33,34 @@ _MECHANISM_KEYWORDS: dict[str, tuple[str, ...]] = {
 
 
 def infer_mechanism_tag(action_text: str, hint: str | None = None) -> str:
-    if hint:
-        return hint
     text = action_text.lower()
     for tag, keywords in _MECHANISM_KEYWORDS.items():
-        if any(kw in text for kw in keywords):
+        if any(_has_positive_mention(text, kw) for kw in keywords):
             return tag
+    if hint:
+        hint_keywords = _MECHANISM_KEYWORDS.get(hint)
+        if hint_keywords is None:
+            return hint
+        # An explicit removal must not fall back to the requested family.
+        if any(keyword in text for keyword in hint_keywords):
+            return "other"
+        return hint
     return "other"
+
+
+def _has_positive_mention(text: str, keyword: str) -> bool:
+    for match in re.finditer(re.escape(keyword), text):
+        prefix = text[max(0, match.start() - 96):match.start()]
+        if not re.search(
+            r"\b(?:remove|replace|eliminate|avoid|disable|discard|drop|exclude)\b"
+            r"(?:(?!\b(?:with|using|by)\b)[\s\w-]){0,48}$"
+            r"|\b(?:avoid|stop)\s+using\b(?:(?!\b(?:with|by)\b)[\s\w-]){0,48}$"
+            r"|\bwithout\s+(?:any\s+)?$"
+            r"|\b(?:do\s+not|don't|never)\s+(?:use|add|introduce|retain|keep)?\s*$",
+            prefix,
+        ):
+            return True
+    return False
 
 
 def classify_outcome(delta: float | None, positive_threshold: float = 1e-6) -> str:
@@ -63,6 +85,7 @@ class OperatorContext:
     positive_threshold: float = 1e-6
     iteration: int = 0
     best_stagnation: int = 0
+    has_generalization_evidence: bool = False
     hints: dict = field(default_factory=dict)  # 算子侧信道：donor_mechanism / scale_target 等
 
 

@@ -1,9 +1,9 @@
 """Novelty Jump —— exploration（design §4.5，优化版）。
 
-两处修正：
+关键修正：
 - trigger 从「unique_ratio<0.4（active 多时永真）」改为「best 连续 N 轮停滞」，避免 novelty 被过度选中。
-- 目标族从「最罕见」改为「PatternMemory 高 improve 且当前探索不足」，并避开 anti_pattern——
-  让探索朝已证明有效的机制（如 adaptive_exponent）而不是又开一个 row_normalize。
+- 目标族只按 novelty fresh-start 自身的后验成功率与尝试数选择，并避开 cooldown/anti-pattern；
+  其他算子的成功不会再掩盖某个 family 的 fresh-start 连败。
 """
 from __future__ import annotations
 
@@ -20,43 +20,82 @@ class NoveltyJumpOp(Operator):
     name = OperatorName.NOVELTY
     role = "explore"
 
+    def __init__(
+        self,
+        *,
+        stagnation_threshold: int = 12,
+        trigger_cooldown: int = 8,
+        family_failure_limit: int = 2,
+        family_cooldown: int = 24,
+    ) -> None:
+        self.stagnation_threshold = stagnation_threshold
+        self.trigger_cooldown = trigger_cooldown
+        self.family_failure_limit = family_failure_limit
+        self.family_cooldown = family_cooldown
+        self._last_trigger_iteration: int | None = None
+
     def trigger(self, ctx: OperatorContext) -> bool:
-        return ctx.best_stagnation >= 5
+        if ctx.best_stagnation < self.stagnation_threshold:
+            return False
+        if not self._eligible_families(ctx):
+            return False
+        return (
+            self._last_trigger_iteration is None
+            or ctx.iteration - self._last_trigger_iteration >= self.trigger_cooldown
+        )
 
     def select_base(self, ctx: OperatorContext) -> tuple[NodeId | None, str]:
         return None, "fresh_start"
 
     def _pick_family(self, ctx: OperatorContext) -> str:
-        tag_counts: dict[str, int] = {}
-        for t in ctx.memory.active():
-            tg = ctx.graph.get_node(t.endpoint_id).mechanism_tag
-            tag_counts[tg] = tag_counts.get(tg, 0) + 1
-        # 优先 PatternMemory 高 improve 机制，避开 anti_pattern
-        scored: list[tuple[float, str]] = []
-        for m in ctx.pattern_memory.top_mechanisms(k=8):
-            if ctx.pattern_memory.is_anti_pattern(m.mechanism_tag):
-                continue
-            score = m.generalization_score - 0.02 * tag_counts.get(m.mechanism_tag, 0)
-            scored.append((score, m.mechanism_tag))
-        if scored:
-            scored.sort(reverse=True)
-            return scored[0][1]
-        # 无蒸馏数据时：候选族里非 anti_pattern 且当前最少用的
-        cands = [f for f in _CANDIDATE_FAMILIES if not ctx.pattern_memory.is_anti_pattern(f)] or list(_CANDIDATE_FAMILIES)
-        return min(cands, key=lambda f: tag_counts.get(f, 0))
+        cands = self._eligible_families(ctx)
+        if not cands:
+            raise RuntimeError("novelty has no eligible mechanism family")
+
+        def score(family: str) -> tuple[float, int, str]:
+            attempts = ctx.pattern_memory.mechanism_attempts(
+                family, operator=self.name
+            )
+            successes = ctx.pattern_memory.mechanism_successes(
+                family, operator=self.name
+            )
+            # Beta(1, 1) posterior: untried families remain competitive, while
+            # repeated failed fresh starts rotate away regardless of other operators.
+            posterior = (successes + 1.0) / (attempts + 2.0)
+            return (posterior, -attempts, family)
+
+        return max(cands, key=score)
+
+    def _eligible_families(self, ctx: OperatorContext) -> list[str]:
+        return [
+            family
+            for family in _CANDIDATE_FAMILIES
+            if not ctx.pattern_memory.is_anti_pattern(family, operator=self.name)
+            and not ctx.pattern_memory.mechanism_in_failure_cooldown(
+                family,
+                operator=self.name,
+                iteration=ctx.iteration,
+                failure_limit=self.family_failure_limit,
+                cooldown=self.family_cooldown,
+            )
+        ]
 
     def build_constraint(self, ctx: OperatorContext, base_node_id: int | None) -> str:
         target = self._pick_family(ctx)
         ctx.hints["mechanism_tag_hint"] = target
+        self._last_trigger_iteration = ctx.iteration
         return (
             f"Novelty jump: best has stagnated. Design a NEW complete algorithm from the '{target}' "
-            f"mechanism family (it has shown cross-trajectory promise or is under-explored). Build a "
+            f"mechanism family (it has favorable fresh-start evidence or is under-explored). Build a "
             f"fresh constructive heuristic from scratch using this family; avoid repeating current "
             f"converged directions."
         )
 
     def insert(self, ctx: OperatorContext, child_id: NodeId, edge_id: int,
                base_node_id: NodeId | None) -> Trajectory:
-        tag = ctx.hints.get("mechanism_tag_hint", "other")
+        tag = ctx.hints.get(
+            "observed_mechanism_tag",
+            ctx.hints.get("mechanism_tag_hint", "other"),
+        )
         island = ctx.islands.assign(tag)
         return ctx.memory.create_initial(node_id=child_id, island_id=island)

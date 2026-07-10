@@ -1,8 +1,8 @@
 """Scale-Transfer —— generalize（design §4.5，新增算子，直驱泛化目标）。
 
 让当前机制更 scale-invariant / instance-agnostic，使其跨规模与分布可迁移。
-当前平台 task 只返回标量，无法真换规模评估；这里通过 prompt 约束 + 高 robustness 触发
-+ 泛化信用加权，间接驱动泛化（未来 task 支持 per-instance/多规模时可直接评估迁移效果）。
+只有 evaluation 明确提供 held-out、per-instance 或跨规模证据时才允许触发；默认
+robustness 不构成泛化证据。
 """
 from __future__ import annotations
 
@@ -18,8 +18,7 @@ class ScaleTransferOp(_ExtendFromEndpointOp):
         node = ctx.graph.get_node(ctx.selected.endpoint_id)
         if not node.is_valid or node.fitness is None:
             return False
-        # 高 robustness（疑似可泛化）或周期性触发，鼓励把好机制推向更通用
-        return node.robustness >= 0.5 or (ctx.iteration % 7 == 0 and ctx.iteration > 0)
+        return ctx.has_generalization_evidence
 
     def build_constraint(self, ctx: OperatorContext, base_node_id: int | None) -> str:
         ctx.hints["mechanism_tag_hint"] = "generalize"

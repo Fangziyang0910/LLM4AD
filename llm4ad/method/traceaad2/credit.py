@@ -1,14 +1,12 @@
 """Stepwise credit + 泛化信号（design §5）。
 
 - stepwise attribution：每个 step 只承担自己的 Δ，后代不回传（规避 MCTS max-backprop over-credit）。
-- 泛化信号：当前平台 task 只返回标量，无法做真·跨 instance 泛化；这里用「该机制在
-  PatternMemory 的跨轨迹泛化分数 + 步内改进是否被后续维持 + endpoint robustness」近似。
-  EvalResult.fitness_vector 字段保留，未来 task 提供 per-instance 时升级为真·跨 instance。
+- 泛化信号只来自 evaluator 提供的 parent/child per-instance fitness vector 与 robustness。
+  scalar-only task 的该维恒为 0，不再用机制成功率或 scalar delta 伪造跨实例证据。
 """
 from __future__ import annotations
 
 from .derivation_graph import DerivationGraph
-from .pattern_memory import PatternMemory
 from .schema import Trajectory
 
 
@@ -32,47 +30,50 @@ def directed_delta(parent_fitness: float | None, child_fitness: float | None,
 
 def step_generalization_signal(
     *,
-    mechanism_tag: str,
-    delta: float | None,
-    pattern_memory: PatternMemory,
+    parent_fitness_vector: tuple[float, ...] | None,
+    child_fitness_vector: tuple[float, ...] | None,
     maximize: bool,
+    neutral_tolerance: float = 1e-12,
 ) -> float:
-    """child 刚生成时写入 edge 的泛化信号（初始估计）。∈ [0,1]。"""
-    mech = pattern_memory.mechanism_pattern(mechanism_tag)
-    cross_traj_score = mech.generalization_score if mech is not None else 0.0
-    # 步内弱信号：正向改进给一点基础分
-    step_sign = 0.0
-    if delta is not None:
-        step_sign = 0.5 if (delta > 0) == maximize else (0.2 if abs(delta) < 1e-9 else 0.0)
-    # 跨轨迹证据权重更高
-    return max(0.0, min(1.0, 0.6 * cross_traj_score + 0.4 * step_sign))
+    """Fractional per-instance wins for one parent-child step, in [0, 1]."""
+    if (
+        parent_fitness_vector is None
+        or child_fitness_vector is None
+        or not parent_fitness_vector
+        or len(parent_fitness_vector) != len(child_fitness_vector)
+    ):
+        return 0.0
+    outcomes: list[float] = []
+    for parent, child in zip(parent_fitness_vector, child_fitness_vector):
+        delta = child - parent if maximize else parent - child
+        if delta > neutral_tolerance:
+            outcomes.append(1.0)
+        elif delta < -neutral_tolerance:
+            outcomes.append(0.0)
+        else:
+            outcomes.append(0.5)
+    return sum(outcomes) / len(outcomes)
 
 
 def trajectory_generalization(
     *,
     trajectory: Trajectory,
     graph: DerivationGraph,
-    pattern_memory: PatternMemory,
 ) -> float:
-    """trajectory 级泛化：步泛化信号 + endpoint robustness + 持续性 + endpoint 机制 improve-rate。
-
-    最后一项是机制信用贯通的关键：endpoint 机制若跨轨迹 improve-rate 高（如 adaptive_exponent），
-    该 trajectory 的泛化价值自动升高，被 selection 偏好 → 深化高效机制、远离低效机制。
-    """
+    """Trajectory transfer value from vector-based step evidence and robustness."""
     endpoint = graph.get_node(trajectory.endpoint_id)
-    mech_rate = pattern_memory.mechanism_improve_rate(endpoint.mechanism_tag)
-    mech_rate = 0.5 if mech_rate is None else mech_rate
+    robustness = max(0.0, min(1.0, float(endpoint.robustness)))
     if not trajectory.edge_ids:
-        return max(0.0, min(1.0, 0.6 * float(endpoint.robustness) + 0.4 * mech_rate))
-    gen_signals: list[float] = []
-    for eid in trajectory.edge_ids:
-        edge = graph.get_edge(eid)
-        gen_signals.append(edge.generalization_signal)
+        return robustness
+    gen_signals = [
+        graph.get_edge(edge_id).generalization_signal
+        for edge_id in trajectory.edge_ids
+    ]
     avg_step_gen = sum(gen_signals) / len(gen_signals)
-    # 持续性：最后一步是否仍是改进（未被后续 revert）的弱代理
-    sustained = 1.0 if gen_signals[-1] >= 0.5 else 0.5
-    return max(0.0, min(1.0, 0.30 * avg_step_gen + 0.25 * float(endpoint.robustness)
-                        + 0.20 * sustained + 0.25 * mech_rate))
+    return max(
+        0.0,
+        min(1.0, 0.6 * avg_step_gen + 0.2 * gen_signals[-1] + 0.2 * robustness),
+    )
 
 
 def compute_step_qualities(

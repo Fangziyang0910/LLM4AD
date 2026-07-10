@@ -86,13 +86,19 @@ class TrajectoryMemory:
         return traj
 
     def fork(self, trajectory_id: TrajectoryId, island_id: IslandId) -> Trajectory:
-        """复制一条 trajectory 到指定 island（共享 graph 节点，仅 island 标签不同）。
-        供 islands migration 使用——让同一条高价值路径在多个岛活跃，促进机制流动。"""
+        """Copy a trajectory to another island without erasing search history."""
         t = self.get_trajectory(trajectory_id)
-        new = replace(t, id=self._next_id, island_id=island_id, visit_count=0)
+        new = replace(t, id=self._next_id, island_id=island_id)
         self._trajectories[new.id] = new
         self._next_id += 1
         return new
+
+    def move_to_island(self, trajectory_id: TrajectoryId, island_id: IslandId) -> Trajectory:
+        """Move one trajectory while preserving its identity and accumulated state."""
+        trajectory = self.get_trajectory(trajectory_id)
+        moved = replace(trajectory, island_id=island_id)
+        self._trajectories[trajectory_id] = moved
+        return moved
 
     def record_visit(self, trajectory_id: TrajectoryId) -> Trajectory:
         t = self.get_trajectory(trajectory_id)
@@ -121,6 +127,32 @@ class TrajectoryMemory:
     def active(self) -> tuple[Trajectory, ...]:
         return tuple(t for t in self._trajectories.values() if t.status == TrajectoryStatus.ACTIVE)
 
+    def unique_active(self) -> tuple[Trajectory, ...]:
+        """Return one representative per path, preferring accumulated visits."""
+        representatives: dict[tuple, Trajectory] = {}
+        for trajectory in self.active():
+            current = representatives.get(trajectory.path_key)
+            if current is None or (
+                trajectory.visit_count,
+                -trajectory.id,
+            ) > (
+                current.visit_count,
+                -current.id,
+            ):
+                representatives[trajectory.path_key] = trajectory
+        return tuple(sorted(representatives.values(), key=lambda trajectory: trajectory.id))
+
+    def archive_duplicate_paths(self) -> int:
+        keep_ids = {trajectory.id for trajectory in self.unique_active()}
+        duplicate_ids = [
+            trajectory.id
+            for trajectory in self.active()
+            if trajectory.id not in keep_ids
+        ]
+        for trajectory_id in duplicate_ids:
+            self.archive(trajectory_id)
+        return len(duplicate_ids)
+
     def active_in_island(self, island_id: IslandId) -> tuple[Trajectory, ...]:
         return tuple(t for t in self.active() if t.island_id == island_id)
 
@@ -128,4 +160,4 @@ class TrajectoryMemory:
         return tuple(sorted({t.island_id for t in self.active()}))
 
     def total_visits(self) -> int:
-        return sum(t.visit_count for t in self.active())
+        return sum(t.visit_count for t in self.unique_active())

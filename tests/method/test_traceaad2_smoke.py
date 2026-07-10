@@ -89,5 +89,9 @@ def run_smoke():
     print("SMOKE OK")
 
 
+def test_traceaad2_smoke():
+    run_smoke()
+
+
 if __name__ == "__main__":
     run_smoke()

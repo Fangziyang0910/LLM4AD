@@ -20,38 +20,69 @@ def distill(
     iteration: int,
     min_support: int = 2,
 ) -> int:
-    """统计每个 mechanism 在所有 active trajectory 边上的改进表现，沉淀为机制模式。"""
+    """Distill each graph edge exactly once into mechanism and operator credit."""
     stats: dict[str, dict] = {}
-    for t in memory.trajectories():
-        for eid in t.edge_ids:
-            edge = graph.get_edge(eid)
-            st = stats.setdefault(edge.mechanism_tag, {"n": 0, "improved": 0})
-            st["n"] += 1
-            if edge.delta is not None and (edge.delta > 0) == maximize:
-                st["improved"] += 1
+    conditioned_stats: dict[tuple[str, str], dict] = {}
+    for edge in graph.edges():
+        improved = edge.delta is not None and edge.delta > 0
+        pattern_memory.record_mechanism_outcome(
+            operator=edge.operator,
+            mechanism_tag=edge.mechanism_tag,
+            support_id=edge.id,
+            success=improved,
+            iteration=edge.iteration if edge.iteration is not None else iteration,
+        )
+        st = stats.setdefault(edge.mechanism_tag, {"edge_ids": [], "improved": 0})
+        st["edge_ids"].append(edge.id)
+        if improved:
+            st["improved"] += 1
+        conditioned = conditioned_stats.setdefault(
+            (edge.operator, edge.mechanism_tag),
+            {"edge_ids": [], "improved": 0},
+        )
+        conditioned["edge_ids"].append(edge.id)
+        if improved:
+            conditioned["improved"] += 1
     added = 0
     for tag, st in stats.items():
-        gen_score = st["improved"] / st["n"]
-        if st["n"] >= min_support and st["improved"] > 0:
-            pattern_memory.upsert_mechanism(
-                mechanism_tag=tag,
-                text=f"Mechanism '{tag}' improved fitness in {st['improved']}/{st['n']} observed uses.",
-                generalization_score=gen_score,
-                support_id=-1,
-                updated_iter=iteration,
-            )
+        n_attempts = len(st["edge_ids"])
+        gen_score = st["improved"] / n_attempts
+        if n_attempts >= min_support and gen_score >= 0.4:
+            if pattern_memory.clear_anti_pattern(tag):
+                added += 1
+        if n_attempts >= min_support and st["improved"] > 0:
+            for edge_id in st["edge_ids"]:
+                pattern_memory.upsert_mechanism(
+                    mechanism_tag=tag,
+                    text=(f"Mechanism '{tag}' improved fitness in "
+                          f"{st['improved']}/{n_attempts} unique graph edges."),
+                    generalization_score=gen_score,
+                    support_id=edge_id,
+                    updated_iter=iteration,
+                )
             added += 1
-        # anti-pattern 早停：尝试够多却几乎从不改进的机制，标记降权（接回 selection/operator）
-        if st["n"] >= max(min_support, 5) and gen_score < 0.2 and not pattern_memory.is_anti_pattern(tag):
+    for (operator, tag), st in conditioned_stats.items():
+        n_attempts = len(st["edge_ids"])
+        if n_attempts < max(min_support, 5):
+            continue
+        gen_score = st["improved"] / n_attempts
+        if gen_score < 0.2:
+            existed = pattern_memory.is_anti_pattern(tag, operator=operator)
             pattern_memory.add(
                 kind="anti_pattern",
-                text=f"Mechanism '{tag}' improved only {gen_score:.0%} of {st['n']} uses; deprioritize.",
+                text=(f"Mechanism '{tag}' under operator '{operator}' improved only "
+                      f"{gen_score:.0%} of {n_attempts} unique graph edges; deprioritize "
+                      "in this operator context."),
                 mechanism_tag=tag,
-                support_ids=(-1,),
+                support_ids=tuple(st["edge_ids"]),
                 generalization_score=gen_score,
                 confidence=0.8,
                 updated_iter=iteration,
+                operator=operator,
             )
+            if not existed:
+                added += 1
+        elif pattern_memory.clear_anti_pattern(tag, operator=operator):
             added += 1
     return added
 
@@ -74,8 +105,8 @@ def reflect(
     if best["mechanism_tag"] != "other":
         pattern_memory.add(
             kind="lesson",
-            text=(f"Mechanism '{best['mechanism_tag']}' consistently yields strong fitness "
-                  f"(idea: {best['idea'][:80]}). Prefer variants of it."),
+            text=(f"Mechanism '{best['mechanism_tag']}' ranks strongly in current pairwise "
+                  "comparisons; prefer evidence-backed variants."),
             mechanism_tag=best["mechanism_tag"],
             support_ids=(best["node_id"],),
             generalization_score=0.6,

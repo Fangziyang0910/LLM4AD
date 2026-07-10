@@ -42,7 +42,11 @@ def build_action_prompt(
         _causal_narrative(graph, trajectory, max_steps),
         "",
     ]
-    sections += ["[Distilled Patterns]", _patterns_block(pattern_memory), ""]
+    sections += [
+        "[Distilled Patterns]",
+        _patterns_block(pattern_memory, operator=operator_name),
+        "",
+    ]
     sections += ["[Contrast Feedback]", _contrast_block(contrast), ""]
     sections += [
         "[Operator]",
@@ -89,19 +93,37 @@ def _causal_narrative(graph: DerivationGraph, trajectory: Trajectory, max_steps:
         lines.append(f"  action: {edge.action}")
         lines.append(
             f"  fitness: {format_fitness(parent.fitness)} -> {format_fitness(child.fitness)} "
-            f"(Δ={delta:+.4g}, outcome={edge.outcome}, generalization={edge.generalization_signal:.2f})"
+            f"(Δ={delta:+.4g}, outcome={edge.outcome}, transfer_signal={edge.generalization_signal:.2f})"
         )
     return "\n".join(lines)
 
 
-def _patterns_block(pattern_memory: PatternMemory) -> str:
+def _patterns_block(pattern_memory: PatternMemory, *, operator: str | None = None) -> str:
     mechs = pattern_memory.top_mechanisms(k=4)
-    lessons = pattern_memory.top_lessons(k=3)
+    lessons = pattern_memory.top_lessons(operator=operator, k=3)
     lines: list[str] = []
     if mechs:
-        lines.append("Recurring mechanisms (cross-trajectory evidence):")
+        lines.append("Recurring mechanisms (unique graph-edge evidence):")
         for m in mechs:
-            lines.append(f"  - {m.mechanism_tag}: generalization={m.generalization_score:.2f} support={len(m.support_ids)}")
+            detail = (
+                f"  - {m.mechanism_tag}: "
+                f"aggregate_improve_rate={m.generalization_score:.2f} "
+                f"unique_support={len(m.support_ids)}"
+            )
+            attempts = pattern_memory.mechanism_attempts(
+                m.mechanism_tag,
+                operator=operator,
+            )
+            if operator is not None and attempts:
+                rate = pattern_memory.mechanism_improve_rate(
+                    m.mechanism_tag,
+                    operator=operator,
+                )
+                detail += (
+                    f" operator_improve_rate={rate:.2f}"
+                    f" operator_support={attempts}"
+                )
+            lines.append(detail)
     else:
         lines.append("No distilled mechanisms yet.")
     if lessons:
