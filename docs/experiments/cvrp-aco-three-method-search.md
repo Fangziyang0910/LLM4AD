@@ -43,3 +43,21 @@ contain the intended task and method budgets. The first health check observed:
 
 No traceback, HTTP 4xx/5xx, or actual aborted summary was present. The literal
 `_search_aborted: False` configuration line is not an error signal.
+
+## ETA snapshot at 2026-07-11 12:05 CST
+
+After about 15 minutes of wall time:
+
+| Method | Progress | Valid | Best score | Mean rate | Estimated remaining |
+|---|---:|---:|---:|---:|---:|
+| MCTS-AHD | 23 / 1000 | 23 | `-9.543906976338437` | 1.52 samples/min | 10-12 hours |
+| PathWise | 31 / 500 | 29 | `-12.14452070545429` | 2.05 samples/min | 3.5-4.5 hours |
+| TraceAAD | 21 / 1000 | 19 | `-13.835640604793852` | 1.39 samples/min | 11-13 hours |
+
+The corresponding approximate completion windows are 15:30-16:30 CST for
+PathWise, 22:30-00:30 for MCTS-AHD, and 23:00-01:00 for TraceAAD. These are
+early-run estimates: PathWise and TraceAAD use extra policy/reflection calls,
+and invalid generated candidates consume sample orders with very short failed
+evaluations, so later throughput can move in either direction. Overall, all
+three are expected to finish around midnight, with a practical uncertainty of
+roughly one hour.
