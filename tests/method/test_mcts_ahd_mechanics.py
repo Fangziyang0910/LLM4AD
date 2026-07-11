@@ -150,6 +150,19 @@ class MCTSAHDMechanicsTest(unittest.TestCase):
         self.assertIn("algorithm-1", captured["prompt"])
         self.assertEqual(len(mcts.root.children), before + 1)
 
+    def test_s1_expand_checks_duplicates_against_path_set(self):
+        method = make_method()
+        mcts = MCTS("Root", alpha=0.5, lambad0=0.1)
+        parent = attach_node(mcts.root, make_function(1, 1.0), depth=1)
+        parent.subtree.append(parent)
+        leaf = attach_node(parent, make_function(2, 2.0), depth=2)
+        method._sample_evaluate_register = lambda prompt, func_only=False, **kwargs: make_function(3, 3.0)
+
+        method.expand(mcts, [], leaf, "s1")
+
+        self.assertEqual(len(leaf.children), 1)
+        self.assertEqual(leaf.children[0].individual.score, 3.0)
+
     def test_eval_counter_increments_without_profiler(self):
         method = make_method()
         method._sampler = FakeSampler(make_function(3))

@@ -45,7 +45,7 @@ class PathWise:
             llm: LLM,
             evaluation: Evaluation,
             profiler: ProfilerBase = None,
-            max_sample_nums: Optional[int] = 100,
+            max_sample_nums: Optional[int] = 500,
             pop_size: int = 6,
             init_pop_size: Optional[int] = None,
             num_actions: int = 2,
@@ -84,7 +84,7 @@ class PathWise:
         alias_num_actions = kwargs.pop("N_a", None)
         alias_num_rollouts = kwargs.pop("N_w", None)
         alias_pop_size = kwargs.pop("N_p", None)
-        if max_fe is not None and max_sample_nums == 100:
+        if max_fe is not None and max_sample_nums == 500:
             max_sample_nums = max_fe
         if alias_num_actions is not None and num_actions == 2:
             num_actions = alias_num_actions
@@ -124,6 +124,11 @@ class PathWise:
         self._world_model_critic_llm = world_model_critic_llm or self._world_model_llm
         for agent_llm in self._llms():
             agent_llm.debug_mode = debug_mode
+
+        max_world_model_retries = kwargs.pop("max_world_model_retries", 3)
+        max_policy_retries = kwargs.pop("max_policy_retries", 1)
+        self._max_world_model_retries = max(0, int(max_world_model_retries))
+        self._max_policy_retries = max(0, int(max_policy_retries))
 
         raw_template_program = TextFunctionProgramConverter.text_to_program(self._template_program_str)
         if raw_template_program is None or len(raw_template_program.functions) != 1:
@@ -407,42 +412,88 @@ class PathWise:
                 perturbation=self._policy_perturbation(),
             )
             self._debug_print("PathWise Policy Prompt", prompt)
-            try:
-                response = self._policy_llm.draw_sample(prompt)
-            except Exception as exc:
-                record_sample_failure(
+            action = None
+            for attempt in range(self._max_policy_retries + 1):
+                try:
+                    response = self._policy_llm.draw_sample(prompt)
+                except Exception as exc:
+                    record_sample_failure(
+                        self,
+                        exc,
+                        stage="policy",
+                        operator="policy",
+                        sample_order=self._tot_sample_nums + 1,
+                        prompt=prompt,
+                        role="policy",
+                        retry=attempt,
+                        counts_budget=False,
+                    )
+                    action = self._fallback_action(state)
+                    actions.append(action)
+                    break
+                action = PathWiseSampler.parse_policy_response(response, state)
+                log_llm_call(
                     self,
-                    exc,
+                    method="pathwise",
                     stage="policy",
+                    role="policy",
                     operator="policy",
                     sample_order=self._tot_sample_nums + 1,
                     prompt=prompt,
-                    role="policy",
-                    counts_budget=False,
+                    response=response,
+                    parse_success=action is not None,
+                    retry=attempt,
+                    state_node_ids=[node.node_id for node in state],
                 )
-                action = self._fallback_action(state)
-                actions.append(action)
-                continue
-            action = PathWiseSampler.parse_policy_response(response, state)
-            log_llm_call(
-                self,
-                method="pathwise",
-                stage="policy",
-                role="policy",
-                operator="policy",
-                sample_order=self._tot_sample_nums + 1,
-                prompt=prompt,
-                response=response,
-                parse_success=action is not None,
-                state_node_ids=[node.node_id for node in state],
-            )
+                if action is not None:
+                    actions.append(action)
+                    break
+                if attempt < self._max_policy_retries:
+                    log_event(self, event="policy_retry", method="pathwise", status="retry",
+                              sample_order=self._tot_sample_nums + 1,
+                              retry=attempt + 1,
+                              state_node_ids=[node.node_id for node in state])
             if action is None:
-                action = self._fallback_action(state)
-                log_event(self, event="policy_fallback", method="pathwise", status="fallback",
+                log_event(self, event="policy_skipped", method="pathwise", status="invalid_parent_selection",
                           sample_order=self._tot_sample_nums + 1,
                           state_node_ids=[node.node_id for node in state])
-            actions.append(action)
         return actions
+
+    def _fallback_world_model_rollout(
+            self,
+            action: PathWiseAction,
+            state: list[PathWiseNode],
+            graph: PathWiseGraph,
+            action_idx: int,
+            rollout_idx: int,
+            sample_time: float,
+            reason: str,
+    ) -> _Rollout:
+        parent_nodes = [node for node in state if node.node_id in action.parents]
+        fallback_source = parent_nodes[0] if parent_nodes else (self._population.nodes[0] if self._population.nodes else None)
+        if fallback_source is None:
+            return _Rollout(None, float("-inf"), reason, action, sample_time)
+        description = (
+            f"Fallback heuristic {rollout_idx} "
+            f"(invalid LLM output after {self._max_world_model_retries} retries)."
+        )
+        node = self._evaluate_function(
+            fallback_source.function,
+            "world_model",
+            description,
+            action.rationale,
+            node_id=f"rollout_{self._outer_iteration}_{self._inner_step}_{action_idx}_{rollout_idx}",
+            parent_ids=action.parents,
+            graph=graph,
+            sample_time=sample_time,
+        )
+        score = node.score if node is not None else float("-inf")
+        if node is not None:
+            log_event(self, event="world_model_fallback", method="pathwise", status="fallback",
+                      sample_order=self._tot_sample_nums, action_idx=action_idx,
+                      rollout_idx=rollout_idx, source_node_id=fallback_source.node_id,
+                      reason=reason, counts_budget=True)
+        return _Rollout(node, score, description, action, sample_time)
 
     def _world_model_rollout(
             self,
@@ -460,60 +511,77 @@ class PathWise:
             perturbation=self._world_model_perturbation(),
         )
         self._debug_print("PathWise World Model Prompt", prompt)
-        sample_start = time.time()
-        try:
-            response = self._world_model_llm.draw_sample(prompt)
-        except Exception as exc:
-            record_sample_failure(
+        total_sample_time = 0.0
+        for attempt in range(self._max_world_model_retries + 1):
+            sample_start = time.time()
+            try:
+                response = self._world_model_llm.draw_sample(prompt)
+            except Exception as exc:
+                total_sample_time += time.time() - sample_start
+                record_sample_failure(
+                    self,
+                    exc,
+                    stage="world_model",
+                    operator="world_model",
+                    sample_order=self._tot_sample_nums + 1,
+                    prompt=prompt,
+                    role="world_model",
+                    action_idx=action_idx,
+                    rollout_idx=rollout_idx,
+                    retry=attempt,
+                    counts_budget=False,
+                )
+                if attempt >= self._max_world_model_retries:
+                    return self._fallback_world_model_rollout(
+                        action, state, graph, action_idx, rollout_idx, total_sample_time,
+                        "World-model request failed.",
+                    )
+                continue
+            sample_time = time.time() - sample_start
+            total_sample_time += sample_time
+            parsed = PathWiseSampler.parse_world_model_response(response, self._template_program)
+            log_llm_call(
                 self,
-                exc,
+                method="pathwise",
                 stage="world_model",
+                role="world_model",
                 operator="world_model",
                 sample_order=self._tot_sample_nums + 1,
                 prompt=prompt,
-                role="world_model",
+                response=response,
+                parse_success=parsed is not None,
+                sample_time=sample_time,
+                retry=attempt,
                 action_idx=action_idx,
                 rollout_idx=rollout_idx,
-                counts_budget=False,
+                parent_ids=action.parents,
             )
-            return _Rollout(None, float("-inf"), "World-model request failed.", action, 0.0)
-        sample_time = time.time() - sample_start
-        parsed = PathWiseSampler.parse_world_model_response(response, self._template_program)
-        log_llm_call(
-            self,
-            method="pathwise",
-            stage="world_model",
-            role="world_model",
-            operator="world_model",
-            sample_order=self._tot_sample_nums + 1,
-            prompt=prompt,
-            response=response,
-            parse_success=parsed is not None,
-            sample_time=sample_time,
-            action_idx=action_idx,
-            rollout_idx=rollout_idx,
-            parent_ids=action.parents,
-        )
-        if parsed is None:
-            self._count_invalid_sample()
-            log_event(self, event="sample_rejected", method="pathwise", status="parse_failed",
-                      operator="world_model", sample_order=self._tot_sample_nums,
-                      action_idx=action_idx, rollout_idx=rollout_idx, counts_budget=True)
-            return _Rollout(None, float("-inf"), "Invalid world-model rollout.", action, sample_time)
+            if parsed is None:
+                if attempt < self._max_world_model_retries:
+                    log_event(self, event="world_model_retry", method="pathwise", status="retry",
+                              operator="world_model", sample_order=self._tot_sample_nums + 1,
+                              action_idx=action_idx, rollout_idx=rollout_idx,
+                              retry=attempt + 1, counts_budget=False)
+                    continue
+                return self._fallback_world_model_rollout(
+                    action, state, graph, action_idx, rollout_idx, total_sample_time,
+                    "Invalid world-model rollout.",
+                )
 
-        func, description = parsed
-        node = self._evaluate_function(
-            func,
-            "world_model",
-            description,
-            action.rationale,
-            node_id=f"rollout_{self._outer_iteration}_{self._inner_step}_{action_idx}_{rollout_idx}",
-            parent_ids=action.parents,
-            graph=graph,
-            sample_time=sample_time,
-        )
-        score = node.score if node is not None else float("-inf")
-        return _Rollout(node, score, description, action, sample_time)
+            func, description = parsed
+            node = self._evaluate_function(
+                func,
+                "world_model",
+                description,
+                action.rationale,
+                node_id=f"rollout_{self._outer_iteration}_{self._inner_step}_{action_idx}_{rollout_idx}",
+                parent_ids=action.parents,
+                graph=graph,
+                sample_time=sample_time,
+            )
+            score = node.score if node is not None else float("-inf")
+            return _Rollout(node, score, description, action, sample_time)
+        return _Rollout(None, float("-inf"), "Invalid world-model rollout.", action, total_sample_time)
 
     def _run_world_model_rollouts(
             self,
@@ -724,7 +792,30 @@ class PathWise:
             final_node = self._inner_entailment_step(graph)
             if final_node is None:
                 break
+        if final_node is None:
+            final_node = self._fallback_final_node(graph)
         return graph, final_node
+
+    def _fallback_final_node(self, graph: PathWiseGraph) -> PathWiseNode | None:
+        if not self._population.nodes or not self._has_budget():
+            return None
+        best = max(self._population.nodes, key=lambda node: node.score)
+        node = self._evaluate_function(
+            best.function,
+            "fallback",
+            "Best from current population.",
+            "Fallback from population.",
+            node_id=f"fallback_{self._outer_iteration}",
+            parent_ids=[],
+            graph=graph,
+        )
+        if node is None:
+            return None
+        graph.add_node(node)
+        log_event(self, event="entailment_fallback", method="pathwise", status="fallback",
+                  sample_order=self._tot_sample_nums, node_id=node.node_id,
+                  source_node_id=best.node_id, counts_budget=True)
+        return node
 
     def _leaf_nodes(self, graph: PathWiseGraph) -> list[PathWiseNode]:
         parent_ids = graph.parent_ids()
@@ -779,6 +870,8 @@ class PathWise:
                   best_score=self._best_node.score if self._best_node else None)
 
     def run(self):
+        run_status = "finished"
+        run_error = None
         try:
             if not self._resume_mode:
                 self._initialize_population()
@@ -799,21 +892,32 @@ class PathWise:
                     break
                 self._update_population(graph)
                 self._outer_iteration += 1
-        except KeyboardInterrupt:
-            pass
+        except KeyboardInterrupt as exc:
+            run_status = "interrupted"
+            run_error = exc
         except Exception as exc:
+            run_status = "error"
+            run_error = exc
             log_error(self, "run", exc, method="pathwise", counts_budget=False)
             if self._debug_mode:
                 traceback.print_exc()
                 raise
         finally:
+            if is_search_aborted(self):
+                run_status = "aborted"
+            summary_payload = {}
+            if run_error is not None:
+                summary_payload.update(
+                    error_type=type(run_error).__name__,
+                    error=str(run_error),
+                )
             shutdown_executor(self._evaluation_executor)
             log_state(self, phase="final", method="pathwise", sample_count=self._tot_sample_nums,
                       outer_iteration=self._outer_iteration,
                       population_size=len(self._population),
                       archive_size=len(self._all_nodes_archive),
                       best_score=self._best_node.score if self._best_node else None)
-            finish_profiler(self, status="aborted" if is_search_aborted(self) else "finished")
+            finish_profiler(self, status=run_status, **summary_payload)
             for agent_llm in self._llms():
                 close_llm(agent_llm)
 

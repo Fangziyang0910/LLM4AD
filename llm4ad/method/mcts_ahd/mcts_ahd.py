@@ -499,7 +499,7 @@ class MCTS_AHD:
                     is_valid_func = False
                     i += 1
                     continue
-                is_valid_func = (func.score is not None) and not self.check_duplicate(indivs, str(func))
+                is_valid_func = (func.score is not None) and not self.check_duplicate(path_set, str(func))
                 if is_valid_func is False:
                     i += 1
                     continue
@@ -704,6 +704,8 @@ class MCTS_AHD:
             t.join()
 
     def run(self):
+        run_status = 'finished'
+        run_error = None
         try:
             mcts = MCTS('Root', self.alpha, self.lambda_0)
             brothers = self._initialize_mcts_root(mcts)
@@ -759,10 +761,26 @@ class MCTS_AHD:
                         nodes_set = self.expand(mcts, nodes_set, cur_node, op)
                 self._population.survival()
                 nodes_set = self.population_management(nodes_set, min(len(nodes_set), self._pop_size))
+        except Exception as exc:
+            run_status = 'error'
+            run_error = exc
+            logger = getattr(self._profiler, 'log_error', None)
+            if callable(logger):
+                logger('run', exc)
+            raise
         finally:
+            if getattr(self, '_search_aborted', False):
+                run_status = 'aborted'
+            summary_payload = {}
+            if run_error is not None:
+                summary_payload.update(
+                    error_type=type(run_error).__name__,
+                    error=str(run_error),
+                )
             finish_profiler(
                 self,
-                status='aborted' if getattr(self, '_search_aborted', False) else 'finished',
+                status=run_status,
+                **summary_payload,
             )
             close_sampler_llm(self._sampler)
             shutdown_executor(self._evaluation_executor)

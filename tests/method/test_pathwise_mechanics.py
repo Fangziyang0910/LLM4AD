@@ -1,7 +1,11 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from llm4ad.base import Evaluation, LLM
 from llm4ad.method.pathwise import PathWise
+from llm4ad.method.pathwise.profiler import PathWiseProfiler
 
 
 def make_init_code(label: int) -> str:
@@ -234,15 +238,20 @@ class PathWiseMechanicsTest(unittest.TestCase):
         self.assertEqual(method._policy_reflection_history, ["prefer second parent"])
         self.assertEqual(method._world_model_reflection_history, ["simplify the low score variant"])
 
-    def test_invalid_world_model_output_counts_budget_without_replacing_population(self):
+    def test_invalid_world_model_output_retries_then_falls_back_to_parent_code(self):
         llm = ScriptedLLM(
             init_responses=[make_init_code(1), make_init_code(2)],
             policy_responses=["PARENTS: [init_0]\nDIRECTIVE: improve first"],
-            world_responses=["Description: invalid\nnot code"],
+            world_responses=[
+                "Description: invalid\nnot code",
+                "Description: invalid\nnot code",
+                "Description: invalid\nnot code",
+                "Description: invalid\nnot code",
+            ],
         )
         method, _, _ = make_method(
             llm=llm,
-            scores=[1.0, 2.0],
+            scores=[1.0, 2.0, 1.0],
             max_sample_nums=3,
         )
 
@@ -250,7 +259,74 @@ class PathWiseMechanicsTest(unittest.TestCase):
 
         self.assertEqual(method._tot_sample_nums, 3)
         self.assertEqual(method.best_node.score, 2.0)
+        self.assertEqual([node.score for node in method._population.nodes], [1.0, 2.0])
+
+    def test_invalid_policy_parent_retries_before_accepting_action(self):
+        llm = ScriptedLLM(
+            init_responses=[make_init_code(1), make_init_code(2)],
+            policy_responses=[
+                "PARENTS: [missing]\nDIRECTIVE: invalid parent",
+                "PARENTS: [init_0]\nDIRECTIVE: retry succeeds",
+            ],
+            world_responses=[make_world_code(3)],
+        )
+        method, _, _ = make_method(
+            llm=llm,
+            scores=[1.0, 2.0, 3.0],
+            max_sample_nums=3,
+        )
+
+        method.run()
+
+        self.assertEqual(method._tot_sample_nums, 3)
+        self.assertEqual(method.best_node.score, 3.0)
+        policy_prompts = [prompt for prompt, _ in llm.prompts if "PathWise policy agent" in prompt]
+        self.assertEqual(len(policy_prompts), 2)
+
+    def test_no_valid_action_falls_back_to_best_population_node(self):
+        llm = ScriptedLLM(
+            init_responses=[make_init_code(1), make_init_code(2)],
+            policy_responses=[
+                "PARENTS: [missing]\nDIRECTIVE: invalid parent",
+                "PARENTS: [still_missing]\nDIRECTIVE: invalid parent",
+            ],
+        )
+        method, _, _ = make_method(
+            llm=llm,
+            scores=[1.0, 2.0, 2.0],
+            max_sample_nums=3,
+        )
+
+        method.run()
+
+        self.assertEqual(method._tot_sample_nums, 3)
+        self.assertEqual(method._outer_iteration, 1)
+        self.assertEqual(method.best_node.score, 2.0)
         self.assertEqual([node.score for node in method._population.nodes], [2.0, 1.0])
+
+    def test_run_summary_marks_unhandled_exception_as_error(self):
+        llm = ScriptedLLM(init_responses=[make_init_code(1), make_init_code(2)])
+        method, _, _ = make_method(
+            llm=llm,
+            scores=[1.0, 2.0],
+            max_sample_nums=5,
+        )
+        method._initialize_population()
+        method._resume_mode = True
+
+        def fail_construct():
+            raise RuntimeError("pathwise failure")
+
+        method._construct_entailment_graph = fail_construct
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            method._profiler = PathWiseProfiler(log_dir=tmpdir, create_random_path=False, log_style="simple")
+            method.run()
+            summary = json.loads((Path(tmpdir) / "run_summary.json").read_text())
+
+        self.assertEqual(summary["status"], "error")
+        self.assertEqual(summary["error_type"], "RuntimeError")
+        self.assertIn("pathwise failure", summary["error"])
 
 
 if __name__ == "__main__":

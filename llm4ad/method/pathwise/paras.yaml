@@ -1,5 +1,5 @@
 name: PathWise
-max_sample_nums: 100
+max_sample_nums: 500
 pop_size: 6
 init_pop_size: null
 num_actions: 2
