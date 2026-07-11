@@ -61,3 +61,20 @@ and invalid generated candidates consume sample orders with very short failed
 evaluations, so later throughput can move in either direction. Overall, all
 three are expected to finish around midnight, with a practical uncertainty of
 roughly one hour.
+
+## Progress snapshot at 2026-07-11 18:24 CST
+
+All three tmux sessions remain alive and their logs are current. No traceback,
+HTTP 4xx/5xx, timeout, sample-error, or aborted-summary marker was found.
+
+| Method | Progress | Valid / invalid | Best sample | Best score | Cumulative rate | Updated ETA |
+|---|---:|---:|---:|---:|---:|---:|
+| MCTS-AHD | 484 / 1000 | 463 / 21 | 450 | `-8.880799274182696` | 1.23/min | 2026-07-12 01:20 |
+| PathWise | 442 / 500 | 434 / 8 | 196 | `-9.902781548316613` | 1.12/min | 2026-07-11 19:15 |
+| TraceAAD | 428 / 1000 | 412 / 16 | 288 | `-8.80554588266062` | 1.09/min | 2026-07-12 03:10 |
+
+The long-window throughput is lower than the first 15-minute estimate. The
+updated ETA uses the full elapsed time since launch and is therefore the more
+reliable projection. PathWise's best has not improved since sample 196, while
+MCTS-AHD improved through sample 450 and TraceAAD's current best was found at
+sample 288.
