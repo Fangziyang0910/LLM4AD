@@ -5,14 +5,13 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 EVALUATOR = PROJECT_ROOT / "experiments/cvrp_aco/evaluate_best_on_test.py"
-PLOTTER = PROJECT_ROOT / "docs/results/figures/plot_cvrp_aco_three_method_search.py"
+PLOTTER = PROJECT_ROOT / "experiments/plotting/plot_cvrp_aco_three_method_search.py"
 EVAL_TAG = "eval_20260712_all3"
 SPLITS = ("test_50", "test_100")
 WORKERS = 16
@@ -23,24 +22,18 @@ METHODS: dict[str, dict[str, Any]] = {
         "directory": "mcts_ahd",
         "runs": ("20260711_115024", "20260712_021911", "20260712_021957"),
         "budget": 1000,
-        "result_doc": "mcts-ahd-qwen36-27b-cvrp-aco.md",
-        "curve_stem": "mcts-ahd-qwen36-27b-cvrp-aco-search-curve",
     },
     "pathwise": {
         "label": "PathWise",
         "directory": "pathwise",
         "runs": ("20260711_115024", "20260711_192005", "20260711_192010"),
         "budget": 500,
-        "result_doc": "pathwise-qwen36-27b-cvrp-aco.md",
-        "curve_stem": "pathwise-qwen36-27b-cvrp-aco-search-curve",
     },
     "traceaad": {
         "label": "TraceAAD",
         "directory": "traceaad",
         "runs": ("20260711_115024", "20260712_041631", "20260712_041658"),
         "budget": 1000,
-        "result_doc": "traceaad-qwen36-27b-cvrp-aco.md",
-        "curve_stem": "traceaad-qwen36-27b-cvrp-aco-search-curve",
     },
 }
 
@@ -58,10 +51,6 @@ def _eval_dir(method: str) -> Path:
     return PROJECT_ROOT / "experiments/cvrp_aco" / METHODS[method]["directory"] / EVAL_TAG
 
 
-def _summary(run_dir: Path) -> dict[str, Any]:
-    return json.loads((run_dir / "logs/run_summary.json").read_text(encoding="utf-8"))
-
-
 def _validate_runs() -> None:
     for method, config in METHODS.items():
         for run_name in config["runs"]:
@@ -69,7 +58,7 @@ def _validate_runs() -> None:
             summary_path = run_dir / "logs/run_summary.json"
             if not summary_path.exists():
                 raise RuntimeError(f"Missing run summary: {summary_path}")
-            summary = _summary(run_dir)
+            summary = json.loads((run_dir / "logs/run_summary.json").read_text(encoding="utf-8"))
             if summary.get("status") != "finished" or summary.get("search_aborted"):
                 raise RuntimeError(f"Run is not a completed search: {run_dir} ({summary})")
             if summary.get("num_samples") != config["budget"]:
@@ -101,196 +90,89 @@ def _load_payload(method: str) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _ref(path: Path) -> str:
-    return f"LLM4AD/{path.relative_to(PROJECT_ROOT).as_posix()}"
-
-
-def _fmt(value: float | int | None, digits: int = 12) -> str:
+def _fmt(value: float | int | None, digits: int = 6) -> str:
     if value is None:
         return "n/a"
     return f"{float(value):.{digits}f}"
 
 
-def _duration(summary: dict[str, Any]) -> str:
-    seconds = summary.get("duration_seconds")
-    if not isinstance(seconds, (int, float)):
-        return "n/a"
-    return f"{seconds / 3600:.2f} h"
-
-
-def _write_method_doc(method: str, payload: dict[str, Any]) -> None:
-    config = METHODS[method]
-    first_config = json.loads((_run_dir(method, config["runs"][0]) / "run_config.json").read_text(encoding="utf-8"))
-    task_eval = first_config.get("task_eval", {})
-    method_params = first_config.get("method_params", {})
-    lines = [
-        f"# {config['label']} + Qwen3.6-27B on CVRP-ACO",
-        "",
-        f"Generated: `{payload['created_at']}`",
-        "",
-        "## Experiment data",
-        "",
-        "| Item | Value |",
-        "|---|---|",
-        f"| Method / model | `{method}` / `{payload['model']}` |",
-        "| Task | `cvrp_aco` |",
-        f"| Search budget | `max_sample_nums={config['budget']}` per run |",
-        "| Search split | `train` (10 CVRP50 instances) |",
-        "| Test splits | `test_50`, `test_100` (64 instances each) |",
-        f"| ACO configuration | `n_ants={task_eval.get('n_ants', 30)}`, `n_iterations={task_eval.get('n_iterations', 100)}`, `aco_seed={task_eval.get('aco_seed', 1234)}` |",
-        "| Score semantics | score is negative mean best route length; higher score is better |",
-        "| Repeats | 3 independent completed runs |",
-        "",
-        "The report uses the canonical 64-instance `test_50` and `test_100` held-out splits, matching the existing CVRP-ACO result protocol. The separate `paper_test_*` splits are not mixed into this comparison.",
-        "",
-        "## Search runs",
-        "",
-        "| Run | Status | Samples | Valid / failed | Best sample | Operator | Train best score | Duration | Artifact |",
-        "|---|---|---:|---:|---:|---|---:|---:|---|",
-    ]
-    for row in payload["run_records"]:
-        run_dir = Path(row["run_dir"])
-        summary = _summary(run_dir)
-        lines.append(
-            f"| {row['run_name']} | `{summary['status']}` | {summary['num_samples']} | "
-            f"{summary.get('evaluate_success_program_num', 'n/a')} / {summary.get('evaluate_failed_program_num', 'n/a')} | "
-            f"{row['best_sample_order']} | `{row.get('best_operator')}` | {_fmt(row['train_best_score'])} | "
-            f"{_duration(summary)} | `{_ref(run_dir)}` |"
+def _write_result_doc(payloads: dict[str, dict[str, Any]]) -> None:
+    first_config = json.loads(
+        (_run_dir("mcts_ahd", METHODS["mcts_ahd"]["runs"][0]) / "run_config.json").read_text(
+            encoding="utf-8"
         )
-
-    lines.extend(
-        [
-            "",
-            "## Held-out test results",
-            "",
-            "Objective is mean best route length on the split; lower is better.",
-            "",
-            "| Split | Run | Best sample | Operator | Objective | Score | Eval seconds |",
-            "|---|---|---:|---|---:|---:|---:|",
-        ]
     )
-    for split in SPLITS:
-        for row in payload["results_by_split"][split]["results"]:
+    task_eval = first_config.get("task_eval", {})
+    lines = [
+        "# CVRP-ACO 实验结果",
+        "",
+        "## 实验参数",
+        "",
+        "| 项目 | 配置 |",
+        "|---|---|",
+        f"| 模型 | `{payloads['mcts_ahd']['model']}` |",
+        "| 训练集 | `train`：10 个 CVRP50 实例，车辆容量 50 |",
+        "| 测试集 | `test_50`、`test_100`：每个 64 个实例 |",
+        f"| ACO 参数 | {task_eval.get('n_ants', 30)} ants，{task_eval.get('n_iterations', 100)} iterations，`aco_seed={task_eval.get('aco_seed', 1234)}` |",
+        "| LLM 参数 | `temperature=1.0`，`max_tokens=16384` |",
+        "| 重复次数 | 每种方法 3 次独立运行 |",
+        "| 搜索预算 | MCTS-AHD：1000；PathWise：500；TraceAAD：1000 |",
+        "| 方法配置 | MCTS-AHD / PathWise 使用 4 个 evaluators；TraceAAD 使用 `trajectory_ucb`、1 个 evaluator |",
+        "| 指标 | `objective` 为平均最优路径长度，越低越好；`score=-objective` |",
+        "",
+        "## 运行结果",
+        "",
+        "### 各次运行",
+        "",
+        "| 方法 | Run | 最优 sample | 训练集 best score | test_50 objective | test_100 objective |",
+        "|---|---|---:|---:|---:|---:|",
+    ]
+    for method, config in METHODS.items():
+        for row in payloads[method]["run_records"]:
+            test_values = {
+                split: next(
+                    result["objective"]
+                    for result in payloads[method]["results_by_split"][split]["results"]
+                    if result["run_name"] == row["run_name"]
+                )
+                for split in SPLITS
+            }
             lines.append(
-                f"| `{split}` | {row['run_name']} | {row['best_sample_order']} | `{row.get('best_operator')}` | "
-                f"{_fmt(row['objective'])} | {_fmt(row['score'])} | {row['eval_seconds']:.2f} |"
+                f"| {config['label']} | `{row['run_name']}` | {row['best_sample_order']} | "
+                f"{_fmt(row['train_best_score'])} | {_fmt(test_values['test_50'])} | {_fmt(test_values['test_100'])} |"
             )
 
     lines.extend(
         [
             "",
-            "## Three-run summary",
+            "### 三次运行平均",
             "",
-            "Mean and sample standard deviation use the three independent run objectives (ddof=1).",
-            "",
-            "| Split | Mean objective | Objective std | Mean score | Score std |",
-            "|---|---:|---:|---:|---:|",
-        ]
-    )
-    for split in SPLITS:
-        rows = payload["results_by_split"][split]["results"]
-        scores = [row["score"] for row in rows]
-        score_summary = payload["results_by_split"][split]["summary"]
-        score_mean = sum(scores) / len(scores)
-        score_std = (sum((value - score_mean) ** 2 for value in scores) / (len(scores) - 1)) ** 0.5
-        lines.append(
-            f"| `{split}` | {_fmt(score_summary['mean'])} | {_fmt(score_summary['sample_std'])} | "
-            f"{_fmt(score_mean)} | {_fmt(score_std)} |"
-        )
-
-    continuation = "\\"
-    command_lines = [f"uv run python experiments/cvrp_aco/evaluate_best_on_test.py {continuation}"]
-    command_lines.extend(
-        f"  {_run_dir(method, run_name).relative_to(PROJECT_ROOT)} {continuation}"
-        for run_name in config["runs"]
-    )
-    command_lines.append(f"  --output-dir {_eval_dir(method).relative_to(PROJECT_ROOT)} {continuation}")
-    command_lines.append(f"  --splits {','.join(SPLITS)} --workers {WORKERS}")
-    command = "\n".join(command_lines)
-    curve = f"figures/{config['curve_stem']}.png"
-    parameter_notes = [f"num_evaluators={method_params.get('num_evaluators', 'n/a')}"]
-    if method_params.get("sampling_strategy") is not None:
-        parameter_notes.append(f"sampling_strategy={method_params['sampling_strategy']}")
-    lines.extend(
-        [
-            "",
-            "## Artifacts and commands",
-            "",
-            f"- Complete evaluation artifact: `{_ref(_eval_dir(method) / 'results.json')}`",
-            "- Best programs used for evaluation are stored beside `results.json`.",
-            "- Shared evaluator: `experiments/cvrp_aco/evaluate_best_on_test.py`.",
-            "- Evaluation command:",
-            "",
-            "```bash",
-            command,
-            "```",
-            "",
-            "## Search evolution",
-            "",
-            f"![{config['label']} CVRP-ACO best-so-far training score]({curve})",
-            "",
-            "The curve shows the mean best-so-far training score across the three runs; the band is the min-max range. Plot script: `docs/results/figures/plot_cvrp_aco_three_method_search.py`.",
-            "For readability, the plot y-axis starts at -20; early scores below -20 are intentionally clipped.",
-            "",
-            f"Method parameters inherited from the run config include {', '.join(f'`{note}`' for note in parameter_notes)}.",
-            "",
-        ]
-    )
-    result_path = PROJECT_ROOT / "docs/results" / config["result_doc"]
-    result_path.write_text("\n".join(lines), encoding="utf-8")
-    print(f"Wrote {result_path}", flush=True)
-
-
-def _write_comparison(payloads: dict[str, dict[str, Any]]) -> None:
-    lines = [
-        "# CVRP-ACO Three-Method Comparison",
-        "",
-        f"Generated: `{datetime.now().isoformat(timespec='seconds')}`",
-        "",
-        "## Comparison protocol",
-        "",
-        "All methods use `qwen3.6-27b-awq`, the same CVRP-ACO train/test split protocol, `n_ants=30`, `n_iterations=100`, and `aco_seed=1234`. Each method has three independent search runs. The table reports the held-out route-length objective mean +/- sample std; lower is better.",
-        "",
-        "| Method | Search budget | test_50 objective | test_100 objective |",
-        "|---|---:|---:|---:|",
-    ]
-    for method, config in METHODS.items():
-        cells = []
-        for split in SPLITS:
-            summary = payloads[method]["results_by_split"][split]["summary"]
-            cells.append(f"{summary['mean']:.6f} +/- {summary['sample_std']:.6f}")
-        lines.append(f"| {config['label']} | {config['budget']} | {cells[0]} | {cells[1]} |")
-
-    lines.extend(
-        [
-            "",
-            "PathWise uses a 500-evaluation search budget, while MCTS-AHD and TraceAAD use 1000 evaluations. This is a comparison of the completed formal runs, not an equal-budget ablation.",
-            "",
-            "## Search evolution",
-            "",
-            "![CVRP-ACO three-method best-so-far training curves](figures/mcts-ahd-pathwise-traceaad-qwen36-27b-cvrp-aco-search-curve.png)",
-            "",
-            "The solid lines are the mean best-so-far training score across three runs; bands show the min-max range. PathWise ends at 500 evaluations, while the other methods continue to 1000.",
-            "For readability, the plot y-axis starts at -20; early scores below -20 are intentionally clipped.",
-            "",
-            "## Result sources",
-            "",
-            "| Method | Authoritative result file | Evaluation artifact |",
-            "|---|---|---|",
+            "| 方法 | 搜索预算 | test_50 objective | test_100 objective |",
+            "|---|---:|---:|---:|",
         ]
     )
     for method, config in METHODS.items():
+        summaries = [payloads[method]["results_by_split"][split]["summary"] for split in SPLITS]
         lines.append(
-            f"| {config['label']} | `{config['result_doc']}` | `{_ref(_eval_dir(method) / 'results.json')}` |"
+            f"| {config['label']} | {config['budget']} | "
+            f"{summaries[0]['mean']:.6f} ± {summaries[0]['sample_std']:.6f} | "
+            f"{summaries[1]['mean']:.6f} ± {summaries[1]['sample_std']:.6f} |"
         )
+
     lines.extend(
         [
             "",
-            "Evaluation scripts and run artifacts remain under `experiments/cvrp_aco/`; the method-specific pages contain every run-level test value and configuration.",
+            "![CVRP-ACO 三方法训练曲线](cvrp-aco-qwen36-27b-search-curve.png)",
+            "",
+            "## 简单分析",
+            "",
+            "- MCTS-AHD 在 `test_50` 和 `test_100` 上的平均 objective 都是三种方法中最低的。",
+            "- TraceAAD 的结果明显优于 PathWise，但与 MCTS-AHD 相比仍有差距；TraceAAD 在 `test_50` 上的跨 run 波动较小。",
+            "- PathWise 只使用 500 次 evaluation，另外两种方法使用 1000 次，因此当前结果不能单独用于判断机制优劣；PathWise 的差距同时受到搜索预算较低的影响。",
             "",
         ]
     )
-    path = PROJECT_ROOT / "docs/results/cvrp-aco-qwen36-27b-method-comparison.md"
+    path = PROJECT_ROOT / "docs/results/cvrp-aco-qwen36-27b.md"
     path.write_text("\n".join(lines), encoding="utf-8")
     print(f"Wrote {path}", flush=True)
 
@@ -300,9 +182,7 @@ def main() -> None:
     _run_evaluations()
     _run([sys.executable, str(PLOTTER)])
     payloads = {method: _load_payload(method) for method in METHODS}
-    for method, payload in payloads.items():
-        _write_method_doc(method, payload)
-    _write_comparison(payloads)
+    _write_result_doc(payloads)
 
 
 if __name__ == "__main__":

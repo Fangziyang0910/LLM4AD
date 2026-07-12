@@ -13,8 +13,9 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 
 
-RESULTS_DIR = Path(__file__).resolve().parent
-EXPERIMENTS_DIR = Path(__file__).resolve().parents[3] / "experiments" / "cvrp_aco"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+RESULTS_DIR = PROJECT_ROOT / "docs" / "results"
+EXPERIMENTS_DIR = PROJECT_ROOT / "experiments" / "cvrp_aco"
 METHODS = {
     "MCTS-AHD": {
         "directory": "mcts_ahd",
@@ -22,7 +23,6 @@ METHODS = {
         "budget": 1000,
         "color": "#247BA0",
         "band": "#A9D6E5",
-        "stem": "mcts-ahd-qwen36-27b-cvrp-aco-search-curve",
     },
     "PathWise": {
         "directory": "pathwise",
@@ -30,7 +30,6 @@ METHODS = {
         "budget": 500,
         "color": "#E76F51",
         "band": "#FFB4A2",
-        "stem": "pathwise-qwen36-27b-cvrp-aco-search-curve",
     },
     "TraceAAD": {
         "directory": "traceaad",
@@ -38,10 +37,9 @@ METHODS = {
         "budget": 1000,
         "color": "#2A9D5B",
         "band": "#A8D5BA",
-        "stem": "traceaad-qwen36-27b-cvrp-aco-search-curve",
     },
 }
-COMBINED_STEM = "mcts-ahd-pathwise-traceaad-qwen36-27b-cvrp-aco-search-curve"
+COMBINED_STEM = "cvrp-aco-qwen36-27b-search-curve"
 Y_MIN = -20.0
 
 
@@ -90,8 +88,8 @@ def _method_curves(method: str) -> np.ndarray:
 def _style() -> None:
     plt.rcParams.update(
         {
-            "font.family": "serif",
-            "font.serif": ["Times New Roman", "DejaVu Serif"],
+            "font.sans-serif": ["Noto Sans CJK SC", "WenQuanYi Zen Hei", "DejaVu Sans"],
+            "font.family": "sans-serif",
             "font.size": 12,
             "axes.labelsize": 15,
             "xtick.labelsize": 12,
@@ -132,16 +130,16 @@ def _render(method_names: tuple[str, ...], output_stem: str, combined: bool) -> 
             drawstyle="steps-post",
             color=config["color"],
             linewidth=2.2,
-            label=f"{name} mean ({budget} evals)" if combined else f"{name} mean",
+            label=f"{name} 平均（{budget} 次评估）" if combined else f"{name} 平均",
             zorder=3,
         )
         handles.append(line)
     flattened = [curve for method_curves in all_curves for curve in method_curves]
-    handles.append(Patch(facecolor="#999999", edgecolor="none", alpha=0.25, label="Min-max across 3 runs"))
+    handles.append(Patch(facecolor="#999999", edgecolor="none", alpha=0.25, label="三次运行的最小-最大范围"))
     ax.set_xlim(0, max_budget)
     ax.set_ylim(*_limits(flattened))
-    ax.set_xlabel("Number of Evaluations")
-    ax.set_ylabel("Best Training Score (higher is better)")
+    ax.set_xlabel("评估次数")
+    ax.set_ylabel("训练集最佳分数（越高越好）")
     ax.grid(True, color="#D9D9D9", linewidth=0.7, alpha=0.55)
     ax.set_axisbelow(True)
     for spine in ax.spines.values():
@@ -149,16 +147,12 @@ def _render(method_names: tuple[str, ...], output_stem: str, combined: bool) -> 
     ax.legend(handles=handles, loc="lower right", frameon=True, framealpha=0.95, edgecolor="#444444")
     fig.tight_layout()
     output = RESULTS_DIR / output_stem
-    fig.savefig(output.with_suffix(".pdf"))
     fig.savefig(output.with_suffix(".png"), dpi=300)
     plt.close(fig)
-    print(f"Wrote {output.with_suffix('.pdf')}")
     print(f"Wrote {output.with_suffix('.png')}")
 
 
 def main() -> None:
-    for name, config in METHODS.items():
-        _render((name,), config["stem"], combined=False)
     _render(tuple(METHODS), COMBINED_STEM, combined=True)
 
 

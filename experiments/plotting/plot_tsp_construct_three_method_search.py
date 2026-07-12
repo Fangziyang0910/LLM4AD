@@ -13,9 +13,10 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 
 
-RESULTS_DIR = Path(__file__).resolve().parent
-EXPERIMENTS_DIR = Path(__file__).resolve().parents[3] / "experiments" / "tsp_construct"
-OUTPUT_STEM = RESULTS_DIR / "mcts-ahd-pathwise-traceaad-qwen36-27b-tsp-construct-search-curve"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+RESULTS_DIR = PROJECT_ROOT / "docs" / "results"
+EXPERIMENTS_DIR = PROJECT_ROOT / "experiments" / "tsp_construct"
+OUTPUT_STEM = RESULTS_DIR / "tsp-construct-qwen36-27b-search-curve"
 METHODS = {
     "MCTS-AHD": {
         "directory": "mcts_ahd",
@@ -69,8 +70,8 @@ def _best_so_far(scores: dict[int, float], budget: int) -> np.ndarray:
 def main() -> None:
     plt.rcParams.update(
         {
-            "font.family": "serif",
-            "font.serif": ["Times New Roman", "DejaVu Serif"],
+            "font.sans-serif": ["Noto Sans CJK SC", "WenQuanYi Zen Hei", "DejaVu Sans"],
+            "font.family": "sans-serif",
             "font.size": 12,
             "axes.labelsize": 15,
             "xtick.labelsize": 12,
@@ -101,24 +102,22 @@ def main() -> None:
             drawstyle="steps-post",
             color=config["color"],
             linewidth=2.2,
-            label=f"{label} mean ({budget} evals)",
+            label=f"{label} 平均（{budget} 次评估）",
             zorder=3,
         )
         handles.append(line)
-    handles.append(Patch(facecolor="#999999", edgecolor="none", alpha=0.25, label="Min-max across 3 runs"))
+    handles.append(Patch(facecolor="#999999", edgecolor="none", alpha=0.25, label="三次运行的最小-最大范围"))
     ax.set_xlim(0, 1000)
     ax.set_ylim(-7.0, -5.8)
-    ax.set_xlabel("Number of Evaluations")
-    ax.set_ylabel("Best Training Score (higher is better)")
+    ax.set_xlabel("评估次数")
+    ax.set_ylabel("训练集最佳分数（越高越好）")
     ax.grid(True, color="#D9D9D9", linewidth=0.7, alpha=0.55)
     ax.set_axisbelow(True)
     for spine in ax.spines.values():
         spine.set_linewidth(1.0)
     ax.legend(handles=handles, loc="lower right", frameon=True, framealpha=0.95, edgecolor="#444444")
     fig.tight_layout()
-    fig.savefig(OUTPUT_STEM.with_suffix(".pdf"))
     fig.savefig(OUTPUT_STEM.with_suffix(".png"), dpi=300)
-    print(f"Wrote {OUTPUT_STEM.with_suffix('.pdf')}")
     print(f"Wrote {OUTPUT_STEM.with_suffix('.png')}")
 
 
