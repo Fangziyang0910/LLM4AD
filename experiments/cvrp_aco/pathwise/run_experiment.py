@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -21,7 +22,7 @@ runner.TASK_KWARGS = {
     "aco_seed": 1234,
 }
 runner.TSPEvaluation = CVRPACOEvaluation
-runner.TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
+runner.TIMESTAMP = os.environ.get("RUN_TIMESTAMP") or datetime.now().strftime("%Y%m%d_%H%M%S")
 runner.RUN_DIR = Path(__file__).resolve().parent / runner.TIMESTAMP
 runner.LOG_DIR = runner.RUN_DIR / "logs"
 runner.TMUX_LOG = runner.RUN_DIR / "tmux_run.log"

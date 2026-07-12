@@ -78,3 +78,32 @@ updated ETA uses the full elapsed time since launch and is therefore the more
 reliable projection. PathWise's best has not improved since sample 196, while
 MCTS-AHD improved through sample 450 and TraceAAD's current best was found at
 sample 288.
+
+## PathWise first completion and repeats
+
+The first PathWise CVRP run completed at 2026-07-11 19:19 CST:
+
+- run: `LLM4AD/experiments/cvrp_aco/pathwise/20260711_115024`
+- status: `finished`, `num_samples=500`, `evaluate_success_program_num=491`, `evaluate_failed_program_num=9`
+- best: sample `196`, operator `world_model`, train score `-9.902781548316613`
+- search duration: `26958.63s`; `search_aborted=false`; `error_count=0`
+
+After completion, two independent repeats were started in detached tmux sessions:
+
+| Repeat | tmux session | Run directory |
+|---|---|---|
+| rep2 | `cvrp_aco_pathwise_rep2_20260711_192005` | `LLM4AD/experiments/cvrp_aco/pathwise/20260711_192005` |
+| rep3 | `cvrp_aco_pathwise_rep3_20260711_192010` | `LLM4AD/experiments/cvrp_aco/pathwise/20260711_192010` |
+
+The first run's best program was evaluated on the canonical held-out CVRP
+splits with 30 ants, 100 ACO iterations, and `aco_seed=1234`:
+
+| Split | Instances | Objective (mean route length) | Score |
+|---|---:|---:|---:|
+| `test_50` | 64 | `10.095987786938297` | `-10.095987786938297` |
+| `test_100` | 64 | `17.388369383129007` | `-17.388369383129007` |
+
+Evaluation artifact: `LLM4AD/experiments/cvrp_aco/pathwise/eval_20260711_192250_rep1/results.json`.
+The reusable evaluator is `experiments/cvrp_aco/pathwise/evaluate_best_on_test.py`.
+The final three-run result and search curve will be added under
+`docs/results/` only after both repeats finish and are evaluated.

@@ -1,0 +1,57 @@
+{
+  "_title": "CVRP-ACO 三次重复实验监控状态 (MCTS-AHD × TraceAAD)",
+  "_created_by": "/loop 每 30 分钟监控 (CronCreate */30 * * * *, durable)",
+  "_cron_job_id": "f1cac143 (已于 2026-07-12 应用户要求 CronDelete, 监控停止; 实验进程仍在 tmux 继续跑)",
+  "_working_dir": "/home/fang/code/LLM4AD/LLM4AD",
+  "_vllm_base_url": "http://222.201.145.8:8080/v1",
+  "_model": "qwen3.6-27b-awq",
+  "_tmux_note": "本环境裸 tmux 被 zsh alias 劫持会 127, 必须用绝对路径 /usr/local/bin/tmux。",
+  "_independence_note": "LLM_TEMPERATURE=1.0 (traceAAD 另有 trajectory_temperature=0.8)。LLM 采样走远程 vLLM, 每次结果不同 → 多开同命令即独立重复。aco_seed=1234 固定, traceaad SEARCH_SEED=2024 固定, 但 LLM 路径仍不同。",
+  "goal": {"mcts_ahd": 3, "traceaad": 3},
+  "instructions_for_monitor": [
+    "0. 工作目录固定 /home/fang/code/LLM4AD/LLM4AD。先读本文件, 决策, 执行, 最后更新本文件 (status / best_so_far / last_check / history) 并简报。tmux 一律用 /usr/local/bin/tmux。",
+    "1. 对每个 method (mcts_ahd / traceaad) 独立处理。脚本: experiments/cvrp_aco/<method>/run_experiment.py",
+    "2. 判 rep 结束(权威): output_dir/logs/run_summary.json 存在且 status==\"finished\"。best 从其 best_score 取。辅助: /usr/local/bin/tmux has-session 失败 或 pane_dead==1。注意 run_summary.json 出现才算正常完成; 仅 session 消失而无 run_summary 可能是崩溃, 需 grep traceback 确认。",
+    "3. 起新 rep: 若该 method (running+finished) < goal 且 running==0, 对每个 pending rep 起 session。⚠️关键坑: 脚本 RUN_DIR 用 datetime.now() 时间戳命名 且 mkdir(exist_ok=False), rep2/rep3 同秒启动会抢同一目录 → 后者崩(FileExistsError)。必须错开: 先起 rep2, sleep 15s 再起 rep3。命令: /usr/local/bin/tmux new-session -d -s cvrp_aco_<method>_rep<N>_<YYYYMMDD_HHMMSS> 'uv run python experiments/cvrp_aco/<method>/run_experiment.py' (tmux 继承当前 cwd=LLM4AD, 无需 cd; 但确保 bash 先 cd)。每起一个 sleep 10s 后验证 has-session + ls 取新 output_dir 时间戳目录。",
+    "3b. pgrep 自匹配坑: pgrep -f 'run_experiment.py' 会匹配到本监控命令自身的 zsh 包装。用 pgrep -f '[m]cts_ahd/run_experiment.py' ([m]正则技巧) 排除自匹配, 或直接以 tmux session + run_summary.json 为准。",
+    "4. 全部完成: 两 method 各 >=3 finished 且无 running。汇总到 docs/results/ (mcts-ahd-qwen36-27b-cvrp-aco.md, traceaad-qwen36-27b-cvrp-aco.md), 并提示用户 CronDelete f1cac143 结束 loop。",
+    "5. 健康检查: curl -s -m 5 http://222.201.145.8:8080/v1/models >/dev/null。无响应则本轮不起任何新 rep, 简报里告警。",
+    "6. 简报内容: 每 method 各 rep 状态表 + 最新 best + 本轮是否起新 rep (session 名/output_dir) + 后端健康 + 预计下一步。"
+  ],
+  "methods": {
+    "mcts_ahd": {
+      "script": "experiments/cvrp_aco/mcts_ahd/run_experiment.py",
+      "reps": [
+        {"rep": 1, "status": "finished", "session": "cvrp_aco_mcts_20260711_115008", "output_dir": "experiments/cvrp_aco/mcts_ahd/20260711_115024", "started_at": "2026-07-11T11:50", "finished_at": "2026-07-12T02:13", "best_so_far": -8.748027892553349, "samples": "1000/1000", "note": "run_summary.json status=finished, error_count=0, duration 51784s (~14.4h)"},
+        {"rep": 2, "status": "running", "session": "cvrp_aco_mcts_rep2_20260712_021909", "output_dir": "experiments/cvrp_aco/mcts_ahd/20260712_021911", "started_at": "2026-07-12T02:19", "best_so_far": -9.6835, "samples": "277/1000"},
+        {"rep": 3, "status": "running", "session": "cvrp_aco_mcts_rep3_20260712_021955", "output_dir": "experiments/cvrp_aco/mcts_ahd/20260712_021957", "started_at": "2026-07-12T02:19", "best_so_far": -8.6393, "samples": "316/1000", "note": "首次因时间戳目录冲突崩溃, 已于 021955 重启成功; best 已超过 rep1(-8.7480)"}
+      ]
+    },
+    "traceaad": {
+      "script": "experiments/cvrp_aco/traceaad/run_experiment.py",
+      "reps": [
+        {"rep": 1, "status": "finished", "session": "cvrp_aco_traceaad_20260711_115008", "output_dir": "experiments/cvrp_aco/traceaad/20260711_115024", "started_at": "2026-07-11T11:50", "finished_at": "2026-07-12T04:13", "best_so_far": -8.79942325642134, "samples": "1000/1000", "note": "run_summary finished, error_count=0, duration 58980s (~16.4h), best_sample_order=486, n_trajectories=964"},
+        {"rep": 2, "status": "running", "session": "cvrp_aco_traceaad_rep2_20260712_041629", "output_dir": "experiments/cvrp_aco/traceaad/20260712_041631", "started_at": "2026-07-12T04:16", "best_so_far": -10.8373, "samples": "orders~126/1000"},
+        {"rep": 3, "status": "running", "session": "cvrp_aco_traceaad_rep3_20260712_041656", "output_dir": "experiments/cvrp_aco/traceaad/20260712_041658", "started_at": "2026-07-12T04:16", "best_so_far": -11.1495, "samples": "orders~123/1000"}
+      ]
+    }
+  },
+  "last_check": "2026-07-12T05:44",
+  "monitoring_stopped_at": "2026-07-12 用户要求停止监控, CronDelete f1cac143",
+  "history": [
+    {"at": "2026-07-12T00:05", "note": "loop 建立。rep1 两方法均在跑。vLLM 8080 健康。"},
+    {"at": "2026-07-12T00:09", "note": "第一次手动监控。发现裸 tmux 被 zsh alias 劫持(127), 改用 /usr/local/bin/tmux 绝对路径。不起 rep2/3。"},
+    {"at": "2026-07-12T00:44", "note": "MCTS 899/1000, TraceAAD -8.7994。不起 rep2/3。"},
+    {"at": "2026-07-12T01:16", "note": "MCTS 933/1000。不起 rep2/3。"},
+    {"at": "2026-07-12T01:46", "note": "MCTS 967/1000, 还剩 33。不起 rep2/3。"},
+    {"at": "2026-07-12T02:20", "note": "✅MCTS rep1 正常完成 (run_summary finished, 1000/1000, best=-8.7480, error 0, 14.4h)。起 rep2+rep3: 首次同秒启动致 RUN_DIR 时间戳目录冲突, rep3 崩(FileExistsError); 已错开 15s 重启 rep3 成功。现 MCTS rep2(021911)+rep3(021957) 均在跑。发现 pgrep -f 自匹配坑, 已加 [m] 技巧。TraceAAD rep1 仍 running(-8.7994)。vLLM 健康。"},
+    {"at": "2026-07-12T02:46", "note": "cron 监控。3 running 均存活无 run_summary。MCTS rep2 28/1000 best=-10.16, rep3 35/1000 best=-9.02 (早期正常优化中)。TraceAAD rep1 best=-8.7994 已停滞约 3h (进程仍活跃, 疑搜索收敛仍在消耗 budget, 留意)。不起 rep。vLLM 健康。"},
+    {"at": "2026-07-12T03:16", "note": "cron 监控。3 running 均存活无 run_summary。MCTS rep2 65/1000 best=-10.00, rep3 78/1000 best=-8.87 (正常推进)。TraceAAD rep1 best 仍 -8.7994, 日志显示 Sample orders=932 接近 1000 budget 上限, 预计近期结束。不起 rep。vLLM 健康。"},
+    {"at": "2026-07-12T03:46", "note": "cron 监控。3 running 均存活无 run_summary。MCTS rep2 109/1000 best=-9.94(↑), rep3 127/1000 best=-8.87(暂停滞)。TraceAAD rep1 orders 932→967, 剩 ~33, 约 04:15 到 1000 结束。不起 rep。vLLM 健康。"},
+    {"at": "2026-07-12T04:17", "note": "✅TraceAAD rep1 正常完成 (run_summary finished, 1000/1000, best=-8.79942325642134, error 0, 16.4h, n_trajectories=964)。起 rep2+rep3, 错开15s 避免目录冲突, 均成功 (rep2 041631, rep3 041658)。MCTS rep2 157/1000 best=-9.80, rep3 178/1000 best=-8.87 仍在跑。现 4 实验并行。vLLM 健康。"},
+    {"at": "2026-07-12T04:46", "note": "cron 监控。4 running 均存活无 run_summary。MCTS rep2 193/1000 best=-9.68(↑), rep3 224/1000 best=-8.78(↑, 已接近 rep1 的 -8.748)。TraceAAD rep2 orders~46 best=-11.24, rep3 orders~38 best=-11.70 (刚起步早期)。不起 rep。vLLM 健康。"},
+    {"at": "2026-07-12T05:14", "note": "cron 监控。4 running 均存活无 run_summary。MCTS rep2 237/1000 best=-9.68(暂停滞), rep3 275/1000 best=-8.78(暂停滞)。TraceAAD rep2 orders~84 best=-10.84(↑), rep3 orders~78 best=-11.15(↑)。不起 rep。vLLM 健康。进入平稳运行期, 预计 MCTS ~16:00、TraceAAD ~20:00 才有 run 结束。"},
+    {"at": "2026-07-12T05:44", "note": "cron 监控。4 running 均存活无 run_summary。MCTS rep2 277/1000 best=-9.68(停滞), rep3 316/1000 best=-8.6393(↑↑ 已超过 rep1 的 -8.7480, 体现独立重复价值)。TraceAAD rep2 orders~126 best=-10.84, rep3 orders~123 best=-11.15 (均暂停滞, 早期)。不起 rep。vLLM 健康。"},
+    {"at": "2026-07-12T05:44+", "note": "🛑 用户要求停止监控, CronDelete f1cac143。实验进程不受影响, 4 个 run(MCTS rep2/3 + TraceAAD rep2/3)继续在 tmux 跑至自行完成(run_summary.json 落盘)。此后不再自动接力/汇总。"}
+  ]
+}
