@@ -68,5 +68,6 @@ uv run python experiments/cvrp_aco/evaluate_best_on_test.py \
 ![TraceAAD CVRP-ACO best-so-far training score](figures/traceaad-qwen36-27b-cvrp-aco-search-curve.png)
 
 The curve shows the mean best-so-far training score across the three runs; the band is the min-max range. Plot script: `docs/results/figures/plot_cvrp_aco_three_method_search.py`.
+For readability, the plot y-axis starts at -20; early scores below -20 are intentionally clipped.
 
 Method parameters inherited from the run config include `num_evaluators=1`, `sampling_strategy=trajectory_ucb`.

@@ -1,6 +1,6 @@
 # CVRP-ACO Three-Method Comparison
 
-Generated: `2026-07-12T17:34:49`
+Generated: `2026-07-12T17:45:15`
 
 ## Comparison protocol
 
@@ -19,6 +19,7 @@ PathWise uses a 500-evaluation search budget, while MCTS-AHD and TraceAAD use 10
 ![CVRP-ACO three-method best-so-far training curves](figures/mcts-ahd-pathwise-traceaad-qwen36-27b-cvrp-aco-search-curve.png)
 
 The solid lines are the mean best-so-far training score across three runs; bands show the min-max range. PathWise ends at 500 evaluations, while the other methods continue to 1000.
+For readability, the plot y-axis starts at -20; early scores below -20 are intentionally clipped.
 
 ## Result sources
 

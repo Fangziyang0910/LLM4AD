@@ -42,6 +42,7 @@ METHODS = {
     },
 }
 COMBINED_STEM = "mcts-ahd-pathwise-traceaad-qwen36-27b-cvrp-aco-search-curve"
+Y_MIN = -20.0
 
 
 def _load_scores(method: str, run_name: str) -> dict[int, float]:
@@ -104,10 +105,9 @@ def _style() -> None:
 
 def _limits(curves: list[np.ndarray]) -> tuple[float, float]:
     values = np.concatenate([curve[np.isfinite(curve)] for curve in curves])
-    low = float(values.min())
     high = float(values.max())
-    padding = max((high - low) * 0.08, 0.2)
-    return low - padding, high + padding
+    padding = max((high - Y_MIN) * 0.08, 0.2)
+    return Y_MIN, high + padding
 
 
 def _render(method_names: tuple[str, ...], output_stem: str, combined: bool) -> None:
