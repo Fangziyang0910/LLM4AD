@@ -1,0 +1,166 @@
+"""Render CVRP-ACO search curves for all three methods."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import matplotlib
+import numpy as np
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
+
+
+RESULTS_DIR = Path(__file__).resolve().parent
+EXPERIMENTS_DIR = Path(__file__).resolve().parents[3] / "experiments" / "cvrp_aco"
+METHODS = {
+    "MCTS-AHD": {
+        "directory": "mcts_ahd",
+        "runs": ("20260711_115024", "20260712_021911", "20260712_021957"),
+        "budget": 1000,
+        "color": "#247BA0",
+        "band": "#A9D6E5",
+        "stem": "mcts-ahd-qwen36-27b-cvrp-aco-search-curve",
+    },
+    "PathWise": {
+        "directory": "pathwise",
+        "runs": ("20260711_115024", "20260711_192005", "20260711_192010"),
+        "budget": 500,
+        "color": "#E76F51",
+        "band": "#FFB4A2",
+        "stem": "pathwise-qwen36-27b-cvrp-aco-search-curve",
+    },
+    "TraceAAD": {
+        "directory": "traceaad",
+        "runs": ("20260711_115024", "20260712_041631", "20260712_041658"),
+        "budget": 1000,
+        "color": "#2A9D5B",
+        "band": "#A8D5BA",
+        "stem": "traceaad-qwen36-27b-cvrp-aco-search-curve",
+    },
+}
+COMBINED_STEM = "mcts-ahd-pathwise-traceaad-qwen36-27b-cvrp-aco-search-curve"
+
+
+def _load_scores(method: str, run_name: str) -> dict[int, float]:
+    scores: dict[int, float] = {}
+    samples_dir = EXPERIMENTS_DIR / METHODS[method]["directory"] / run_name / "logs" / "samples"
+    for path in samples_dir.glob("samples_*.json"):
+        if path.name == "samples_best.json":
+            continue
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, list):
+            continue
+        for record in data:
+            score = record.get("score")
+            order = record.get("sample_order")
+            if isinstance(score, (int, float)) and np.isfinite(score) and order is not None:
+                scores[int(order)] = float(score)
+    return scores
+
+
+def _best_so_far(scores: dict[int, float], budget: int) -> np.ndarray:
+    curve = np.full(budget, np.nan, dtype=float)
+    best = -np.inf
+    for order in range(1, budget + 1):
+        if order in scores:
+            best = max(best, scores[order])
+        if np.isfinite(best):
+            curve[order - 1] = best
+    return curve
+
+
+def _method_curves(method: str) -> np.ndarray:
+    config = METHODS[method]
+    curves = []
+    for run_name in config["runs"]:
+        summary_path = EXPERIMENTS_DIR / config["directory"] / run_name / "logs" / "run_summary.json"
+        if not summary_path.exists():
+            raise RuntimeError(f"Run is not finished: {run_name}")
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        if summary.get("status") != "finished":
+            raise RuntimeError(f"Run is not finished: {run_name} status={summary.get('status')!r}")
+        curves.append(_best_so_far(_load_scores(method, run_name), config["budget"]))
+    return np.vstack(curves)
+
+
+def _style() -> None:
+    plt.rcParams.update(
+        {
+            "font.family": "serif",
+            "font.serif": ["Times New Roman", "DejaVu Serif"],
+            "font.size": 12,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 12,
+            "ytick.labelsize": 12,
+            "legend.fontsize": 10,
+            "figure.dpi": 300,
+            "savefig.dpi": 300,
+        }
+    )
+
+
+def _limits(curves: list[np.ndarray]) -> tuple[float, float]:
+    values = np.concatenate([curve[np.isfinite(curve)] for curve in curves])
+    low = float(values.min())
+    high = float(values.max())
+    padding = max((high - low) * 0.08, 0.2)
+    return low - padding, high + padding
+
+
+def _render(method_names: tuple[str, ...], output_stem: str, combined: bool) -> None:
+    data = [(name, _method_curves(name)) for name in method_names]
+    _style()
+    fig, ax = plt.subplots(figsize=(7.2, 4.2) if combined else (6.4, 3.8))
+    handles = []
+    all_curves = []
+    max_budget = max(METHODS[name]["budget"] for name in method_names)
+    for name, curves in data:
+        config = METHODS[name]
+        budget = config["budget"]
+        x = np.arange(1, budget + 1)
+        mean = np.nanmean(curves, axis=0)
+        lower = np.nanmin(curves, axis=0)
+        upper = np.nanmax(curves, axis=0)
+        all_curves.append(curves)
+        ax.fill_between(x, lower, upper, step="post", color=config["band"], alpha=0.25, linewidth=0)
+        line, = ax.plot(
+            x,
+            mean,
+            drawstyle="steps-post",
+            color=config["color"],
+            linewidth=2.2,
+            label=f"{name} mean ({budget} evals)" if combined else f"{name} mean",
+            zorder=3,
+        )
+        handles.append(line)
+    flattened = [curve for method_curves in all_curves for curve in method_curves]
+    handles.append(Patch(facecolor="#999999", edgecolor="none", alpha=0.25, label="Min-max across 3 runs"))
+    ax.set_xlim(0, max_budget)
+    ax.set_ylim(*_limits(flattened))
+    ax.set_xlabel("Number of Evaluations")
+    ax.set_ylabel("Best Training Score (higher is better)")
+    ax.grid(True, color="#D9D9D9", linewidth=0.7, alpha=0.55)
+    ax.set_axisbelow(True)
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.0)
+    ax.legend(handles=handles, loc="lower right", frameon=True, framealpha=0.95, edgecolor="#444444")
+    fig.tight_layout()
+    output = RESULTS_DIR / output_stem
+    fig.savefig(output.with_suffix(".pdf"))
+    fig.savefig(output.with_suffix(".png"), dpi=300)
+    plt.close(fig)
+    print(f"Wrote {output.with_suffix('.pdf')}")
+    print(f"Wrote {output.with_suffix('.png')}")
+
+
+def main() -> None:
+    for name, config in METHODS.items():
+        _render((name,), config["stem"], combined=False)
+    _render(tuple(METHODS), COMBINED_STEM, combined=True)
+
+
+if __name__ == "__main__":
+    main()

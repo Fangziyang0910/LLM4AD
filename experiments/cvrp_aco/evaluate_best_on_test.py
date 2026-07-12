@@ -1,0 +1,211 @@
+"""Evaluate completed CVRP-ACO runs on fixed held-out splits."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import multiprocessing
+import statistics
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from llm4ad.task.optimization.cvrp_aco import CVRPACOEvaluation, load_split_instances  # noqa: E402
+
+
+DEFAULT_SPLITS = ("test_50", "test_100")
+DEFAULT_WORKERS = 16
+N_ANTS = 30
+N_ITERATIONS = 100
+ACO_SEED = 1234
+
+_WORKER_EVALUATOR: CVRPACOEvaluation | None = None
+_WORKER_HEURISTIC = None
+
+
+def _load_samples(run_dir: Path) -> list[dict[str, Any]]:
+    samples_dir = run_dir / "logs" / "samples"
+    records: list[dict[str, Any]] = []
+    for path in sorted(samples_dir.glob("samples_*.json")):
+        if path.name == "samples_best.json":
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise RuntimeError(f"Cannot read sample artifact {path}: {error}") from error
+        if not isinstance(data, list):
+            raise RuntimeError(f"Expected a list in sample artifact {path}")
+        for record in data:
+            if isinstance(record, dict) and isinstance(record.get("score"), (int, float)):
+                records.append(record)
+    return records
+
+
+def _load_summary(run_dir: Path) -> dict[str, Any]:
+    summary_path = run_dir / "logs" / "run_summary.json"
+    if not summary_path.exists():
+        raise RuntimeError(f"run is not finished: missing {summary_path}")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    if summary.get("status") != "finished":
+        raise RuntimeError(f"run is not finished: {run_dir} status={summary.get('status')!r}")
+    if summary.get("search_aborted"):
+        raise RuntimeError(f"run was aborted: {run_dir}")
+    return summary
+
+
+def _pick_best(run_dir: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    _load_summary(run_dir)
+    records = _load_samples(run_dir)
+    if not records:
+        raise RuntimeError(f"no valid samples found under {run_dir}")
+    return max(records, key=lambda record: float(record["score"])), records
+
+
+def _init_worker(program: str, split: str) -> None:
+    global _WORKER_EVALUATOR, _WORKER_HEURISTIC
+    namespace: dict[str, Any] = {}
+    exec(program, namespace)
+    _WORKER_HEURISTIC = namespace["heuristics"]
+    _WORKER_EVALUATOR = CVRPACOEvaluation(
+        split=split,
+        n_ants=N_ANTS,
+        n_iterations=N_ITERATIONS,
+        aco_seed=ACO_SEED,
+        timeout_seconds=None,
+    )
+
+
+def _evaluate_instance(args: tuple[int, Any]) -> tuple[int, float]:
+    index, instance = args
+    assert _WORKER_EVALUATOR is not None
+    assert _WORKER_HEURISTIC is not None
+    cost = _WORKER_EVALUATOR._solve_instance(instance, _WORKER_HEURISTIC, index)
+    return index, float(cost)
+
+
+def _evaluate_program(
+    program: str,
+    split: str,
+    workers: int,
+) -> tuple[float, list[float], float]:
+    instances, _ = load_split_instances(split)
+    started_at = time.time()
+    context = multiprocessing.get_context("spawn")
+    with context.Pool(
+        processes=min(workers, len(instances)),
+        initializer=_init_worker,
+        initargs=(program, split),
+    ) as pool:
+        indexed_costs = pool.map(_evaluate_instance, list(enumerate(instances)))
+    costs = [cost for _, cost in sorted(indexed_costs)]
+    return -statistics.fmean(costs), costs, time.time() - started_at
+
+
+def _mean_std(values: list[float]) -> dict[str, float | None]:
+    finite = [value for value in values if math.isfinite(value)]
+    return {
+        "mean": statistics.fmean(finite) if finite else None,
+        "sample_std": statistics.stdev(finite) if len(finite) >= 2 else None,
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("run_dirs", nargs="+", type=Path)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--splits", default=",".join(DEFAULT_SPLITS))
+    parser.add_argument("--workers", type=int, default=DEFAULT_WORKERS)
+    args = parser.parse_args()
+    if args.workers < 1:
+        raise ValueError("--workers must be positive")
+    splits = tuple(split.strip() for split in args.splits.split(",") if split.strip())
+    if not splits:
+        raise ValueError("--splits must contain at least one split")
+
+    run_dirs = [run_dir.resolve() for run_dir in args.run_dirs]
+    methods = {run_dir.parent.name for run_dir in run_dirs}
+    if len(methods) != 1:
+        raise ValueError(f"all run directories must belong to one method: {sorted(methods)}")
+    method = next(iter(methods))
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+
+    run_records: list[dict[str, Any]] = []
+    for run_dir in run_dirs:
+        best, all_samples = _pick_best(run_dir)
+        program_path = args.output_dir / f"{run_dir.name}_sample_{best['sample_order']}_program.py"
+        program_path.write_text(str(best["program"]).rstrip() + "\n", encoding="utf-8")
+        config_path = run_dir / "run_config.json"
+        config = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
+        run_records.append(
+            {
+                "run_dir": str(run_dir),
+                "run_name": run_dir.name,
+                "status": "finished",
+                "num_valid_samples": len(all_samples),
+                "best_sample_order": best["sample_order"],
+                "best_operator": best.get("operator"),
+                "train_best_score": float(best["score"]),
+                "program_path": str(program_path),
+                "run_config": config,
+                "program": best["program"],
+            }
+        )
+
+    results_by_split: dict[str, Any] = {}
+    for split in splits:
+        split_rows: list[dict[str, Any]] = []
+        for row in run_records:
+            score, costs, seconds = _evaluate_program(row["program"], split, args.workers)
+            split_rows.append(
+                {
+                    "run_name": row["run_name"],
+                    "best_sample_order": row["best_sample_order"],
+                    "best_operator": row["best_operator"],
+                    "score": score,
+                    "objective": -score,
+                    "eval_seconds": seconds,
+                    "instance_costs": costs,
+                    "program_path": row["program_path"],
+                }
+            )
+        objectives = [row["objective"] for row in split_rows]
+        results_by_split[split] = {
+            "split": split,
+            "metadata": load_split_instances(split)[1],
+            "config": {
+                "n_ants": N_ANTS,
+                "n_iterations": N_ITERATIONS,
+                "aco_seed": ACO_SEED,
+                "workers": args.workers,
+            },
+            "results": split_rows,
+            "summary": _mean_std(objectives),
+        }
+
+    first_config = run_records[0]["run_config"]
+    payload = {
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+        "task": "cvrp_aco",
+        "method": method,
+        "model": first_config.get("llm", {}).get("model", "unknown"),
+        "score_semantics": "score is negative mean best route length; higher score is better and lower objective is better",
+        "run_records": [
+            {key: value for key, value in row.items() if key not in {"program", "run_config"}}
+            for row in run_records
+        ],
+        "results_by_split": results_by_split,
+    }
+    output_path = args.output_dir / "results.json"
+    output_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
