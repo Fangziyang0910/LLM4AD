@@ -1,30 +1,60 @@
-**/__pycache__
-**/build/
-**/.egg-info/
-**/.egg
-**/*.pyc
-**/.DS_Store
-**/.vscode/
-**/*.log
-**/*.out
-**/logs
-**/.idea
-**/samples*
-**/sample2pkl.py
-GUI/outputs
-**/wandb
-**/test
-**/gui_test.py
-/.gitattributes
-ysy_main.py
-llm4ad.egg-info/top_level.txt
-llm4ad.egg-info/SOURCES.txt
-llm4ad.egg-info/requires.txt
-llm4ad.egg-info/PKG-INFO
-llm4ad.egg-info/dependency_links.txt
+# Python bytecode and local tool caches
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pytype/
+.ipynb_checkpoints/
+.coverage
+.coverage.*
+htmlcov/
+.cache/
 
-.env
+# Local environments and secrets
 .venv/
-#LLaMEA logs content in this directory.
-**/exp-*
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Build and packaging output
+build/
+dist/
+*.egg
+*.egg-info/
+
+# Logs and local runtime output
+*.log
+*.out
+logs/
+logs_*/
+wandb/
+.wandb/
+GUI/outputs/
+
+# Experiment run logs are disposable; keep run_config.json, results.json,
+# evaluated programs, plots, and other result artifacts under experiments/.
+experiments/**/tmux_run.log
+experiments/**/logs/
+experiments/**/logs_*/
+
+# Local task datasets and downloaded model/data caches
 llm4ad/task/optimization/*/data/
+.huggingface/
+
+# OS, editor, and temporary files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Local helper files from the legacy GUI/scripts
+sample2pkl.py
+gui_test.py
+ysy_main.py
