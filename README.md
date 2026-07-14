@@ -2,7 +2,7 @@
 
 本仓库是 [LLM4AD](https://github.com/Optima-CityU/llm4ad) 的分支，作为我们课题组的 **active platform**，用于统一运行和对比各类 LLM 驱动的自动启发式设计方法。当前重点对比 **MCTS-AHD / PathWise / TraceAAD** 在组合优化（routing 类等）任务上的表现。
 
-> 上层研究项目（含 `TraceAAD/`、`papers/`、`reference_code/`）的总体说明与 agent 指令见上级目录的 `AGENTS.md`。
+> 本仓库的协作规则见仓库根目录 `AGENTS.md`。相关论文位于上级目录 `../papers/`，原始参考代码位于 `../reference_code/`，两者默认只读。
 
 ## 目录结构
 
@@ -58,7 +58,7 @@ TS=$(date +%Y%m%d_%H%M%S)
 - **LLM**：vLLM 本地服务，默认模型 `qwen3.6-27b-awq`
 - **task 数据**：`llm4ad/task/optimization/generated_data_config.py`（按 task 注册 train/eval 的 `problem_size`、`n_instance`、`seed` 等）
 - **method 与 task 解耦**：method 从 evaluation 对象读取 `template_program` / `task_description` 构造所有 prompt，换 task 通常只需换 evaluation 实例
-- **task 默认参数未必对齐论文**：新 task 上线前应对照 `papers/` 核对设置（例如 `orienteering_construct` 的 budget/prize 已对齐 ReEvo/DeepACO 标准）
+- **task 默认参数未必对齐论文**：新 task 上线前应对照 `../papers/` 核对设置（例如 `orienteering_construct` 的 budget/prize 已对齐 ReEvo/DeepACO 标准）
 
 ## 测试
 
