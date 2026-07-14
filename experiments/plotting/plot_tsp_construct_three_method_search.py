@@ -14,9 +14,9 @@ from matplotlib.patches import Patch
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-RESULTS_DIR = PROJECT_ROOT / "docs" / "results"
+RESULTS_DIR = PROJECT_ROOT / "docs" / "results" / "tsp_construct"
 EXPERIMENTS_DIR = PROJECT_ROOT / "experiments" / "tsp_construct"
-OUTPUT_STEM = RESULTS_DIR / "tsp-construct-qwen36-27b-search-curve"
+OUTPUT_STEM = RESULTS_DIR / "搜索曲线"
 METHODS = {
     "MCTS-AHD": {
         "directory": "mcts_ahd",
@@ -117,6 +117,7 @@ def main() -> None:
         spine.set_linewidth(1.0)
     ax.legend(handles=handles, loc="lower right", frameon=True, framealpha=0.95, edgecolor="#444444")
     fig.tight_layout()
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     fig.savefig(OUTPUT_STEM.with_suffix(".png"), dpi=300)
     print(f"Wrote {OUTPUT_STEM.with_suffix('.png')}")
 

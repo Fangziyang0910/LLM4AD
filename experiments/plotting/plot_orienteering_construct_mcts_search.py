@@ -13,11 +13,11 @@ import matplotlib.pyplot as plt
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-RESULTS_DIR = PROJECT_ROOT / "docs" / "results"
+RESULTS_DIR = PROJECT_ROOT / "docs" / "results" / "orienteering_construct"
 EXPERIMENTS_DIR = PROJECT_ROOT / "experiments" / "orienteering_construct" / "mcts_ahd"
 RUNS = ("20260713_125413", "20260713_125707", "20260713_125712")
 BUDGET = 1000
-OUTPUT_PATH = RESULTS_DIR / "mcts-ahd-qwen36-27b-orienteering-construct-search-curve.png"
+OUTPUT_PATH = RESULTS_DIR / "搜索曲线.png"
 
 
 def _load_scores(run_name: str) -> dict[int, float]:

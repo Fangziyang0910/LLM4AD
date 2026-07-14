@@ -12,6 +12,7 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 EVALUATOR = PROJECT_ROOT / "experiments/cvrp_aco/evaluate_best_on_test.py"
 PLOTTER = PROJECT_ROOT / "experiments/plotting/plot_cvrp_aco_three_method_search.py"
+RESULTS_DIR = PROJECT_ROOT / "docs/results/cvrp_aco"
 EVAL_TAG = "eval_20260712_all3"
 SPLITS = ("test_50", "test_100")
 WORKERS = 16
@@ -162,7 +163,7 @@ def _write_result_doc(payloads: dict[str, dict[str, Any]]) -> None:
     lines.extend(
         [
             "",
-            "![CVRP-ACO 三方法训练曲线](cvrp-aco-qwen36-27b-search-curve.png)",
+            "![CVRP-ACO 三方法训练曲线](搜索曲线.png)",
             "",
             "## 简单分析",
             "",
@@ -172,7 +173,7 @@ def _write_result_doc(payloads: dict[str, dict[str, Any]]) -> None:
             "",
         ]
     )
-    path = PROJECT_ROOT / "docs/results/cvrp-aco-qwen36-27b.md"
+    path = RESULTS_DIR / "结果汇总.md"
     path.write_text("\n".join(lines), encoding="utf-8")
     print(f"Wrote {path}", flush=True)
 

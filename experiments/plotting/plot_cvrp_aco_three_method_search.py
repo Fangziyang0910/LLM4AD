@@ -14,7 +14,7 @@ from matplotlib.patches import Patch
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-RESULTS_DIR = PROJECT_ROOT / "docs" / "results"
+RESULTS_DIR = PROJECT_ROOT / "docs" / "results" / "cvrp_aco"
 EXPERIMENTS_DIR = PROJECT_ROOT / "experiments" / "cvrp_aco"
 METHODS = {
     "MCTS-AHD": {
@@ -39,7 +39,7 @@ METHODS = {
         "band": "#A8D5BA",
     },
 }
-COMBINED_STEM = "cvrp-aco-qwen36-27b-search-curve"
+COMBINED_STEM = "搜索曲线"
 Y_MIN = -20.0
 
 
@@ -146,6 +146,7 @@ def _render(method_names: tuple[str, ...], output_stem: str, combined: bool) -> 
         spine.set_linewidth(1.0)
     ax.legend(handles=handles, loc="lower right", frameon=True, framealpha=0.95, edgecolor="#444444")
     fig.tight_layout()
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     output = RESULTS_DIR / output_stem
     fig.savefig(output.with_suffix(".png"), dpi=300)
     plt.close(fig)

@@ -51,7 +51,7 @@ TS=$(date +%Y%m%d_%H%M%S)
 | cvrp_aco | ✅ | ✅ | ✅ |
 | orienteering_construct | 🔄 | — | — |
 
-✅ 完成　🔄 进行中　— 未开始。定稿结果见 `docs/results/`，运行过程和研究记录见当周 `docs/worklog/YYYY-Www.md`。
+✅ 完成　🔄 进行中　— 未开始。定稿结果见 `docs/results/<task>/结果汇总.md`，运行过程和研究记录见当周 `docs/worklog/YYYY-Www.md`。
 
 ## 配置要点
 

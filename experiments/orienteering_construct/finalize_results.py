@@ -9,8 +9,9 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 EVAL_PATH = PROJECT_ROOT / "experiments/orienteering_construct/mcts_ahd/eval_best_qwen36_27b_20260714/results.json"
-OUTPUT_PATH = PROJECT_ROOT / "docs/results/mcts-ahd-qwen36-27b-orienteering-construct.md"
-CURVE_NAME = "mcts-ahd-qwen36-27b-orienteering-construct-search-curve.png"
+RESULTS_DIR = PROJECT_ROOT / "docs/results/orienteering_construct"
+OUTPUT_PATH = RESULTS_DIR / "结果汇总.md"
+CURVE_NAME = "搜索曲线.png"
 SIZES = ("op50", "op100", "op200")
 
 
@@ -96,7 +97,7 @@ def main() -> None:
             f"- 测试评估使用无 timeout、{payload.get('eval_workers', 'n/a')} 个规模 worker、{payload.get('eval_instance_workers', 'n/a')} 个实例 worker；所有测试规模均须完成后才更新本页。",
             "- 评估命令：`uv run python experiments/orienteering_construct/evaluate_best_on_test.py`",
             "- 绘图命令：`uv run python experiments/plotting/plot_orienteering_construct_mcts_search.py`",
-            f"- 训练曲线：`docs/results/{CURVE_NAME}`",
+            f"- 训练曲线：`docs/results/orienteering_construct/{CURVE_NAME}`",
             "- 三个 best heuristic 程序保存在测试评估目录下，与 `results.json` 同目录。",
             "",
             "## 简单分析",
