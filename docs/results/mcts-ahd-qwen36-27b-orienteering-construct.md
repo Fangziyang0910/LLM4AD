@@ -21,7 +21,7 @@
 |---|---|---:|---|---:|---:|---:|---:|
 | `20260713_125413` | `experiments/orienteering_construct/mcts_ahd/20260713_125413` | 853 | m1 | 14.464375 | 14.817500 | 27.597500 | 50.165625 |
 | `20260713_125707` | `experiments/orienteering_construct/mcts_ahd/20260713_125707` | 757 | e2 | 16.175000 | 16.234375 | 31.222500 | 58.271875 |
-| `20260713_125712` | `experiments/orienteering_construct/mcts_ahd/20260713_125712` | 794 | m2 | 16.348750 | 16.388750 | 32.603750 | n/a |
+| `20260713_125712` | `experiments/orienteering_construct/mcts_ahd/20260713_125712` | 794 | m2 | 16.348750 | 16.388750 | 32.603750 | 58.576250 |
 
 ### 三次运行平均
 
@@ -29,18 +29,21 @@
 |---|---:|---:|
 | `OP50` | 3/3 | 15.813542 ± 0.866044 |
 | `OP100` | 3/3 | 30.474583 ± 2.585569 |
-| `OP200` | 2/3 | 54.218750 ± 5.731984 |
+| `OP200` | 3/3 | 55.671250 ± 4.770439 |
 
 ![MCTS-AHD OP 训练曲线](mcts-ahd-qwen36-27b-orienteering-construct-search-curve.png)
 
 ## Artifact
 
 - 测试评估汇总：`experiments/orienteering_construct/mcts_ahd/eval_best_qwen36_27b_20260714/results.json`
+- 测试评估使用无 timeout、3 个规模 worker、16 个实例 worker；所有测试规模均须完成后才更新本页。
+- 评估命令：`uv run python experiments/orienteering_construct/evaluate_best_on_test.py`
+- 绘图命令：`uv run python experiments/plotting/plot_orienteering_construct_mcts_search.py`
 - 训练曲线：`docs/results/mcts-ahd-qwen36-27b-orienteering-construct-search-curve.png`
 - 三个 best heuristic 程序保存在测试评估目录下，与 `results.json` 同目录。
 
 ## 简单分析
 
-- OP50 和 OP100 的三个重复均成功完成测试，MCTS-AHD 的跨 run 平均 collected prize 分别为 15.813542 和 30.474583。
-- OP200 的第三个 best heuristic 在 120 秒单次安全评估上限内超时，因此 OP200 的 mean ± std 只基于 2/3 个成功 run，不能视为完整三次重复结果。
+- OP50 和 OP100 的三个重复均成功完成测试，跨 run 平均 collected prize 分别为 15.813542 和 30.474583。
+- 三个测试规模均完成了三个 run 的评估，结果可作为完整三次重复汇总。
 - 不同测试规模的 prize 总量不同，分数不应跨 OP50/100/200 直接比较；应在同一规模内比较方法。

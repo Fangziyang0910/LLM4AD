@@ -42,7 +42,7 @@ def main() -> None:
         "| 搜索预算 | MCTS-AHD：1000 次评估 |",
         "| 方法配置 | `init_size=4`、`pop_size=10`、`selection_num=2`、4 个 sampler、4 个 evaluator、`alpha=0.5`、`lambda_0=0.1` |",
         "| 指标 | 平均 collected prize，越高越好 |",
-        "| 测试方式 | 取每次搜索得到的训练集 best heuristic，在固定 held-out 测试集上完整评估 |",
+            "| 测试方式 | 取每次搜索得到的训练集 best heuristic，在固定 held-out 测试集上完整评估 |",
         "",
         "## 运行结果",
         "",
@@ -75,6 +75,16 @@ def main() -> None:
             f"{_fmt(summary['mean_eval_score'])} ± {_fmt(summary['sample_std_eval_score'])} |"
         )
 
+    op50 = payload["eval_results_by_size"]["op50"]["summary"]
+    op100 = payload["eval_results_by_size"]["op100"]["summary"]
+    all_complete = all(
+        payload["eval_results_by_size"][size]["summary"]["num_successful_eval_runs"]
+        == payload["eval_results_by_size"][size]["summary"]["num_runs"]
+        for size in SIZES
+    )
+    if not all_complete:
+        raise RuntimeError("refusing to write an authoritative result page with incomplete test evaluations")
+
     lines.extend(
         [
             "",
@@ -83,13 +93,16 @@ def main() -> None:
             "## Artifact",
             "",
             f"- 测试评估汇总：`{EVAL_PATH.relative_to(PROJECT_ROOT)}`",
+            f"- 测试评估使用无 timeout、{payload.get('eval_workers', 'n/a')} 个规模 worker、{payload.get('eval_instance_workers', 'n/a')} 个实例 worker；所有测试规模均须完成后才更新本页。",
+            "- 评估命令：`uv run python experiments/orienteering_construct/evaluate_best_on_test.py`",
+            "- 绘图命令：`uv run python experiments/plotting/plot_orienteering_construct_mcts_search.py`",
             f"- 训练曲线：`docs/results/{CURVE_NAME}`",
             "- 三个 best heuristic 程序保存在测试评估目录下，与 `results.json` 同目录。",
             "",
             "## 简单分析",
             "",
-            "- OP50 和 OP100 的三个重复均成功完成测试，MCTS-AHD 的跨 run 平均 collected prize 分别为 15.813542 和 30.474583。",
-            "- OP200 的第三个 best heuristic 在 120 秒单次安全评估上限内超时，因此 OP200 的 mean ± std 只基于 2/3 个成功 run，不能视为完整三次重复结果。",
+            f"- OP50 和 OP100 的三个重复均成功完成测试，跨 run 平均 collected prize 分别为 {_fmt(op50['mean_eval_score'])} 和 {_fmt(op100['mean_eval_score'])}。",
+            "- 三个测试规模均完成了三个 run 的评估，结果可作为完整三次重复汇总。",
             "- 不同测试规模的 prize 总量不同，分数不应跨 OP50/100/200 直接比较；应在同一规模内比较方法。",
             "",
         ]
