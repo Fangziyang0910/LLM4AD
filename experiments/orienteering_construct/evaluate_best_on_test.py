@@ -203,7 +203,7 @@ def main() -> None:
         "task": TASK,
         "method": METHOD,
         "model": MODEL,
-        "source": "three completed MCTS-AHD orienteering_construct repeats",
+        "source": f"{len(run_records)} completed {METHOD} orienteering_construct repeat(s)",
         "problem_sizes": PROBLEM_SIZES,
         "eval_timeout_seconds": EVAL_TIMEOUT_SECONDS,
         "eval_workers": EVAL_WORKERS,
