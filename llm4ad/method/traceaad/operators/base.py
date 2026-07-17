@@ -1,4 +1,4 @@
-"""Operator 协议、base 选择、机制推断。
+"""Operator 协议与 base 选择。
 
 算子统一形式：trigger → select_base → build_constraint → (主循环生成+评估) → insert。
 - _ExtendFromEndpointOp：endpoint/simplify 共用（base=endpoint，insert=extend）。
@@ -6,60 +6,15 @@
 """
 from __future__ import annotations
 
-import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
 from ..credit import directed_delta, normalize_fitness
 from ..derivation_graph import DerivationGraph
+from ..experience_memory import ExperienceMemory
 from ..islands import IslandsManager
-from ..pattern_memory import PatternMemory
 from ..schema import NodeId, OperatorName, Trajectory
 from ..trajectory_memory import TrajectoryMemory
-
-
-# 预设机制族关键词（TSP constructive 为例；机制层相似度 / PatternMemory / island 分配共用）
-_MECHANISM_KEYWORDS: dict[str, tuple[str, ...]] = {
-    "local_density": ("density", "local density"),
-    "nn_rank": ("nearest neighbor rank", "nn rank", "neighbor rank", "ranking"),
-    "row_normalize": ("row-wise", "row normalization", "normalize row", "normaliz"),
-    "edge_contrast": ("edge contrast", "contrast", "difference-based"),
-    "sparsified_candidate": ("sparsif", "candidate list", "prune candidate"),
-    "adaptive_exponent": ("adaptive exponent", "exponent", "power law", "weighting exponent"),
-    "hybrid_distance": ("hybrid distance", "distance-statistical", "distance and statistic"),
-    "randomization": ("random", "stochastic", "noise", "probabilistic"),
-}
-
-
-def infer_mechanism_tag(action_text: str, hint: str | None = None) -> str:
-    text = action_text.lower()
-    for tag, keywords in _MECHANISM_KEYWORDS.items():
-        if any(_has_positive_mention(text, kw) for kw in keywords):
-            return tag
-    if hint:
-        hint_keywords = _MECHANISM_KEYWORDS.get(hint)
-        if hint_keywords is None:
-            return hint
-        # An explicit removal must not fall back to the requested family.
-        if any(keyword in text for keyword in hint_keywords):
-            return "other"
-        return hint
-    return "other"
-
-
-def _has_positive_mention(text: str, keyword: str) -> bool:
-    for match in re.finditer(re.escape(keyword), text):
-        prefix = text[max(0, match.start() - 96):match.start()]
-        if not re.search(
-            r"\b(?:remove|replace|eliminate|avoid|disable|discard|drop|exclude)\b"
-            r"(?:(?!\b(?:with|using|by)\b)[\s\w-]){0,48}$"
-            r"|\b(?:avoid|stop)\s+using\b(?:(?!\b(?:with|by)\b)[\s\w-]){0,48}$"
-            r"|\bwithout\s+(?:any\s+)?$"
-            r"|\b(?:do\s+not|don't|never)\s+(?:use|add|introduce|retain|keep)?\s*$",
-            prefix,
-        ):
-            return True
-    return False
 
 
 def classify_outcome(delta: float | None, positive_threshold: float = 1e-6) -> str:
@@ -76,14 +31,14 @@ def classify_outcome(delta: float | None, positive_threshold: float = 1e-6) -> s
 class OperatorContext:
     graph: DerivationGraph
     memory: TrajectoryMemory
-    pattern_memory: PatternMemory
+    experience_memory: ExperienceMemory
     islands: IslandsManager
     selected: Trajectory
     maximize: bool
     positive_threshold: float = 1e-6
     iteration: int = 0
     best_stagnation: int = 0
-    hints: dict = field(default_factory=dict)  # 算子侧信道：donor_mechanism 等
+    hints: dict = field(default_factory=dict)
 
 
 class Operator(ABC):
@@ -144,7 +99,7 @@ def trajectory_step_outcomes(graph: DerivationGraph, trajectory: Trajectory,
 
 def select_base_node(*, graph: DerivationGraph, trajectory: Trajectory, maximize: bool,
                       positive_threshold: float = 1e-6) -> tuple[NodeId, str]:
-    """4 规则产生候选 → branch_score 打分取最大（§2.2/§6）。"""
+    """4 规则产生候选 → branch_score 打分取最大。"""
     if not trajectory.edge_ids:
         return trajectory.endpoint_id, "initial"
 
@@ -168,9 +123,9 @@ def select_base_node(*, graph: DerivationGraph, trajectory: Trajectory, maximize
 
 def branch_score(graph: DerivationGraph, trajectory: Trajectory, node_id: NodeId,
                   maximize: bool) -> float:
-    """§2.2: normalize(q) + 局部前向正改进 − 局部后向回撤。"""
+    """normalize(q) + 局部前向正改进 − 局部后向回撤。"""
     node = graph.get_node(node_id)
-    if not node.is_valid or node.fitness is None:
+    if node.fitness is None:
         return -1e9
     fmin, fmax = graph.fitness_range()
     base_quality = normalize_fitness(node.fitness, fmin, fmax, maximize)
@@ -187,7 +142,7 @@ def _best_node_in_trajectory(graph: DerivationGraph, trajectory: Trajectory,
     best_fit: float | None = None
     for nid in trajectory.node_ids:
         node = graph.get_node(nid)
-        if not node.is_valid or node.fitness is None:
+        if node.fitness is None:
             continue
         if best_fit is None or (node.fitness > best_fit) == maximize:
             best_id, best_fit = nid, node.fitness
@@ -201,6 +156,5 @@ __all__ = [
     "_ExtendFromEndpointOp",
     "select_base_node",
     "branch_score",
-    "infer_mechanism_tag",
     "classify_outcome",
 ]

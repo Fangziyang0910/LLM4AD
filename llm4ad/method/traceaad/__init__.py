@@ -1,16 +1,17 @@
 """TraceAAD: process-aware trajectory-guided algorithm design."""
 from .derivation_graph import DerivationGraph
+from .experience_memory import ExperienceMemory
 from .feedback import RankingModel
 from .islands import IslandsManager
 from .operators import DEFAULT_OPERATORS, Operator
-from .pattern_memory import PatternMemory
 from .portfolio import OperatorPortfolio, PortfolioWeights
 from .profiler import TraceAADProfiler, TraceAADTensorboardProfiler, TraceAADWandBProfiler
 from .schema import (
     EvalResult,
+    ExperienceBatch,
+    ExperienceExample,
     ImprovementEdge,
     OperatorName,
-    Pattern,
     ProgramNode,
     Trajectory,
     TrajectoryStatus,
@@ -28,7 +29,7 @@ __all__ = [
     "TraceAADWandBProfiler",
     "DerivationGraph",
     "TrajectoryMemory",
-    "PatternMemory",
+    "ExperienceMemory",
     "RankingModel",
     "IslandsManager",
     "OperatorPortfolio",
@@ -42,6 +43,7 @@ __all__ = [
     "TrajectoryStatus",
     "ValueVec",
     "EvalResult",
-    "Pattern",
+    "ExperienceExample",
+    "ExperienceBatch",
     "OperatorName",
 ]

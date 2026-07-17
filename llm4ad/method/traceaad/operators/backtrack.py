@@ -1,8 +1,7 @@
 """Backtrack Branch —— path correction（design §4.2，优化版：独立选题）。
 
-不再依赖被 selection 选中的 trajectory（它偏好高潜力、近期改进的，最后一步多为 improve，
-导致 backtrack 永不触发）。改为主动从 pool 里挑「endpoint 退步/饱和，但内部前缀 branch_score 高」
-的 trajectory 来 backtrack——让 path correction 真正运转。
+不依赖 UCB 刚选中的轨迹；主动扫描活跃池，找「存在不同于 endpoint 的内部 base」
+的多步轨迹。可行性门槛：池中至少有一条长度 ≥ 2 且能选出内部前缀的轨迹。
 """
 from __future__ import annotations
 
@@ -12,7 +11,6 @@ from .base import (
     OperatorContext,
     branch_score,
     select_base_node,
-    trajectory_step_outcomes,
 )
 
 
@@ -25,16 +23,14 @@ class BacktrackBranchOp(Operator):
         for t in ctx.memory.active():
             if not t.edge_ids:
                 continue
-            outcomes = trajectory_step_outcomes(ctx.graph, t, ctx.maximize, ctx.positive_threshold)
-            if outcomes and outcomes[-1][3] in ("regress", "plateau"):
-                base_id, _ = select_base_node(
-                    graph=ctx.graph,
-                    trajectory=t,
-                    maximize=ctx.maximize,
-                    positive_threshold=ctx.positive_threshold,
-                )
-                if base_id != t.endpoint_id:
-                    out.append((t, branch_score(ctx.graph, t, base_id, ctx.maximize)))
+            base_id, _ = select_base_node(
+                graph=ctx.graph,
+                trajectory=t,
+                maximize=ctx.maximize,
+                positive_threshold=ctx.positive_threshold,
+            )
+            if base_id != t.endpoint_id:
+                out.append((t, branch_score(ctx.graph, t, base_id, ctx.maximize)))
         return out
 
     def select_trajectory(self, ctx: OperatorContext) -> Trajectory | None:
@@ -58,8 +54,8 @@ class BacktrackBranchOp(Operator):
     def build_constraint(self, ctx: OperatorContext, base_node_id: int | None) -> str:
         return (
             "The selected trajectory's endpoint regressed or saturated, but an earlier prefix was strong. "
-            "Branch from the selected base node: restart from that high-value prefix and propose a "
-            "DIFFERENT modification than the ones that led to the regression or plateau."
+            "Branch from that high-value prefix and propose a modification DIFFERENT from the one that "
+            "caused the regression or plateau."
         )
 
     def insert(self, ctx: OperatorContext, child_id: NodeId, edge_id: int,

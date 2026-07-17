@@ -1,12 +1,13 @@
-"""多维 Trajectory Value + trajectory-UCB 选择（design §4）。
+"""多维 Trajectory Value + trajectory-UCB 选择（design §5）。
 
-ValueVec 不塌缩成单标量（MEoH 教训）：survival 用 non-dominated（见 trajectory_manager），
-采样用 scalarize + UCB。V_potential 是相对各家的真正增量。
+ValueVec 不塌缩成单标量（MEoH 教训）：survival 用 non-dominated，
+采样用 scalarize + UCB。V=(Q,P,D,N,C,R)，其中 C/R 为池相对 compactness/speed。
 """
 from __future__ import annotations
 
 import math
 import random
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from .credit import (
@@ -17,8 +18,6 @@ from .derivation_graph import DerivationGraph
 from .schema import Trajectory, ValueVec
 from .similarity import (
     code_similarity,
-    mechanism_profile,
-    mechanism_similarity,
     trajectory_pattern,
     trajectory_pattern_similarity,
 )
@@ -27,13 +26,14 @@ from .trajectory_memory import TrajectoryMemory
 
 @dataclass(frozen=True)
 class ValueWeights:
-    w_quality: float = 0.50
-    w_potential: float = 0.20
-    w_diversity: float = 0.15
-    w_novelty: float = 0.15
-    w_sim_code: float = 0.4
-    w_sim_mechanism: float = 0.4
-    w_sim_trajectory: float = 0.2
+    w_quality: float = 0.42
+    w_potential: float = 0.18
+    w_diversity: float = 0.12
+    w_novelty: float = 0.12
+    w_compactness: float = 0.08
+    w_speed: float = 0.08
+    w_sim_code: float = 0.7
+    w_sim_trajectory: float = 0.3
     discount: float = 0.8
     w_positive_ratio: float = 0.25
     w_downside: float = 0.5
@@ -55,12 +55,57 @@ def robust_active_fitness_bounds(
     graph: DerivationGraph,
     clip_quantile: float = 0.10,
 ) -> tuple[float | None, float | None]:
-    """Return clipped fitness bounds over unique active endpoints.
+    """Return clipped fitness bounds over unique active endpoints."""
+    return _robust_active_metric_bounds(
+        trajectories=trajectories,
+        graph=graph,
+        clip_quantile=clip_quantile,
+        extractor=lambda endpoint: (
+            float(endpoint.fitness)
+            if endpoint.fitness is not None
+            and math.isfinite(endpoint.fitness)
+            else None
+        ),
+    )
 
-    Selection should not let archived programs or repeated trajectories distort
-    endpoint quality. Quantile clipping also prevents one active failure from
-    compressing the useful part of the pool into an indistinguishable band.
-    """
+
+def robust_active_metric_bounds(
+    *,
+    trajectories: tuple[Trajectory, ...],
+    graph: DerivationGraph,
+    clip_quantile: float = 0.10,
+    kind: str,
+) -> tuple[float | None, float | None]:
+    """Clipped bounds for endpoint complexity or runtime over unique active endpoints."""
+    if kind == "complexity":
+        def extractor(endpoint) -> float | None:
+            if endpoint.fitness is None:
+                return None
+            value = float(endpoint.complexity)
+            return value if math.isfinite(value) and value >= 0.0 else None
+    elif kind == "runtime":
+        def extractor(endpoint) -> float | None:
+            if endpoint.fitness is None:
+                return None
+            value = float(endpoint.runtime)
+            return value if math.isfinite(value) and value > 0.0 else None
+    else:
+        raise ValueError(f"unknown metric kind: {kind}")
+    return _robust_active_metric_bounds(
+        trajectories=trajectories,
+        graph=graph,
+        clip_quantile=clip_quantile,
+        extractor=extractor,
+    )
+
+
+def _robust_active_metric_bounds(
+    *,
+    trajectories: tuple[Trajectory, ...],
+    graph: DerivationGraph,
+    clip_quantile: float,
+    extractor: Callable,
+) -> tuple[float | None, float | None]:
     values: list[float] = []
     seen_endpoints: set[int] = set()
     for trajectory in trajectories:
@@ -68,8 +113,9 @@ def robust_active_fitness_bounds(
             continue
         seen_endpoints.add(trajectory.endpoint_id)
         endpoint = graph.get_node(trajectory.endpoint_id)
-        if endpoint.is_valid and endpoint.fitness is not None and math.isfinite(endpoint.fitness):
-            values.append(float(endpoint.fitness))
+        value = extractor(endpoint)
+        if value is not None:
+            values.append(value)
     if not values:
         return None, None
     values.sort()
@@ -93,10 +139,9 @@ def _sim_pair(graph, a: Trajectory, b: Trajectory, w: ValueWeights) -> float:
     sim_code = code_similarity(
         graph.get_node(a.endpoint_id).code, graph.get_node(b.endpoint_id).code
     )
-    sim_mech = mechanism_similarity(mechanism_profile(graph, a), mechanism_profile(graph, b))
     sim_pat = trajectory_pattern_similarity(trajectory_pattern(graph, a), trajectory_pattern(graph, b))
-    total = w.w_sim_code + w.w_sim_mechanism + w.w_sim_trajectory
-    return (w.w_sim_code * sim_code + w.w_sim_mechanism * sim_mech + w.w_sim_trajectory * sim_pat) / total
+    total = w.w_sim_code + w.w_sim_trajectory
+    return (w.w_sim_code * sim_code + w.w_sim_trajectory * sim_pat) / total if total > 0 else 0.0
 
 
 def diversity_and_novelty(*, graph, target: Trajectory,
@@ -115,6 +160,24 @@ def diversity_and_novelty(*, graph, target: Trajectory,
     return 1.0 - (sum(sims) / len(sims)), 1.0 - max(sims)
 
 
+def _normalize_lower_better(
+    raw: float | None,
+    lo: float | None,
+    hi: float | None,
+    *,
+    missing: float = 0.5,
+) -> float:
+    """Map lower-is-better raw metric to [0,1] higher-is-better score."""
+    if raw is None or not math.isfinite(raw):
+        return missing
+    if lo is None or hi is None:
+        return missing
+    if abs(hi - lo) < 1e-12:
+        return 0.5
+    clipped = max(lo, min(hi, float(raw)))
+    return max(0.0, min(1.0, (hi - clipped) / (hi - lo)))
+
+
 def compute_value_vec(
     *,
     trajectory: Trajectory,
@@ -124,9 +187,13 @@ def compute_value_vec(
     fmax: float | None,
     maximize: bool,
     w: ValueWeights,
+    cmin: float | None = None,
+    cmax: float | None = None,
+    rmin: float | None = None,
+    rmax: float | None = None,
 ) -> ValueVec:
     endpoint = graph.get_node(trajectory.endpoint_id)
-    if not endpoint.is_valid or endpoint.fitness is None:
+    if endpoint.fitness is None:
         return ValueVec()
     quality = normalize_fitness(endpoint.fitness, fmin, fmax, maximize)
     raw_potential = compute_path_value(
@@ -142,8 +209,23 @@ def compute_value_vec(
     diversity, novelty = diversity_and_novelty(
         graph=graph, target=trajectory, others=active_others, w=w
     )
+    compactness = _normalize_lower_better(
+        float(endpoint.complexity) if endpoint.complexity > 0 else None,
+        cmin,
+        cmax,
+    )
+    speed = _normalize_lower_better(
+        float(endpoint.runtime) if endpoint.runtime > 0 else None,
+        rmin,
+        rmax,
+    )
     return ValueVec(
-        quality=quality, potential=potential, diversity=diversity, novelty=novelty,
+        quality=quality,
+        potential=potential,
+        diversity=diversity,
+        novelty=novelty,
+        compactness=compactness,
+        speed=speed,
     )
 
 
@@ -153,6 +235,8 @@ def scalarize(value: ValueVec, w: ValueWeights) -> float:
         + w.w_potential * value.potential
         + w.w_diversity * value.diversity
         + w.w_novelty * value.novelty
+        + w.w_compactness * value.compactness
+        + w.w_speed * value.speed
     )
 
 
@@ -179,8 +263,8 @@ def pareto_survival_order(
 
 
 def _dominates(left: Trajectory, right: Trajectory) -> bool:
-    left_values = left.value.as_tuple() if left.value is not None else (float("-inf"),) * 4
-    right_values = right.value.as_tuple() if right.value is not None else (float("-inf"),) * 4
+    left_values = left.value.as_tuple() if left.value is not None else (float("-inf"),) * 6
+    right_values = right.value.as_tuple() if right.value is not None else (float("-inf"),) * 6
     return all(a >= b for a, b in zip(left_values, right_values)) and any(
         a > b for a, b in zip(left_values, right_values)
     )
@@ -239,6 +323,18 @@ def select_trajectory(
         graph=graph,
         clip_quantile=w.fitness_clip_quantile,
     )
+    cmin, cmax = robust_active_metric_bounds(
+        trajectories=actives,
+        graph=graph,
+        clip_quantile=w.fitness_clip_quantile,
+        kind="complexity",
+    )
+    rmin, rmax = robust_active_metric_bounds(
+        trajectories=actives,
+        graph=graph,
+        clip_quantile=w.fitness_clip_quantile,
+        kind="runtime",
+    )
     total_visits = memory.total_visits()
     scored: list[tuple[Trajectory, ValueVec, float]] = []
     for t in actives:
@@ -246,6 +342,7 @@ def select_trajectory(
         value = compute_value_vec(
             trajectory=t, graph=graph,
             active_others=others, fmin=fmin, fmax=fmax, maximize=maximize, w=w,
+            cmin=cmin, cmax=cmax, rmin=rmin, rmax=rmax,
         )
         scalar = scalarize(value, w) + ucb_bonus(
             visit_count=t.visit_count, total_visits=total_visits, c0=w.c0,
@@ -297,7 +394,7 @@ def best_by_quality(*, memory: TrajectoryMemory, graph: DerivationGraph, maximiz
 
     def key(t: Trajectory) -> float:
         node = graph.get_node(t.endpoint_id)
-        if not node.is_valid or node.fitness is None:
+        if node.fitness is None:
             return float("-inf") if maximize else float("inf")
         return node.fitness
 

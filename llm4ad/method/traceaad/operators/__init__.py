@@ -1,4 +1,4 @@
-"""算子集（design §4/§7）。"""
+"""算子集。"""
 from __future__ import annotations
 
 from .base import (
@@ -6,20 +6,19 @@ from .base import (
     OperatorContext,
     branch_score,
     classify_outcome,
-    infer_mechanism_tag,
     select_base_node,
 )
 from .backtrack import BacktrackBranchOp
 from .crossover import MechanismCrossoverOp
 from .endpoint import EndpointRefineOp
 from .novelty import NoveltyJumpOp
-from .simplify import DistillSimplifyOp
+from .simplify import SimplifyOp
 
 DEFAULT_OPERATORS: tuple[type[Operator], ...] = (
     EndpointRefineOp,
     BacktrackBranchOp,
     MechanismCrossoverOp,
-    DistillSimplifyOp,
+    SimplifyOp,
     NoveltyJumpOp,
 )
 
@@ -30,10 +29,9 @@ __all__ = [
     "EndpointRefineOp",
     "BacktrackBranchOp",
     "MechanismCrossoverOp",
-    "DistillSimplifyOp",
+    "SimplifyOp",
     "NoveltyJumpOp",
     "select_base_node",
     "branch_score",
-    "infer_mechanism_tag",
     "classify_outcome",
 ]

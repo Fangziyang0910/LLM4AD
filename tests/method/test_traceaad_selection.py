@@ -27,7 +27,6 @@ def _add_initial(
         code=f"def solve(): return {fitness}",
         idea=f"fitness {fitness}",
         fitness=fitness,
-        is_valid=True,
     )
     return node, memory.create_initial(node_id=node.id, island_id=island_id)
 
@@ -44,7 +43,7 @@ def test_selection_uses_clipped_active_pool_fitness_bounds(monkeypatch) -> None:
     _, archived = _add_initial(graph=graph, memory=memory, fitness=-10000.0)
     memory.archive(archived.id)
     graph.add_node(code="def solve(): return 10000", idea="untracked outlier",
-                   fitness=10000.0, is_valid=True)
+                   fitness=10000.0)
 
     monkeypatch.setattr("llm4ad.method.traceaad.value.random.random", lambda: 0.0)
     select_trajectory(
@@ -68,7 +67,7 @@ def test_endpoint_quality_gates_heroic_recovery_potential() -> None:
     root, root_trajectory = _add_initial(graph=graph, memory=memory, fitness=-100.0)
     recovered = graph.add_node(
         code="def solve(): return 5", idea="large recovery to a mediocre endpoint",
-        fitness=5.0, is_valid=True,
+        fitness=5.0,
     )
     edge = graph.add_edge(parent_id=root.id, child_id=recovered.id, action="recover")
     recovery_trajectory = memory.extend(
@@ -263,8 +262,10 @@ def test_default_value_weights_match_the_audit_driven_search_configuration() -> 
         weights.w_potential,
         weights.w_diversity,
         weights.w_novelty,
+        weights.w_compactness,
+        weights.w_speed,
         weights.top_k,
-    ) == (0.50, 0.20, 0.15, 0.15, 12)
+    ) == (0.42, 0.18, 0.12, 0.12, 0.08, 0.08, 12)
 
 
 def test_move_to_island_preserves_visit_count() -> None:
@@ -313,15 +314,23 @@ def test_migration_rotates_existing_identities_and_preserves_visits() -> None:
     assert memory.get_trajectory(low_one.id).island_id == 1
 
 
-def test_island_assignment_has_a_stable_known_mapping() -> None:
+def test_island_assignment_picks_least_loaded_then_lowest_id() -> None:
+    graph = DerivationGraph()
+    memory = TrajectoryMemory()
     islands = IslandsManager(n_islands=4)
+    for _ in range(2):
+        node = graph.add_node(code="a", idea="a", fitness=1.0)
+        memory.create_initial(node_id=node.id, island_id=0)
+    node = graph.add_node(code="b", idea="b", fitness=1.0)
+    memory.create_initial(node_id=node.id, island_id=1)
 
-    assert (
-        islands.assign("local_density"),
-        islands.assign("sparsified_candidate"),
-        islands.assign("adaptive_exponent"),
-        islands.assign("nn_rank"),
-    ) == (3, 1, 3, 0)
+    assert islands.assign_least_loaded(memory) == 2
+    node2 = graph.add_node(code="c", idea="c", fitness=1.0)
+    memory.create_initial(node_id=node2.id, island_id=2)
+    assert islands.assign_least_loaded(memory) == 3
+    node3 = graph.add_node(code="d", idea="d", fitness=1.0)
+    memory.create_initial(node_id=node3.id, island_id=3)
+    assert islands.assign_least_loaded(memory) == 1
 
 
 def test_pareto_survival_keeps_non_dominated_diversity_before_dominated_scalar() -> None:

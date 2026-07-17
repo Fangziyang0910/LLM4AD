@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from ..schema import OperatorName
-from .base import OperatorContext, _ExtendFromEndpointOp, trajectory_step_outcomes
+from .base import OperatorContext, _ExtendFromEndpointOp
 
 
 class EndpointRefineOp(_ExtendFromEndpointOp):
@@ -10,14 +10,8 @@ class EndpointRefineOp(_ExtendFromEndpointOp):
     role = "exploit"
 
     def trigger(self, ctx: OperatorContext) -> bool:
-        node = ctx.graph.get_node(ctx.selected.endpoint_id)
-        if not node.is_valid or node.fitness is None:
-            return False
-        outcomes = trajectory_step_outcomes(ctx.graph, ctx.selected, ctx.maximize, ctx.positive_threshold)
-        if not outcomes:
-            return True  # length-1 轨迹，默认可继续
-        # 最近步是 improve/plateau 可继续 exploit；regress 让位给 backtrack
-        return outcomes[-1][3] != "regress"
+        # 图中节点均已评估合法；可行性上始终可 refine。
+        return True
 
     def build_constraint(self, ctx: OperatorContext, base_node_id: int | None) -> str:
         return (

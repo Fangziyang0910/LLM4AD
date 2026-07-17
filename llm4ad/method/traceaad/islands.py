@@ -1,12 +1,10 @@
 """Islands —— 多岛并行搜索子流，防全局收敛到一个 basin。
 
-- assign：按 mechanism_tag 哈希分配岛，让同机制聚簇、跨机制分散。
-- migrate：周期性轮换每个岛的 top trajectory，促进机制流动而不制造 clone。
+- assign_least_loaded：Novelty fresh start 分到当前活跃轨迹最少的岛。
+- migrate：周期性轮换每个岛的 top trajectory，促进跨岛流动而不制造 clone。
 - survival 在主循环 `_survive` 内按岛做 non-dominated 截断。
 """
 from __future__ import annotations
-
-import hashlib
 
 from .trajectory_memory import TrajectoryMemory
 
@@ -15,9 +13,16 @@ class IslandsManager:
     def __init__(self, n_islands: int = 4) -> None:
         self.n_islands = max(1, int(n_islands))
 
-    def assign(self, mechanism_tag: str) -> int:
-        digest = hashlib.sha256(mechanism_tag.encode("utf-8")).digest()
-        return int.from_bytes(digest[:8], "big") % self.n_islands
+    def assign_least_loaded(self, memory: TrajectoryMemory) -> int:
+        """分配到当前活跃轨迹最少的 island；并列时选编号最小者。"""
+        best_island = 0
+        best_count = len(memory.active_in_island(0))
+        for island in range(1, self.n_islands):
+            count = len(memory.active_in_island(island))
+            if count < best_count:
+                best_island = island
+                best_count = count
+        return best_island
 
     def migrate(
         self,

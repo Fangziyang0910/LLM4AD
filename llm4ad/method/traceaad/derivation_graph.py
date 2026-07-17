@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from typing import Mapping
 
 from .schema import EdgeId, ImprovementEdge, NodeId, ProgramNode
 
@@ -18,15 +19,18 @@ class DerivationGraph:
         self._incoming_edge_by_child: dict[NodeId, EdgeId] = {}
         self._outgoing_edges_by_parent: dict[NodeId, list[EdgeId]] = defaultdict(list)
 
-    def add_node(self, *, code: str, idea: str, fitness: float | None, is_valid: bool, **fields) -> ProgramNode:
+    def add_node(self, *, code: str, idea: str, fitness: float | None, **fields) -> ProgramNode:
+        metrics = fields.get("complexity_metrics") or {}
+        if not isinstance(metrics, Mapping):
+            metrics = {}
         node = ProgramNode(
             id=self._next_node_id,
             code=code,
             idea=idea,
             fitness=fitness,
-            is_valid=is_valid,
-            complexity=fields.get("complexity", 0),
-            mechanism_tag=fields.get("mechanism_tag", "other"),
+            complexity=float(fields.get("complexity", 0.0) or 0.0),
+            runtime=float(fields.get("runtime", 0.0) or 0.0),
+            complexity_metrics=dict(metrics),
         )
         self._nodes[node.id] = node
         self._next_node_id += 1
@@ -54,7 +58,6 @@ class DerivationGraph:
             child_id=child_id,
             action=action,
             operator=fields.get("operator", "unknown"),
-            mechanism_tag=fields.get("mechanism_tag", "other"),
             delta=fields.get("delta"),
             outcome=fields.get("outcome", "unknown"),
             iteration=fields.get("iteration"),
@@ -72,7 +75,7 @@ class DerivationGraph:
         return tuple(self._edges.values())
 
     def fitness_range(self) -> tuple[float | None, float | None]:
-        values = [n.fitness for n in self._nodes.values() if n.is_valid and n.fitness is not None]
+        values = [n.fitness for n in self._nodes.values() if n.fitness is not None]
         if not values:
             return None, None
         return min(values), max(values)

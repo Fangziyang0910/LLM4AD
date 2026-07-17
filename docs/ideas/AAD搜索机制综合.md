@@ -160,7 +160,7 @@ TraceAAD 从不同范式中吸收了不同成分：
 2. 从 MCTS 借鉴 ancestry、UCB 和非精英重访，但不把全部预算绑定到树的 UCT/backprop；
 3. 从 PathWise 借鉴结构化反馈和上下文组织，但保持轻量的 action/code 两阶段生成，不直接引入多 agent graph planning；
 4. 从多目标搜索借鉴 Pareto survival，同时保留质量、路径潜力和多样性；
-5. 从经验蒸馏方法借鉴将历史机制统计写回后续 prompt。
+5. 从反馈写回类方法（ReEvo reflection / Shinka meta-scratchpad 等）借鉴：将当前 run 内的历史试错写回后续 prompt。TraceAAD 实现为无标签的边级成功/失败 action 检索，不依赖任务相关机制词表，也不额外调用 LLM 做长文反思。
 
 TraceAAD 的真正技术增量不应只是“增加 trajectory 数据结构”，而应体现在三个可验证的机制差异：
 
@@ -176,7 +176,7 @@ TraceAAD 的真正技术增量不应只是“增加 trajectory 数据结构”�
 
 1. **Path value 假设**：path-level value 能比 endpoint-only 更早识别稳定改进方向。
 2. **Prefix branching 假设**：当 endpoint 退步或 plateau 时，从内部 base node 分叉能恢复有价值的中间思想。
-3. **Trajectory diversity 假设**：active trajectory 的机制多样性比 active program 的多样性更能避免坍缩。
+3. **Trajectory diversity 假设**：active trajectory 的代码/行为多样性比仅靠 endpoint fitness 更能避免坍缩。
 4. **Operator portfolio 假设**：endpoint refinement、backtrack、crossover、simplify、novelty jump 和 scale transfer 在不同阶段具有不同收益。
 5. **Multi-objective trajectory 假设**：将 quality、potential、novelty、diversity 和可选泛化信号用于轨迹管理，比单一 endpoint fitness 更稳健。
 

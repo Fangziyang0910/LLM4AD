@@ -1,6 +1,8 @@
 """Operator Portfolio —— bandit + 阶段感知。
 
-候选 = trigger 通过的算子；在候选内用 softmax(operator_value / temperature) 采样。
+候选 = 通过可行性 trigger 的算子；在候选内用 softmax(operator_value / temperature) 采样。
+trigger 只挡结构性不可行（如无内部前缀可 backtrack、无相对复杂度可 simplify），
+不把停滞/退步等策略判断写成硬禁用。
 """
 from __future__ import annotations
 

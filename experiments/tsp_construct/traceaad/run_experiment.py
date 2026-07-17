@@ -50,10 +50,7 @@ TRAJECTORY_TEMPERATURE = 0.8
 N_ISLANDS = 4
 MAX_PER_ISLAND = 40
 NOVELTY_THRESHOLD = 0.92
-K_DISTILL = 20
-PATIENCE_REFLECT = 20
 MIGRATION_INTERVAL = 20
-MIN_REFLECT_NEW_EDGES = 8
 NUM_EVALUATORS = 1
 MAX_CONSECUTIVE_SAMPLE_FAILURES = 20
 MAX_STALLED_ITERATIONS = 20
@@ -61,21 +58,18 @@ SEARCH_SEED = 2024
 EVAL_EXECUTOR = "thread"
 DEBUG = False
 
-W_QUALITY = 0.50
-W_POTENTIAL = 0.20
-W_DIVERSITY = 0.15
-W_NOVELTY = 0.15
-DISCOUNT = 0.8
-W_POSITIVE_RATIO = 0.25
-W_DOWNSIDE = 0.5
-POSITIVE_THRESHOLD = 1e-6
-C0 = 0.4
-FITNESS_CLIP_QUANTILE = 0.10
-POTENTIAL_QUALITY_FLOOR = 0.50
-UCB_FLOOR = 0.05
-STAGNATION_UCB_BOOST = 0.20
-ELITE_SAMPLING_PROB = 0.15
-ISLAND_TOP_K = 1
+VALUE_WEIGHTS = ValueWeights(
+    w_quality=0.42,
+    w_potential=0.18,
+    w_diversity=0.12,
+    w_novelty=0.12,
+    w_compactness=0.08,
+    w_speed=0.08,
+    w_sim_code=0.7,
+    w_sim_trajectory=0.3,
+    top_k=TOP_K,
+    temperature=TRAJECTORY_TEMPERATURE,
+)
 PORTFOLIO_WEIGHTS = PortfolioWeights()
 
 
@@ -108,33 +102,14 @@ def write_run_config() -> None:
             "n_islands": N_ISLANDS,
             "max_per_island": MAX_PER_ISLAND,
             "novelty_threshold": NOVELTY_THRESHOLD,
-            "k_distill": K_DISTILL,
-            "patience_reflect": PATIENCE_REFLECT,
             "migration_interval": MIGRATION_INTERVAL,
-            "min_reflect_new_edges": MIN_REFLECT_NEW_EDGES,
             "num_evaluators": NUM_EVALUATORS,
             "max_consecutive_sample_failures": MAX_CONSECUTIVE_SAMPLE_FAILURES,
             "max_stalled_iterations": MAX_STALLED_ITERATIONS,
             "random_seed": SEARCH_SEED,
             "eval_executor": EVAL_EXECUTOR,
             "debug": DEBUG,
-            "value_weights": {
-                "w_quality": W_QUALITY,
-                "w_potential": W_POTENTIAL,
-                "w_diversity": W_DIVERSITY,
-                "w_novelty": W_NOVELTY,
-                "discount": DISCOUNT,
-                "w_positive_ratio": W_POSITIVE_RATIO,
-                "w_downside": W_DOWNSIDE,
-                "positive_threshold": POSITIVE_THRESHOLD,
-                "c0": C0,
-                "fitness_clip_quantile": FITNESS_CLIP_QUANTILE,
-                "potential_quality_floor": POTENTIAL_QUALITY_FLOOR,
-                "ucb_floor": UCB_FLOOR,
-                "stagnation_ucb_boost": STAGNATION_UCB_BOOST,
-                "elite_sampling_prob": ELITE_SAMPLING_PROB,
-                "island_top_k": ISLAND_TOP_K,
-            },
+            "value_weights": asdict(VALUE_WEIGHTS),
             "portfolio_weights": asdict(PORTFOLIO_WEIGHTS),
         },
     }
@@ -168,29 +143,8 @@ def build_method() -> TraceAAD:
         max_per_island=MAX_PER_ISLAND,
         sampling_strategy=SAMPLING_STRATEGY,
         novelty_threshold=NOVELTY_THRESHOLD,
-        k_distill=K_DISTILL,
-        patience_reflect=PATIENCE_REFLECT,
         migration_interval=MIGRATION_INTERVAL,
-        min_reflect_new_edges=MIN_REFLECT_NEW_EDGES,
-        value_weights=ValueWeights(
-            w_quality=W_QUALITY,
-            w_potential=W_POTENTIAL,
-            w_diversity=W_DIVERSITY,
-            w_novelty=W_NOVELTY,
-            top_k=TOP_K,
-            temperature=TRAJECTORY_TEMPERATURE,
-            discount=DISCOUNT,
-            w_positive_ratio=W_POSITIVE_RATIO,
-            w_downside=W_DOWNSIDE,
-            positive_threshold=POSITIVE_THRESHOLD,
-            c0=C0,
-            fitness_clip_quantile=FITNESS_CLIP_QUANTILE,
-            potential_quality_floor=POTENTIAL_QUALITY_FLOOR,
-            ucb_floor=UCB_FLOOR,
-            stagnation_ucb_boost=STAGNATION_UCB_BOOST,
-            elite_sampling_prob=ELITE_SAMPLING_PROB,
-            island_top_k=ISLAND_TOP_K,
-        ),
+        value_weights=VALUE_WEIGHTS,
         portfolio_weights=PORTFOLIO_WEIGHTS,
         num_evaluators=NUM_EVALUATORS,
         max_consecutive_sample_failures=MAX_CONSECUTIVE_SAMPLE_FAILURES,

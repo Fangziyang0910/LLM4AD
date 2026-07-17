@@ -6,6 +6,7 @@ import pytest
 
 from llm4ad.base import Evaluation, LLM
 from llm4ad.method.traceaad import TraceAAD, ValueWeights
+from llm4ad.method.traceaad.traceaad import _prompt_section_chars
 from llm4ad.method.traceaad.derivation_graph import DerivationGraph
 from llm4ad.method.traceaad.feedback import RankingModel
 from llm4ad.method.traceaad.operators import EndpointRefineOp, NoveltyJumpOp
@@ -113,6 +114,23 @@ def _method(*, llm: LLM, evaluation: Evaluation, max_samples: int, actions: int,
         novelty_threshold=novelty_threshold,
         **kwargs,
     )
+
+
+def test_removed_pattern_parameters_are_rejected() -> None:
+    with pytest.raises(TypeError):
+        TraceAAD(
+            llm=ScriptedTraceAADLLM(),
+            evaluation=ConstantEvaluation(),
+            k_distill=20,
+        )
+
+
+def test_experience_section_size_can_be_logged_without_tokenizer() -> None:
+    prompt = "before\n[Past Action Evidence]\nabc\ndef\n[Contrast Feedback]\nafter"
+
+    assert _prompt_section_chars(
+        prompt, "[Past Action Evidence]", "[Contrast Feedback]"
+    ) == len("abc\ndef")
 
 
 def test_run_replaces_parse_failures_until_evaluation_budget_is_spent():
@@ -246,19 +264,7 @@ def test_near_record_fresh_starts_receive_credit_without_bypassing_the_gate():
     novelty_stats = method.operator_portfolio_snapshot()[OperatorName.NOVELTY]
     assert novelty_stats["near_record_rate"] == 1.0
     assert len(method._graph.nodes()) == 3  # 1 init + 2 novelty fresh starts
-    credited_tags = {
-        node.mechanism_tag
-        for node in method._graph.nodes()
-        if method._pattern_memory.mechanism_attempts(
-            node.mechanism_tag, operator=OperatorName.NOVELTY
-        )
-    }
-    assert credited_tags
-    tag = next(iter(credited_tags))
-    assert method._pattern_memory.mechanism_successes(
-        tag,
-        operator=OperatorName.NOVELTY,
-    ) == 2
+    assert len(method._graph.edges()) == 0
 
 
 def test_survival_cap_keeps_the_global_best_trajectory_active():
@@ -296,9 +302,19 @@ def test_duplicate_elite_paths_do_not_expand_the_survival_cap():
     assert method.active_trajectories()[0].endpoint_id == result.best_node.id
 
 
-def test_initialization_seeds_four_explicit_mechanisms_across_four_islands():
+def test_initialization_spreads_across_islands_without_preset_mechanism_hints():
+    class RecordingLLM(ScriptedTraceAADLLM):
+        def __init__(self) -> None:
+            super().__init__()
+            self.prompts: list[str] = []
+
+        def draw_sample(self, prompt: str, *args, **kwargs) -> str:
+            self.prompts.append(prompt)
+            return super().draw_sample(prompt, *args, **kwargs)
+
+    llm = RecordingLLM()
     method = TraceAAD(
-        llm=ScriptedTraceAADLLM(),
+        llm=llm,
         evaluation=ConstantEvaluation(),
         max_sample_nums=4,
         n_init=4,
@@ -311,25 +327,21 @@ def test_initialization_seeds_four_explicit_mechanisms_across_four_islands():
 
     method.run()
 
-    mechanisms = {
-        method._graph.get_node(trajectory.endpoint_id).mechanism_tag
-        for trajectory in method.active_trajectories()
-    }
     islands = {trajectory.island_id for trajectory in method.active_trajectories()}
-    assert mechanisms == {
-        "nn_rank",
-        "local_density",
-        "row_normalize",
-        "sparsified_candidate",
-    }
     assert islands == {0, 1, 2, 3}
+    joined = "\n".join(llm.prompts)
+    assert "nearest neighbor" not in joined.lower()
+    assert "local density" not in joined.lower()
+    assert "row-wise" not in joined.lower()
+    assert "sparsified candidate" not in joined.lower()
+    assert "already generated ideas" in joined.lower() or "simple, complete" in joined.lower()
 
 
 def test_contrast_uses_learned_pairwise_ranking_instead_of_raw_fitness_only():
     graph = DerivationGraph()
     memory = TrajectoryMemory()
-    raw_best = graph.add_node(code="a", idea="raw", fitness=10.0, is_valid=True)
-    ranked_best = graph.add_node(code="b", idea="ranked", fitness=9.0, is_valid=True)
+    raw_best = graph.add_node(code="a", idea="raw", fitness=10.0)
+    ranked_best = graph.add_node(code="b", idea="ranked", fitness=9.0)
     memory.create_initial(node_id=raw_best.id)
     memory.create_initial(node_id=ranked_best.id)
     ranking = RankingModel()
@@ -345,10 +357,10 @@ def test_contrast_uses_learned_pairwise_ranking_instead_of_raw_fitness_only():
 def test_contrast_does_not_compare_elo_scores_across_disconnected_components():
     graph = DerivationGraph()
     memory = TrajectoryMemory()
-    weak_parent = graph.add_node(code="wp", idea="wp", fitness=0.0, is_valid=True)
-    weak_winner = graph.add_node(code="ww", idea="ww", fitness=1.0, is_valid=True)
-    strong_parent = graph.add_node(code="sp", idea="sp", fitness=101.0, is_valid=True)
-    strong_loser = graph.add_node(code="sl", idea="sl", fitness=100.0, is_valid=True)
+    weak_parent = graph.add_node(code="wp", idea="wp", fitness=0.0)
+    weak_winner = graph.add_node(code="ww", idea="ww", fitness=1.0)
+    strong_parent = graph.add_node(code="sp", idea="sp", fitness=101.0)
+    strong_loser = graph.add_node(code="sl", idea="sl", fitness=100.0)
     memory.create_initial(node_id=weak_winner.id)
     memory.create_initial(node_id=strong_loser.id)
     ranking = RankingModel()

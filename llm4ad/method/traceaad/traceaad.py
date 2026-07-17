@@ -1,16 +1,15 @@
 """TraceAAD —— 过程信息为一等公民的融合搜索。
 
-三层记忆（ProgramMemory=DerivationGraph / TrajectoryMemory / PatternMemory）+ 三回路
-（进化主回路 / 蒸馏回路 / 反思回路）。以有界 trajectory 为唯一搜索单位，stepwise credit，
-多维 ValueVec + trajectory-UCB，因果叙事三段式 context，算子组合 + bandit portfolio，
-islands + 多层多样性 + novelty gate + 对比反馈。
-
+三层记忆（ProgramMemory=DerivationGraph / TrajectoryMemory / ExperienceMemory）+
+进化主回路与维护回路。以有界 trajectory 为唯一搜索单位，stepwise credit，
+多维 ValueVec + trajectory-UCB，因果叙事 + 边级 action 经验 context，算子组合 +
+bandit portfolio，islands + 两层多样性 + novelty gate + 对比反馈。
 """
 from __future__ import annotations
 
-import ast
 import concurrent.futures
 import copy
+import math
 import random
 import re
 import time
@@ -31,16 +30,16 @@ from .._observability import (
     reset_sample_failures,
     shutdown_executor,
 )
+from .complexity import analyze_code_complexity
 from .context import build_action_prompt
 from .credit import directed_delta
 from .derivation_graph import DerivationGraph
+from .experience_memory import ExperienceMemory
 from .feedback import RankingModel
 from .islands import IslandsManager
-from .operators import DEFAULT_OPERATORS, Operator, OperatorContext, classify_outcome, infer_mechanism_tag
-from .pattern_memory import PatternMemory
+from .operators import DEFAULT_OPERATORS, Operator, OperatorContext, classify_outcome
 from .portfolio import OperatorPortfolio, PortfolioWeights
 from .prompt import build_code_prompt, build_initial_prompt
-from .reflection import distill, reflect
 from .schema import EvalResult, OperatorName, ProgramNode, Trajectory
 from .similarity import max_similarity_to_active
 from .trajectory_memory import TrajectoryMemory
@@ -50,6 +49,7 @@ from .value import (
     compute_value_vec,
     pareto_survival_order,
     robust_active_fitness_bounds,
+    robust_active_metric_bounds,
     scalarize,
     select_trajectory,
 )
@@ -68,9 +68,8 @@ class _CandidateObservation:
     reference_score: float
     accepted: bool
     outcome: str
-    mechanism_tag: str
-    complexity: int
-    reference_complexity: int
+    complexity: float
+    reference_complexity: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,15 +80,6 @@ class TraceAADRunResult:
     n_trajectories: int
     n_edges: int
     n_samples: int
-
-
-# 初始化：强制跨机制族多样性（不是仅 thought 多样性）
-_INIT_MECHANISM_HINTS = (
-    "Design a constructive heuristic using an explicit nearest neighbor rank for candidate selection.",
-    "Design a heuristic based on local density or neighborhood scoring of candidate nodes.",
-    "Design a heuristic using row-wise normalization before comparing candidate scores.",
-    "Design a heuristic that searches only a sparsified candidate list at each construction step.",
-)
 
 
 class TraceAAD:
@@ -112,10 +102,7 @@ class TraceAAD:
         portfolio_weights: PortfolioWeights | None = None,
         operators: tuple[type[Operator], ...] = DEFAULT_OPERATORS,
         novelty_threshold: float = 0.92,
-        k_distill: int = 20,
-        patience_reflect: int = 20,
         migration_interval: int = 20,
-        min_reflect_new_edges: int = 8,
         num_evaluators: int = 1,
         resume_mode: bool = False,
         debug_mode: bool = False,
@@ -123,7 +110,6 @@ class TraceAAD:
         max_stalled_iterations: int = 20,
         random_seed: int | None = 0,
         multi_thread_or_process_eval: Literal["thread", "process"] = "thread",
-        **kwargs,
     ) -> None:
         if n_init < 0:
             raise ValueError("n_init must be non-negative")
@@ -158,10 +144,7 @@ class TraceAAD:
         self._value_weights = value_weights or ValueWeights()
         self._portfolio_weights = portfolio_weights or PortfolioWeights()
         self._novelty_threshold = novelty_threshold
-        self._k_distill = max(1, int(k_distill))
-        self._patience_reflect = max(1, int(patience_reflect))
         self._migration_interval = max(1, int(migration_interval))
-        self._min_reflect_new_edges = max(1, int(min_reflect_new_edges))
         self._num_evaluators = num_evaluators
         self._resume_mode = resume_mode
         self._debug_mode = debug_mode
@@ -176,11 +159,11 @@ class TraceAAD:
             raise ValueError("TraceAAD requires an evaluation template with exactly one evolvable function.")
         self._function_to_evolve: Function = copy.deepcopy(self._template_program.functions[0])
 
-        self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode, **kwargs)
+        self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode)
         # 三层记忆
         self._graph = DerivationGraph()
         self._memory = TrajectoryMemory(max_trajectory_length=max_trajectory_length)
-        self._pattern_memory = PatternMemory()
+        self._experience_memory = ExperienceMemory(self._graph)
         # 回路辅助
         self._islands = IslandsManager(n_islands=n_islands)
         self._ranking = RankingModel()
@@ -194,7 +177,6 @@ class TraceAAD:
         self._best_node: ProgramNode | None = None
         self._tot_sample_nums = 0
         self._batch_cost = 0.0
-        self._last_reflect_edge_count = 0
         init_observability(self, max_consecutive_sample_failures)
 
         assert multi_thread_or_process_eval in ["thread", "process"]
@@ -290,11 +272,10 @@ class TraceAAD:
             and not is_search_aborted(self)
         ):
             slot = self._tot_sample_nums - initial_sample_count
-            hint = _INIT_MECHANISM_HINTS[slot % len(_INIT_MECHANISM_HINTS)]
             prompt = build_initial_prompt(
                 task_description=self._task_description_str,
                 template_function=self._function_to_evolve,
-                diversity_hint=hint,
+                diversity_hint=self._init_diversity_hint(slot),
             )
             gen = self._draw_program(
                 prompt,
@@ -318,26 +299,39 @@ class TraceAAD:
                 continue
             ev = self._evaluate(gen.program, idea=gen.idea, operator="init")
             stalled_draws = 0
-            hint_tag = infer_mechanism_tag(hint)
-            tag = infer_mechanism_tag(
-                f"{gen.idea}\n{gen.program}",
-                hint=hint_tag,
-            )
             if ev is None or ev.fitness is None:
-                self._graph.add_node(
-                    code=str(gen.program), idea=gen.idea, fitness=None, is_valid=False,
-                    mechanism_tag=tag,
-                )
                 continue
             node = self._graph.add_node(
-                code=str(gen.program), idea=gen.idea, fitness=ev.fitness, is_valid=True,
-                complexity=ev.complexity, mechanism_tag=tag,
+                code=str(gen.program), idea=gen.idea, fitness=ev.fitness,
+                complexity=ev.complexity, runtime=ev.runtime,
+                complexity_metrics=ev.complexity_metrics,
             )
             island = slot % self._n_islands
             traj = self._memory.create_initial(node_id=node.id, island_id=island)
             self._update_best(node)
             log_event(self, event="trajectory_created", status="ok", stage="init",
-                       node_id=node.id, trajectory_id=traj.id, island_id=island, mechanism_tag=tag)
+                       node_id=node.id, trajectory_id=traj.id, island_id=island)
+
+    def _init_diversity_hint(self, slot: int) -> str:
+        if slot <= 0:
+            return (
+                "Provide a simple, complete, and valid algorithm for the target function."
+            )
+        existing = [
+            node.idea.strip()
+            for node in self._graph.nodes()
+            if node.idea and node.idea.strip()
+        ]
+        if not existing:
+            return (
+                "Provide a complete algorithm that uses a clearly different algorithmic idea "
+                "from a trivial baseline."
+            )
+        listed = "; ".join(f"'{idea[:80]}'" for idea in existing[-4:])
+        return (
+            "Provide a complete algorithm that uses a clearly different algorithmic idea "
+            f"from these already generated ideas: {listed}."
+        )
 
     def _run_iteration(
         self,
@@ -367,7 +361,7 @@ class TraceAAD:
             )
         selected = self._memory.get_trajectory(selected.id)
         ctx = OperatorContext(
-            graph=self._graph, memory=self._memory, pattern_memory=self._pattern_memory,
+            graph=self._graph, memory=self._memory, experience_memory=self._experience_memory,
             islands=self._islands, selected=selected,
             maximize=self._maximize, positive_threshold=self._value_weights.positive_threshold,
             iteration=iteration, best_stagnation=getattr(self, "_stagnation", 0),
@@ -418,7 +412,7 @@ class TraceAAD:
         iteration: int,
         incumbent: float | None,
     ) -> list[_CandidateObservation]:
-        """novelty：initial-style 生成若干新起点，每个 create_initial 到新 island。"""
+        """novelty：initial-style 生成若干新起点，每个 create_initial 到 least-loaded island。"""
         observations: list[_CandidateObservation] = []
         for seq in range(self._actions_per_iteration):
             if not self._has_budget() or is_search_aborted(self):
@@ -434,20 +428,14 @@ class TraceAAD:
             ev = self._evaluate(gen.program, idea=gen.idea, operator=op.name)
             if ev is None or ev.fitness is None:
                 continue
-            requested_tag = ctx.hints.get("mechanism_tag_hint") or infer_mechanism_tag(constraint)
-            tag = infer_mechanism_tag(
-                f"{gen.idea}\n{gen.program}",
-                hint=requested_tag,
-            )
-            ctx.hints["observed_mechanism_tag"] = tag
             child = self._graph.add_node(
-                code=str(gen.program), idea=gen.idea, fitness=ev.fitness, is_valid=True,
-                complexity=ev.complexity, mechanism_tag=tag,
+                code=str(gen.program), idea=gen.idea, fitness=ev.fitness,
+                complexity=ev.complexity, runtime=ev.runtime,
+                complexity_metrics=ev.complexity_metrics,
             )
             new_traj = op.insert(ctx, child.id, None, None)
             live_best = self._best_node.fitness if self._best_node is not None else None
             is_record = live_best is None or _is_better(ev.fitness, live_best, self._maximize)
-            is_near_record = is_record or self._is_near_record(ev.fitness, live_best)
             accepted = self._apply_novelty_gate(new_traj, protect=is_record)
             self._update_best(child)
             reference = incumbent if incumbent is not None else ev.fitness
@@ -455,26 +443,18 @@ class TraceAAD:
                 directed_delta(reference, ev.fitness, self._maximize),
                 self._value_weights.positive_threshold,
             )
-            self._pattern_memory.record_mechanism_outcome(
-                operator=op.name,
-                mechanism_tag=tag,
-                support_id=child.id,
-                success=is_near_record,
-                iteration=iteration,
-            )
             observations.append(_CandidateObservation(
                 node_id=child.id,
                 score=ev.fitness,
                 reference_score=reference,
                 accepted=accepted,
                 outcome=outcome,
-                mechanism_tag=tag,
                 complexity=child.complexity,
                 reference_complexity=child.complexity,
             ))
             log_event(self, event="child_accepted", status="ok" if accepted else "novelty_rejected",
                        iteration=iteration, seq=seq, operator=op.name, child_id=child.id,
-                       trajectory_id=new_traj.id, score=ev.fitness, mechanism_tag=tag)
+                       trajectory_id=new_traj.id, score=ev.fitness)
         return observations
 
     def _run_refine(self, op: Operator, ctx: OperatorContext, constraint: str,
@@ -488,7 +468,7 @@ class TraceAAD:
         action_prompt = build_action_prompt(
             graph=self._graph, trajectory=ctx.selected, base_node_id=base_node_id,
             base_reason=base_reason, operator_name=op.name, operator_role=op.role,
-            operator_constraint=constraint, pattern_memory=self._pattern_memory,
+            operator_constraint=constraint, experience_memory=self._experience_memory,
             contrast=contrast, task_description=self._task_description_str,
             template_function=self._function_to_evolve, action_count=self._actions_per_iteration,
             maximize=self._maximize,
@@ -508,20 +488,16 @@ class TraceAAD:
             ev = self._evaluate(gen.program, idea=gen.idea, operator=op.name)
             if ev is None or ev.fitness is None:
                 continue
-            hint = ctx.hints.get("mechanism_tag_hint") or ctx.hints.get("donor_mechanism")
-            tag = infer_mechanism_tag(
-                f"{action}\n{gen.idea}\n{gen.program}",
-                hint=hint,
-            )
             delta = directed_delta(base_node.fitness, ev.fitness, self._maximize)
             outcome = classify_outcome(delta, self._value_weights.positive_threshold)
             child = self._graph.add_node(
-                code=str(gen.program), idea=gen.idea, fitness=ev.fitness, is_valid=True,
-                complexity=ev.complexity, mechanism_tag=tag,
+                code=str(gen.program), idea=gen.idea, fitness=ev.fitness,
+                complexity=ev.complexity, runtime=ev.runtime,
+                complexity_metrics=ev.complexity_metrics,
             )
             edge = self._graph.add_edge(
                 parent_id=base_node_id, child_id=child.id, action=action, operator=op.name,
-                mechanism_tag=tag, delta=delta, outcome=outcome,
+                delta=delta, outcome=outcome,
                 iteration=iteration,
             )
             new_traj = op.insert(ctx, child.id, edge.id, base_node_id)
@@ -534,52 +510,25 @@ class TraceAAD:
                     fitness_b=base_node.fitness, maximize=self._maximize,
                 )
             self._update_best(child)
-            self._pattern_memory.record_mechanism_outcome(
-                operator=op.name,
-                mechanism_tag=tag,
-                support_id=edge.id,
-                success=outcome == "improve",
-                iteration=iteration,
-            )
             observations.append(_CandidateObservation(
                 node_id=child.id,
                 score=ev.fitness,
                 reference_score=base_node.fitness,
                 accepted=novel,
                 outcome=outcome,
-                mechanism_tag=tag,
                 complexity=child.complexity,
                 reference_complexity=base_node.complexity,
             ))
             log_event(self, event="child_accepted", status="ok" if novel else "novelty_rejected",
                        iteration=iteration, seq=seq, operator=op.name, parent_id=base_node_id,
                        child_id=child.id, edge_id=edge.id, trajectory_id=new_traj.id, action=action,
-                       score=ev.fitness, delta=delta, outcome=outcome, mechanism_tag=tag)
+                       score=ev.fitness, delta=delta, outcome=outcome)
         return observations
 
-    # ---------------- periodic hooks (蒸馏/反思/migration/survival) ----------------
+    # ---------------- periodic hooks (survival / migration) ----------------
     def _periodic_hooks(self, iteration: int) -> None:
         self._survive()
-        if iteration > 0 and iteration % self._k_distill == 0:
-            n = distill(graph=self._graph, pattern_memory=self._pattern_memory, iteration=iteration)
-            if n:
-                log_event(self, event="distill", status="ok", iteration=iteration, n_patterns=n)
         stagnation = getattr(self, "_stagnation", 0)
-        edge_count = len(self._graph.edges())
-        has_new_reflection_evidence = (
-            edge_count - self._last_reflect_edge_count >= self._min_reflect_new_edges
-        )
-        if (
-            stagnation > 0
-            and stagnation % self._patience_reflect == 0
-            and has_new_reflection_evidence
-        ):
-            contrast = reflect(memory=self._memory, graph=self._graph, pattern_memory=self._pattern_memory,
-                                ranking=self._ranking, maximize=self._maximize, iteration=iteration)
-            if contrast:
-                log_event(self, event="reflect", status="ok", iteration=iteration)
-                self._last_reflect_edge_count = edge_count
-        # 停滞时促进 island 间流动
         if (
             stagnation > 0
             and iteration > 0
@@ -656,25 +605,11 @@ class TraceAAD:
         if not others:
             self._score_trajectory(traj)
             return True
-        weights = (self._value_weights.w_sim_code, self._value_weights.w_sim_mechanism,
-                    self._value_weights.w_sim_trajectory)
+        weights = (self._value_weights.w_sim_code, self._value_weights.w_sim_trajectory)
         max_sim = max_similarity_to_active(graph=self._graph, candidate=traj, others=others, weights=weights)
-        endpoint = self._graph.get_node(traj.endpoint_id)
-        historical = tuple(
-            other for other in self._memory.trajectories() if other.id != traj.id
-        )
-        behavioral_duplicate = any(
-            self._graph.get_node(other.endpoint_id).mechanism_tag == endpoint.mechanism_tag
-            and _equal(self._graph.get_node(other.endpoint_id).fitness, endpoint.fitness)
-            for other in historical
-            if self._graph.get_node(other.endpoint_id).fitness is not None
-            and endpoint.fitness is not None
-        )
         reject_reason = None
         if max_sim >= self._novelty_threshold:
             reject_reason = "structural_similarity"
-        elif behavioral_duplicate:
-            reject_reason = "behavioral_duplicate"
         if reject_reason is not None and not protect:
             self._memory.archive(traj.id)
             log_event(
@@ -706,10 +641,23 @@ class TraceAAD:
             graph=self._graph,
             clip_quantile=self._value_weights.fitness_clip_quantile,
         )
+        cmin, cmax = robust_active_metric_bounds(
+            trajectories=actives,
+            graph=self._graph,
+            clip_quantile=self._value_weights.fitness_clip_quantile,
+            kind="complexity",
+        )
+        rmin, rmax = robust_active_metric_bounds(
+            trajectories=actives,
+            graph=self._graph,
+            clip_quantile=self._value_weights.fitness_clip_quantile,
+            kind="runtime",
+        )
         others = tuple(o for o in actives if o.id != traj.id)
         value = compute_value_vec(
             trajectory=traj, graph=self._graph,
             active_others=others, fmin=fmin, fmax=fmax, maximize=self._maximize, w=self._value_weights,
+            cmin=cmin, cmax=cmax, rmin=rmin, rmax=rmax,
         )
         self._memory.set_value(traj.id, value, scalarize(value, self._value_weights))
 
@@ -719,6 +667,18 @@ class TraceAAD:
             trajectories=actives,
             graph=self._graph,
             clip_quantile=self._value_weights.fitness_clip_quantile,
+        )
+        cmin, cmax = robust_active_metric_bounds(
+            trajectories=actives,
+            graph=self._graph,
+            clip_quantile=self._value_weights.fitness_clip_quantile,
+            kind="complexity",
+        )
+        rmin, rmax = robust_active_metric_bounds(
+            trajectories=actives,
+            graph=self._graph,
+            clip_quantile=self._value_weights.fitness_clip_quantile,
+            kind="runtime",
         )
         for trajectory in actives:
             others = tuple(other for other in actives if other.id != trajectory.id)
@@ -730,6 +690,10 @@ class TraceAAD:
                 fmax=fmax,
                 maximize=self._maximize,
                 w=self._value_weights,
+                cmin=cmin,
+                cmax=cmax,
+                rmin=rmin,
+                rmax=rmax,
             )
             self._memory.set_value(
                 trajectory.id,
@@ -795,7 +759,6 @@ class TraceAAD:
             global_best=is_record,
             near_record=is_near_record,
             total_cost=self._batch_cost,
-            mechanism_tag=best.mechanism_tag,
             portfolio=self._portfolio.snapshot(),
         )
 
@@ -805,7 +768,7 @@ class TraceAAD:
             for node in (
                 self._graph.get_node(t.endpoint_id) for t in self._memory.unique_active()
             )
-            if node.is_valid and node.fitness is not None
+            if node.fitness is not None
         )
         if len(scores) < 2:
             return 1.0
@@ -843,7 +806,10 @@ class TraceAAD:
         actions = _parse_actions(response, expected_count=self._actions_per_iteration)
         log_llm_call(self, stage="action", operator="action", sample_order=self._tot_sample_nums + 1,
                       iteration=iteration, seq=0, prompt=prompt, response=response, sample_time=sample_time,
-                      parsed_actions=actions, status="ok")
+                      parsed_actions=actions, status="ok",
+                      experience_chars=_prompt_section_chars(
+                          prompt, "[Past Action Evidence]", "[Contrast Feedback]"
+                      ))
         return actions
 
     def _draw_program(self, prompt: str, *, stage: str, iteration: int | None, seq: int,
@@ -891,15 +857,26 @@ class TraceAAD:
                    operator=operator, sample_order=sample_order, score=score, evaluate_time=eval_time, counts_budget=True)
         if score is None:
             return None
-        if isinstance(result, EvalResult):
-            complexity = result.complexity or _ast_complexity(str(program))
-            return EvalResult(fitness=score, complexity=complexity)
-        complexity = _ast_complexity(str(program))
-        return EvalResult(fitness=score, complexity=complexity)
+        metrics = analyze_code_complexity(str(program))
+        if isinstance(result, EvalResult) and result.complexity > 0:
+            complexity = float(result.complexity)
+            if result.complexity_metrics:
+                metrics = result.complexity_metrics
+        else:
+            complexity = float(metrics["complexity_score"])
+        runtime = float(eval_time) if math.isfinite(float(eval_time)) else 0.0
+        if isinstance(result, EvalResult) and result.runtime > 0:
+            runtime = float(result.runtime)
+        return EvalResult(
+            fitness=score,
+            complexity=complexity,
+            runtime=runtime,
+            complexity_metrics=metrics,
+        )
 
     # ---------------- bookkeeping ----------------
     def _update_best(self, node: ProgramNode) -> None:
-        if not node.is_valid or node.fitness is None:
+        if node.fitness is None:
             return
         if self._best_node is None or _is_better(node.fitness, self._best_node.fitness, self._maximize):
             self._best_node = node
@@ -924,7 +901,7 @@ class TraceAAD:
         return TraceAADRunResult(
             best_node=self._best_node,
             n_total_nodes=len(nodes),
-            n_valid_nodes=sum(1 for n in nodes if n.is_valid),
+            n_valid_nodes=sum(1 for n in nodes if n.fitness is not None),
             n_trajectories=len(self._memory.trajectories()),
             n_edges=len(self._graph.edges()),
             n_samples=self._tot_sample_nums,
@@ -939,11 +916,14 @@ def _equal(a: float, b: float) -> bool:
     return abs(a - b) < 1e-12
 
 
-def _ast_complexity(code: str) -> int:
-    try:
-        return sum(1 for _ in ast.walk(ast.parse(code)))
-    except Exception:
-        return code.count("\n") + 1
+def _prompt_section_chars(prompt: str, start_header: str, end_header: str) -> int:
+    start = prompt.find(start_header)
+    if start < 0:
+        return 0
+    start += len(start_header)
+    end = prompt.find(end_header, start)
+    section = prompt[start:] if end < 0 else prompt[start:end]
+    return len(section.strip())
 
 
 def _parse_program_response(response: str, template_program: Program, function_name: str) -> _GeneratedProgram | None:

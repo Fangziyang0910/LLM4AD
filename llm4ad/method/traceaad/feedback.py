@@ -1,6 +1,6 @@
 """相对排名反馈：Elo 风格的 child-parent 比较。
 
-维护连通比较图上的相对排名，供反思回路做 best-vs-worst 对比。
+维护连通比较图上的相对排名，供 refinement prompt 做 best-vs-worst 对比。
 Elo 只在连通分量内排序；未连通分量之间仍由 raw fitness 决定。
 """
 from __future__ import annotations
@@ -60,7 +60,7 @@ class RankingModel:
         scored = []
         for t in actives[-window:]:
             node = graph.get_node(t.endpoint_id)
-            if not node.is_valid or node.fitness is None:
+            if node.fitness is None:
                 continue
             scored.append((t, node, self.rank(node.id)))
         if len(scored) < 2:
@@ -88,10 +88,18 @@ class RankingModel:
             key=lambda item: (item[2], raw_value(item)),
         )
         return {
-            "best": {"node_id": best.id, "idea": best.idea, "fitness": best.fitness,
-                      "mechanism_tag": best.mechanism_tag, "trajectory_id": best_t.id,
-                      "rank": best_rank},
-            "worst": {"node_id": worst.id, "idea": worst.idea, "fitness": worst.fitness,
-                       "mechanism_tag": worst.mechanism_tag, "trajectory_id": worst_t.id,
-                       "rank": worst_rank},
+            "best": {
+                "node_id": best.id,
+                "idea": best.idea,
+                "fitness": best.fitness,
+                "trajectory_id": best_t.id,
+                "rank": best_rank,
+            },
+            "worst": {
+                "node_id": worst.id,
+                "idea": worst.idea,
+                "fitness": worst.fitness,
+                "trajectory_id": worst_t.id,
+                "rank": worst_rank,
+            },
         }

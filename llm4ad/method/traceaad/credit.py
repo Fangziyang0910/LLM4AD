@@ -37,7 +37,7 @@ def compute_step_qualities(
     qualities: list[float] = []
     for nid in trajectory.node_ids:
         node = graph.get_node(nid)
-        if not node.is_valid or node.fitness is None:
+        if node.fitness is None:
             return None
         qualities.append(normalize_fitness(node.fitness, fmin, fmax, maximize))
     return qualities

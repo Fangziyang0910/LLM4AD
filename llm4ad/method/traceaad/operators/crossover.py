@@ -1,93 +1,84 @@
-"""Mechanism Crossover —— recombination（design §4.3）。从互补 donor 迁移单个稳定机制。"""
+"""Mechanism Crossover —— recombination。从互补 donor 移植一个明确算法思路。
+
+保留算子名 mechanism_crossover 以兼容日志口径。触发始终可行（初始化后池中必有其他轨迹）；
+donor 按代码/轨迹互补性 + 质量软排序，不因门槛硬禁用算子。
+"""
 from __future__ import annotations
 
 from ..credit import normalize_fitness
 from ..schema import NodeId, OperatorName, Trajectory
-from ..similarity import mechanism_profile, mechanism_similarity
+from ..similarity import (
+    code_similarity,
+    trajectory_pattern,
+    trajectory_pattern_similarity,
+)
 from .base import Operator, OperatorContext
 
 
 class MechanismCrossoverOp(Operator):
     name = OperatorName.CROSSOVER
     role = "recombine"
-    donor_quality_floor = 0.5
-    complementarity_floor = 0.5
-    pattern_success_weight = 0.5
+    w_sim_code = 0.7
+    w_sim_trajectory = 0.3
 
     def trigger(self, ctx: OperatorContext) -> bool:
-        node = ctx.graph.get_node(ctx.selected.endpoint_id)
-        if not node.is_valid or node.fitness is None:
-            return False
-        return self._select_donor(ctx) is not None
+        return True
 
     def _select_donor(self, ctx: OperatorContext) -> Trajectory | None:
-        sel_profile = mechanism_profile(ctx.graph, ctx.selected)
         candidates = [t for t in ctx.memory.active() if t.id != ctx.selected.id]
         if not candidates:
             return None
         fitnesses = [
             node.fitness
             for t in ctx.memory.active()
-            if (node := ctx.graph.get_node(t.endpoint_id)).is_valid
-            and node.fitness is not None
+            if (node := ctx.graph.get_node(t.endpoint_id)).fitness is not None
         ]
         fmin = min(fitnesses) if fitnesses else None
         fmax = max(fitnesses) if fitnesses else None
+        sel_code = ctx.graph.get_node(ctx.selected.endpoint_id).code
+        sel_pattern = trajectory_pattern(ctx.graph, ctx.selected)
         best: Trajectory | None = None
-        best_score = -1.0
+        best_score = float("-inf")
         for t in candidates:
-            prof = mechanism_profile(ctx.graph, t)
-            complementary = 1.0 - mechanism_similarity(sel_profile, prof)
-            if complementary < self.complementarity_floor:
-                continue
             endpoint = ctx.graph.get_node(t.endpoint_id)
-            if not endpoint.is_valid or endpoint.fitness is None:
+            if endpoint.fitness is None:
                 continue
+            sim_code = code_similarity(sel_code, endpoint.code)
+            sim_traj = trajectory_pattern_similarity(
+                sel_pattern, trajectory_pattern(ctx.graph, t)
+            )
+            total = self.w_sim_code + self.w_sim_trajectory
+            sim = (
+                (self.w_sim_code * sim_code + self.w_sim_trajectory * sim_traj) / total
+                if total > 0
+                else 0.0
+            )
+            complementary = 1.0 - sim
             quality = (
                 t.value.quality
                 if t.value is not None
                 else normalize_fitness(endpoint.fitness, fmin, fmax, ctx.maximize)
             )
-            if quality < self.donor_quality_floor:
-                continue
-            mechanism_tag = endpoint.mechanism_tag
-            if self._is_anti_pattern(ctx, mechanism_tag):
-                continue
-            success_rate = self._improve_rate(ctx, mechanism_tag)
-            score = (
-                complementary
-                + 0.3 * quality
-                + self.pattern_success_weight * (0.5 if success_rate is None else success_rate)
-            )
+            score = complementary + 0.3 * quality
             if score > best_score:
                 best_score, best = score, t
         return best
-
-    def _improve_rate(self, ctx: OperatorContext, mechanism_tag: str) -> float | None:
-        return ctx.pattern_memory.mechanism_improve_rate(
-            mechanism_tag, operator=str(self.name)
-        )
-
-    def _is_anti_pattern(self, ctx: OperatorContext, mechanism_tag: str) -> bool:
-        return ctx.pattern_memory.is_anti_pattern(mechanism_tag, operator=str(self.name))
 
     def select_base(self, ctx: OperatorContext) -> tuple[NodeId | None, str]:
         donor = self._select_donor(ctx)
         if donor is None:
             return ctx.selected.endpoint_id, "endpoint"
         donor_node = ctx.graph.get_node(donor.endpoint_id)
-        ctx.hints["donor_mechanism"] = donor_node.mechanism_tag
         ctx.hints["donor_idea"] = donor_node.idea
         return ctx.selected.endpoint_id, "crossover_base"
 
     def build_constraint(self, ctx: OperatorContext, base_node_id: int | None) -> str:
         donor_idea = ctx.hints.get("donor_idea", "an unreported idea")
-        donor_mech = ctx.hints.get("donor_mechanism", "a complementary mechanism")
         return (
-            f"Recombine: adopt exactly ONE main mechanism from a donor trajectory into the current base "
-            f"program. Donor mechanism family: {donor_mech}. Donor idea for reference: {donor_idea}. "
-            f"Do NOT replace the whole program — transplant only that single mechanism into the existing "
-            f"structure and keep everything else intact."
+            "Recombine: transplant exactly ONE clear algorithmic idea from a donor trajectory "
+            f"into the current base program. Donor idea for reference: {donor_idea}. "
+            "Do NOT replace the whole program — keep the existing structure and change only "
+            "that single idea."
         )
 
     def insert(self, ctx: OperatorContext, child_id: NodeId, edge_id: int,

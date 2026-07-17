@@ -1,8 +1,8 @@
-"""多层相似度：程序层 / 机制层 / 轨迹层。
+"""两层相似度：程序层 + 轨迹行为层。
 
-不引入外部 embedding 模型：code 层用规范化 token Jaccard，机制层用 mechanism_tag 集合
-Jaccard，轨迹层用 (operator,outcome) 序列 Jaccard。组合相似度供 novelty gate 与
-V_diversity / V_novelty 共用（design §7.2/§8）。
+不引入外部 embedding 模型：code 层用规范化 token Jaccard，轨迹层用
+(operator, outcome) 行为指纹 Jaccard。组合相似度供 novelty gate 与
+V_diversity / V_novelty 共用。
 """
 from __future__ import annotations
 
@@ -33,21 +33,6 @@ def code_similarity(code_a: str, code_b: str) -> float:
     return len(ta & tb) / len(ta | tb)
 
 
-def mechanism_profile(graph: DerivationGraph, trajectory: Trajectory) -> frozenset[str]:
-    tags = {graph.get_node(trajectory.base_id).mechanism_tag}
-    for eid in trajectory.edge_ids:
-        tags.add(graph.get_edge(eid).mechanism_tag)
-    return frozenset(tags)
-
-
-def mechanism_similarity(profile_a: frozenset[str], profile_b: frozenset[str]) -> float:
-    if not profile_a and not profile_b:
-        return 1.0
-    if not profile_a or not profile_b:
-        return 0.0
-    return len(profile_a & profile_b) / len(profile_a | profile_b)
-
-
 def trajectory_pattern(graph: DerivationGraph, trajectory: Trajectory) -> frozenset[str]:
     """(operator, outcome) 对的集合，刻画轨迹的搜索行为指纹。"""
     pairs: set[str] = set()
@@ -70,24 +55,22 @@ def max_similarity_to_active(
     graph: DerivationGraph,
     candidate: Trajectory,
     others: tuple[Trajectory, ...],
-    weights: tuple[float, float, float] = (0.4, 0.4, 0.2),
+    weights: tuple[float, float] = (0.7, 0.3),
 ) -> float:
     """candidate 与一组活跃 trajectory 的最大相似度（novelty gate 用）。"""
     if not others:
         return 0.0
-    w_code, w_mech, w_traj = weights
+    w_code, w_traj = weights
     best = 0.0
     cand_code_tokens = code_tokens(graph.get_node(candidate.endpoint_id).code)
-    cand_profile = mechanism_profile(graph, candidate)
     cand_pattern = trajectory_pattern(graph, candidate)
     for other in others:
         if other.id == candidate.id:
             continue
         sim_code = _jaccard(cand_code_tokens, code_tokens(graph.get_node(other.endpoint_id).code))
-        sim_mech = mechanism_similarity(cand_profile, mechanism_profile(graph, other))
         sim_pat = trajectory_pattern_similarity(cand_pattern, trajectory_pattern(graph, other))
-        total = w_code + w_mech + w_traj
-        sim = (w_code * sim_code + w_mech * sim_mech + w_traj * sim_pat) / total if total > 0 else 0.0
+        total = w_code + w_traj
+        sim = (w_code * sim_code + w_traj * sim_pat) / total if total > 0 else 0.0
         if sim > best:
             best = sim
     return best
