@@ -1,4 +1,4 @@
-"""Distill / Simplify —— generalization + complexity control（design §4.4）。"""
+"""Distill / Simplify —— complexity control（design §4.4）。"""
 from __future__ import annotations
 
 import math

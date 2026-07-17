@@ -1,8 +1,8 @@
-"""Operator 协议、base 选择、机制推断（design §4/§6/§7）。
+"""Operator 协议、base 选择、机制推断。
 
 算子统一形式：trigger → select_base → build_constraint → (主循环生成+评估) → insert。
-- _ExtendFromEndpointOp：endpoint/simplify/scale_transfer 共用（base=endpoint，insert=extend）。
-- select_base_node：4 规则门控 + branch_score（§2.2/§6），供 backtrack 与主循环默认。
+- _ExtendFromEndpointOp：endpoint/simplify 共用（base=endpoint，insert=extend）。
+- select_base_node：4 规则门控 + branch_score，供 Backtrack 使用。
 """
 from __future__ import annotations
 
@@ -12,14 +12,13 @@ from dataclasses import dataclass, field
 
 from ..credit import directed_delta, normalize_fitness
 from ..derivation_graph import DerivationGraph
-from ..feedback import RankingModel
 from ..islands import IslandsManager
 from ..pattern_memory import PatternMemory
 from ..schema import NodeId, OperatorName, Trajectory
 from ..trajectory_memory import TrajectoryMemory
 
 
-# 预设机制族关键词（TSP constructive 为例；机制层相似度/多样性/泛化信用共用）
+# 预设机制族关键词（TSP constructive 为例；机制层相似度 / PatternMemory / island 分配共用）
 _MECHANISM_KEYWORDS: dict[str, tuple[str, ...]] = {
     "local_density": ("density", "local density"),
     "nn_rank": ("nearest neighbor rank", "nn rank", "neighbor rank", "ranking"),
@@ -78,20 +77,18 @@ class OperatorContext:
     graph: DerivationGraph
     memory: TrajectoryMemory
     pattern_memory: PatternMemory
-    ranking: RankingModel
     islands: IslandsManager
     selected: Trajectory
     maximize: bool
     positive_threshold: float = 1e-6
     iteration: int = 0
     best_stagnation: int = 0
-    has_generalization_evidence: bool = False
-    hints: dict = field(default_factory=dict)  # 算子侧信道：donor_mechanism / scale_target 等
+    hints: dict = field(default_factory=dict)  # 算子侧信道：donor_mechanism 等
 
 
 class Operator(ABC):
-    name: str = "abstract"
-    role: str = "abstract"
+    name: str = ""
+    role: str = ""
 
     @abstractmethod
     def trigger(self, ctx: OperatorContext) -> bool:
@@ -116,7 +113,7 @@ class Operator(ABC):
 
 
 class _ExtendFromEndpointOp(Operator):
-    """endpoint/simplify/scale_transfer 共性：从 endpoint 扩展，extend 接入。"""
+    """endpoint/simplify 共性：从 endpoint 扩展，extend 接入。"""
 
     def select_base(self, ctx: OperatorContext) -> tuple[NodeId | None, str]:
         return ctx.selected.endpoint_id, "endpoint"

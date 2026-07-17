@@ -1,8 +1,8 @@
-"""Islands —— 多岛并行搜索子流，防全局收敛到一个 basin（design §8）。
+"""Islands —— 多岛并行搜索子流，防全局收敛到一个 basin。
 
 - assign：按 mechanism_tag 哈希分配岛，让同机制聚簇、跨机制分散。
 - migrate：周期性轮换每个岛的 top trajectory，促进机制流动而不制造 clone。
-- survival 在 trajectory_manager 内按岛做 non-dominated（见 manager.py）。
+- survival 在主循环 `_survive` 内按岛做 non-dominated 截断。
 """
 from __future__ import annotations
 
@@ -15,9 +15,8 @@ class IslandsManager:
     def __init__(self, n_islands: int = 4) -> None:
         self.n_islands = max(1, int(n_islands))
 
-    def assign(self, mechanism_tag: str, salt: int = 0) -> int:
-        payload = f"{mechanism_tag}\0{salt}".encode("utf-8")
-        digest = hashlib.sha256(payload).digest()
+    def assign(self, mechanism_tag: str) -> int:
+        digest = hashlib.sha256(mechanism_tag.encode("utf-8")).digest()
         return int.from_bytes(digest[:8], "big") % self.n_islands
 
     def migrate(

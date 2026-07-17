@@ -1,6 +1,6 @@
 """TraceAAD smoke test: mock LLM + FakeEvaluation 跑通 init + iterations。
 
-验证三层记忆/三回路/6 算子/portfolio/泛化信用/因果 context 全链路无异常。
+验证三层记忆/三回路/5 算子/portfolio/因果 context 全链路无异常。
 不触网：FakeLLM 按提示类型返回程序/actions，FakeEvaluation 返回递增 fitness。
 """
 from __future__ import annotations

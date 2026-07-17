@@ -93,7 +93,7 @@ def _causal_narrative(graph: DerivationGraph, trajectory: Trajectory, max_steps:
         lines.append(f"  action: {edge.action}")
         lines.append(
             f"  fitness: {format_fitness(parent.fitness)} -> {format_fitness(child.fitness)} "
-            f"(Δ={delta:+.4g}, outcome={edge.outcome}, transfer_signal={edge.generalization_signal:.2f})"
+            f"(Δ={delta:+.4g}, outcome={edge.outcome})"
         )
     return "\n".join(lines)
 
@@ -107,7 +107,7 @@ def _patterns_block(pattern_memory: PatternMemory, *, operator: str | None = Non
         for m in mechs:
             detail = (
                 f"  - {m.mechanism_tag}: "
-                f"aggregate_improve_rate={m.generalization_score:.2f} "
+                f"aggregate_improve_rate={m.improve_rate:.2f} "
                 f"unique_support={len(m.support_ids)}"
             )
             attempts = pattern_memory.mechanism_attempts(

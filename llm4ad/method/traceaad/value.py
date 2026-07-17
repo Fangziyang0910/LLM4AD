@@ -1,7 +1,7 @@
 """多维 Trajectory Value + trajectory-UCB 选择（design §4）。
 
 ValueVec 不塌缩成单标量（MEoH 教训）：survival 用 non-dominated（见 trajectory_manager），
-采样用 scalarize + UCB。V_potential/V_generalization 是相对各家的真正增量。
+采样用 scalarize + UCB。V_potential 是相对各家的真正增量。
 """
 from __future__ import annotations
 
@@ -12,10 +12,8 @@ from dataclasses import dataclass
 from .credit import (
     compute_path_value,
     normalize_fitness,
-    trajectory_generalization,
 )
 from .derivation_graph import DerivationGraph
-from .pattern_memory import PatternMemory
 from .schema import Trajectory, ValueVec
 from .similarity import (
     code_similarity,
@@ -33,12 +31,11 @@ class ValueWeights:
     w_potential: float = 0.20
     w_diversity: float = 0.15
     w_novelty: float = 0.15
-    w_generalization: float = 0.0
     w_sim_code: float = 0.4
     w_sim_mechanism: float = 0.4
     w_sim_trajectory: float = 0.2
     discount: float = 0.8
-    w_consistency: float = 0.25
+    w_positive_ratio: float = 0.25
     w_downside: float = 0.5
     positive_threshold: float = 1e-6
     c0: float = 0.4
@@ -122,7 +119,6 @@ def compute_value_vec(
     *,
     trajectory: Trajectory,
     graph: DerivationGraph,
-    pattern_memory: PatternMemory,
     active_others: tuple[Trajectory, ...],
     fmin: float | None,
     fmax: float | None,
@@ -136,7 +132,7 @@ def compute_value_vec(
     raw_potential = compute_path_value(
         trajectory=trajectory, graph=graph, fmin=fmin, fmax=fmax, maximize=maximize,
         discount=w.discount, positive_threshold=w.positive_threshold,
-        w_consistency=w.w_consistency, w_downside=w.w_downside,
+        w_positive_ratio=w.w_positive_ratio, w_downside=w.w_downside,
     )
     quality_floor = max(0.0, min(w.potential_quality_floor, 1.0))
     if quality <= quality_floor or quality_floor >= 1.0:
@@ -146,15 +142,8 @@ def compute_value_vec(
     diversity, novelty = diversity_and_novelty(
         graph=graph, target=trajectory, others=active_others, w=w
     )
-    generalization = 0.0
-    if w.w_generalization > 0.0:
-        generalization = trajectory_generalization(
-            trajectory=trajectory,
-            graph=graph,
-        )
     return ValueVec(
-        quality=quality, potential=potential, diversity=diversity,
-        novelty=novelty, generalization=generalization,
+        quality=quality, potential=potential, diversity=diversity, novelty=novelty,
     )
 
 
@@ -164,7 +153,6 @@ def scalarize(value: ValueVec, w: ValueWeights) -> float:
         + w.w_potential * value.potential
         + w.w_diversity * value.diversity
         + w.w_novelty * value.novelty
-        + w.w_generalization * value.generalization
     )
 
 
@@ -191,8 +179,8 @@ def pareto_survival_order(
 
 
 def _dominates(left: Trajectory, right: Trajectory) -> bool:
-    left_values = left.value.as_tuple() if left.value is not None else (float("-inf"),) * 5
-    right_values = right.value.as_tuple() if right.value is not None else (float("-inf"),) * 5
+    left_values = left.value.as_tuple() if left.value is not None else (float("-inf"),) * 4
+    right_values = right.value.as_tuple() if right.value is not None else (float("-inf"),) * 4
     return all(a >= b for a, b in zip(left_values, right_values)) and any(
         a > b for a, b in zip(left_values, right_values)
     )
@@ -227,13 +215,11 @@ def select_trajectory(
     *,
     memory: TrajectoryMemory,
     graph: DerivationGraph,
-    pattern_memory: PatternMemory,
     maximize: bool,
     iteration: int,
     max_iter: int,
     w: ValueWeights,
     stagnation: int = 0,
-    elite_trajectory_id: int | None = None,
     elite_endpoint_id: int | None = None,
     rng: random.Random | None = None,
 ) -> Trajectory:
@@ -246,7 +232,6 @@ def select_trajectory(
         memory=memory,
         graph=graph,
         maximize=maximize,
-        elite_trajectory_id=elite_trajectory_id,
         elite_endpoint_id=elite_endpoint_id,
     )
     fmin, fmax = robust_active_fitness_bounds(
@@ -259,7 +244,7 @@ def select_trajectory(
     for t in actives:
         others = tuple(o for o in actives if o.id != t.id)
         value = compute_value_vec(
-            trajectory=t, graph=graph, pattern_memory=pattern_memory,
+            trajectory=t, graph=graph,
             active_others=others, fmin=fmin, fmax=fmax, maximize=maximize, w=w,
         )
         scalar = scalarize(value, w) + ucb_bonus(
@@ -297,24 +282,8 @@ def _resolve_elite(
     memory: TrajectoryMemory,
     graph: DerivationGraph,
     maximize: bool,
-    elite_trajectory_id: int | None,
     elite_endpoint_id: int | None,
 ) -> Trajectory:
-    if elite_trajectory_id is not None:
-        requested = memory.get_trajectory(elite_trajectory_id)
-        if requested.status.value != "active":
-            raise ValueError(f"elite trajectory is not active: {elite_trajectory_id}")
-        representative = next(
-            (
-                trajectory
-                for trajectory in actives
-                if trajectory.path_key == requested.path_key
-            ),
-            None,
-        )
-        if representative is None:
-            raise ValueError(f"elite path is not active: {elite_trajectory_id}")
-        return representative
     if elite_endpoint_id is not None:
         matches = [t for t in actives if t.endpoint_id == elite_endpoint_id]
         if not matches:

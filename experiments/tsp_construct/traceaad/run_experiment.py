@@ -54,7 +54,6 @@ K_DISTILL = 20
 PATIENCE_REFLECT = 20
 MIGRATION_INTERVAL = 20
 MIN_REFLECT_NEW_EDGES = 8
-HAS_GENERALIZATION_EVIDENCE = False
 NUM_EVALUATORS = 1
 MAX_CONSECUTIVE_SAMPLE_FAILURES = 20
 MAX_STALLED_ITERATIONS = 20
@@ -66,9 +65,8 @@ W_QUALITY = 0.50
 W_POTENTIAL = 0.20
 W_DIVERSITY = 0.15
 W_NOVELTY = 0.15
-W_GENERALIZATION = 0.0
 DISCOUNT = 0.8
-W_CONSISTENCY = 0.25
+W_POSITIVE_RATIO = 0.25
 W_DOWNSIDE = 0.5
 POSITIVE_THRESHOLD = 1e-6
 C0 = 0.4
@@ -114,7 +112,6 @@ def write_run_config() -> None:
             "patience_reflect": PATIENCE_REFLECT,
             "migration_interval": MIGRATION_INTERVAL,
             "min_reflect_new_edges": MIN_REFLECT_NEW_EDGES,
-            "has_generalization_evidence": HAS_GENERALIZATION_EVIDENCE,
             "num_evaluators": NUM_EVALUATORS,
             "max_consecutive_sample_failures": MAX_CONSECUTIVE_SAMPLE_FAILURES,
             "max_stalled_iterations": MAX_STALLED_ITERATIONS,
@@ -126,9 +123,8 @@ def write_run_config() -> None:
                 "w_potential": W_POTENTIAL,
                 "w_diversity": W_DIVERSITY,
                 "w_novelty": W_NOVELTY,
-                "w_generalization": W_GENERALIZATION,
                 "discount": DISCOUNT,
-                "w_consistency": W_CONSISTENCY,
+                "w_positive_ratio": W_POSITIVE_RATIO,
                 "w_downside": W_DOWNSIDE,
                 "positive_threshold": POSITIVE_THRESHOLD,
                 "c0": C0,
@@ -176,17 +172,15 @@ def build_method() -> TraceAAD:
         patience_reflect=PATIENCE_REFLECT,
         migration_interval=MIGRATION_INTERVAL,
         min_reflect_new_edges=MIN_REFLECT_NEW_EDGES,
-        has_generalization_evidence=HAS_GENERALIZATION_EVIDENCE,
         value_weights=ValueWeights(
             w_quality=W_QUALITY,
             w_potential=W_POTENTIAL,
             w_diversity=W_DIVERSITY,
             w_novelty=W_NOVELTY,
-            w_generalization=W_GENERALIZATION,
             top_k=TOP_K,
             temperature=TRAJECTORY_TEMPERATURE,
             discount=DISCOUNT,
-            w_consistency=W_CONSISTENCY,
+            w_positive_ratio=W_POSITIVE_RATIO,
             w_downside=W_DOWNSIDE,
             positive_threshold=POSITIVE_THRESHOLD,
             c0=C0,

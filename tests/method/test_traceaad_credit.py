@@ -6,7 +6,6 @@ from types import SimpleNamespace
 import pytest
 
 from llm4ad.method.traceaad.context import _patterns_block
-from llm4ad.method.traceaad.credit import step_generalization_signal
 from llm4ad.method.traceaad.portfolio import OperatorPortfolio, PortfolioWeights
 from llm4ad.method.traceaad.pattern_memory import PatternMemory
 from llm4ad.method.traceaad.schema import OperatorName
@@ -190,9 +189,9 @@ def test_temperature_floor_prevents_late_softmax_from_freezing() -> None:
         delta_r=0.0,
         delta_c=0.0,
         global_best_bonus=0.0,
-        tau_init=0.0,
-        tau_end=0.0,
-        tau_floor=0.5,
+        temperature_init=0.0,
+        temperature_end=0.0,
+        temperature_floor=0.5,
         min_probability=0.0,
     )
     portfolio = OperatorPortfolio((better, worse), weights)
@@ -291,9 +290,8 @@ def test_pattern_prompt_reports_operator_conditioned_improve_rate_and_support() 
     memory.upsert_mechanism(
         mechanism_tag="local_density",
         text="density evidence",
-        generalization_score=0.75,
+        improve_rate=0.75,
         support_id=10,
-        updated_iter=1,
     )
     for support_id, success in ((10, True), (11, False)):
         memory.record_mechanism_outcome(
@@ -317,20 +315,18 @@ def test_pattern_memory_replaces_stale_scores_and_keeps_real_support_ids() -> No
     first = memory.upsert_mechanism(
         mechanism_tag="local_density",
         text="early evidence",
-        generalization_score=0.9,
+        improve_rate=0.9,
         support_id=101,
-        updated_iter=10,
     )
     updated = memory.upsert_mechanism(
         mechanism_tag="local_density",
         text="later evidence",
-        generalization_score=0.2,
+        improve_rate=0.2,
         support_id=202,
-        updated_iter=20,
     )
 
     assert updated.id == first.id
-    assert updated.generalization_score == pytest.approx(0.2)
+    assert updated.improve_rate == pytest.approx(0.2)
     assert updated.support_ids == (101, 202)
 
 
@@ -341,9 +337,8 @@ def test_pattern_memory_keeps_all_unique_mechanism_support_ids() -> None:
         memory.upsert_mechanism(
             mechanism_tag="local_density",
             text="density evidence",
-            generalization_score=0.5,
+            improve_rate=0.5,
             support_id=support_id,
-            updated_iter=support_id,
         )
 
     pattern = memory.mechanism_pattern("local_density")
@@ -358,18 +353,16 @@ def test_pattern_memory_deduplicates_repeated_lessons() -> None:
         text="Prefer density-aware candidate pruning.",
         mechanism_tag="local_density",
         support_ids=(1,),
-        generalization_score=0.6,
+        improve_rate=0.6,
         confidence=0.7,
-        updated_iter=10,
     )
     repeated = memory.add(
         kind="lesson",
         text="  prefer   density-aware candidate pruning. ",
         mechanism_tag="local_density",
         support_ids=(2,),
-        generalization_score=0.5,
+        improve_rate=0.5,
         confidence=0.8,
-        updated_iter=20,
     )
 
     assert repeated.id == first.id
@@ -384,35 +377,18 @@ def test_pattern_memory_merges_differently_worded_lessons_for_one_mechanism_scop
         text="Density variant A ranked strongly.",
         mechanism_tag="local_density",
         support_ids=(1,),
-        updated_iter=10,
     )
     revised = memory.add(
         kind="lesson",
         text="Density variant B is the current best.",
         mechanism_tag="local_density",
         support_ids=(2,),
-        updated_iter=20,
     )
 
     assert revised.id == first.id
     assert revised.support_ids == (1, 2)
     assert revised.text == "Density variant B is the current best."
     assert len(memory.top_lessons()) == 1
-
-
-def test_step_generalization_signal_uses_per_instance_parent_child_outcomes() -> None:
-    signal = step_generalization_signal(
-        parent_fitness_vector=(1.0, 1.0, 1.0),
-        child_fitness_vector=(2.0, 0.5, 1.0),
-        maximize=True,
-    )
-
-    assert signal == pytest.approx(0.5)
-    assert step_generalization_signal(
-        parent_fitness_vector=None,
-        child_fitness_vector=(2.0, 2.0),
-        maximize=True,
-    ) == 0.0
 
 
 def test_distill_counts_shared_graph_edges_once_and_updates_conditioned_credit() -> None:
@@ -438,14 +414,10 @@ def test_distill_counts_shared_graph_edges_once_and_updates_conditioned_credit()
         child_id=improved.id,
         edge_id=good_edge.id,
     )
-    trajectories.fork(improved_trajectory.id, island_id=1)
-    trajectories.fork(improved_trajectory.id, island_id=2)
 
     distill(
-        memory=trajectories,
         graph=graph,
         pattern_memory=patterns,
-        maximize=True,
         iteration=10,
         min_support=1,
     )
@@ -456,7 +428,7 @@ def test_distill_counts_shared_graph_edges_once_and_updates_conditioned_credit()
     first = patterns.mechanism_pattern("sparsified_candidate")
     assert first is not None
     assert first.support_ids == (good_edge.id,)
-    assert first.generalization_score == pytest.approx(1.0)
+    assert first.improve_rate == pytest.approx(1.0)
 
     regressed = graph.add_node(code="b", idea="b", fitness=0.5, is_valid=True)
     bad_edge = graph.add_edge(
@@ -475,13 +447,10 @@ def test_distill_counts_shared_graph_edges_once_and_updates_conditioned_credit()
         child_id=regressed.id,
         edge_id=bad_edge.id,
     )
-    trajectories.fork(regressed_trajectory.id, island_id=3)
 
     distill(
-        memory=trajectories,
         graph=graph,
         pattern_memory=patterns,
-        maximize=True,
         iteration=20,
         min_support=1,
     )
@@ -492,7 +461,7 @@ def test_distill_counts_shared_graph_edges_once_and_updates_conditioned_credit()
     updated = patterns.mechanism_pattern("sparsified_candidate")
     assert updated is not None
     assert updated.support_ids == (good_edge.id, bad_edge.id)
-    assert updated.generalization_score == pytest.approx(0.5)
+    assert updated.improve_rate == pytest.approx(0.5)
 
 
 def test_distill_scopes_and_reverses_operator_anti_patterns() -> None:
@@ -527,10 +496,8 @@ def test_distill_scopes_and_reverses_operator_anti_patterns() -> None:
         )
 
     distill(
-        memory=trajectories,
         graph=graph,
         pattern_memory=patterns,
-        maximize=True,
         iteration=20,
         min_support=2,
     )
@@ -553,10 +520,8 @@ def test_distill_scopes_and_reverses_operator_anti_patterns() -> None:
         )
 
     distill(
-        memory=trajectories,
         graph=graph,
         pattern_memory=patterns,
-        maximize=True,
         iteration=30,
         min_support=2,
     )
@@ -574,9 +539,8 @@ def test_distill_recovers_a_global_anti_pattern_after_positive_unique_evidence()
         text="density underperformed in an earlier contrast",
         mechanism_tag="local_density",
         support_ids=(root.id,),
-        generalization_score=0.0,
+        improve_rate=0.0,
         confidence=0.6,
-        updated_iter=1,
     )
     for index in range(5):
         child = graph.add_node(
@@ -594,10 +558,8 @@ def test_distill_recovers_a_global_anti_pattern_after_positive_unique_evidence()
         )
 
     distill(
-        memory=trajectories,
         graph=graph,
         pattern_memory=patterns,
-        maximize=True,
         iteration=20,
         min_support=2,
     )
@@ -674,9 +636,8 @@ def test_novelty_family_choice_uses_fresh_start_history_and_rotates_after_failur
     patterns.upsert_mechanism(
         mechanism_tag="adaptive_exponent",
         text="strong in crossover",
-        generalization_score=0.95,
+        improve_rate=0.95,
         support_id=100,
-        updated_iter=10,
     )
     for support_id in range(4):
         patterns.record_mechanism_outcome(
@@ -732,7 +693,6 @@ def test_novelty_is_ineligible_when_every_family_is_blocked() -> None:
             kind="anti_pattern",
             text=f"blocked {family}",
             mechanism_tag=family,
-            updated_iter=1,
         )
     ctx = SimpleNamespace(
         best_stagnation=20,

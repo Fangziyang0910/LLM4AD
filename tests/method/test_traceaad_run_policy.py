@@ -5,7 +5,7 @@ import random
 import pytest
 
 from llm4ad.base import Evaluation, LLM
-from llm4ad.method.traceaad import EvalResult, TraceAAD, ValueWeights
+from llm4ad.method.traceaad import TraceAAD, ValueWeights
 from llm4ad.method.traceaad.derivation_graph import DerivationGraph
 from llm4ad.method.traceaad.feedback import RankingModel
 from llm4ad.method.traceaad.operators import EndpointRefineOp, NoveltyJumpOp
@@ -41,17 +41,6 @@ class ConstantEvaluation(Evaluation):
     def evaluate_program(self, program_str: str, callable_func: callable, **kwargs):
         self.calls += 1
         return None if callable_func is None else float(callable_func(0))
-
-
-class RichEvaluation(ConstantEvaluation):
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs):
-        self.calls += 1
-        fitness = None if callable_func is None else float(callable_func(0))
-        return EvalResult(
-            fitness=fitness,
-            robustness=0.8,
-            fitness_vector=(fitness - 0.1, fitness, fitness + 0.1),
-        )
 
 
 class ScriptedTraceAADLLM(LLM):
@@ -226,80 +215,6 @@ def test_only_the_live_global_record_bypasses_similarity_gate_within_a_batch():
     assert 2.0 not in active_scores
 
 
-def test_scalar_only_evaluation_does_not_claim_a_generalization_best():
-    method = _method(
-        llm=ScriptedTraceAADLLM(),
-        evaluation=ConstantEvaluation(),
-        max_samples=1,
-        actions=1,
-    )
-
-    result = method.run()
-
-    assert result.best_generalization_node is None
-
-
-def test_scalar_only_search_does_not_emit_pseudo_generalization_credit():
-    method = _method(
-        llm=ScriptedTraceAADLLM(),
-        evaluation=ConstantEvaluation(),
-        max_samples=2,
-        actions=1,
-    )
-
-    method.run()
-
-    assert len(method._graph.edges()) == 1
-    assert method._graph.edges()[0].generalization_signal == 0.0
-
-
-def test_scalar_evaluation_never_synthesizes_robustness_from_a_boolean_flag():
-    method = _method(
-        llm=ScriptedTraceAADLLM(),
-        evaluation=ConstantEvaluation(),
-        max_samples=1,
-        actions=1,
-        has_generalization_evidence=True,
-    )
-
-    result = method.run()
-
-    assert result.best_node is not None
-    assert result.best_node.robustness == 0.0
-    assert result.best_generalization_node is None
-
-
-def test_rich_evaluation_can_activate_explicit_generalization_evidence():
-    method = _method(
-        llm=ScriptedTraceAADLLM(),
-        evaluation=RichEvaluation(),
-        max_samples=1,
-        actions=1,
-        has_generalization_evidence=True,
-        value_weights=ValueWeights(w_generalization=0.25),
-    )
-
-    result = method.run()
-
-    assert result.best_node is not None
-    assert result.best_node.robustness == 0.8
-    assert result.best_node.fitness_vector == (0.9, 1.0, 1.1)
-    assert result.best_generalization_node == result.best_node
-    assert method._has_generalization_evidence
-    assert method._value_weights.w_generalization == 0.25
-
-
-def test_generalization_weight_requires_an_evidence_enabled_evaluator_path():
-    with pytest.raises(ValueError, match="generalization evidence"):
-        _method(
-            llm=ScriptedTraceAADLLM(),
-            evaluation=ConstantEvaluation(),
-            max_samples=1,
-            actions=1,
-            value_weights=ValueWeights(w_generalization=0.25),
-        )
-
-
 def test_traceaad_seed_does_not_mutate_the_process_global_random_stream():
     random.seed(12345)
     expected = random.random()
@@ -330,9 +245,16 @@ def test_near_record_fresh_starts_receive_credit_without_bypassing_the_gate():
 
     novelty_stats = method.operator_portfolio_snapshot()[OperatorName.NOVELTY]
     assert novelty_stats["near_record_rate"] == 1.0
-    novelty_nodes = [node for node in method._graph.nodes() if node.iteration is not None]
-    assert len(novelty_nodes) == 2
-    tag = novelty_nodes[0].mechanism_tag
+    assert len(method._graph.nodes()) == 3  # 1 init + 2 novelty fresh starts
+    credited_tags = {
+        node.mechanism_tag
+        for node in method._graph.nodes()
+        if method._pattern_memory.mechanism_attempts(
+            node.mechanism_tag, operator=OperatorName.NOVELTY
+        )
+    }
+    assert credited_tags
+    tag = next(iter(credited_tags))
     assert method._pattern_memory.mechanism_successes(
         tag,
         operator=OperatorName.NOVELTY,
@@ -366,7 +288,7 @@ def test_duplicate_elite_paths_do_not_expand_the_survival_cap():
     )
     result = method.run()
     elite = method.active_trajectories()[0]
-    method._memory.fork(elite.id, island_id=elite.island_id)
+    method._memory.create_initial(node_id=elite.endpoint_id, island_id=elite.island_id)
 
     method._survive()
 

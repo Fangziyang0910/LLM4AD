@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 from llm4ad.method.traceaad.derivation_graph import DerivationGraph
-from llm4ad.method.traceaad.feedback import RankingModel
 from llm4ad.method.traceaad.islands import IslandsManager
 from llm4ad.method.traceaad.operators import (
     BacktrackBranchOp,
     DistillSimplifyOp,
     MechanismCrossoverOp,
     OperatorContext,
-    ScaleTransferOp,
     infer_mechanism_tag,
 )
 from llm4ad.method.traceaad.pattern_memory import PatternMemory
@@ -22,7 +20,6 @@ def _context(*, graph: DerivationGraph, memory: TrajectoryMemory, selected, **fi
         graph=graph,
         memory=memory,
         pattern_memory=pattern_memory,
-        ranking=RankingModel(),
         islands=IslandsManager(n_islands=1),
         selected=selected,
         maximize=True,
@@ -164,7 +161,7 @@ def test_simplify_uses_active_pool_relative_complexity_on_plateau():
     assert DistillSimplifyOp().trigger(ctx)
 
 
-def test_simplify_does_not_use_default_robustness_as_a_trigger():
+def test_simplify_does_not_trigger_on_plateau_without_stagnation_or_complexity_pressure():
     graph, memory, trajectory = _trajectory_with_fitnesses(
         10.0, 11.0, complexities=(10, 100),
     )
@@ -182,30 +179,6 @@ def test_simplify_can_use_global_stagnation_for_a_relatively_complex_endpoint():
     )
 
     assert DistillSimplifyOp().trigger(ctx)
-
-
-def test_scale_transfer_requires_explicit_real_generalization_evidence():
-    graph, memory, trajectory = _trajectory_with_fitnesses(10.0)
-    ctx = _context(
-        graph=graph,
-        memory=memory,
-        selected=trajectory,
-        has_generalization_evidence=False,
-    )
-
-    assert not ScaleTransferOp().trigger(ctx)
-
-
-def test_scale_transfer_is_eligible_when_real_generalization_evidence_exists():
-    graph, memory, trajectory = _trajectory_with_fitnesses(10.0)
-    ctx = _context(
-        graph=graph,
-        memory=memory,
-        selected=trajectory,
-        has_generalization_evidence=True,
-    )
-
-    assert ScaleTransferOp().trigger(ctx)
 
 
 def test_crossover_rejects_a_low_quality_donor_despite_high_scalar_value():
@@ -227,8 +200,9 @@ def test_crossover_rejects_a_low_quality_donor_despite_high_scalar_value():
 
     MechanismCrossoverOp().select_base(ctx)
 
-    assert ctx.hints["donor_id"] == qualified.id
-    assert ctx.hints["donor_id"] != low_quality.id
+    assert ctx.hints["donor_mechanism"] == "edge_contrast"
+    assert graph.get_node(qualified.endpoint_id).mechanism_tag == "edge_contrast"
+    assert graph.get_node(low_quality.endpoint_id).mechanism_tag == "sparsified_candidate"
 
 
 def test_crossover_prefers_operator_conditioned_successful_donor_mechanisms():
@@ -271,8 +245,8 @@ def test_crossover_prefers_operator_conditioned_successful_donor_mechanisms():
 
     MechanismCrossoverOp().select_base(ctx)
 
-    assert ctx.hints["donor_id"] == successful_donor.id
-    assert ctx.hints["donor_id"] != failed_donor.id
+    assert ctx.hints["donor_mechanism"] == "sparsified_candidate"
+    assert ctx.hints["donor_mechanism"] != "edge_contrast"
 
 
 class _ConditionedAntiPatternMemory(PatternMemory):
@@ -311,36 +285,7 @@ def test_crossover_excludes_an_operator_conditioned_anti_pattern():
 
     MechanismCrossoverOp().select_base(ctx)
 
-    assert ctx.hints["donor_id"] == qualified.id
-    assert ctx.hints["donor_id"] != anti_pattern.id
+    assert ctx.hints["donor_mechanism"] == "sparsified_candidate"
+    assert ctx.hints["donor_mechanism"] != "edge_contrast"
 
 
-class _LegacyPatternMemory:
-    def mechanism_improve_rate(self, mechanism_tag: str) -> float | None:
-        return None
-
-    def is_anti_pattern(self, mechanism_tag: str) -> bool:
-        return False
-
-
-def test_crossover_remains_compatible_with_legacy_pattern_memory_api():
-    graph = DerivationGraph()
-    memory = TrajectoryMemory()
-    selected = _initial_trajectory(
-        graph=graph, memory=memory, fitness=10.0,
-        mechanism_tag="local_density", quality=0.9, scalar=0.9,
-    )
-    donor = _initial_trajectory(
-        graph=graph, memory=memory, fitness=8.0,
-        mechanism_tag="sparsified_candidate", quality=0.8, scalar=0.8,
-    )
-    ctx = _context(
-        graph=graph,
-        memory=memory,
-        selected=selected,
-        pattern_memory=_LegacyPatternMemory(),
-    )
-
-    MechanismCrossoverOp().select_base(ctx)
-
-    assert ctx.hints["donor_id"] == donor.id

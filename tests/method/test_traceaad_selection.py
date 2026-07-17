@@ -4,7 +4,6 @@ import pytest
 
 from llm4ad.method.traceaad.derivation_graph import DerivationGraph
 from llm4ad.method.traceaad.islands import IslandsManager
-from llm4ad.method.traceaad.pattern_memory import PatternMemory
 from llm4ad.method.traceaad.schema import ValueVec
 from llm4ad.method.traceaad.trajectory_memory import TrajectoryMemory
 from llm4ad.method.traceaad.value import (
@@ -51,7 +50,6 @@ def test_selection_uses_clipped_active_pool_fitness_bounds(monkeypatch) -> None:
     select_trajectory(
         memory=memory,
         graph=graph,
-        pattern_memory=PatternMemory(),
         maximize=True,
         iteration=0,
         max_iter=100,
@@ -86,13 +84,11 @@ def test_endpoint_quality_gates_heroic_recovery_potential() -> None:
         w_potential=0.25,
         w_diversity=0.0,
         w_novelty=0.0,
-        w_generalization=0.0,
     )
 
     recovery_value = compute_value_vec(
         trajectory=recovery_trajectory,
         graph=graph,
-        pattern_memory=PatternMemory(),
         active_others=(elite_trajectory,),
         fmin=0.0,
         fmax=10.0,
@@ -102,7 +98,6 @@ def test_endpoint_quality_gates_heroic_recovery_potential() -> None:
     elite_value = compute_value_vec(
         trajectory=elite_trajectory,
         graph=graph,
-        pattern_memory=PatternMemory(),
         active_others=(recovery_trajectory,),
         fmin=0.0,
         fmax=10.0,
@@ -151,7 +146,6 @@ def _elite_under_ucb_pressure():
         w_potential=0.0,
         w_diversity=0.0,
         w_novelty=0.0,
-        w_generalization=0.0,
         c0=1.0,
         ucb_floor=0.0,
         top_k=1,
@@ -170,7 +164,6 @@ def test_elite_has_a_minimum_direct_sampling_probability(monkeypatch) -> None:
     selected = select_trajectory(
         memory=memory,
         graph=graph,
-        pattern_memory=PatternMemory(),
         maximize=True,
         iteration=0,
         max_iter=100,
@@ -191,7 +184,6 @@ def test_elite_remains_in_candidate_pool_when_outside_top_k(monkeypatch) -> None
     selected = select_trajectory(
         memory=memory,
         graph=graph,
-        pattern_memory=PatternMemory(),
         maximize=True,
         iteration=0,
         max_iter=100,
@@ -212,7 +204,6 @@ def test_candidate_pool_covers_each_active_island(monkeypatch) -> None:
         w_potential=0.0,
         w_diversity=0.0,
         w_novelty=0.0,
-        w_generalization=0.0,
         c0=0.0,
         ucb_floor=0.0,
         top_k=1,
@@ -224,7 +215,6 @@ def test_candidate_pool_covers_each_active_island(monkeypatch) -> None:
     selected = select_trajectory(
         memory=memory,
         graph=graph,
-        pattern_memory=PatternMemory(),
         maximize=True,
         iteration=0,
         max_iter=100,
@@ -238,8 +228,8 @@ def test_selection_samples_each_unique_path_only_once(monkeypatch) -> None:
     graph = DerivationGraph()
     memory = TrajectoryMemory()
     _, original = _add_initial(graph=graph, memory=memory, fitness=2.0, island_id=0)
-    memory.fork(original.id, island_id=1)
-    memory.fork(original.id, island_id=2)
+    memory.create_initial(node_id=original.endpoint_id, island_id=1)
+    memory.create_initial(node_id=original.endpoint_id, island_id=2)
     _add_initial(graph=graph, memory=memory, fitness=1.0, island_id=3)
     captured: list[int] = []
 
@@ -251,7 +241,6 @@ def test_selection_samples_each_unique_path_only_once(monkeypatch) -> None:
     select_trajectory(
         memory=memory,
         graph=graph,
-        pattern_memory=PatternMemory(),
         maximize=True,
         iteration=0,
         max_iter=100,
@@ -266,46 +255,6 @@ def test_selection_samples_each_unique_path_only_once(monkeypatch) -> None:
     assert len({memory.get_trajectory(item).path_key for item in captured}) == 2
 
 
-def test_default_scalarization_does_not_reward_unverified_generalization() -> None:
-    no_generalization = ValueVec(quality=0.5, generalization=0.0)
-    claimed_generalization = ValueVec(quality=0.5, generalization=1.0)
-
-    assert scalarize(no_generalization, ValueWeights()) == scalarize(
-        claimed_generalization, ValueWeights()
-    )
-    assert scalarize(
-        claimed_generalization, ValueWeights(w_generalization=0.25)
-    ) > scalarize(no_generalization, ValueWeights(w_generalization=0.25))
-
-
-def test_disabled_generalization_is_zero_in_the_value_vector_and_pareto_axes() -> None:
-    graph = DerivationGraph()
-    memory = TrajectoryMemory()
-    node, trajectory = _add_initial(graph=graph, memory=memory, fitness=1.0)
-    node = graph.get_node(node.id)
-    patterns = PatternMemory()
-    patterns.upsert_mechanism(
-        mechanism_tag=node.mechanism_tag,
-        text="unverified scalar-only evidence",
-        generalization_score=1.0,
-        support_id=1,
-        updated_iter=1,
-    )
-
-    value = compute_value_vec(
-        trajectory=trajectory,
-        graph=graph,
-        pattern_memory=patterns,
-        active_others=(),
-        fmin=0.0,
-        fmax=1.0,
-        maximize=True,
-        w=ValueWeights(w_generalization=0.0),
-    )
-
-    assert value.generalization == 0.0
-
-
 def test_default_value_weights_match_the_audit_driven_search_configuration() -> None:
     weights = ValueWeights()
 
@@ -314,21 +263,21 @@ def test_default_value_weights_match_the_audit_driven_search_configuration() -> 
         weights.w_potential,
         weights.w_diversity,
         weights.w_novelty,
-        weights.w_generalization,
         weights.top_k,
-    ) == (0.50, 0.20, 0.15, 0.15, 0.0, 12)
+    ) == (0.50, 0.20, 0.15, 0.15, 12)
 
 
-def test_fork_preserves_visit_count() -> None:
+def test_move_to_island_preserves_visit_count() -> None:
     graph = DerivationGraph()
     memory = TrajectoryMemory()
     _, trajectory = _add_initial(graph=graph, memory=memory, fitness=1.0)
     for _ in range(7):
         memory.record_visit(trajectory.id)
 
-    forked = memory.fork(trajectory.id, island_id=1)
+    moved = memory.move_to_island(trajectory.id, island_id=1)
 
-    assert forked.visit_count == 7
+    assert moved.visit_count == 7
+    assert moved.island_id == 1
 
 
 def test_migration_rotates_existing_identities_and_preserves_visits() -> None:
@@ -368,11 +317,11 @@ def test_island_assignment_has_a_stable_known_mapping() -> None:
     islands = IslandsManager(n_islands=4)
 
     assert (
-        islands.assign("local_density", salt=0),
-        islands.assign("local_density", salt=1),
-        islands.assign("sparsified_candidate", salt=0),
-        islands.assign("adaptive_exponent", salt=7),
-    ) == (1, 3, 0, 2)
+        islands.assign("local_density"),
+        islands.assign("sparsified_candidate"),
+        islands.assign("adaptive_exponent"),
+        islands.assign("nn_rank"),
+    ) == (3, 1, 3, 0)
 
 
 def test_pareto_survival_keeps_non_dominated_diversity_before_dominated_scalar() -> None:

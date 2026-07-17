@@ -85,14 +85,6 @@ class TrajectoryMemory:
         self._next_id += 1
         return traj
 
-    def fork(self, trajectory_id: TrajectoryId, island_id: IslandId) -> Trajectory:
-        """Copy a trajectory to another island without erasing search history."""
-        t = self.get_trajectory(trajectory_id)
-        new = replace(t, id=self._next_id, island_id=island_id)
-        self._trajectories[new.id] = new
-        self._next_id += 1
-        return new
-
     def move_to_island(self, trajectory_id: TrajectoryId, island_id: IslandId) -> Trajectory:
         """Move one trajectory while preserving its identity and accumulated state."""
         trajectory = self.get_trajectory(trajectory_id)

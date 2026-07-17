@@ -65,30 +65,6 @@ def trajectory_pattern_similarity(pat_a: frozenset[str], pat_b: frozenset[str]) 
     return len(pat_a & pat_b) / len(pat_a | pat_b)
 
 
-def trajectory_similarity(
-    *,
-    graph: DerivationGraph,
-    trajectory_a: Trajectory,
-    trajectory_b: Trajectory,
-    w_code: float = 0.4,
-    w_mechanism: float = 0.4,
-    w_trajectory: float = 0.2,
-) -> float:
-    code_a = graph.get_node(trajectory_a.endpoint_id).code
-    code_b = graph.get_node(trajectory_b.endpoint_id).code
-    sim_code = code_similarity(code_a, code_b)
-    sim_mech = mechanism_similarity(
-        mechanism_profile(graph, trajectory_a), mechanism_profile(graph, trajectory_b)
-    )
-    sim_pat = trajectory_pattern_similarity(
-        trajectory_pattern(graph, trajectory_a), trajectory_pattern(graph, trajectory_b)
-    )
-    total = w_code + w_mechanism + w_trajectory
-    if total <= 0:
-        return 0.0
-    return (w_code * sim_code + w_mechanism * sim_mech + w_trajectory * sim_pat) / total
-
-
 def max_similarity_to_active(
     *,
     graph: DerivationGraph,

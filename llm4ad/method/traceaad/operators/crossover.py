@@ -64,35 +64,18 @@ class MechanismCrossoverOp(Operator):
         return best
 
     def _improve_rate(self, ctx: OperatorContext, mechanism_tag: str) -> float | None:
-        conditioned = getattr(ctx.pattern_memory, "operator_mechanism_improve_rate", None)
-        if callable(conditioned):
-            return conditioned(str(self.name), mechanism_tag)
-        improve_rate = getattr(ctx.pattern_memory, "mechanism_improve_rate", None)
-        if not callable(improve_rate):
-            return None
-        try:
-            return improve_rate(mechanism_tag, operator=str(self.name))
-        except TypeError:
-            return improve_rate(mechanism_tag)
+        return ctx.pattern_memory.mechanism_improve_rate(
+            mechanism_tag, operator=str(self.name)
+        )
 
     def _is_anti_pattern(self, ctx: OperatorContext, mechanism_tag: str) -> bool:
-        conditioned = getattr(ctx.pattern_memory, "is_operator_anti_pattern", None)
-        if callable(conditioned):
-            return bool(conditioned(str(self.name), mechanism_tag))
-        is_anti_pattern = getattr(ctx.pattern_memory, "is_anti_pattern", None)
-        if not callable(is_anti_pattern):
-            return False
-        try:
-            return bool(is_anti_pattern(mechanism_tag, operator=str(self.name)))
-        except TypeError:
-            return bool(is_anti_pattern(mechanism_tag))
+        return ctx.pattern_memory.is_anti_pattern(mechanism_tag, operator=str(self.name))
 
     def select_base(self, ctx: OperatorContext) -> tuple[NodeId | None, str]:
         donor = self._select_donor(ctx)
         if donor is None:
             return ctx.selected.endpoint_id, "endpoint"
         donor_node = ctx.graph.get_node(donor.endpoint_id)
-        ctx.hints["donor_id"] = donor.id
         ctx.hints["donor_mechanism"] = donor_node.mechanism_tag
         ctx.hints["donor_idea"] = donor_node.idea
         return ctx.selected.endpoint_id, "crossover_base"

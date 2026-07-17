@@ -1,8 +1,6 @@
-"""Operator Portfolio —— bandit + 阶段感知（design §5/§7）。
+"""Operator Portfolio —— bandit + 阶段感知。
 
-候选 = trigger 通过的算子；在候选内用 softmax(operator_value/τ) 采样。
-value = α·gain + βv·valid + βn·novel − δr·regress − δc·cost + role 阶段 bonus。
-τ 与 role-bonus 都随搜索阶段变化（早期偏 explore/recombine，晚期偏 exploit/simplify）。
+候选 = trigger 通过的算子；在候选内用 softmax(operator_value / temperature) 采样。
 """
 from __future__ import annotations
 
@@ -17,13 +15,6 @@ from .schema import OperatorName
 @dataclass
 class OperatorStats:
     n_calls: int = 0
-    sum_gain: float = 0.0
-    n_valid: int = 0
-    n_novel: int = 0
-    n_regress: int = 0
-    sum_cost: float = 0.0
-    n_global_best: int = 0
-    n_near_record: int = 0
     ema_gain: float | None = None
     ema_valid: float | None = None
     ema_novel: float | None = None
@@ -56,15 +47,15 @@ class OperatorStats:
 
 @dataclass(frozen=True)
 class PortfolioWeights:
-    alpha: float = 1.0       # gain
-    beta_v: float = 0.5      # valid rate
-    beta_n: float = 0.3      # novelty
-    delta_r: float = 0.5     # regression penalty
-    delta_c: float = 0.05    # cost penalty
-    cost_scale: float = 120.0  # seconds per operator iteration
-    tau_init: float = 1.0
-    tau_end: float = 0.3
-    tau_floor: float = 0.5
+    alpha: float = 1.0
+    beta_v: float = 0.5
+    beta_n: float = 0.3
+    delta_r: float = 0.5
+    delta_c: float = 0.05
+    cost_scale: float = 120.0
+    temperature_init: float = 1.0
+    temperature_end: float = 0.5
+    temperature_floor: float = 0.5
     ema_decay: float = 0.8
     global_best_bonus: float = 0.75
     near_record_bonus: float = 0.25
@@ -73,15 +64,12 @@ class PortfolioWeights:
     late_novelty_max_probability: float = 0.2
 
 
-# role -> (early, mid, late) bonus（explore 早期从 0.5 降到 0.2，避免 novelty 靠 role-bonus 主导）
 _ROLE_PHASE_BONUS: dict[str, tuple[float, float, float]] = {
     "explore": (0.2, 0.1, 0.05),
     "recombine": (0.25, 0.4, 0.15),
-    "generalize": (0.15, 0.3, 0.25),
     "path_correct": (0.25, 0.25, 0.25),
     "exploit": (0.2, 0.35, 0.5),
     "simplify": (0.05, 0.2, 0.4),
-    "abstract": (0.1, 0.1, 0.1),
 }
 
 
@@ -109,16 +97,16 @@ class OperatorPortfolio:
         frac = iteration / max(max_iter, 1)
         return 0 if frac < 0.33 else (1 if frac < 0.66 else 2)
 
-    def _tau(self, iteration: int, max_iter: int) -> float:
+    def _temperature(self, iteration: int, max_iter: int) -> float:
         frac = min(1.0, iteration / max(max_iter, 1))
-        scheduled = self.weights.tau_init + (
-            self.weights.tau_end - self.weights.tau_init
+        scheduled = self.weights.temperature_init + (
+            self.weights.temperature_end - self.weights.temperature_init
         ) * frac
-        return max(self.weights.tau_floor, scheduled)
+        return max(self.weights.temperature_floor, scheduled)
 
     def _value(self, op: Operator, phase: int) -> float:
         s = self.stats[op.name]
-        gain = math.tanh(s.mean_gain())  # 归一化到 [-1,1]
+        gain = math.tanh(s.mean_gain())
         normalized_cost = math.tanh(
             max(0.0, s.mean_cost()) / max(self.weights.cost_scale, 1e-6)
         )
@@ -141,10 +129,10 @@ class OperatorPortfolio:
         if len(cands) == 1:
             return {cands[0].name: 1.0}
         phase = self._phase(iteration, max_iter)
-        tau = self._tau(iteration, max_iter)
+        temperature = self._temperature(iteration, max_iter)
         values = [self._value(op, phase) for op in cands]
         mx = max(values)
-        exps = [math.exp((v - mx) / max(tau, 1e-6)) for v in values]
+        exps = [math.exp((v - mx) / max(temperature, 1e-6)) for v in values]
         total = sum(exps)
         raw = [e / total for e in exps]
         floor = min(max(self.weights.min_probability, 0.0), 1.0 / len(cands))
@@ -182,19 +170,6 @@ class OperatorPortfolio:
                 return op
         return cands[-1]
 
-    def update(self, *, op: Operator, gain: float, valid: bool, novel: bool,
-               regress: bool, cost: float) -> None:
-        self._record(
-            op=op,
-            gain=gain,
-            valid=valid,
-            novel=novel,
-            regress=regress,
-            cost=cost,
-            global_best=False,
-            near_record=False,
-        )
-
     def _record(
         self,
         *,
@@ -209,18 +184,6 @@ class OperatorPortfolio:
     ) -> None:
         s = self.stats[op.name]
         s.n_calls += 1
-        s.sum_gain += gain
-        if valid:
-            s.n_valid += 1
-        if novel:
-            s.n_novel += 1
-        if regress:
-            s.n_regress += 1
-        s.sum_cost += cost
-        if global_best:
-            s.n_global_best += 1
-        if near_record or global_best:
-            s.n_near_record += 1
         decay = min(1.0, max(0.0, self.weights.ema_decay))
         s.ema_gain = self._ema(s.ema_gain, gain, decay)
         s.ema_valid = self._ema(s.ema_valid, float(valid), decay)

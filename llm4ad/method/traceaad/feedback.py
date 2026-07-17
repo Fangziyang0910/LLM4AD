@@ -1,8 +1,7 @@
-"""鲁棒反馈：对比式相对排名 + 置信度（design §9）。
+"""相对排名反馈：Elo 风格的 child-parent 比较。
 
-绝对 fitness 在带噪/deceptive landscape 上不可靠；维护一个 Elo 风格的 child-parent
-相对排名，对尺度差异和噪声更稳健，供反思回路做 best-vs-worst 对比（context §6.C）。
-Elo 只在连通的比较图分量内排序；未连通分量之间仍由 raw fitness 决定。
+维护连通比较图上的相对排名，供反思回路做 best-vs-worst 对比。
+Elo 只在连通分量内排序；未连通分量之间仍由 raw fitness 决定。
 """
 from __future__ import annotations
 

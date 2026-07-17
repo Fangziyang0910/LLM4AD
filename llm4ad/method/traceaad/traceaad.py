@@ -1,9 +1,9 @@
 """TraceAAD —— 过程信息为一等公民的融合搜索。
 
 三层记忆（ProgramMemory=DerivationGraph / TrajectoryMemory / PatternMemory）+ 三回路
-（进化主回路 / 蒸馏回路 / 反思回路）。以有界 trajectory 为唯一搜索单位，stepwise+泛化信用，
-多维 ValueVec + trajectory-UCB，因果叙事三段式 context，6 算子 + bandit portfolio，
-islands + 多层多样性 + novelty gate + 鲁棒对比反馈。
+（进化主回路 / 蒸馏回路 / 反思回路）。以有界 trajectory 为唯一搜索单位，stepwise credit，
+多维 ValueVec + trajectory-UCB，因果叙事三段式 context，算子组合 + bandit portfolio，
+islands + 多层多样性 + novelty gate + 对比反馈。
 
 """
 from __future__ import annotations
@@ -14,7 +14,7 @@ import copy
 import random
 import re
 import time
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import Literal, Optional
 
 from ...base import Evaluation, Function, LLM, Program, SampleTrimmer, SecureEvaluator, TextFunctionProgramConverter
@@ -32,7 +32,7 @@ from .._observability import (
     shutdown_executor,
 )
 from .context import build_action_prompt
-from .credit import directed_delta, step_generalization_signal
+from .credit import directed_delta
 from .derivation_graph import DerivationGraph
 from .feedback import RankingModel
 from .islands import IslandsManager
@@ -76,7 +76,6 @@ class _CandidateObservation:
 @dataclass(frozen=True, slots=True)
 class TraceAADRunResult:
     best_node: ProgramNode | None
-    best_generalization_node: ProgramNode | None
     n_total_nodes: int
     n_valid_nodes: int
     n_trajectories: int
@@ -117,7 +116,6 @@ class TraceAAD:
         patience_reflect: int = 20,
         migration_interval: int = 20,
         min_reflect_new_edges: int = 8,
-        has_generalization_evidence: bool = False,
         num_evaluators: int = 1,
         resume_mode: bool = False,
         debug_mode: bool = False,
@@ -157,26 +155,13 @@ class TraceAAD:
         self._max_per_island = max_per_island
         self._maximize = maximize
         self._sampling_strategy = sampling_strategy
-        self._configured_value_weights = value_weights or ValueWeights()
-        if (
-            not has_generalization_evidence
-            and self._configured_value_weights.w_generalization > 0.0
-        ):
-            raise ValueError(
-                "positive w_generalization requires explicit generalization evidence"
-            )
-        self._value_weights = replace(
-            self._configured_value_weights,
-            w_generalization=0.0,
-        )
+        self._value_weights = value_weights or ValueWeights()
         self._portfolio_weights = portfolio_weights or PortfolioWeights()
         self._novelty_threshold = novelty_threshold
         self._k_distill = max(1, int(k_distill))
         self._patience_reflect = max(1, int(patience_reflect))
         self._migration_interval = max(1, int(migration_interval))
         self._min_reflect_new_edges = max(1, int(min_reflect_new_edges))
-        self._generalization_evidence_enabled = has_generalization_evidence
-        self._has_generalization_evidence = False
         self._num_evaluators = num_evaluators
         self._resume_mode = resume_mode
         self._debug_mode = debug_mode
@@ -207,8 +192,6 @@ class TraceAAD:
         )
         # 状态
         self._best_node: ProgramNode | None = None
-        self._best_generalization_node: ProgramNode | None = None
-        self._best_score_history: list[float] = []
         self._tot_sample_nums = 0
         self._batch_cost = 0.0
         self._last_reflect_edge_count = 0
@@ -343,14 +326,12 @@ class TraceAAD:
             if ev is None or ev.fitness is None:
                 self._graph.add_node(
                     code=str(gen.program), idea=gen.idea, fitness=None, is_valid=False,
-                    mechanism_tag=tag, sample_order=self._tot_sample_nums,
+                    mechanism_tag=tag,
                 )
                 continue
             node = self._graph.add_node(
                 code=str(gen.program), idea=gen.idea, fitness=ev.fitness, is_valid=True,
-                runtime=ev.runtime, complexity=ev.complexity, robustness=ev.robustness,
-                fitness_vector=ev.fitness_vector,
-                mechanism_tag=tag, sample_order=self._tot_sample_nums,
+                complexity=ev.complexity, mechanism_tag=tag,
             )
             island = slot % self._n_islands
             traj = self._memory.create_initial(node_id=node.id, island_id=island)
@@ -378,7 +359,7 @@ class TraceAAD:
             selected = self._rng.choice(self._memory.unique_active())
         else:
             selected = select_trajectory(
-                memory=self._memory, graph=self._graph, pattern_memory=self._pattern_memory,
+                memory=self._memory, graph=self._graph,
                 maximize=self._maximize, iteration=iteration, max_iter=max_iter, w=self._value_weights,
                 elite_endpoint_id=None if self._best_node is None else self._best_node.id,
                 stagnation=getattr(self, "_stagnation", 0),
@@ -387,10 +368,9 @@ class TraceAAD:
         selected = self._memory.get_trajectory(selected.id)
         ctx = OperatorContext(
             graph=self._graph, memory=self._memory, pattern_memory=self._pattern_memory,
-            ranking=self._ranking, islands=self._islands, selected=selected,
+            islands=self._islands, selected=selected,
             maximize=self._maximize, positive_threshold=self._value_weights.positive_threshold,
             iteration=iteration, best_stagnation=getattr(self, "_stagnation", 0),
-            has_generalization_evidence=self._has_generalization_evidence,
         )
         op = self._portfolio.choose(ctx=ctx, iteration=iteration, max_iter=max_iter)
         # 算子可 override 选题：backtrack 主动从 pool 选「endpoint 退步但前缀高 value」的 trajectory
@@ -462,9 +442,7 @@ class TraceAAD:
             ctx.hints["observed_mechanism_tag"] = tag
             child = self._graph.add_node(
                 code=str(gen.program), idea=gen.idea, fitness=ev.fitness, is_valid=True,
-                runtime=ev.runtime, complexity=ev.complexity, robustness=ev.robustness,
-                fitness_vector=ev.fitness_vector,
-                mechanism_tag=tag, iteration=iteration, sample_order=self._tot_sample_nums,
+                complexity=ev.complexity, mechanism_tag=tag,
             )
             new_traj = op.insert(ctx, child.id, None, None)
             live_best = self._best_node.fitness if self._best_node is not None else None
@@ -537,22 +515,13 @@ class TraceAAD:
             )
             delta = directed_delta(base_node.fitness, ev.fitness, self._maximize)
             outcome = classify_outcome(delta, self._value_weights.positive_threshold)
-            gen_signal = 0.0
-            if self._has_generalization_evidence:
-                gen_signal = step_generalization_signal(
-                    parent_fitness_vector=base_node.fitness_vector,
-                    child_fitness_vector=ev.fitness_vector,
-                    maximize=self._maximize,
-                )
             child = self._graph.add_node(
                 code=str(gen.program), idea=gen.idea, fitness=ev.fitness, is_valid=True,
-                runtime=ev.runtime, complexity=ev.complexity, robustness=ev.robustness,
-                fitness_vector=ev.fitness_vector,
-                mechanism_tag=tag, iteration=iteration, sample_order=self._tot_sample_nums,
+                complexity=ev.complexity, mechanism_tag=tag,
             )
             edge = self._graph.add_edge(
                 parent_id=base_node_id, child_id=child.id, action=action, operator=op.name,
-                mechanism_tag=tag, delta=delta, outcome=outcome, generalization_signal=gen_signal,
+                mechanism_tag=tag, delta=delta, outcome=outcome,
                 iteration=iteration,
             )
             new_traj = op.insert(ctx, child.id, edge.id, base_node_id)
@@ -592,8 +561,7 @@ class TraceAAD:
     def _periodic_hooks(self, iteration: int) -> None:
         self._survive()
         if iteration > 0 and iteration % self._k_distill == 0:
-            n = distill(memory=self._memory, graph=self._graph, pattern_memory=self._pattern_memory,
-                         maximize=self._maximize, iteration=iteration)
+            n = distill(graph=self._graph, pattern_memory=self._pattern_memory, iteration=iteration)
             if n:
                 log_event(self, event="distill", status="ok", iteration=iteration, n_patterns=n)
         stagnation = getattr(self, "_stagnation", 0)
@@ -740,7 +708,7 @@ class TraceAAD:
         )
         others = tuple(o for o in actives if o.id != traj.id)
         value = compute_value_vec(
-            trajectory=traj, graph=self._graph, pattern_memory=self._pattern_memory,
+            trajectory=traj, graph=self._graph,
             active_others=others, fmin=fmin, fmax=fmax, maximize=self._maximize, w=self._value_weights,
         )
         self._memory.set_value(traj.id, value, scalarize(value, self._value_weights))
@@ -757,7 +725,6 @@ class TraceAAD:
             value = compute_value_vec(
                 trajectory=trajectory,
                 graph=self._graph,
-                pattern_memory=self._pattern_memory,
                 active_others=others,
                 fmin=fmin,
                 fmax=fmax,
@@ -910,20 +877,6 @@ class TraceAAD:
         sample_order = self._tot_sample_nums
         if isinstance(result, EvalResult):
             score = result.fitness
-            observed_evidence = (
-                result.robustness > 0.0
-                or (
-                    result.fitness_vector is not None
-                    and len(result.fitness_vector) > 1
-                )
-            )
-            if (
-                score is not None
-                and self._generalization_evidence_enabled
-                and observed_evidence
-            ):
-                self._has_generalization_evidence = True
-                self._value_weights = self._configured_value_weights
         else:
             score = result
         function = TextFunctionProgramConverter.program_to_function(program)
@@ -940,30 +893,9 @@ class TraceAAD:
             return None
         if isinstance(result, EvalResult):
             complexity = result.complexity or _ast_complexity(str(program))
-            return EvalResult(
-                fitness=score,
-                runtime=eval_time,
-                complexity=complexity,
-                robustness=(
-                    result.robustness
-                    if self._has_generalization_evidence
-                    else 0.0
-                ),
-                confidence=result.confidence,
-                fitness_vector=(
-                    result.fitness_vector
-                    if self._has_generalization_evidence
-                    else None
-                ),
-            )
+            return EvalResult(fitness=score, complexity=complexity)
         complexity = _ast_complexity(str(program))
-        return EvalResult(
-            fitness=score,
-            runtime=eval_time,
-            complexity=complexity,
-            robustness=0.0,
-            confidence=1.0,
-        )
+        return EvalResult(fitness=score, complexity=complexity)
 
     # ---------------- bookkeeping ----------------
     def _update_best(self, node: ProgramNode) -> None:
@@ -971,11 +903,6 @@ class TraceAAD:
             return
         if self._best_node is None or _is_better(node.fitness, self._best_node.fitness, self._maximize):
             self._best_node = node
-        if self._has_generalization_evidence and node.robustness > 0.0 and (
-            self._best_generalization_node is None
-            or node.robustness > self._best_generalization_node.robustness
-        ):
-            self._best_generalization_node = node
 
     def active_trajectories(self) -> tuple[Trajectory, ...]:
         return self._memory.active()
@@ -996,7 +923,6 @@ class TraceAAD:
         nodes = self._graph.nodes()
         return TraceAADRunResult(
             best_node=self._best_node,
-            best_generalization_node=self._best_generalization_node,
             n_total_nodes=len(nodes),
             n_valid_nodes=sum(1 for n in nodes if n.is_valid),
             n_trajectories=len(self._memory.trajectories()),

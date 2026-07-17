@@ -1,7 +1,7 @@
-"""蒸馏回路 + 反思回路（design §8）。
+"""蒸馏回路 + 反思回路。
 
-- distill：周期性从 TrajectoryMemory 提炼机制模式到 PatternMemory（跨轨迹泛化证据）。
-- reflect：触发式对比 best vs worst，产出 lesson / anti_pattern，注入 context §6.C。
+- distill：周期性从推导边提炼机制模式到 PatternMemory。
+- reflect：触发式对比 best vs worst，产出 lesson / anti_pattern。
 """
 from __future__ import annotations
 
@@ -13,10 +13,8 @@ from .trajectory_memory import TrajectoryMemory
 
 def distill(
     *,
-    memory: TrajectoryMemory,
     graph: DerivationGraph,
     pattern_memory: PatternMemory,
-    maximize: bool,
     iteration: int,
     min_support: int = 2,
 ) -> int:
@@ -56,9 +54,8 @@ def distill(
                     mechanism_tag=tag,
                     text=(f"Mechanism '{tag}' improved fitness in "
                           f"{st['improved']}/{n_attempts} unique graph edges."),
-                    generalization_score=gen_score,
+                    improve_rate=gen_score,
                     support_id=edge_id,
-                    updated_iter=iteration,
                 )
             added += 1
     for (operator, tag), st in conditioned_stats.items():
@@ -75,9 +72,8 @@ def distill(
                       "in this operator context."),
                 mechanism_tag=tag,
                 support_ids=tuple(st["edge_ids"]),
-                generalization_score=gen_score,
+                improve_rate=gen_score,
                 confidence=0.8,
-                updated_iter=iteration,
                 operator=operator,
             )
             if not existed:
@@ -109,9 +105,8 @@ def reflect(
                   "comparisons; prefer evidence-backed variants."),
             mechanism_tag=best["mechanism_tag"],
             support_ids=(best["node_id"],),
-            generalization_score=0.6,
+            improve_rate=0.6,
             confidence=0.7,
-            updated_iter=iteration,
         )
     if worst["mechanism_tag"] != "other" and worst["mechanism_tag"] != best["mechanism_tag"]:
         pattern_memory.add(
@@ -119,8 +114,7 @@ def reflect(
             text=(f"Mechanism '{worst['mechanism_tag']}' tends to underperform; treat as low priority."),
             mechanism_tag=worst["mechanism_tag"],
             support_ids=(worst["node_id"],),
-            generalization_score=0.2,
+            improve_rate=0.2,
             confidence=0.6,
-            updated_iter=iteration,
         )
     return contrast

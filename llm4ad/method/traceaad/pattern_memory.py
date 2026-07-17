@@ -1,7 +1,7 @@
 """PatternMemory —— 知识层记忆（蒸馏出的机制/教训/反模式）。
 
-由 reflection（蒸馏回路 + 反思回路）写入，供 context（因果叙事 §6.B）按 mechanism_tag 检索
-注入 prompt。本模块只负责存储/检索/淘汰，蒸馏逻辑在 reflection.py。
+由 reflection（蒸馏回路 + 反思回路）写入，供 context 按 mechanism_tag 检索注入 prompt。
+本模块只负责存储/检索/淘汰，蒸馏逻辑在 reflection.py。
 """
 from __future__ import annotations
 
@@ -9,27 +9,27 @@ from .schema import Pattern, PatternId
 
 
 class PatternMemory:
-    def __init__(self, *, capacity_per_kind: int = 50, min_confidence: float = 0.2) -> None:
+    def __init__(self, *, capacity_per_kind: int = 50) -> None:
         self.capacity_per_kind = capacity_per_kind
-        self.min_confidence = min_confidence
         self._next_id = 0
         self._patterns: dict[PatternId, Pattern] = {}
         self._mechanism_outcomes: dict[tuple[str, str, int], tuple[bool, int]] = {}
         self._operator_scopes: dict[PatternId, str | None] = {}
 
-    def add(self, *, kind: str, text: str, mechanism_tag: str, support_ids: tuple[int, ...] = (),
-             generalization_score: float = 0.0, confidence: float = 1.0,
-             updated_iter: int = 0, operator: str | None = None) -> Pattern:
+    def add(
+        self,
+        *,
+        kind: str,
+        text: str,
+        mechanism_tag: str,
+        support_ids: tuple[int, ...] = (),
+        improve_rate: float = 0.0,
+        confidence: float = 1.0,
+        operator: str | None = None,
+    ) -> Pattern:
         scope = None if operator is None else str(operator)
         existing: Pattern | None = None
-        if kind == "lesson":
-            existing = next((
-                p for p in self._patterns.values()
-                if p.kind == kind
-                and p.mechanism_tag == mechanism_tag
-                and self._operator_scopes.get(p.id) == scope
-            ), None)
-        elif kind == "anti_pattern":
+        if kind in {"lesson", "anti_pattern"}:
             existing = next((
                 p for p in self._patterns.values()
                 if p.kind == kind
@@ -43,9 +43,8 @@ class PatternMemory:
                 text=text.strip() or existing.text,
                 mechanism_tag=existing.mechanism_tag,
                 support_ids=tuple(dict.fromkeys((*existing.support_ids, *support_ids)))[:50],
-                generalization_score=generalization_score,
+                improve_rate=improve_rate,
                 confidence=confidence,
-                updated_iter=updated_iter,
             )
             self._patterns[existing.id] = merged
             return merged
@@ -55,9 +54,8 @@ class PatternMemory:
             text=text,
             mechanism_tag=mechanism_tag,
             support_ids=support_ids,
-            generalization_score=generalization_score,
+            improve_rate=improve_rate,
             confidence=confidence,
-            updated_iter=updated_iter,
         )
         self._patterns[pattern.id] = pattern
         self._operator_scopes[pattern.id] = scope
@@ -65,9 +63,15 @@ class PatternMemory:
         self._prune_kind(kind)
         return pattern
 
-    def upsert_mechanism(self, *, mechanism_tag: str, text: str, generalization_score: float,
-                          support_id: int, updated_iter: int) -> Pattern:
-        """机制模式的增量更新：同类合并 support，刷新泛化分数。"""
+    def upsert_mechanism(
+        self,
+        *,
+        mechanism_tag: str,
+        text: str,
+        improve_rate: float,
+        support_id: int,
+    ) -> Pattern:
+        """机制模式的增量更新：同类合并 support，刷新改进率分数。"""
         existing = self.mechanism_pattern(mechanism_tag)
         if existing is None:
             return self.add(
@@ -75,9 +79,8 @@ class PatternMemory:
                 text=text,
                 mechanism_tag=mechanism_tag,
                 support_ids=(support_id,),
-                generalization_score=generalization_score,
+                improve_rate=improve_rate,
                 confidence=1.0,
-                updated_iter=updated_iter,
             )
         merged = Pattern(
             id=existing.id,
@@ -85,9 +88,8 @@ class PatternMemory:
             text=text if text else existing.text,
             mechanism_tag=existing.mechanism_tag,
             support_ids=tuple(dict.fromkeys((*existing.support_ids, support_id))),
-            generalization_score=generalization_score,
+            improve_rate=improve_rate,
             confidence=min(1.0, existing.confidence + 0.1),
-            updated_iter=updated_iter,
         )
         self._patterns[existing.id] = merged
         return merged
@@ -123,12 +125,12 @@ class PatternMemory:
             ordered = tagged + others
         else:
             ordered = candidates
-        ordered.sort(key=lambda p: (p.confidence * max(p.generalization_score, 0.1)), reverse=True)
+        ordered.sort(key=lambda p: (p.confidence * max(p.improve_rate, 0.1)), reverse=True)
         return tuple(ordered[:k])
 
     def top_mechanisms(self, *, k: int = 5) -> tuple[Pattern, ...]:
         mechs = [p for p in self._patterns.values() if p.kind == "mechanism"]
-        mechs.sort(key=lambda p: (p.generalization_score, len(p.support_ids)), reverse=True)
+        mechs.sort(key=lambda p: (p.improve_rate, len(p.support_ids)), reverse=True)
         return tuple(mechs[:k])
 
     def record_mechanism_outcome(
@@ -170,7 +172,7 @@ class PatternMemory:
         if operator is not None:
             return None
         p = self.mechanism_pattern(mechanism_tag)
-        return p.generalization_score if p is not None else None
+        return p.improve_rate if p is not None else None
 
     def mechanism_last_attempt_iteration(
         self, mechanism_tag: str, *, operator: str
@@ -238,7 +240,7 @@ class PatternMemory:
         items = [p for p in self._patterns.values() if p.kind == kind]
         if len(items) <= self.capacity_per_kind:
             return
-        items.sort(key=lambda p: (p.confidence * max(p.generalization_score, 0.1)), reverse=True)
+        items.sort(key=lambda p: (p.confidence * max(p.improve_rate, 0.1)), reverse=True)
         keep = {p.id for p in items[: self.capacity_per_kind]}
         for p in items:
             if p.id not in keep:
