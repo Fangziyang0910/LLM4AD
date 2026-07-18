@@ -49,7 +49,7 @@ TraceAAD 在评估预算 $B$ 内搜索适应度最优的有效程序。最大化
 
 ### 1.3 与本仓库其它方法的概念对照
 
-| | 典型程序级进化 / EoH 式 | MCTS-AHD（本仓库） | PathWise（本仓库） | **TraceAAD** |
+| 维度 | 典型程序级进化 / EoH 式 | MCTS-AHD（本仓库） | PathWise（本仓库） | **TraceAAD** |
 | --- | --- | --- | --- | --- |
 | 搜索对象 | 种群中的个体程序 | 树节点 + 选择策略 | 路径/种群混合（实现依赖） | **有界改进轨迹** |
 | 信用 | 个体适应度 | 常含树备份 / 节点统计 | 路径相关 | **边级逐步 $\Delta$，不回传祖先** |
@@ -162,13 +162,15 @@ $$
 f_{\mathrm{child}}-f_{\mathrm{parent}}, & \text{最大化},\\
 f_{\mathrm{parent}}-f_{\mathrm{child}}, & \text{最小化}.
 \end{cases}
-\qquad
+$$
+
+$$
 \mathrm{outcome}=
 \begin{cases}
 \mathrm{improve}, & \Delta>\varepsilon,\\
 \mathrm{regress}, & \Delta<-\varepsilon,\\
 \mathrm{plateau}, & |\Delta|\le\varepsilon,\\
-\mathrm{unknown}, & \Delta=\mathrm{null},
+\mathrm{unknown}, & \Delta=\mathrm{null}.
 \end{cases}
 $$
 
@@ -331,9 +333,9 @@ s(e)=&\,G+0.25\,C+0.15\,\kappa+0.1\,N+0.05\,r-0.02\,u\\
 \end{aligned}
 $$
 
-其中 $G=$`quality_gain`，$C=$`causal_coherence`，$\kappa=$`confidence`，$N$ 为课程新颖性项，$r$/$u$ 为历史 reward/usage。排序时先取「任一步 operator 匹配当前算子」的子集，不足再 fallback 全局。
+其中 $G$ 为 `quality_gain`，$C$ 为 `causal_coherence`，$\kappa$ 为 `confidence`，$N$ 为课程新颖性项，$r$/$u$ 为历史 reward/usage。排序时先取「任一步 operator 匹配当前算子」的子集，不足再 fallback 全局。
 
-`record_outcome` 按 offspring 给 packet 内 traces 记 reward：`global_best=1.0`，`near_record=0.4`，`improve=0.2`，`plateau=-0.1`，否则（含 regress）`-0.4`。`primary_trace_id`（=`positive_traces[0]`）拿全额，其余 trace 仅拿 $0.25\times$ reward。
+`record_outcome` 按 offspring 给 packet 内 traces 记 reward：`global_best=1.0`，`near_record=0.4`，`improve=0.2`，`plateau=-0.1`，否则（含 regress）`-0.4`。`primary_trace_id`（即 `positive_traces[0]`）拿全额，其余 trace 仅拿 $0.25\times$ reward。
 
 `near_record` 判定：相对 incumbent 的有向差 $\ge -\mathrm{tol}\times s_t$，默认 $\mathrm{tol}=0.10$，$s_t$ 为活跃池适应度的稳健尺度（10–90% 分位差与 median 相关）；同时供 portfolio 的 near-record EMA 使用。
 
@@ -427,15 +429,15 @@ $T_t:1.0\to0.5$，$\epsilon_t:0.15\to0.05$。每 attempt 对所选算子更新�
 
 ### 6.1 初始化
 
-生成至多 $n_{\mathrm{init}}=4$ 个初始程序。slot 0 要求简单完整方案；slot $>0$ 列出图中已有 idea（**最近至多 4 条，各截断 80 字符**），要求明显不同思路（run-local 去重，无任务词表）。输出约定：
+生成至多 $n_{\mathrm{init}}=4$ 个初始程序。slot 0 要求简单完整方案；slot $>0$ 列出图中已有 idea（**最近至多 4 条，各截断 80 字符**），要求明显不同思路（run-local 去重，无任务词表）。输出约定为 Idea 行，再跟一个 markdown 代码块中的完整函数，例如：
 
-```text
+````text
 Idea: <自然语言设计思想>
 Code:
 ```python
 <完整函数>
 ```
-```
+````
 
 有效程序按 `slot % n_islands` 建长度-1 轨迹。解析失败不耗评估预算；提交评估即计入样本。连续生成停滞达阈值可提前结束初始化。
 
@@ -652,4 +654,4 @@ TraceAAD 的逻辑链条是：
 
 **稀缺的有效改进发生在轨迹上** → 用多维 $V$ 与 UCB **决定跟哪条路** → 用角色化算子与 portfolio **决定怎么改** → 用分层证据 **决定 LLM 看见什么** → 用边级事实与门控/生存 **决定如何更新记忆**，同时严格禁止课程伪造搜索状态。
 
-本文描述的是当前代码实际执行的机制，可作为实现对照与后续消融的基线。Portfolio 的 late novelty cap 等细节仍可能随实验调整；以代码与本节超参表的同步更新为准。
+本文描述的是当前代码实际执行的机制，可作为实现对照与后续消融的基线。Portfolio 的 late novelty cap 等细节仍可能随实验调整；以代码与第 10 节超参表的同步更新为准。
