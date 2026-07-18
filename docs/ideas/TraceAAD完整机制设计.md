@@ -1,140 +1,160 @@
 # TraceAAD：基于算法改进轨迹的自动算法设计
 
-本文按当前 `llm4ad.method.traceaad` 实现，说明 TraceAAD 的完整搜索机制：先给设计思想与总体结构，再逐层展开状态表示、价值选择、精英课程、算子调度、生成评估与记忆更新。文中公式、触发条件与默认超参均对齐代码。
+> 权威机制说明。对齐当前 `llm4ad.method.traceaad` 实现（含精英课程、经验记忆与机会感知 portfolio）。公式、触发条件与默认超参以代码为准。
 
 ---
 
-## 1. 设计目标与核心思想
+## 0. 导读：先给出结论
+
+**TraceAAD 要解决的问题**：在有限评估预算下，用 LLM 搜索更好的算法程序时，不要只盯着「当前最好的那份代码」，而要把「这次改动从哪来、改了什么、变好还是变坏」当作一等搜索资产。
+
+**核心主张（一句话）**：
+
+> 有界算法改进轨迹是搜索与生成的共同枢纽；图保存事实，轨迹决定预算投向，经验与课程只指导 LLM 如何改，不伪造搜索状态。
+
+**方法由四层决策组成（金字塔从上到下）**：
+
+1. **投向哪条路**（轨迹选择）：在活跃轨迹上比较多维价值，用 Trajectory-UCB 分配下一次扩展机会。
+2. **用什么改法**（算子 + portfolio）：在结构性可行算子上按历史收益与上下文 soft bonus 采样，硬门控只排除不可行，不做探索策略硬编码。
+3. **给 LLM 看什么**（上下文）：短期因果叙事 + 边级成败经验 + 精英课程（事实 / 推断分层）+ best–worst 对比。
+4. **改完如何记账**（注册与维护）：写图与边、新颖性门控、课程反馈、portfolio 更新；周期性做 Pareto 生存与岛迁移。
+
+读完本文应能回答：TraceAAD 与「选一个程序改一次」有何本质不同；一次 search attempt 逐步发生了什么；事实、推断、指令如何隔离；默认超参落在何处。实现细节（续训、日志文件）见第 11 节。
+
+---
+
+## 1. 问题设定与设计动机
 
 ### 1.1 问题设定
 
 给定：
 
-- 一个待设计算法任务（如 TSP constructive heuristic）；
+- 待设计算法任务（如 TSP constructive heuristic、CVRP ACO prior、OP constructive）；
 - 可执行程序模板（唯一可演化函数签名与输出契约）；
 - 大语言模型（LLM）；
-- 程序评估器（对训练实例返回标量适应度）。
+- 程序评估器（对训练集实例返回标量适应度 $f$）。
 
-TraceAAD 在有限评估预算 $B$ 内，搜索适应度最优的有效程序。记候选程序为 $p$，标量适应度为 $f(p)$。最大化任务直接比较 $f$；最小化任务在比较、归一化与有向差分时反转方向。
+TraceAAD 在评估预算 $B$ 内搜索适应度最优的有效程序。最大化任务直接比较 $f$；最小化任务在比较、归一化与有向差分时反转方向。训练评估通常对多实例取平均；held-out 测试不反馈进搜索。
 
-训练评估器通常对同一 task 的多个实例取平均后返回标量 $f$；最终测试在同 task 的另一数据划分上进行，测试结果不反馈进搜索。
+### 1.2 为什么现有范式不够
 
-### 1.2 为什么以轨迹为搜索单位
+许多 LLM 驱动的算法设计方法以**单个程序**或**树节点**为搜索对象：选出一个程序、改一次、评估一次。这样做丢掉了过程信息——哪一步改进、哪一步退步、用了什么算子、属于哪条改进路径。而这些信息恰恰回答两件不同的事：
 
-许多 LLM 驱动的算法设计方法以「单个程序」或「树节点」为搜索对象：选一个程序、改一次、评估一次。这样做丢掉了改进过程本身——哪一步改进、哪一步退步、用了什么动作、属于哪条改进路径——而这些过程信息正是后续「该从哪里改、该怎么改」的依据。
+| 问题 | 需要的信息 |
+| --- | --- |
+| 下一步预算投向哪里？ | 哪条**真实路径**仍值得继续扩展 |
+| 下一步该怎么改代码？ | 哪些**修改结构**值得模仿、组合或避免 |
 
-TraceAAD 的核心主张是：
+把「路径形状」直接当成「未来潜力」，或把稀缺成功事件与大量 plateau/regress 混在同一价值里，都会产生噪声。TraceAAD 因此把轨迹升格为一等对象，并把**搜索价值**与**教学证据**分开处理。
 
-> **有界算法改进轨迹**是一等搜索资产。轨迹不仅携带当前程序，还携带导致当前程序的修改历史（动作、算子、有向适应度变化、结果类型）。选择、扩展、归档、上下文构造，以及边级经验检索，都围绕轨迹展开。
+### 1.3 与本仓库其它方法的概念对照
 
-因此：
+| | 典型程序级进化 / EoH 式 | MCTS-AHD（本仓库） | PathWise（本仓库） | **TraceAAD** |
+| --- | --- | --- | --- | --- |
+| 搜索对象 | 种群中的个体程序 | 树节点 + 选择策略 | 路径/种群混合（实现依赖） | **有界改进轨迹** |
+| 信用 | 个体适应度 | 常含树备份 / 节点统计 | 路径相关 | **边级逐步 $\Delta$，不回传祖先** |
+| 生成上下文 | 精英代码 / 简单对比 | 节点局部信息 | 路径信息 | **因果叙事 + 经验边 + 精英课程** |
+| 探索机制 | 变异/交叉比例 | UCT 等 | 方法内建 | **角色化算子 + portfolio 概率** |
 
-- 选择时比较的是「路径价值」，而不只是终点分数；
-- 扩展时可以沿终点继续，也可以从路径中部回退分叉；
-- 生成时把近期因果叙事注入 prompt，而不是只贴当前代码；
-- 从当前 run 的真实推导边中检索少量成功/失败 action，作为无标签经验写回后续 prompt；
-- 从稀缺的 global-best 事件和 DAG 结构中构造精英课程，作为带证据等级的生成参照；
-- 严格区分真实搜索轨迹和非因果课程轨迹，课程不伪造节点、边或 active trajectory。
+对照目的是澄清定位，不是宣称数值优势。数值比较见 `docs/results/`。
 
-### 1.3 四个配套设计原则
+### 1.4 四条设计原则
 
-1. **过程信用逐步归因，不回传祖先。** 每条推导边只记录该步自己的 $\Delta$；后代改进不回传到更早节点（刻意避免 MCTS 式 max-backprop 的过度归功）。
-2. **价值是多维的，采样与生存用途分离。** 轨迹价值 $V=(Q,P,D,N,C,R)$ 在采样时标量化并加 UCB；在活跃池截断时用 Pareto 非支配排序，避免六维塌成单一分数后过早丢掉多样性与效率折中。
-3. **算子是角色化的动作策略，由 portfolio 自适应调度。** 不是固定轮换某一种改法，而是在可行性候选上按历史收益与阶段先验做概率采样；trigger 只排除结构性不可行，不把探索/利用策略写成硬 if-else。
-4. **事实、推断和指令分层。** DAG 中的节点和边是 `fact`；Champion、improve-chain、repair 和 recombine 是 `inference`；LLM 新生成的修改是 `instruction`。课程可以影响生成，但不能冒充真实父子关系。
+1. **过程信用逐步归因，不回传祖先。** 每条推导边只记录该步自己的有向 $\Delta$；后代改进不回传到更早节点（刻意避免 MCTS 式 max-backprop 的过度归功）。
+2. **价值多维，采样与生存用途分离。** 轨迹价值 $V=(Q,P,D,N,C,R)$ 在采样时标量化并加 UCB；在活跃池截断时用 Pareto 非支配排序，避免六维塌成单一分数后过早丢掉多样性与效率折中。
+3. **算子角色化，由 portfolio 自适应调度。** Trigger 只排除结构性不可行；探索/利用频率由历史收益、上下文 bonus 与 $\epsilon$-mixture 决定，不写成大段硬 if-else。
+4. **事实、推断、指令分层。** DAG 节点与边是 `fact`；Champion / improve-chain / repair / recombine 是 `inference`；LLM 新生成的修改是 `instruction`。课程可以影响生成，但不能冒充真实父子关系，也不进入 active pool。
 
 ---
 
-## 2. 总体架构
+## 2. 方法总览
 
 ### 2.1 四层记忆
 
-| 层       | 实现                 | 存什么                                      | 在搜索中的角色                               |
-| -------- | -------------------- | ------------------------------------------- | -------------------------------------------- |
-| 程序记忆 | `DerivationGraph`  | 所有已生成程序节点 + 父子推导边             | 事实库（ground truth）；不可因轨迹归档而删图 |
-| 轨迹记忆 | `TrajectoryMemory` | 当前仍值得投入预算的有界路径                | 选择与扩展的直接对象                         |
-| 经验记忆 | `ExperienceMemory` | 对图边的只读视图：有界成功/失败 action 检索 | 指导 refinement 动作生成                     |
-| 课程记忆 | `EliteCurriculum`  | 从真实 best 事件和 DAG 边构造的精英课程       | 组装生成上下文、精英变异/修复/交叉参照       |
+| 层 | 实现 | 存什么 | 角色 |
+| --- | --- | --- | --- |
+| 程序记忆 | `DerivationGraph` | 已评估程序节点 + 单父推导边 | 事实库；轨迹归档不删图 |
+| 轨迹记忆 | `TrajectoryMemory` | 仍值得投入预算的有界路径 | 选择与扩展的直接对象 |
+| 经验记忆 | `ExperienceMemory` | 图边上的只读成功/失败 action 视图 | 指导 refinement 动作 |
+| 课程记忆 | `EliteCurriculum` | 从 best 事件与 DAG 构造的有界课程 | 生成参照；不进活跃池 |
 
-四层互补：图保存「发生过什么」；轨迹保存「现在还要继续跟哪条路」；经验记忆提供单步 action 证据；课程记忆把稀缺成功结构组织成有界、带证据等级的生成参照。课程层不复制程序事实，也不直接进入 active pool。
+互补关系：**图**回答「发生过什么」；**轨迹**回答「现在跟哪条路」；**经验**提供单步 action 证据；**课程**把稀缺成功结构组织成带证据等级的生成材料。
 
-### 2.2 主回路与维护
+### 2.2 两条时间尺度上的回路
 
-| 回路        | 做什么                                                                        | 何时触发                                  |
-| ----------- | ----------------------------------------------------------------------------- | ----------------------------------------- |
-| 进化主回路  | 选轨迹 → 选算子 → 生成 → 评估 → 写图/轨迹 → 新颖性门控 → 更新 portfolio | 每次 search attempt（有预算且有活跃轨迹） |
-| 轨迹生存    | Pareto 截断活跃池                                                             | 每个 completed iteration                  |
-| Island 迁移 | 各岛精英轨迹环形移动                                                          | 停滞时周期性触发                          |
+| 回路 | 做什么 | 何时 |
+| --- | --- | --- |
+| 进化主回路 | 选轨迹 → 选算子 → 组上下文 → 生成 → 评估 → 写图/轨迹 → novelty → 更新 portfolio / 课程 | 每次有预算的 search attempt |
+| 周期性维护 | Pareto 生存；停滞时岛迁移；写 checkpoint | 每个 completed search iteration |
 
-课程维护与生成上下文组装属于主回路的一部分，不额外调用 LLM；RankingModel 仍在每次 refinement 前即时生成 best/worst 对比。
+RankingModel（Elo）在每次 refinement 的父子比较后更新，服务于 prompt 中的 best–worst 对比，**不**直接进入轨迹 UCB。
 
 ### 2.3 主循环数据流
 
 ```text
 初始化
-  用 run-local idea 去重提示生成 n_init 个程序
-  → 建图与初始轨迹 → 按 slot % n_islands 安置
+  run-local idea 去重提示 → 生成并评估至多 n_init 个程序
+  → 建图与长度-1 轨迹 → slot % n_islands 安置
         │
         ▼
-主循环（while 预算未尽且未中止）
+主循环（预算未尽且未中止）
   1. 轨迹选择（默认 Trajectory-UCB）
-  2. Portfolio 在触发算子中采样
+  2. Portfolio 在可行算子中采样（含 OperatorPreview）
   3. 算子可覆盖选题（Backtrack）并确定 base + 约束
-  4. 非 fresh-start 算子组装 `CurriculumPacket`
-  5. Novelty：initial-style 直接生成；否则两阶段 refinement
+  4. 非 fresh-start：组装 CurriculumPacket
+  5. Novelty：initial-style；否则两阶段 refinement
   6. 评估 → 写节点/边 → 按算子语义插入轨迹
-  7. 新颖性门控；更新 best、Elo；反馈课程 packet outcome
-  8. 用本批最优观测更新 portfolio 一次；选中轨迹 visit+1
+  7. Novelty gate；更新 best、Elo；课程 packet outcome
+  8. 本批最优观测更新 portfolio 一次；选中轨迹 visit+1
   9. 若完成新的 search iteration：
-       更新停滞计数；survival；按需 migrate
+       更新停滞；survival；按需 migrate；checkpoint
         │
         ▼
-末尾再做一次 survival → 返回标量最优 best_node
+末尾再 survival → 返回标量最优 best_node
 ```
 
-下文按这条数据流，从状态表示讲到局部模块。
+下文按「状态 → 选择 → 改法 → 生成 → 记账」展开。
 
 ---
 
 ## 3. 搜索状态表示
 
-本节公式符号尽量与代码字段同名：例如 $\mathrm{idea}$ 对应 `idea`，$\mathrm{complexity}$ 对应 `complexity`。单字母只保留约定俗成的 $p$（程序）、$f$（适应度）、$\tau$（轨迹）、$\Delta$（有向差分）。
+符号尽量与代码字段同名。单字母约定：$p$ 程序、$f$ 适应度、$\tau$ 轨迹、$\Delta$ 有向差分。
 
 ### 3.1 程序节点
 
-每个候选程序对应推导图中的一个节点：
-
 $$
-p_i=(c_i,\mathrm{idea}_i,f_i,\mathrm{complexity}_i,\mathrm{runtime}_i),
+p_i=(c_i,\mathrm{idea}_i,f_i,\mathrm{complexity}_i,\mathrm{runtime}_i).
 $$
 
-| 符号                      | 含义                                                                         | 代码字段       |
-| ------------------------- | ---------------------------------------------------------------------------- | -------------- |
-| $c_i$                   | 源代码                                                                       | `code`       |
-| $\mathrm{idea}_i$       | 自然语言设计思想                                                             | `idea`       |
-| $f_i$                   | 标量适应度；评估失败则为空                                                   | `fitness`    |
-| $\mathrm{complexity}_i$ | 代码复杂度合成分（Shinka 风格：CC+Halstead+LOC+nesting；评估器也可显式返回） | `complexity` |
-| $\mathrm{runtime}_i$    | 评估耗时（秒）                                                               | `runtime`    |
+| 符号 | 含义 | 字段 |
+| --- | --- | --- |
+| $c_i$ | 源代码 | `code` |
+| $\mathrm{idea}_i$ | 自然语言设计思想 | `idea` |
+| $f_i$ | 标量适应度 | `fitness` |
+| $\mathrm{complexity}_i$ | 结构复杂度合成分（§3.1.1） | `complexity` |
+| $\mathrm{runtime}_i$ | 评估耗时（秒） | `runtime` |
 
-另存分项 `complexity_metrics`（cc / Halstead volume / loc / nesting 等）供上下文展示。评估失败程序**不入图、不建轨迹**。节点表示程序状态，不再强制压缩为单一机制类别。
+评估失败的程序**不入图、不建轨迹**。另存 `complexity_metrics` 供展示。
+
+#### 3.1.1 复杂度合成分
+
+默认用 Radon + AST 提取：$CC$（圈复杂度之和）、$H$（Halstead volume）、$LOC$、$N$（结构最大嵌套）。归一化后：
+
+$$
+\mathrm{complexity}(p)=\min\!\big(
+0.4\widehat{CC}+0.4\widehat{H}+0.1\widehat{LOC}+0.1\widehat{N},\,1\big),
+$$
+
+其中 $\widehat{CC}=CC/10$，$\widehat{H}=\log_2(H+1)/10$，$\widehat{LOC}=\log_2(LOC+1)/10$，$\widehat{N}=N/5$。评估器显式返回正复杂度时优先使用；分析失败则退化为 AST/行数代理。这是**静态结构**度量，不是渐进时间复杂度。
 
 ### 3.2 推导边与有向信用
 
-推导图是**单父 DAG**：每个子节点至多一条入边。从父程序生成子程序时增加边：
+推导图是**单父 DAG**。边：
 
 $$
-e=(p_u,p_v,\mathrm{action},\mathrm{op},\Delta,\mathrm{outcome}),
+e=(p_u,p_v,\mathrm{action},\mathrm{op},\Delta,\mathrm{outcome}).
 $$
-
-| 符号                 | 含义                                                 | 代码字段      |
-| -------------------- | ---------------------------------------------------- | ------------- |
-| $\mathrm{action}$  | 自然语言修改动作                                     | `action`    |
-| $\mathrm{op}$      | 搜索算子名                                           | `operator`  |
-| $\Delta$           | 有向适应度变化                                       | `delta`     |
-| $\mathrm{outcome}$ | 结果类型（improve / regress / plateau / unknown）    | `outcome`   |
-| —                   | 写入时的搜索 iteration（经验排序并列时优先较新记录） | `iteration` |
-
-有向变化：
 
 $$
 \Delta=
@@ -142,683 +162,494 @@ $$
 f_{\mathrm{child}}-f_{\mathrm{parent}}, & \text{最大化},\\
 f_{\mathrm{parent}}-f_{\mathrm{child}}, & \text{最小化}.
 \end{cases}
-$$
-
-结果类型 $\mathrm{outcome}$ 由 $\Delta$ 与阈值 $\varepsilon=10^{-6}$ 决定：
-
-$$
+\qquad
 \mathrm{outcome}=
 \begin{cases}
 \mathrm{improve}, & \Delta>\varepsilon,\\
 \mathrm{regress}, & \Delta<-\varepsilon,\\
 \mathrm{plateau}, & |\Delta|\le\varepsilon,\\
-\mathrm{unknown}, & \Delta=\mathrm{null}.
+\mathrm{unknown}, & \Delta=\mathrm{null},
 \end{cases}
 $$
 
-**逐步归因**：边只承担自身 $\Delta$；不把后代改进回传到祖先。路径潜力（§5.2）是对轨迹上逐步变化的加权统计，不是树搜索式的 backup。Novelty Jump 没有父边，不进入 action 经验检索；其成败仍由 OperatorPortfolio 按整个算子更新。
+$\varepsilon=10^{-6}$。**逐步归因**：边只承担自身 $\Delta$；路径潜力（§4.2）是轨迹上逐步变化的加权统计，不是树备份。Novelty Jump 无父边，不进入 action 经验检索；其算子级成败仍由 portfolio 更新。
 
 ### 3.3 有界轨迹
-
-轨迹是推导图中的一条有序路径：
 
 $$
 \tau=(p_0,e_1,p_1,\ldots,e_L,p_L).
 $$
 
-每条轨迹记录：
+关键字段：`node_ids` / `edge_ids`、`base_id`、`endpoint_id`、`island_id`、`visit_count`、`status`（`active`/`archived`）、`value` / `scalar_value`。
 
-| 字段                         | 含义                             |
-| ---------------------------- | -------------------------------- |
-| `node_ids` / `edge_ids`  | 路径上的节点与边序列             |
-| `base_id`                  | 当前窗口起点                     |
-| `endpoint_id`              | 当前终点（始终为序列末节点）     |
-| `island_id`                | 所属岛                           |
-| `visit_count`              | 被选作扩展目标的次数             |
-| `status`                   | `active` / `archived`        |
-| `value` / `scalar_value` | 最近一次算出的$V$ 与标量化分数 |
+默认 $L_{\max}=8$。超限则**滑动窗口**保留最近后缀。扩展语义：
 
-默认最大长度 $L_{\max}=8$。超过上限时**滑动窗口**：丢掉最前端节点与边，保留最近后缀；滑窗后 `base_id` 更新为新序列首节点。
+| 语义 | 含义 | 算子 |
+| --- | --- | --- |
+| endpoint extension | 从终点追加 | Endpoint、Simplify |
+| prefix branching | 截内部前缀再接新子节点（新轨迹 ID） | Backtrack、Crossover |
+| fresh start | 无父边，长度 1 | Novelty、初始化 |
 
-轨迹扩展有三种语义：
-
-| 语义               | 含义                                             | 使用算子                  |
-| ------------------ | ------------------------------------------------ | ------------------------- |
-| endpoint extension | 从当前终点追加子节点                             | Endpoint Refine、Simplify |
-| prefix branching   | 截取内部 base 前缀，再接新子节点，形成新轨迹身份 | Backtrack、Crossover      |
-| fresh start        | 无父边，以新节点创建长度 1 的轨迹                | Novelty Jump、初始化      |
-
-关键约定：
-
-- 扩展或分叉**总是新建轨迹对象**（新 ID），不原地改写父轨迹；父轨迹可继续留在活跃池。
-- 归档只改轨迹状态，**不删除**图中节点与边。
-- 路径键 `path_key=(node_ids, edge_ids)` 用于去重：活跃池中同一路径只保留访问次数更高者（并列时 ID 更小）。
+约定：扩展/分叉**总是新建轨迹对象**；归档不删图；`path_key=(node_ids,edge_ids)` 用于活跃池去重（同路径保留 `visit_count` 更高者，并列保留 id 更大者）。
 
 ### 3.4 经验记忆
 
-`ExperienceMemory` 是 `DerivationGraph` 上的只读经验视图。它不复制图边，也不维护第二份事实；外部界面只有一个查询：
+`ExperienceMemory` 是图上的只读视图，界面为：
 
-```python
-examples(*, operator: str, positive_k: int = 2, negative_k: int = 2) -> ExperienceBatch
+```text
+examples(operator, positive_k=2, negative_k=2) → ExperienceBatch
 ```
 
-查询规则：
+规则：
 
-1. 仅检索 action 非空的 refinement 边；
-2. 成功例来自 `outcome=improve`，失败例来自 `outcome=regress`；不注入 plateau；
-3. 优先返回当前 operator 的记录；不足时用其它 operator 的全局记录补齐；
-4. 成功例按有向 $\Delta$ 降序，失败例按 $\Delta$ 升序（最强退步优先）；并列时优先较新 iteration；
-5. 对规范化后完全相同的 action 文本全局去重；若同一 action 同时有成功和失败记录，优先保留当前 operator 的记录，再取绝对 $\Delta$ 最大者，并列时取较新记录；不做语义聚类；
-6. 返回结构化 `ExperienceExample`，prompt 格式化由 `context.py` 负责。
+1. 只取 action 非空、有 $\Delta$、且 `outcome\in\{\mathrm{improve},\mathrm{regress}\}$ 的边（不注入 plateau）；
+2. 优先同 operator 记录，不足再用其它算子补齐；
+3. 成功按 $\Delta$ 降序，失败按 $\Delta$ 升序（最强退步优先）；并列时优先较新 `iteration`；
+4. 对规范化空白后的 action 文本**全局去重**：同一文本只留一条代表边。并列优先级为：当前 operator 匹配 > $|\Delta|$ 更大 > `iteration` 更新 > `edge.id` 更大；若同一 action 既有成功又有失败记录，仍按该代表规则择一，**不做语义聚类**；
+5. 返回结构化 `ExperienceExample`，prompt 格式化由 `context.py` 负责；每条 action 默认截断 300 字符。
 
-默认至多注入 $2$ 条成功与 $2$ 条失败 action，每条 action 最多保留 $300$ 个字符；action 调用日志记录经验块字符数。这些示例是当前 run 内的任务内经验，但其产生和检索不依赖任务词表。
-
-短期轨迹最近 $5$ 步因果叙事仍是 refinement 的主上下文；边级经验块是有界补充，不引入额外 LLM 调用或 embedding 模型。
+短期轨迹最近 5 步因果叙事仍是 refinement 的主上下文；边级经验块是有界补充，**无额外 LLM / embedding**。
 
 ### 3.5 精英课程记忆
 
-`EliteCurriculum` 从 `DerivationGraph` 事实构造生成参照，但不创建节点、边或 active trajectory。它维护两类状态：
+`EliteCurriculum` 从事实构造生成参照，**不创建**节点、边或 active trajectory。维护：
 
-1. `ChampionEvent`：每次 global best 刷新时记录旧 best、新 best、来源父节点/边、operator、有向增量和 sample；
-2. packet 级教学反馈：课程被用于生成后，根据 offspring 的 `outcome`、`near_record` 和 `global_best` 更新课程的使用次数与 reward。
+1. `ChampionEvent`：每次 global best 刷新时追加（保留最近 `max_champion_events=4` 用于组装）；
+2. packet 级 `_usage` / `_reward`：课程被注入后按 offspring 结果更新，**不回写**边上的 $\Delta$/`outcome`。
 
-课程构造类型：
+每次 `build()` 时从 DAG **即时派生**课程 traces（无单独的离线 refresh）：
 
-| 类型 | 来源 | 因果等级 | 主要用途 |
+| 类型 | 构造规则（代码） | `causal_status` | 默认 `(confidence, causal_coherence)` |
 | --- | --- | --- | --- |
-| `champion` | global-best 更替链 | `jump` | 展示全局精英进步方向 |
-| `improve_chain` | 连续真实 improve 边 | `direct` | 模仿连续有效修改 |
-| `prefix_repair` | 高质量前缀 + regress 边 | `prefix` | Backtrack 修复和失败边界 |
-| `contrastive` | 成功边与相近失败边并置 | `composed` | 说明应避免的修改方向 |
-| `elite_recombine` | 不同成功支系的动作组合 | `composed` | Crossover donor 参照 |
+| `champion` | 最近至多 4 个 `ChampionEvent` 逐步标注 | `jump` | $(0.9, 0.0)$ |
+| `improve_chain` | 从每条 `improve` 边向上回溯连续 improve 父边，链长上限 3 | `direct` | $(0.85, 1.0)$ |
+| `prefix_repair` | 由 `regress` 边生成；`terminal_node_id` 指向**父节点（高价值前缀）**，不是退步 endpoint | `prefix` | $(0.75, 0.8)$（子无 fitness 时 confidence $0.5$） |
+| `contrastive` | 每条 regress 配一条 improve 链（优先同 operator，否则按 `_trace_score` 全局最优） | `composed` | $(0.45, 0.4)$ |
+| `elite_recombine` | `_trace_score` 最高的两条 improve 链，优先末步 operator 不同，各取末步拼成 composed | `composed` | $(0.4, 0.0)$ |
 
-课程层的外部接口是：
-
-```python
-record_best_event(...)
-build(
-    operator=...,
-    base_node_id=...,
-    selected_trajectory_id=...,
-    iteration=...,
-    stagnation=...,
-) -> CurriculumPacket
-record_outcome(packet, outcome=..., global_best=..., near_record=...)
-```
-
-`CurriculumPacket` 只包含有界的 `positive_traces`、`repair_trace`、`contrast_trace`、`donor_trace` 和指令。`V_search` 继续只服务真实 trajectory 的 UCB/survival；课程的教学效用不直接进入路径价值。
+接口：`record_best_event` / `build(...)` → `CurriculumPacket` / `record_outcome`。`V_search` 只服务真实轨迹；教学效用不写入 `Trajectory.value`。按算子组装见 §5.3。
 
 ---
 
-## 5. 轨迹价值与选择
+## 4. 轨迹价值与选择：预算投向哪里
 
-价值计算的对象是**唯一活跃轨迹**（同 `path_key` 只留一个代表）。图中节点均由成功评估产生；若防御性遇到 `fitness is None`，对应全零 $V$。
+价值对象是**唯一活跃轨迹**（同 `path_key` 一个代表）。防御性若遇 `fitness is None`，则 $V$ 全零。
 
-### 5.1 终点质量 Q
+### 4.1 终点质量 $Q$
 
-先用当前活跃轨迹的唯一有效终点适应度，做 10%/90% 分位数线性插值裁剪，得到边界 $(f_{\min},f_{\max})$。这样可避免归档程序、重复路径或极端失败压缩尺度。
+用活跃终点适应度的 10%/90% 分位裁剪得 $(f_{\min},f_{\max})$，再线性归一：
 
 $$
 Q(\tau)=\mathrm{clip}\!\left(\frac{f(p_L)-f_{\min}}{f_{\max}-f_{\min}},0,1\right).
 $$
 
-最小化任务在归一化前对适应度与边界一并取负。边界缺失时：最大化返回 $1.0$，最小化返回 $0.0$；$|f_{\max}-f_{\min}|\lt 10^{-12}$ 时返回中性值 $0.5$。
+最小化任务在归一化前对适应度与边界取负。边界退化时返回约定中性值（见代码）。
 
-### 5.2 路径潜力 P
+### 4.2 路径潜力 $P$
 
-令轨迹上各节点归一化质量为 $q_0,\ldots,q_L$，逐步质量变化 $\Delta q_i=q_i-q_{i-1}$。近端步权重更高：第 $i$ 步（从近到远倒数）权重为 $\gamma^{n-i-1}$，默认 $\gamma=0.8$。折扣路径回报：
+令逐步归一化质量变化为 $\Delta q_i$，近端权重 $\gamma^{n-i-1}$（默认 $\gamma=0.8$）：
 
 $$
 R(\tau)=
-\frac{\sum_i w_i \Delta q_i}{\sum_i w_i}
+\frac{\sum_i w_i\Delta q_i}{\sum_i w_i}
 +\lambda_{\mathrm{pos}}\frac{1}{n}\sum_i\mathbb{I}(\Delta q_i>\varepsilon)
--\lambda_{\mathrm{down}}
-\frac{\sum_i w_i\max(-\Delta q_i,0)}{\sum_i w_i},
+-\lambda_{\mathrm{down}}\frac{\sum_i w_i\max(-\Delta q_i,0)}{\sum_i w_i},
 $$
 
-默认 $\lambda_{\mathrm{pos}}=0.25$，$\lambda_{\mathrm{down}}=0.5$。长度不足 $2$ 的轨迹 $R=0$。
-
-为抑制「低质量终点但单次大幅回升」主导选择，潜力经质量门控：
+默认 $\lambda_{\mathrm{pos}}=0.25$，$\lambda_{\mathrm{down}}=0.5$。再用质量门控：
 
 $$
 P(\tau)=
 \begin{cases}
-0, & Q(\tau)\le q_{\min},\\
-R(\tau)\dfrac{Q(\tau)-q_{\min}}{1-q_{\min}}, & Q(\tau)>q_{\min},
+0, & Q\le q_{\min},\\
+R\cdot(Q-q_{\min})/(1-q_{\min}), & Q>q_{\min},
 \end{cases}
-\qquad q_{\min}=0.5.
+\quad q_{\min}=0.5.
 $$
 
-### 5.3 多样性 D 与新颖性 N
+### 4.3 多样性 $D$ 与新颖性 $N$
 
-不使用外部 embedding。两种 Jaccard 相似度：
+无外部 embedding。两种 Jaccard：
 
-1. **程序相似度**：去注释与多余空白后，对标识符 token 集合做 Jaccard；
-2. **轨迹行为相似度**：边上 `(operator|outcome)` 指纹集合的 Jaccard。
-
-组合相似度（默认权重 $0.7,0.3$）：
+1. **程序**：去注释与多余空白后，标识符 token 集合 Jaccard；
+2. **轨迹行为**：边上 `(operator|outcome)` 指纹集合 Jaccard。
 
 $$
-\mathrm{sim}(\tau_a,\tau_b)=
-\frac{w_c\mathrm{sim}_{code}+w_t\mathrm{sim}_{traj}}{w_c+w_t}.
+\mathrm{sim}= \frac{w_c\mathrm{sim}_{code}+w_t\mathrm{sim}_{traj}}{w_c+w_t},
+\quad
+D=1-\mathrm{mean}_{\tau'\ne\tau}\mathrm{sim},\quad
+N=1-\max_{\tau'\ne\tau}\mathrm{sim}.
 $$
 
-对目标轨迹，相对其它唯一活跃路径：
+默认 $(w_c,w_t)=(0.7,0.3)$。无其它轨迹时 $D=N=1$。
+
+### 4.4 紧凑性 $C$ 与速度 $R$
+
+对活跃终点 raw complexity / runtime 做与 $Q$ 相同的分位裁剪，再翻转为「越大越好」：
 
 $$
-D(\tau)=1-\mathrm{mean}_{\tau'\ne\tau}\mathrm{sim}(\tau,\tau'),\qquad
-N(\tau)=1-\max_{\tau'\ne\tau}\mathrm{sim}(\tau,\tau').
+C=1-\mathrm{clip}(\mathrm{norm}(\mathrm{complexity})),\qquad
+R=1-\mathrm{clip}(\mathrm{norm}(\mathrm{runtime})).
 $$
 
-无其它轨迹时 $D=N=1$。二者都来自同一相似度体系：$D$ 强调平均疏离，$N$ 强调相对最近邻的疏离；生存阶段的 Pareto 截断会同时保留这两维。
+缺失或无差异时取 $0.5$。runtime 是评估 wall-clock，与结构复杂度正交。
 
-### 5.4 紧凑性 C 与速度 R
-
-这里的复杂度是**候选程序的静态结构复杂度**，不是算法的渐进时间复杂度。默认用 Radon 与 AST 从完整候选代码中提取四项指标：
-
-- $CC$：所有代码块的圈复杂度之和，反映分支与独立控制路径；
-- $H$：Halstead volume，反映运算符与操作数构成的计算信息量；
-- $LOC$：物理代码行数，反映程序规模；
-- $N$：`FunctionDef/If/For/While/With/Try` 等结构的 AST 最大嵌套深度。
-
-先对量纲做固定尺度归一化：
+### 4.5 标量化与 Trajectory-UCB
 
 $$
-\widehat{CC}=\frac{CC}{10},\qquad
-\widehat{H}=\frac{\log_2(H+1)}{10},\qquad
-\widehat{LOC}=\frac{\log_2(LOC+1)}{10},\qquad
-\widehat{N}=\frac{N}{5}.
+V=(Q,P,D,N,C,R),\qquad
+S=w^\top V+U(\tau),
 $$
 
-再得到节点上保存的原始复杂度合成分：
+默认权重 $(0.42,0.18,0.12,0.12,0.08,0.08)$。
 
 $$
-\mathrm{complexity}(p)=
-\min\!\left(
-0.4\widehat{CC}+0.4\widehat{H}+0.1\widehat{LOC}+0.1\widehat{N},
-1
-\right).
+U=c_t\sqrt{\frac{\log(V_{\mathrm{all}}+1)}{n_\tau+1}},\quad
+c_t=\max\!\big(c_{\mathrm{floor}},\,c_0(1-t/T)\big)+\beta\cdot\min(s_{\mathrm{stag}}/T,1).
 $$
 
-$CC$ 与 Halstead 各占 $40\%$，使指标主要惩罚过多控制路径和计算结构；$LOC$ 与嵌套深度各占 $10\%$，作为规模与可读性约束，避免把“代码较长”简单等同于“机制较差”。对 $H$ 和 $LOC$ 使用对数压缩，防止长代码中的极端值主导合成分；最后截断到 $1$，保持节点间可比。评估器显式返回正复杂度时优先使用该值；若 Radon 分析异常，则用 AST 节点数与行数构造可比的退化分数。
+默认 $c_0=0.4$，$c_{\mathrm{floor}}=0.05$，$\beta=0.20$。推进时基础探索衰减，停滞时抬高。
 
-原始合成分表达一个程序自身的结构，但搜索更关心它相对当前候选池是否紧凑。因此再对唯一活跃终点的 raw $\mathrm{complexity}$ / $\mathrm{runtime}$ 使用与 $Q$ 相同的 10%/90% 分位裁剪，得到 $(c_{\min},c_{\max})$、$(r_{\min},r_{\max})$，再翻转为「越大越好」：
+### 4.6 选择流程（`trajectory_ucb`）
 
-$$
-C(\tau)=1-\mathrm{clip}\!\left(\frac{\mathrm{complexity}(p_L)-c_{\min}}{c_{\max}-c_{\min}},0,1\right),\qquad
-R(\tau)=1-\mathrm{clip}\!\left(\frac{\mathrm{runtime}(p_L)-r_{\min}}{r_{\max}-r_{\min}},0,1\right).
-$$
+1. 对唯一活跃轨迹计算 $V$ 与 $S$；
+2. 取标量 top-$k$（默认 $12$）；
+3. 每岛并入局部 top（默认 $1$）；
+4. 并入全局 best endpoint 对应 elite 轨迹；
+5. 以概率 $0.15$ 直采 elite；否则温度 $T_{\mathrm{sel}}=0.8$ 的 softmax。
 
-缺失、非正值或池内无可用差异时取中性 $0.5$。这种“固定公式合成 raw complexity，再按活跃池转成 compactness”的两层设计，既保留结构度量的稳定含义，又让搜索压力适应当前候选集。runtime 取评估 wall-clock（MEoH 效率副目标）；它与结构复杂度正交，因为代码结构复杂不必等于实际执行较慢。
+对照策略：`best`、`random`。实验默认 `trajectory_ucb`。
 
-### 5.5 标量化与 Trajectory-UCB
+### 4.7 搜索价值与教学效用分离
 
-价值向量（质量 / 潜力 / 多样性 / 新颖性 / 紧凑性 / 速度）：
-
-$$
-V(\tau)=(Q,P,D,N,C,R)
-=(V_{\mathrm{quality}},V_{\mathrm{potential}},V_{\mathrm{diversity}},V_{\mathrm{novelty}},V_{\mathrm{compactness}},V_{\mathrm{speed}}).
-$$
-
-采样用加权标量加探索项：
-
-$$
-S(\tau)=w_qQ+w_pP+w_dD+w_nN+w_cC+w_rR+U(\tau),
-$$
-
-默认 $(w_q,w_p,w_d,w_n,w_c,w_r)=(0.42,0.18,0.12,0.12,0.08,0.08)$。
-
-$$
-U(\tau)=c_t\sqrt{\frac{\log(V_{\mathrm{all}}+1)}{n_\tau+1}},
-$$
-
-其中 $n_\tau$ 为该轨迹访问次数，$V_{\mathrm{all}}$ 为唯一活跃轨迹总访问次数。系数
-
-$$
-c_t=\max\!\big(c_{\mathrm{floor}},\,c_0(1-t/T)\big)
-+\beta\cdot\min(s_{\mathrm{stag}}/T,1),
-$$
-
-默认 $c_0=0.4$，$c_{\mathrm{floor}}=0.05$，$\beta=0.20$；$t$ 为当前 search iteration，$T$ 为计划总 iteration，$s_{\mathrm{stag}}$ 为全局 best 连续未更新的停滞计数。随着搜索推进，基础探索衰减，但停滞时会重新抬高探索。
-
-### 5.6 选择流程
-
-默认策略 `trajectory_ucb` 不是全局贪心：
-
-1. 对所有唯一活跃轨迹计算 $V$ 与 $S$，写回轨迹记忆；
-2. 取标量最高的 top-k（默认 $k=12$）；
-3. 每个 island 再并入局部 top（默认每岛 $1$ 条），避免小岛被全局 top 完全淹没；
-4. 并入当前全局 best endpoint 对应的 elite 轨迹（同 endpoint 多条时取访问次数最少者）；
-5. 以概率 $0.15$ 直接返回 elite；否则在候选集上按温度 $T_{\mathrm{sel}}=0.8$ 做 softmax 采样。
-
-可选对照策略：`best`（按终点适应度选最优）、`random`（均匀抽唯一活跃轨迹）。实验默认使用 `trajectory_ucb`。
-
-### 5.7 搜索价值与教学效用分离
-
-上述 $V(\tau)$ 是 `V_search`，只对真实 active trajectory 进行预算分配和生存管理。课程层另维护 `V_teach`，不写入 `Trajectory.value`：
-
-$$
-V_{\mathrm{teach}}(e)
-=
-\alpha G+\beta C+\gamma R+\delta N-\lambda U,
-$$
-
-其中 $G$ 是真实质量收益，$C$ 是因果连续性，$R$ 是课程被复用后产生有效 offspring 的反馈，$N$ 是课程差异性，$U$ 是重复使用惩罚。`champion` 的质量收益可以很高，但由于其相邻事件可能是跨分支跳变，其 `causal_status` 仍必须是 `jump`。
-
-课程反馈是 packet 级的：一个 packet 中只有 primary action 对应的真实边承担主要 stepwise credit，背景 donor、contrast 和其它课程步骤只记录 exposure。课程 reward 不能回写原始 edge 的 `delta` / `outcome`。
-
----
-
-## 6. 自适应算子组合
-
-每轮先构造 `OperatorContext`（推导图、轨迹记忆、经验记忆、island 管理器、当前选中轨迹、maximize、停滞计数、算子侧信道 hints），再由 OperatorPortfolio 在**通过可行性 trigger 的算子**中采样。确定真实 base 后，`EliteCurriculum` 按 operator、base 和 stagnation 组装 `CurriculumPacket`。若无一算子触发，回退到 Endpoint Refine。
-
-五个默认算子及其角色：
-
-| 算子                | 名称                    | role         | 意图                          |
-| ------------------- | ----------------------- | ------------ | ----------------------------- |
-| Endpoint Refine     | `endpoint_refine`     | exploit      | 精英定向强化当前终点          |
-| Backtrack Branch    | `backtrack_branch`    | path_correct | 从高价值内部前缀分叉并修复     |
-| Mechanism Crossover | `mechanism_crossover` | recombine    | 从互补精英链迁入一个动作       |
-| Simplify            | `simplify`            | simplify     | 在不降适应度前提下降复杂度    |
-| Novelty Jump        | `novelty_jump`        | explore      | 开放式 fresh start，弱课程约束 |
-
-统一协议：
-
-```text
-trigger → (可选 select_trajectory 覆盖选题) → select_base → build_constraint
-→ 主循环生成与评估 → insert
-```
-
-### 6.1 Endpoint Refine（exploit）
-
-**触发**：始终可行（图中节点均已评估合法）。
-
-**Base**：当前 endpoint。
-
-**约束**：沿最近有效方向继续做一次针对性强化，避开已知退步方向。
-
-**课程**：使用最近 Champion Trace 事件和一个真实 improve-chain；课程只作为证据，不能直接复制历史程序。
-
-**接入**：`extend`（endpoint extension）。
-
-### 6.2 Backtrack Branch（path_correct）
-
-该算子**不依赖** UCB 刚选中的轨迹。实现上主动扫描活跃池，找存在内部前缀的多步轨迹：
-
-1. 跳过无边（长度 $1$）轨迹；
-2. 用四规则 + `branch_score` 选出不同于 endpoint 的内部 base；
-3. 在满足条件的轨迹中取 `branch_score` 最高者，替换 `ctx.selected`。
-
-**触发（唯一硬门槛）**：活跃池中至少存在一条长度 $\ge 2$、且能选出 $\mathrm{base}\ne\mathrm{endpoint}$ 的轨迹。
-
-四规则候选 base：
-
-1. 当前 endpoint；
-2. 若末步 regress，则退步前的父节点；
-3. 若连续两步 plateau，则最近一次 improve 的子节点；
-4. 轨迹内部历史最佳节点（若异于 endpoint）。
-
-$$
-\mathrm{score}(v)=q(v)+0.3\cdot\mathrm{fwd\_improve}-0.3\cdot\mathrm{bwd\_regress},
-$$
-
-其中 $q(v)$ 用**全图**适应度范围归一化；前向正改进与后向回撤分别对前缀/后缀步平均。最终取 score 最大者作为 base。
-
-**约束**：从高价值前缀分叉，读取 Prefix Repair 中的失败边界，提出与导致退步/平台**不同**的修改。
-
-**课程**：`repair_trace` 为主，必要时补充一个连续 improve-chain。
-
-**接入**：`branch_from`（prefix branching）。
-
-### 6.3 Mechanism Crossover（recombine）
-
-保留算子名 `mechanism_crossover` 以兼容日志口径；donor 选择不再读取机制统计或反模式。
-
-**触发**：始终可行。初始化不做 crossover；初始化完成后活跃池必有其他轨迹可供重组。
-
-**Donor 选择**：对其他活跃轨迹按互补性与质量软排序，取最高分者（不因门槛硬禁用算子）：
+$V(\tau)$ 是 `V_search`，只服务预算与生存。课程检索使用独立的教学打分（实现为 `_trace_score`），**不**写入 `Trajectory.value`，也**不**改写边上的 $\Delta$/`outcome`：
 
 $$
 \begin{aligned}
-\mathrm{comp}&=1-(0.7\,\mathrm{sim}_{code}+0.3\,\mathrm{sim}_{traj}),\\
-\mathrm{donor\_score}&=\mathrm{comp}+0.3Q.
+s(e)=&\,G+0.25\,C+0.15\,\kappa+0.1\,N+0.05\,r-0.02\,u\\
+&+[0.15\text{ if }e\text{ 与当前 base 相关}],
 \end{aligned}
 $$
 
-$Q$ 优先用已缓存质量，否则用活跃终点适应度范围归一化。
+其中 $G=$`quality_gain`，$C=$`causal_coherence`，$\kappa=$`confidence`，$N$ 为课程新颖性项，$r$/$u$ 为历史 reward/usage。排序时先取「任一步 operator 匹配当前算子」的子集，不足再 fallback 全局。
 
-**Base**：recipient 的 endpoint；donor idea 写入 hints，供约束文本使用。课程层同时提供 `donor_trace`，其中只包含一个互补精英动作。
+`record_outcome` 按 offspring 给 packet 内 traces 记 reward：`global_best=1.0`，`near_record=0.4`，`improve=0.2`，`plateau=-0.1`，否则（含 regress）`-0.4`。`primary_trace_id`（=`positive_traces[0]`）拿全额，其余 trace 仅拿 $0.25\times$ reward。
 
-**约束**：只移植一个明确的算法思路，保留 base 程序其余结构；不再提供伪机制族名称。donor trace 是证据，不是完整程序。
-
-**接入**：`branch_from`。
-
-### 6.4 Simplify（simplify）
-
-**触发（可行性）**需同时满足：
-
-1. 活跃有效终点至少 $2$ 个，且当前复杂度 $\gt 0$；
-2. 当前复杂度处于活跃终点复杂度上四分位及以上，且高于中位数。
-
-不再要求末步 plateau 或全局停滞；调用频率由 portfolio 历史收益与阶段 bonus（late 偏好 simplify）调节。
-
-**课程**：优先使用真实的复杂度下降 improve-chain，以及“复杂度上升但 fitness 未改善”的失败边界。
-
-**约束**：删除低贡献代码，保留产生收益的核心思路，在不降适应度前提下降低复杂度。
-
-**接入**：`extend`。
-
-### 6.5 Novelty Jump（explore）
-
-**触发**：始终可行。不再使用全局停滞门槛或算子冷却硬门控；探索频率由 portfolio EMA、阶段 bonus 与 late novelty 概率上限调节。
-
-不再依赖预设机制族、Beta 后验选择、family 冷却或 anti-pattern 过滤；因此不存在「所有 family 被禁用」的死路。
-
-**Base**：无（fresh start）。
-
-**约束**：要求一个与当前活跃精英 idea 明显不同的完整方案，并可列出最多 $4$ 个已有 idea 作为避免重复的参考。
-
-**生成**：不走动作阶段，直接用 initial-style prompt，将算子约束作为 diversity hint。
-
-**接入**：`create_initial`；新轨迹分配到当前活跃轨迹最少的 island，并列时选编号最小者。生成后仍由程序/轨迹相似度 novelty gate 决定是否保留。
+`near_record` 判定：相对 incumbent 的有向差 $\ge -\mathrm{tol}\times s_t$，默认 $\mathrm{tol}=0.10$，$s_t$ 为活跃池适应度的稳健尺度（10–90% 分位差与 median 相关）；同时供 portfolio 的 near-record EMA 使用。
 
 ---
 
-## 7. Operator Portfolio
+## 5. 算子组合与 Portfolio：用什么改法
 
-> 实现状态（2026-07-17）：已切换为机会感知的有界 credit + 折扣 UCB + 算子特定上下文 soft bonus + 全局 exploration mixture；第一版仍保留 late novelty probability cap。正式默认机制以消融（OP/CVRP）确认后再定稿；下列公式描述**当前代码意图**。
+### 5.1 统一协议
 
-### 7.1 候选与采样
+构造 `OperatorContext` → Portfolio 在 `trigger` 为真的算子中采样 →（可选）覆盖选题 → `select_base` → `build_constraint` → 生成评估 → `insert`。若无一算子可行，强制 `endpoint_refine`。
 
-候选 = 当前 `OperatorContext` 下可行性 `trigger` 为真的算子；若为空，强制 Endpoint Refine。Endpoint / Crossover / Novelty 默认始终在候选中；Backtrack 与 Simplify 仅在结构性可行时加入。
+| 算子 | 名称 | role | 意图 |
+| --- | --- | --- | --- |
+| Endpoint Refine | `endpoint_refine` | exploit | 强化当前终点 |
+| Backtrack Branch | `backtrack_branch` | path_correct | 内部前缀分叉修复 |
+| Mechanism Crossover | `mechanism_crossover` | recombine | 迁入一个互补动作 |
+| Simplify | `simplify` | simplify | 降复杂度且不牺牲适应度 |
+| Novelty Jump | `novelty_jump` | explore | fresh start |
 
-采样前为每个可行算子预计算 `OperatorPreview`（实际 target/base 与有界 context bonus）。Backtrack 的 context 使用它真正要 branch 的 target，而不是 UCB 初选轨迹。
+### 5.2 各算子触发与语义
 
-每个算子维护：`eligible_count`、`attempt_count`、`discounted_mass`，以及 EMA：`utility`、`downside`、`valid`、`novel`、`cost`、`global_best`、`near_record`。
+| 算子 | `trigger`（硬门槛） | Base / 接入 |
+| --- | --- | --- |
+| Endpoint | 恒真 | endpoint；`extend` |
+| Backtrack | 存在长度≥2 且能选出 $\mathrm{base}\ne\mathrm{endpoint}$ 的活跃轨迹 | 扫描池内最高 `branch_score` 轨迹并覆盖选题；`branch_from` |
+| Crossover | 恒真 | recipient endpoint；donor 软排序；`branch_from` |
+| Simplify | 活跃有效复杂度样本≥2，当前复杂度>0，且 ≥上四分位并 >中位数 | endpoint；`extend` |
+| Novelty | 恒真 | 无父；`create_initial` 到最少负载岛 |
 
-算子分值：
+**Backtrack base 候选**：endpoint；末步 regress 则退步父节点；连续两步 plateau 则最近 improve 子节点；内部历史最佳（若异于 endpoint）。打分：
+
+$$
+\mathrm{score}(v)=q(v)+0.3\cdot\mathrm{fwd\_improve}-0.3\cdot\mathrm{bwd\_regress}.
+$$
+
+**Crossover 的两路「donor」勿混淆**：
+
+1. **Live donor**（算子侧）：从当前活跃池按
+   $\mathrm{comp}=1-(0.7\mathrm{sim}_{code}+0.3\mathrm{sim}_{traj})$，
+   $\mathrm{donor\_score}=\mathrm{comp}+0.3Q$
+   选轨迹，其 idea 写入 `ctx.hints["donor_idea"]` 进入约束文本；
+2. **课程 `donor_trace`**：来自历史 improve 链的 `elite_recombine` 组装，只作为 prompt 证据，**不是**上面的 live donor。
+
+**Novelty**：initial-style 生成；不调用 `EliteCurriculum.build`。约束中的「避免重复」来自活跃终点按 `scalar_value`（缺省用 fitness）降序去重后至多 **4** 条 idea（`avoid_ideas`）。
+
+### 5.3 课程包按算子组装（`build`）
+
+仅当存在 `base_node_id`（refinement）时调用。默认至多 4 个 champion 事件、packet 内至多 2 条 positive traces。Novelty 不调用 `build`。
+
+| 算子 | positive | 附加 |
+| --- | --- | --- |
+| endpoint / simplify | champion + improve_chain（至多 2） | contrast；**仅当** `stagnation>0` 时注入 repair |
+| backtrack | champion + improve_chain（至多 1） | **必选** repair（若有）；contrast |
+| crossover | champion + improve_chain（至多 1） | **donor_trace**；contrast |
+| novelty | — | — |
+
+`repair_trace` 注入条件精确为：`operator==backtrack_branch` **或** `stagnation>0`。`build()` 时对 packet 内 `trace_ids` 递增 `_usage`。
+
+算子专属 `packet.instructions`（进入 `[Elite Curriculum]`）：backtrack 强调前缀修复、勿重复 regress action；crossover 强调只移植一个 donor idea；novelty（若出现）强调防重复；其余声明 elite trace 是证据而非保证规则。
+
+### 5.4 OperatorPreview（上下文 soft bonus）
+
+采样前为每个可行算子预计算 preview（真实 target/base 与有界 bonus，默认 $|\beta|\le 0.2$）。要点：
+
+- Backtrack：末步 regress/plateau、深度差、`branch_score`；
+- Endpoint：improve 连胜加分，regress 减分；
+- Novelty：停滞且近期 novelty downside 不高、池多样性低时小幅加分；
+- Crossover：有/无 donor；
+- Simplify：复杂度分位满足 trigger 时加分。
+
+全局停滞主要抬高 $\epsilon$，而不是无条件抬高 Novelty。
+
+### 5.5 Portfolio 采样与信用
+
+实现为机会感知：有界 utility、折扣 UCB、上下文 bonus、全局 $\epsilon$-mixture；晚期仍将 `novelty_jump` 概率上限截到 $0.2$（待消融确认是否保留）。
 
 $$
 \begin{aligned}
-z_i=&\alpha\mu_i
--\lambda_d d_i
--\lambda_c c_i
-+b_{\mathrm{gb}}\widehat{\mathrm{gb}}
-+b_{\mathrm{nr}}\widehat{\mathrm{nr}}
-+\beta_i(\mathrm{ctx})
-+\pi_i
-+U_i,\\
-U_i=&c\sqrt{\frac{\log(1+\sum_k \mathrm{eligible}_k)}{1+\mathrm{discounted\_mass}_i+n_0}}.
+z_i&=\alpha\mu_i-\lambda_d d_i-\lambda_c c_i
++b_{\mathrm{gb}}\widehat{\mathrm{gb}}+b_{\mathrm{nr}}\widehat{\mathrm{nr}}
++\beta_i+U_i,\\
+p_i&=(1-\epsilon_t)\operatorname{softmax}(z_i/T_t)+\epsilon_t/|C_t|.
 \end{aligned}
 $$
 
-概率：
-
-$$
-p_i=(1-\epsilon_t)\operatorname{softmax}(z_i/T_t)+\epsilon_t/|C_t|.
-$$
-
-$T_t$ 从 $1.0$ 退火到 $0.5$；$\epsilon_t$ 从 $0.15$ 降到 $0.05$。不再使用每算子固定 $5\%$ floor。晚期阶段仍暂时将 `novelty_jump` 概率上限截到 $0.2$（待消融后决定是否删除）。
-
-Context bonus $\beta_i\in[-B,B]$，$B\le 0.2$：例如 Backtrack target 末步 regress、branch score 与深度差、Endpoint improve 连胜、相对复杂终点偏好 Simplify，以及 Novelty 的 active-pool diversity；全局停滞会增加 $\epsilon_t$，不无条件抬高 Novelty。
-
-### 7.2 批次信用更新
-
-每个 search attempt 只对所选算子做**一次** portfolio 更新；幂等键是 `(operator_name, attempt_id)`。
-
-每个 candidate 相对统一 anchor 计算有向差并除以活跃终点稳健尺度 $s_t$，再取有界 utility $u_j=\tanh(d_j)$：
-
-- refinement：anchor = 实际 base fitness（`parent`）
-- Novelty：anchor = 本轮开始时的 incumbent（`incumbent`）；否则 `active_pool`
-
-batch 聚合：
-
-$$
-u_{\mathrm{batch}}=0.5\max_j u_j+0.5\operatorname{mean}_j u_j.
-$$
-
-Simplify 在 fitness utility 非负时混入复杂度下降项（$0.8/0.2$）。`global_best` / `near_record` / downside 保留为独立 EMA 信号。空 batch 记 utility $-1$。
-
-日志事件：`operator_selection`（候选、分量、概率、target/base、eligible/attempt）与扩展后的 `operator_batch`。
+$T_t:1.0\to0.5$，$\epsilon_t:0.15\to0.05$。每 attempt 对所选算子更新一次（幂等键 `(operator, attempt_id)`）。候选相对统一 anchor 的有向差经活跃尺度归一后取 $\tanh$，batch 聚合 $0.5\max+0.5\mathrm{mean}$。Simplify 在 fitness utility 非负时可混入复杂度下降项。日志：`operator_selection`、`operator_batch`。
 
 ---
 
-## 8. 上下文构造与程序生成
+## 6. 上下文构造与程序生成：给 LLM 看什么
 
-### 8.1 初始化
+### 6.1 初始化
 
-在评估预算内生成 $n_{\mathrm{init}}$（默认 $4$）个初始程序。第一个候选要求一个简单、完整的有效方案；后续候选在 prompt 中列出已生成的简短 idea，要求使用明显不同的算法思路。这只是 run-local 去重，不预设任务机制。走 initial-style prompt：任务描述 + 多样性提示 + 目标函数契约，要求输出：
+生成至多 $n_{\mathrm{init}}=4$ 个初始程序。slot 0 要求简单完整方案；slot $>0$ 列出图中已有 idea（**最近至多 4 条，各截断 80 字符**），要求明显不同思路（run-local 去重，无任务词表）。输出约定：
 
 ```text
 Idea: <自然语言设计思想>
 Code:
-<一个完整的 Python 函数，放在 markdown 的 python 代码块中>
+```python
+<完整函数>
+```
 ```
 
-有效程序按 `slot % n_islands` 分配到不同 island，并创建长度为 $1$ 的初始轨迹。解析失败不消耗评估预算；一旦提交评估即计入样本预算。连续生成停滞达到 `max_stalled_iterations` 会提前结束初始化。
+有效程序按 `slot % n_islands` 建长度-1 轨迹。解析失败不耗评估预算；提交评估即计入样本。连续生成停滞达阈值可提前结束初始化。
 
-### 8.2 两阶段 Refinement
+### 6.2 两阶段 Refinement
 
-除 Novelty Jump 与初始化外，均采用两阶段生成。
+除 Novelty / 初始化外：
 
-**阶段 A：动作生成。** `build_action_prompt` 拼接：
+**阶段 A（动作）** `build_action_prompt` 顺序拼接：
 
-1. 任务描述与适应度方向说明；
-2. 当前轨迹最近至多 $5$ 步因果叙事（parent→child、算子、动作、fitness/complexity/runtime 变化、outcome）；
-3. `[Past Action Evidence]`：至多 $2$ 条成功与 $2$ 条失败 action（operator、截断后的 action、有向 $\Delta$）；空记忆时给简短空状态；
-4. `[Elite Curriculum]`：按 operator 组装的 Champion、improve-chain、Prefix Repair、contrast 或 donor trace；每一步标记 `evidence` 与 `causal_status`；
-5. RankingModel 的 best vs worst 对比反馈（仅 idea 与 fitness）；
-6. 算子名、role 与约束文本；
-7. base 节点的 idea、结构/runtime 摘要、代码与选择原因；
-8. 目标函数契约；
-9. 指令：提出恰好 `actions_per_iteration`（默认 $2$）条编号修改，每条只改一个主算法思路，并避免无必要的复杂度/runtime 膨胀；禁止输出代码与解释。
+1. 任务与适应度方向；
+2. 最近至多 5 步因果叙事；
+3. `[Past Action Evidence]`：至多 2 成 / 2 败；
+4. `[Elite Curriculum]`：按算子组装的 traces。实现上 **不**另开独立 Failure Boundary 块；repair / contrast / donor 作为同块内子标题（`Prefix repair:` / `Contrastive boundary:` / `Donor trace:`）。每步标注 `evidence_type`、`causal_status`、operator 与截断后的 action；
+5. RankingModel best vs worst（idea + fitness）；
+6. 算子名、role、约束；
+7. base 的 idea、结构/runtime 摘要、代码与选择原因；
+8. 函数契约；
+9. 指令：恰好 `actions_per_iteration`（默认 2）条编号修改；禁止输出代码。
 
-Novelty Jump 不使用完整精英课程，只接收弱的避免重复提示，以保持探索压力。
+**阶段 B（代码）**：对每个动作，用 base 代码 + 动作生成完整 Idea+函数。
 
-**阶段 B：代码生成。** 对每个解析出的动作，用 base 节点代码 + 该动作构造 code prompt，要求返回新的 Idea 与完整函数实现，保持签名与输出契约不变。
+解析容忍常见编号格式；失败不计评估预算。
 
-动作解析容忍编号、项目符号、`Action k:` 前缀，截断到期望条数。程序解析优先提取 Idea 行与首个代码块，再映射到模板中的唯一可演化函数；失败则尝试 trimmer。LLM 异常或解析失败不计评估预算。
+### 6.3 每轮开销
 
-### 8.3 每轮开销
+- Refinement：1 次动作 LLM + 至多 $A$ 次代码 LLM + 至多 $A$ 次评估；
+- Novelty：至多 $A$ 次 initial-style LLM + 评估，无动作阶段。
 
-典型 refinement 一轮：
-
-- $1$ 次动作 LLM 调用；
-- 至多 `actions_per_iteration` 次代码 LLM 调用；
-- 至多同等次数的评估（每次评估 $+1$ 样本预算）。
-
-Novelty Jump 一轮：至多 `actions_per_iteration` 次 initial-style LLM + 评估，无动作阶段。
-
-一个 completed search iteration，大致对应相对搜索起点前进了 `actions_per_iteration` 个评估样本（实现上用样本计数整除判定）。
+Completed search iteration 大致对应相对搜索起点前进 $A$ 个评估样本（实现用样本计数整除判定）。**当前主循环内评估串行**：即使 `num_evaluators>1`，每次 `_evaluate` 只提交一个 future 并阻塞；并行度主要来自任务侧实例级 workers（如 CVRP `n_workers`）。
 
 ---
 
-## 9. 候选注册、新颖性门控与相对排名
+## 7. 评估后更新：如何记账与维护
 
-### 9.1 注册流程
+### 7.1 候选注册
 
-每个成功评估的 refinement 候选：
+成功评估的 refinement 候选：
 
-1. 写入新节点（代码、idea、fitness、complexity、runtime）；
-2. 写入父→子边（动作、算子、$\Delta$、outcome、iteration）；
-3. 按算子 `insert` 语义扩展 / 分叉 / 新建轨迹；
-4. 用父子适应度更新 Elo 风格相对排名；
-5. 更新全局 `best_node`；若刷新则记录 `ChampionEvent`；
-6. 执行 novelty gate；
-7. 将本次生成使用的 `CurriculumPacket` 以 packet 级 outcome 反馈给课程层。
+1. 写节点（code/idea/fitness/complexity/runtime）；
+2. 写父→子边（action/operator/$\Delta$/outcome/iteration）；
+3. 按算子 `extend` / `branch_from` / `create_initial` 更新轨迹；
+4. 父子适应度更新 Elo（$K=16$）；
+5. 更新 `best_node`；若刷新则 `record_best_event`；
+6. Novelty gate；
+7. `CurriculumPacket` 的 packet 级 outcome 反馈。
 
-Novelty Jump 候选无父边，直接建初始轨迹，因此不进入 action 经验检索。
+### 7.2 新颖性门控
 
-### 9.2 新颖性门控
+对新轨迹相对其它 **active** 轨迹取组合相似度最大值。若 $\ge 0.92$ 且**未**刷新 live global best → 立即 archive（不删图）。若刷新了 global best → quality override，强制保留。通过后门控后写入 $V$。
 
-新轨迹进入活跃池前检查：与其它活跃轨迹的组合最大相似度是否 $\ge 0.92$。若命中且该候选**未**刷新当前 live global best，则立即归档该轨迹。若刷新了 global best，则质量覆盖，强制保留。门控只影响轨迹生存，不删除图节点 / 边。通过门控后为该轨迹计算并写入 $V$。
+### 7.3 相对排名（Elo）
 
-### 9.3 相对排名模型
+期望分 $E_a=1/(1+10^{(R_b-R_a)/400})$，按胜/平/负更新。Union-find 维护连通分量；跨分量不直接比 Elo。Contrast：取最近 window（默认 20）条活跃终点，先按 raw fitness 定 best/worst 分量，分量内再按 Elo 取端点。
 
-`RankingModel` 对每次父子比较做 Elo 更新（$K=16$），并维护比较图的连通分量。best/worst 对比：
+### 7.4 轨迹生存（每 completed iteration）
 
-1. 取最近 window（默认 $20$）条活跃轨迹的有效终点；
-2. 先按 raw fitness 选出最优 / 最差分量；
-3. 分量内再按 Elo 分数（并列时参考 raw fitness）取 best / worst。
+1. 同 `path_key` 去重归档；
+2. 重算活跃池 $V$；
+3. 保护全局 best 对应的 Pareto 优先轨迹；
+4. 每岛截断到 `max_per_island=40`；
+5. 全局截断到 `max_active_trajectories=160`。
 
-未连通分量之间不直接比较 Elo。该模型服务于 refinement prompt 对比块，**不**进入 `OperatorContext`，也不直接决定轨迹 UCB 选择。
+截断顺序：保护集优先，其余按六维 Pareto 前沿，同前沿按 scalar 与 id。
 
-### 9.4 课程反馈与事实边界
+### 7.5 Island 迁移
 
-课程 packet 的 `trace_ids` 记录在 `child_accepted` 和 action LLM 日志中。候选评估后，课程层依据 `outcome`、`near_record` 和 `global_best` 更新 packet 中课程的使用 reward；该 reward 不修改原始 `ImprovementEdge` 的 `delta`、`outcome` 或父子关系。
+当 `stagnation>0`、`iteration>0` 且 `iteration % 20 == 0`：每岛按 scalar 取 top-1，环形移到下一岛（改 `island_id`，不新建身份）。
 
-`best_updated` 事件记录：
+### 7.6 终止条件
 
-```text
-previous_best_node_id
-new_best_node_id
-source_parent_node_id
-source_edge_id
-operator
-delta_to_previous_best
-delta_to_parent
-iteration
-sample_order
-```
-
-`ChampionEvent` 的相邻事件允许跨分支，因此渲染到 prompt 时标记 `causal_status=jump`。
+| 条件 | 含义 |
+| --- | --- |
+| 样本数 ≥ $B$ | 正常耗尽预算 |
+| 无活跃轨迹 | 停止 |
+| 连续 `max_stalled_iterations=20` 次 attempt 无新评估进度 | 生成停滞 |
+| 连续采样失败达阈值 | `search_aborted` |
+| 显式中止 | 外部信号 |
 
 ---
 
-## 10. 周期性维护
+## 8. 完整搜索算法
 
-每个**完成的** search iteration 执行 `_periodic_hooks`。停滞计数在 completed iteration 上更新：best 未变则 $+1$，否则清零。
-
-### 10.1 轨迹生存（每轮）
-
-1. 归档重复 `path_key`，只留代表轨迹；
-2. 重算全部活跃轨迹的 $V$ 与标量价值；
-3. 保护至少一条到达当前 global best endpoint 的轨迹（多条时取 Pareto 序中的第一条）；
-4. 各 island 内按 ValueVec 的非支配层排序，同层内按标量价值降序，截断到 `max_per_island=40`；
-5. 全局再截断到 `max_active_trajectories`（默认 $n_{\mathrm{islands}}\times\max_{\mathrm{per\_island}}=160$）。
-
-Pareto 支配：六维价值均 $\ge$ 且至少一维严格 $\gt$。归档不删图。对外返回仍是单一 `best_node`，Pareto 只服务于活跃池管理。
-
-### 10.2 Island 迁移（停滞触发）
-
-当停滞 $\gt 0$ 且 completed iteration 为 `migration_interval=20` 的倍数时，每个 island 将其标量价值最高的 $1$ 条轨迹**移动**到下一 island（环形）。迁移保持轨迹 ID、访问次数与价值，不复制新身份。
-
-Island 分配规则：
-
-- 初始化：`slot % n_islands`；
-- Novelty Jump：当前活跃轨迹最少的 island，并列时选编号最小者。
-
-已删除周期机制聚合与对比反思回路；经验检索始终是对当前图边的即时只读查询。
-
-### 10.3 课程维护
-
-课程层不参与 active trajectory survival，不需要额外的周期评估。每次 refinement 生成前动态从图边构造有界课程；每次真实 offspring 评估后更新 packet 级使用 reward。课程排序包含质量收益、因果连续性、复用反馈、新颖性和使用惩罚，避免同一条 Champion Trace 永久垄断上下文。
-
-课程快照通过 `curriculum_snapshot()` 和方法状态日志暴露，便于审计：
-
-```text
-champion_events
-packets
-trace_usage
-trace_reward
-```
-
----
-
-## 11. 完整搜索算法
-
-**输入**：LLM、程序模板、task evaluator、最大评估预算 $B$。
-
+**输入**：LLM、程序模板、evaluator、预算 $B$。  
 **输出**：标量最优 `best_node`。
 
 ```text
-1.  用 run-local idea 去重提示生成并评估至多 n_init 个初始程序
-2.  建立推导图与初始轨迹，按 island 轮转安置
-3.  while 未耗尽预算且未中止：
-4.      if 无活跃轨迹: 停止
-5.      按 trajectory_ucb / best / random 选择轨迹
-6.      构造 OperatorContext，由 portfolio 采样算子
-7.      若算子 override 选题（Backtrack），替换目标轨迹
-8.      确定 base node 与算子约束
-9.      若非 fresh-start：EliteCurriculum 组装 CurriculumPacket
-10.     if Novelty Jump:
-11.         initial-style 生成至多 A 个新程序并建初始轨迹
-12.     else:
-13.         构造因果/边级经验/精英课程/对比上下文，生成 A 条动作
-14.         对每条动作生成完整程序并评估
-15.         写节点、边、Δ、outcome，按算子语义更新轨迹
-16.     novelty gate；更新 best、Elo；记录 best event 和 packet outcome
-17.     用本批最优候选更新 portfolio 一次；记录选中轨迹访问 +1
-18.     若完成新的 search iteration:
-19.         更新 stagnation；执行 survival
-20.         按停滞条件执行 migration
-21. if 仍有活跃轨迹: 再执行一次 survival
-22. 返回 best_node
+1.  生成并评估至多 n_init 个初始程序；建图与初始轨迹；按岛安置
+2.  while 有预算且未中止：
+3.      if 无活跃轨迹: break
+4.      Trajectory-UCB / best / random 选题
+5.      Portfolio 采样算子（含 preview）
+6.      Backtrack 可覆盖选题；确定 base 与约束
+7.      若非 fresh-start：EliteCurriculum.build → packet
+8.      if Novelty:
+9.          initial-style 生成并 create_initial
+10.     else:
+11.         两阶段生成至多 A 个程序并评估；写图；按算子 insert
+12.     novelty gate；Elo；best event；packet outcome
+13.     portfolio 更新一次；选中轨迹 visit+1
+14.     if 新 completed iteration:
+15.         更新 stagnation；survival；按需 migrate；checkpoint
+16. 最终 survival；返回 best_node
 ```
 
-终止条件：达到预算、显式中止、无活跃轨迹，或连续 `max_stalled_iterations=20` 次 attempt 未产生新的评估进度。
+---
+
+## 9. 端到端例子（一次 attempt 的逻辑走读）
+
+假设最大化任务，活跃池中已有多条轨迹，当前 global best 适应度为 $f^\star$。
+
+1. **选题**：Trajectory-UCB 在 top-k ∪ 岛精英 ∪ elite 上采样，选中轨迹 $\tau$（终点 $p_L$，近期一步为 improve）。
+2. **选算子**：Endpoint / Crossover / Novelty 均在候选中；Backtrack 因存在可分叉前缀也在候选。Preview 给 Endpoint 小幅 improve-streak bonus。Portfolio 采样得到 `endpoint_refine`。
+3. **Base**：即 $p_L$。组装 CurriculumPacket：champion + 一条 improve_chain + contrast。
+4. **动作 LLM**：看到 5 步因果、2 成 2 败经验、课程 traces、best–worst idea、以及「继续强化当前终点」约束，产出 2 条编号动作。
+5. **代码 LLM ×2**：各生成完整函数并**依次**评估得 $f_1,f_2$；写节点与边；对每个成功子节点 `extend` 出新轨迹；portfolio 对本批观测做一次聚合更新。
+6. **Gate**：若某子轨迹与池过相似且未破 $f^\star$，archive；若破纪录则保留并 `record_best_event`。
+7. **记账**：Elo 更新；packet outcome；portfolio 用本批最优 utility 更新 Endpoint；$\tau$.visit += 1。
+8. **若本 iteration 完成**：若 best 未动则 stagnation+1；Pareto 截断；每 20 个停滞 iteration 迁移岛精英；写 checkpoint。
+
+该例子用于建立因果顺序；真实 run 中算子分布由 portfolio 动态决定。
 
 ---
 
-## 12. 默认超参一览
+## 10. 默认超参一览
 
-### 12.1 搜索主配置
+### 10.1 搜索主配置
 
-| 配置                      |             默认值 |
-| ------------------------- | -----------------: |
-| `n_init`                |                  4 |
-| `actions_per_iteration` |                  2 |
-| `max_trajectory_length` |                  8 |
-| `n_islands`             |                  4 |
-| `max_per_island`        |                 40 |
-| 全局活跃轨迹上限          |                160 |
-| 采样策略                  | `trajectory_ucb` |
-| novelty 阈值              |               0.92 |
-| migration 周期            |      20 iterations |
-| evaluator worker          |                  1 |
-| 随机种子                  |                  0 |
-| 连续停滞停止              |        20 attempts |
-| 精英事件 prompt 窗口      |     最近 4 个事件 |
-| improve-chain 最大长度    |             3 steps |
-| 课程 packet 正向轨迹数    |            至多 2 |
-| 课程 action 截断          |           300 字符 |
+| 配置 | 默认 |
+| --- | ---: |
+| `n_init` | 4 |
+| `actions_per_iteration` | 2 |
+| `max_trajectory_length` | 8 |
+| `n_islands` | 4 |
+| `max_per_island` | 40 |
+| 全局活跃上限 | 160 |
+| 采样策略 | `trajectory_ucb` |
+| novelty 阈值 | 0.92 |
+| migration 周期 | 20 iterations |
+| 连续停滞停止 | 20 attempts |
+| 精英事件窗口 | 4 |
+| improve-chain 最大步 | 3 |
+| 课程 positive traces | ≤2 |
+| 课程/经验 action 截断 | 300 字符 |
 
-### 12.2 价值与选择
+### 10.2 价值与选择
 
-| 配置                                                 |                              默认值 |
-| ---------------------------------------------------- | ----------------------------------: |
-| $(w_q,w_p,w_d,w_n,w_c,w_r)$                        | $(0.42,0.18,0.12,0.12,0.08,0.08)$ |
-| 相似度权重$(w_c,w_t)$                              |                       $(0.7,0.3)$ |
-| 路径折扣$\gamma$                                   |                                 0.8 |
-| $(\lambda_{\mathrm{pos}},\lambda_{\mathrm{down}})$ |                      $(0.25,0.5)$ |
-| 潜力质量门控$q_{\min}$                             |                                 0.5 |
-| 适应度裁剪分位                                       |                                0.10 |
-| UCB$(c_0,c_{\mathrm{floor}},\beta)$                |                 $(0.4,0.05,0.20)$ |
-| top-k / island top                                   |                              12 / 1 |
-| elite 直采概率                                       |                                0.15 |
-| 选择 softmax 温度$T_{\mathrm{sel}}$                |                                 0.8 |
+| 配置 | 默认 |
+| --- | ---: |
+| $(w_q,w_p,w_d,w_n,w_c,w_r)$ | $(0.42,0.18,0.12,0.12,0.08,0.08)$ |
+| $(w_{\mathrm{code}},w_{\mathrm{traj}})$ | $(0.7,0.3)$ |
+| $\gamma$ | 0.8 |
+| $(\lambda_{\mathrm{pos}},\lambda_{\mathrm{down}})$ | $(0.25,0.5)$ |
+| $q_{\min}$ | 0.5 |
+| 适应度裁剪分位 | 0.10 |
+| UCB $(c_0,c_{\mathrm{floor}},\beta)$ | $(0.4,0.05,0.20)$ |
+| top-k / island top | 12 / 1 |
+| elite 直采概率 | 0.15 |
+| $T_{\mathrm{sel}}$ | 0.8 |
 
-### 12.3 Portfolio 与算子内置阈值
+### 10.3 Portfolio
 
-| 配置                                                        |                   默认值 |
-| ----------------------------------------------------------- | -----------------------: |
-| EMA 衰减                                                    |                      0.8 |
-| $(\alpha,\lambda_d,\lambda_c)$                              |           $(1,0.5,0.05)$ |
-| 成本尺度$C$                                               |                      120 |
-| UCB $(c,n_0)$                                               |               $(0.5,1)$ |
-| $(b_{\mathrm{gb}},b_{\mathrm{nr}})$                       |            $(0.5,0.25)$ |
-| near-record 容差                                            |                     0.10 |
-| $(T_{\mathrm{init}},T_{\mathrm{end}},T_{\mathrm{floor}})$ |        $(1.0,0.5,0.5)$ |
-| $(\epsilon_{\mathrm{init}},\epsilon_{\mathrm{end}})$     |           $(0.15,0.05)$ |
-| prior $(\mathrm{pseudo\_count},\mathrm{mean})$             |                 $(2,0.05)$ |
-| context bound $B$ / late novelty cap                        |               0.2 / 0.2 |
-| batch 聚合                                                  |         $0.5\max+0.5\mathrm{mean}$ |
-| Simplify 相对复杂度门槛                                     |     上四分位且高于中位数 |
-| 经验块成功/失败条数                                         |                    2 / 2 |
-| 经验 action 截断字符数                                      |                      300 |
-| Elo$K$ / contrast window                                  |                  16 / 20 |
+| 配置 | 默认 |
+| --- | ---: |
+| EMA 衰减 | 0.8 |
+| $(\alpha,\lambda_d,\lambda_c)$ | $(1,0.5,0.05)$ |
+| 成本尺度 | 120 |
+| UCB $(c,n_0)$ | $(0.5,1)$ |
+| $(b_{\mathrm{gb}},b_{\mathrm{nr}})$ | $(0.5,0.25)$ |
+| near-record 容差 | 0.10 |
+| $(T_{\mathrm{init}},T_{\mathrm{end}})$ | $(1.0,0.5)$ |
+| $(\epsilon_{\mathrm{init}},\epsilon_{\mathrm{end}})$ | $(0.15,0.05)$ |
+| prior $(\mathrm{pseudo},\mathrm{mean})$ | $(2,0.05)$ |
+| context bound / late novelty cap | 0.2 / 0.2 |
+| batch 聚合 | $0.5\max+0.5\mathrm{mean}$ |
+| Elo $K$ / contrast window | 16 / 20 |
 
 ---
 
-本文描述的是当前代码实际执行的搜索机制，可作为后续改动的对照基线。
+## 11. 实现边界、日志与续训
+
+### 11.1 模块地图
+
+| 模块 | 职责 |
+| --- | --- |
+| `traceaad.py` | 主循环、评估、gate、survival、hooks |
+| `derivation_graph.py` / `trajectory_memory.py` | 事实图与轨迹池 |
+| `value.py` / `credit.py` / `similarity.py` | $V$、潜力、相似度 |
+| `portfolio.py` / `operator_signals.py` / `operators/` | 调度与五算子 |
+| `experience_memory.py` / `curriculum.py` / `context.py` / `prompt.py` | 生成证据与 prompt |
+| `feedback.py` / `islands.py` / `complexity.py` | Elo、迁移、复杂度 |
+| `checkpoint.py` / `resume.py` | 断点续训 |
+
+### 11.2 主要日志事件
+
+`program_evaluated`、`operator_selection`、`operator_batch`、`child_accepted`（可带 `curriculum_ids`）、`novelty_gate`、`best_updated`、`trajectory_created`、`migrate`、`checkpoint_saved`，以及各类 `*_error` / `search_stopped`。`method_state.jsonl` 的 `iteration_start` 可含 `curriculum_ids` 与 `curriculum_snapshot`。`llm_calls.jsonl` 记录各段字符数（含 `experience_chars` / `curriculum_chars`）。
+
+### 11.3 Checkpoint
+
+每个 completed iteration 与 run 结束写入 `logs/checkpoints/ckpt_{sample}.json` 与 `latest.json`（图、轨迹、portfolio、curriculum、Elo、rng、样本计数、best 等）。`RESUME_FROM=<run_dir>` 加载后续跑；ExperienceMemory 由图谱重建。要求 checkpoint 中至少一条 active 轨迹。
+
+### 11.4 文档地图
+
+| 文档 | 读什么 |
+| --- | --- |
+| **本文** | TraceAAD 完整搜索机制与默认超参（唯一权威对照） |
+| `docs/results/` | 各 task 实验结果，不是机制定义 |
+| `docs/worklog/` | 研究过程记录 |
+
+---
+
+## 12. 小结
+
+TraceAAD 的逻辑链条是：
+
+**稀缺的有效改进发生在轨迹上** → 用多维 $V$ 与 UCB **决定跟哪条路** → 用角色化算子与 portfolio **决定怎么改** → 用分层证据 **决定 LLM 看见什么** → 用边级事实与门控/生存 **决定如何更新记忆**，同时严格禁止课程伪造搜索状态。
+
+本文描述的是当前代码实际执行的机制，可作为实现对照与后续消融的基线。Portfolio 的 late novelty cap 等细节仍可能随实验调整；以代码与本节超参表的同步更新为准。
