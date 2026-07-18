@@ -18,6 +18,18 @@ runner.TASK = "orienteering_construct"
 runner.TASK_SPLIT = "train"
 runner.TASK_KWARGS = get_generated_task_kwargs(runner.TASK, runner.TASK_SPLIT)
 runner.TSPEvaluation = OrienteeringEvaluation
+
+# zhong-server
+runner.BASE_URL = "http://183.36.243.124:9000/v1"
+runner.API_KEY = "a41d07d327b81f06d3a76e4eed20608feb5d0adfc070200ae269b6f5fda7822a"
+runner.MODEL = "Qwen3.6-27B-Q4_K_M"
+runner.NO_PROXY_HOSTS = "183.36.243.124,localhost,127.0.0.1,::1"
+os.environ["NO_PROXY"] = runner.NO_PROXY_HOSTS
+os.environ["no_proxy"] = runner.NO_PROXY_HOSTS
+
+# 与 version1 / 训练集 seed 对齐
+runner.SEARCH_SEED = int(os.environ.get("SEARCH_SEED", "2024"))
+
 runner.RESUME_FROM = os.environ.get("RESUME_FROM", "").strip() or None
 runner.EXPERIMENT_VERSION = os.environ.get("EXPERIMENT_VERSION", "version2").strip()
 if runner.RESUME_FROM:
