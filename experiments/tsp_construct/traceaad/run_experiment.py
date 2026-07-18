@@ -28,12 +28,15 @@ TASK = "tsp_construct"
 METHOD = "traceaad"
 # RESUME_FROM=<run_dir> 时复用该目录并加载最新 checkpoint；否则新建 timestamp 目录
 RESUME_FROM = os.environ.get("RESUME_FROM", "").strip() or None
+# 新建 run 默认落在 version2/；可用 EXPERIMENT_VERSION=version1|version2|"" 覆盖
+EXPERIMENT_VERSION = os.environ.get("EXPERIMENT_VERSION", "version2").strip()
 if RESUME_FROM:
     RUN_DIR = Path(RESUME_FROM).resolve()
     TIMESTAMP = RUN_DIR.name
 else:
     TIMESTAMP = os.environ.get("RUN_TIMESTAMP") or datetime.now().strftime("%Y%m%d_%H%M%S")
-    RUN_DIR = Path(__file__).resolve().parent / TIMESTAMP
+    method_root = Path(__file__).resolve().parent
+    RUN_DIR = (method_root / EXPERIMENT_VERSION / TIMESTAMP) if EXPERIMENT_VERSION else (method_root / TIMESTAMP)
 LOG_DIR = RUN_DIR / "logs"
 TMUX_LOG = RUN_DIR / "tmux_run.log"
 
@@ -92,6 +95,7 @@ def write_run_config(*, resumed_from: str | None = None) -> None:
         "task": TASK,
         "method": METHOD,
         "timestamp": TIMESTAMP,
+        "experiment_version": EXPERIMENT_VERSION or None,
         "resume_from": resumed_from,
         "llm": {
             "base_url": BASE_URL,

@@ -1,5 +1,6 @@
 {
   "created_at": "2026-07-18T17:46:19",
+  "experiment_version": "version2",
   "llm": {
     "api_key": "EMPTY",
     "base_url": "http://222.201.145.8:8080/v1",

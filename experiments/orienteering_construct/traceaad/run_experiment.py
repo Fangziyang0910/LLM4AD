@@ -18,8 +18,19 @@ runner.TASK = "orienteering_construct"
 runner.TASK_SPLIT = "train"
 runner.TASK_KWARGS = get_generated_task_kwargs(runner.TASK, runner.TASK_SPLIT)
 runner.TSPEvaluation = OrienteeringEvaluation
-runner.TIMESTAMP = os.environ.get("RUN_TIMESTAMP") or datetime.now().strftime("%Y%m%d_%H%M%S")
-runner.RUN_DIR = Path(__file__).resolve().parent / runner.TIMESTAMP
+runner.RESUME_FROM = os.environ.get("RESUME_FROM", "").strip() or None
+runner.EXPERIMENT_VERSION = os.environ.get("EXPERIMENT_VERSION", "version2").strip()
+if runner.RESUME_FROM:
+    runner.RUN_DIR = Path(runner.RESUME_FROM).resolve()
+    runner.TIMESTAMP = runner.RUN_DIR.name
+else:
+    runner.TIMESTAMP = os.environ.get("RUN_TIMESTAMP") or datetime.now().strftime("%Y%m%d_%H%M%S")
+    method_root = Path(__file__).resolve().parent
+    runner.RUN_DIR = (
+        method_root / runner.EXPERIMENT_VERSION / runner.TIMESTAMP
+        if runner.EXPERIMENT_VERSION
+        else method_root / runner.TIMESTAMP
+    )
 runner.LOG_DIR = runner.RUN_DIR / "logs"
 runner.TMUX_LOG = runner.RUN_DIR / "tmux_run.log"
 

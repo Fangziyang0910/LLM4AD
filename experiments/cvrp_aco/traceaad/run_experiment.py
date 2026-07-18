@@ -36,14 +36,20 @@ os.environ["no_proxy"] = runner.NO_PROXY_HOSTS
 # 与上一轮正式实验对齐：训练/ACO 相关固定 1234；搜索 seed 也固定为 1234
 runner.SEARCH_SEED = int(os.environ.get("SEARCH_SEED", "1234"))
 
-# RESUME_FROM 优先；否则新建 timestamp 目录（可被 RUN_TIMESTAMP 覆盖）
+# RESUME_FROM 优先；否则新建到 version2/（EXPERIMENT_VERSION 可覆盖）
 runner.RESUME_FROM = os.environ.get("RESUME_FROM", "").strip() or None
+runner.EXPERIMENT_VERSION = os.environ.get("EXPERIMENT_VERSION", "version2").strip()
 if runner.RESUME_FROM:
     runner.RUN_DIR = Path(runner.RESUME_FROM).resolve()
     runner.TIMESTAMP = runner.RUN_DIR.name
 else:
     runner.TIMESTAMP = os.environ.get("RUN_TIMESTAMP") or datetime.now().strftime("%Y%m%d_%H%M%S")
-    runner.RUN_DIR = Path(__file__).resolve().parent / runner.TIMESTAMP
+    method_root = Path(__file__).resolve().parent
+    runner.RUN_DIR = (
+        method_root / runner.EXPERIMENT_VERSION / runner.TIMESTAMP
+        if runner.EXPERIMENT_VERSION
+        else method_root / runner.TIMESTAMP
+    )
 runner.LOG_DIR = runner.RUN_DIR / "logs"
 runner.TMUX_LOG = runner.RUN_DIR / "tmux_run.log"
 

@@ -46,8 +46,8 @@ METHODS = (
         band_color="#E69F00",
     ),
     MethodSpec(
-        label="TraceAAD",
-        method_dir=PROJECT_ROOT / "experiments" / "orienteering_construct" / "traceaad",
+        label="TraceAAD version1",
+        method_dir=PROJECT_ROOT / "experiments" / "orienteering_construct" / "traceaad" / "version1",
         runs=("20260714_141500_rep1", "20260714_141505_rep2", "20260714_141510_rep3"),
         budget=1000,
         color="#009E73",

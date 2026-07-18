@@ -32,8 +32,8 @@ METHODS = {
         "color": "#E76F51",
         "band": "#FFB4A2",
     },
-    "TraceAAD": {
-        "directory": "traceaad",
+    "TraceAAD version1": {
+        "directory": "traceaad/version1",
         "runs": ("20260710_203531", "20260710_203541", "20260710_203551"),
         "budget": 1000,
         "color": "#2A9D5B",
