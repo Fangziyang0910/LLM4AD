@@ -102,6 +102,25 @@ def test_backtrack_remains_eligible_when_base_selection_is_strictly_internal():
     assert base_id != target.endpoint_id
 
 
+def test_operator_preview_uses_actual_backtrack_target_not_initial_selection():
+    from llm4ad.method.traceaad.operator_signals import build_operator_previews
+    from llm4ad.method.traceaad.operators import EndpointRefineOp, NoveltyJumpOp
+
+    graph, memory, regressing = _trajectory_with_fitnesses(10.0, 9.0)
+    # Helper keeps the length-1 root active; use it as the UCB-selected trajectory.
+    selected = next(t for t in memory.active() if not t.edge_ids)
+    ctx = _context(graph=graph, memory=memory, selected=selected)
+    ops = (EndpointRefineOp(), BacktrackBranchOp(), NoveltyJumpOp())
+    previews = build_operator_previews(ctx=ctx, operators=ops, context_bound=0.2)
+
+    assert previews["backtrack_branch"].eligible
+    assert previews["backtrack_branch"].target_trajectory_id == regressing.id
+    assert previews["backtrack_branch"].target_trajectory_id != selected.id
+    assert previews["backtrack_branch"].details.get("last_outcome") == "regress"
+    assert previews["backtrack_branch"].details.get("branch_score") is not None
+    assert previews["backtrack_branch"].context_bonus > 0.0
+
+
 def test_simplify_triggers_on_relative_complexity_alone():
     graph, memory, trajectory = _trajectory_with_fitnesses(
         10.0, 10.0, complexities=(10, 20),

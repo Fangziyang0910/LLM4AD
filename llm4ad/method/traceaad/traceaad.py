@@ -1,6 +1,6 @@
 """TraceAAD —— 过程信息为一等公民的融合搜索。
 
-三层记忆（ProgramMemory=DerivationGraph / TrajectoryMemory / ExperienceMemory）+
+四层记忆（ProgramMemory / TrajectoryMemory / ExperienceMemory / EliteCurriculum）+
 进化主回路与维护回路。以有界 trajectory 为唯一搜索单位，stepwise credit，
 多维 ValueVec + trajectory-UCB，因果叙事 + 边级 action 经验 context，算子组合 +
 bandit portfolio，islands + 两层多样性 + novelty gate + 对比反馈。
@@ -12,6 +12,7 @@ import copy
 import math
 import random
 import re
+import statistics
 import time
 from dataclasses import dataclass
 from typing import Literal, Optional
@@ -30,17 +31,25 @@ from .._observability import (
     reset_sample_failures,
     shutdown_executor,
 )
+from .checkpoint import save_checkpoint
 from .complexity import analyze_code_complexity
 from .context import build_action_prompt
 from .credit import directed_delta
+from .curriculum import EliteCurriculum
 from .derivation_graph import DerivationGraph
 from .experience_memory import ExperienceMemory
 from .feedback import RankingModel
 from .islands import IslandsManager
 from .operators import DEFAULT_OPERATORS, Operator, OperatorContext, classify_outcome
-from .portfolio import OperatorPortfolio, PortfolioWeights
+from .operator_signals import build_operator_previews
+from .portfolio import (
+    OperatorPortfolio,
+    PortfolioWeights,
+    aggregate_batch_utility,
+    signed_utility,
+)
 from .prompt import build_code_prompt, build_initial_prompt
-from .schema import EvalResult, OperatorName, ProgramNode, Trajectory
+from .schema import CurriculumPacket, EvalResult, OperatorName, ProgramNode, Trajectory
 from .similarity import max_similarity_to_active
 from .trajectory_memory import TrajectoryMemory
 from .value import (
@@ -70,6 +79,7 @@ class _CandidateObservation:
     outcome: str
     complexity: float
     reference_complexity: float
+    anchor_type: str = "parent"
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,10 +170,11 @@ class TraceAAD:
         self._function_to_evolve: Function = copy.deepcopy(self._template_program.functions[0])
 
         self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode)
-        # 三层记忆
+        # 四层记忆：课程层只引用图事实，不制造 active trajectory。
         self._graph = DerivationGraph()
         self._memory = TrajectoryMemory(max_trajectory_length=max_trajectory_length)
         self._experience_memory = ExperienceMemory(self._graph)
+        self._curriculum = EliteCurriculum(self._graph, maximize=maximize)
         # 回路辅助
         self._islands = IslandsManager(n_islands=n_islands)
         self._ranking = RankingModel()
@@ -176,7 +187,9 @@ class TraceAAD:
         # 状态
         self._best_node: ProgramNode | None = None
         self._tot_sample_nums = 0
+        self._stagnation = 0
         self._batch_cost = 0.0
+        self._batch_candidate_attempts = 0
         init_observability(self, max_consecutive_sample_failures)
 
         assert multi_thread_or_process_eval in ["thread", "process"]
@@ -246,6 +259,7 @@ class TraceAAD:
 
             if self._memory.active():
                 self._survive()
+            save_checkpoint(self)
             result = self._result()
             finish_profiler(
                 self,
@@ -308,7 +322,7 @@ class TraceAAD:
             )
             island = slot % self._n_islands
             traj = self._memory.create_initial(node_id=node.id, island_id=island)
-            self._update_best(node)
+            self._update_best(node, operator="init")
             log_event(self, event="trajectory_created", status="ok", stage="init",
                        node_id=node.id, trajectory_id=traj.id, island_id=island)
 
@@ -343,6 +357,7 @@ class TraceAAD:
         incumbent = self._best_node.fitness if self._best_node is not None else None
         reward_scale = self._fitness_scale()
         self._batch_cost = 0.0
+        self._batch_candidate_attempts = 0
         if self._sampling_strategy == "best":
             selected = best_by_quality(
                 memory=self._memory,
@@ -366,14 +381,77 @@ class TraceAAD:
             maximize=self._maximize, positive_threshold=self._value_weights.positive_threshold,
             iteration=iteration, best_stagnation=getattr(self, "_stagnation", 0),
         )
-        op = self._portfolio.choose(ctx=ctx, iteration=iteration, max_iter=max_iter)
-        # 算子可 override 选题：backtrack 主动从 pool 选「endpoint 退步但前缀高 value」的 trajectory
-        target = op.select_trajectory(ctx)
-        if target is not None:
+        novelty_stats = self._portfolio.stats.get(OperatorName.NOVELTY)
+        recent_novelty_downside = (
+            0.0 if novelty_stats is None else novelty_stats.mean_downside()
+        )
+        previews = build_operator_previews(
+            ctx=ctx,
+            operators=self._portfolio.operators,
+            context_bound=self._portfolio_weights.context_bound,
+            recent_novelty_downside=recent_novelty_downside,
+        )
+        decision = self._portfolio.choose(
+            ctx=ctx,
+            iteration=iteration,
+            max_iter=max_iter,
+            previews=previews,
+            stagnation=getattr(self, "_stagnation", 0),
+        )
+        op = decision.operator
+        preview = decision.previews.get(op.name)
+        if preview is not None and preview.target_trajectory_id is not None:
+            ctx.selected = self._memory.get_trajectory(preview.target_trajectory_id)
+        elif (target := op.select_trajectory(ctx)) is not None:
             ctx.selected = self._memory.get_trajectory(target.id)
-        base_node_id, base_reason = op.select_base(ctx)
+        if op.name == OperatorName.NOVELTY or (
+            preview is not None and preview.base_reason == "fresh_start"
+        ):
+            base_node_id, base_reason = None, "fresh_start"
+        elif op.name == OperatorName.BACKTRACK and preview is not None and preview.base_node_id is not None:
+            base_node_id, base_reason = preview.base_node_id, preview.base_reason or "preview"
+        else:
+            # Crossover 等算子依赖 select_base 的侧信道 hints（如 donor_idea）。
+            base_node_id, base_reason = op.select_base(ctx)
         op_constraint = op.build_constraint(ctx, base_node_id)
+        curriculum = (
+            None
+            if base_node_id is None
+            else self._curriculum.build(
+                operator=op.name,
+                base_node_id=base_node_id,
+                selected_trajectory_id=ctx.selected.id,
+                iteration=iteration,
+                stagnation=getattr(self, "_stagnation", 0),
+            )
+        )
 
+        log_event(
+            self,
+            event="operator_selection",
+            status="ok",
+            iteration=iteration,
+            attempt_id=attempt_id,
+            eligible=list(decision.eligible),
+            scores=decision.scores,
+            components=decision.components,
+            probabilities=decision.probabilities,
+            temperature=decision.temperature,
+            epsilon=decision.epsilon,
+            selected_operator=op.name,
+            selected_trajectory_id=selected.id,
+            target_trajectory_id=ctx.selected.id,
+            base_node_id=base_node_id,
+            base_reason=base_reason,
+            curriculum_ids=() if curriculum is None else curriculum.trace_ids,
+            eligible_counts=decision.eligible_counts,
+            attempt_counts=decision.attempt_counts,
+            context_details={
+                name: item.details
+                for name, item in decision.previews.items()
+                if item.eligible
+            },
+        )
         log_state(
             self, phase="iteration_start", iteration=iteration,
             selected_trajectory_id=ctx.selected.id, selected_endpoint_id=ctx.selected.endpoint_id,
@@ -383,6 +461,8 @@ class TraceAAD:
             best_stagnation=getattr(self, "_stagnation", 0),
             selected_value=None if ctx.selected.value is None else ctx.selected.value.as_tuple(),
             selected_scalar_value=ctx.selected.scalar_value,
+            curriculum_ids=() if curriculum is None else curriculum.trace_ids,
+            curriculum_snapshot=self._curriculum.snapshot(),
             attempt_id=attempt_id,
         )
 
@@ -390,7 +470,8 @@ class TraceAAD:
             observations = self._run_fresh_start(op, ctx, op_constraint, iteration, incumbent)
         else:
             observations = self._run_refine(
-                op, ctx, op_constraint, base_node_id, base_reason, iteration, incumbent
+                op, ctx, op_constraint, base_node_id, base_reason, iteration, incumbent,
+                curriculum,
             )
 
         self._update_portfolio_batch(
@@ -414,9 +495,11 @@ class TraceAAD:
     ) -> list[_CandidateObservation]:
         """novelty：initial-style 生成若干新起点，每个 create_initial 到 least-loaded island。"""
         observations: list[_CandidateObservation] = []
+        pool_anchor = None if incumbent is not None else self._active_pool_anchor()
         for seq in range(self._actions_per_iteration):
             if not self._has_budget() or is_search_aborted(self):
                 break
+            self._batch_candidate_attempts += 1
             prompt = build_initial_prompt(
                 task_description=self._task_description_str,
                 template_function=self._function_to_evolve,
@@ -437,8 +520,15 @@ class TraceAAD:
             live_best = self._best_node.fitness if self._best_node is not None else None
             is_record = live_best is None or _is_better(ev.fitness, live_best, self._maximize)
             accepted = self._apply_novelty_gate(new_traj, protect=is_record)
-            self._update_best(child)
-            reference = incumbent if incumbent is not None else ev.fitness
+            self._update_best(child, iteration=iteration, operator=op.name)
+            if incumbent is not None:
+                reference = incumbent
+                anchor_type = "incumbent"
+            else:
+                reference = pool_anchor
+                anchor_type = "active_pool" if reference is not None else "self_fallback"
+                if reference is None:
+                    reference = ev.fitness
             outcome = classify_outcome(
                 directed_delta(reference, ev.fitness, self._maximize),
                 self._value_weights.positive_threshold,
@@ -451,6 +541,7 @@ class TraceAAD:
                 outcome=outcome,
                 complexity=child.complexity,
                 reference_complexity=child.complexity,
+                anchor_type=anchor_type,
             ))
             log_event(self, event="child_accepted", status="ok" if accepted else "novelty_rejected",
                        iteration=iteration, seq=seq, operator=op.name, child_id=child.id,
@@ -459,7 +550,8 @@ class TraceAAD:
 
     def _run_refine(self, op: Operator, ctx: OperatorContext, constraint: str,
                      base_node_id: int, base_reason: str, iteration: int,
-                     incumbent: float | None) -> list[_CandidateObservation]:
+                     incumbent: float | None,
+                     curriculum: CurriculumPacket | None) -> list[_CandidateObservation]:
         base_node = self._graph.get_node(base_node_id)
         observations: list[_CandidateObservation] = []
         contrast = self._ranking.contrast(
@@ -471,12 +563,13 @@ class TraceAAD:
             operator_constraint=constraint, experience_memory=self._experience_memory,
             contrast=contrast, task_description=self._task_description_str,
             template_function=self._function_to_evolve, action_count=self._actions_per_iteration,
-            maximize=self._maximize,
+            maximize=self._maximize, curriculum=curriculum,
         )
         actions = self._generate_actions(action_prompt, iteration)
         for seq, action in enumerate(actions):
             if not self._has_budget() or is_search_aborted(self):
                 break
+            self._batch_candidate_attempts += 1
             code_prompt = build_code_prompt(
                 current_node=base_node, action=action,
                 task_description=self._task_description_str, template_function=self._function_to_evolve,
@@ -509,7 +602,13 @@ class TraceAAD:
                     a=child.id, b=base_node_id, fitness_a=ev.fitness,
                     fitness_b=base_node.fitness, maximize=self._maximize,
                 )
-            self._update_best(child)
+            self._update_best(child, iteration=iteration, operator=op.name)
+            self._curriculum.record_outcome(
+                curriculum,
+                outcome=outcome,
+                global_best=is_record,
+                near_record=self._is_near_record(ev.fitness, incumbent),
+            )
             observations.append(_CandidateObservation(
                 node_id=child.id,
                 score=ev.fitness,
@@ -518,11 +617,13 @@ class TraceAAD:
                 outcome=outcome,
                 complexity=child.complexity,
                 reference_complexity=base_node.complexity,
+                anchor_type="parent",
             ))
             log_event(self, event="child_accepted", status="ok" if novel else "novelty_rejected",
                        iteration=iteration, seq=seq, operator=op.name, parent_id=base_node_id,
                        child_id=child.id, edge_id=edge.id, trajectory_id=new_traj.id, action=action,
-                       score=ev.fitness, delta=delta, outcome=outcome)
+                       score=ev.fitness, delta=delta, outcome=outcome,
+                       curriculum_ids=() if curriculum is None else curriculum.trace_ids)
         return observations
 
     # ---------------- periodic hooks (survival / migration) ----------------
@@ -550,6 +651,16 @@ class TraceAAD:
                         for island in self._memory.island_ids()
                     },
                 )
+        ckpt_path = save_checkpoint(self)
+        if ckpt_path is not None:
+            log_event(
+                self,
+                event="checkpoint_saved",
+                status="ok",
+                iteration=iteration,
+                sample_order=self._tot_sample_nums,
+                path=str(ckpt_path),
+            )
 
     def _survive(self) -> None:
         duplicate_count = self._memory.archive_duplicate_paths()
@@ -710,39 +821,82 @@ class TraceAAD:
         incumbent: float | None,
         reward_scale: float,
     ) -> None:
+        scale = max(reward_scale, 1e-6)
+        candidate_attempts = max(self._batch_candidate_attempts, 1)
+        cost_per_candidate = self._batch_cost / candidate_attempts
         if not observations:
             self._portfolio.update_batch(
                 op=op,
                 iteration=attempt_id,
-                normalized_reward=-1.0,
+                batch_utility=-1.0,
+                downside=1.0,
                 best_valid=False,
                 best_novel=False,
-                best_regress=True,
-                total_cost=self._batch_cost,
+                total_cost=cost_per_candidate,
                 global_best=False,
                 near_record=False,
             )
+            log_event(
+                self,
+                event="operator_batch",
+                status="empty",
+                iteration=iteration,
+                attempt_id=attempt_id,
+                operator=op.name,
+                batch_utility=-1.0,
+                downside_signal=1.0,
+                cost_per_candidate=cost_per_candidate,
+                total_cost=self._batch_cost,
+                portfolio=self._portfolio.snapshot(),
+            )
             return
+
+        candidate_rows: list[dict] = []
+        utilities: list[float] = []
+        for obs in observations:
+            delta_raw = directed_delta(obs.reference_score, obs.score, self._maximize)
+            if delta_raw is None:
+                delta_raw = 0.0
+            delta_norm = delta_raw / scale
+            utility = signed_utility(delta_norm)
+            if (
+                op.name == OperatorName.SIMPLIFY
+                and utility >= 0.0
+                and obs.reference_complexity > 0
+            ):
+                complexity_gain = (
+                    obs.reference_complexity - obs.complexity
+                ) / obs.reference_complexity
+                utility = 0.8 * utility + 0.2 * max(-1.0, min(1.0, complexity_gain))
+            utilities.append(utility)
+            candidate_rows.append({
+                "node_id": obs.node_id,
+                "score": obs.score,
+                "anchor_type": obs.anchor_type,
+                "anchor_score": obs.reference_score,
+                "delta_raw": delta_raw,
+                "delta_norm": delta_norm,
+                "utility": utility,
+                "accepted": obs.accepted,
+                "outcome": obs.outcome,
+            })
+
+        batch_u = aggregate_batch_utility(utilities)
+        downside = max(0.0, -min(utilities))
         best = max(observations, key=lambda x: x.score) if self._maximize else min(
             observations, key=lambda x: x.score
         )
-        gain = directed_delta(best.reference_score, best.score, self._maximize) or 0.0
-        reward = max(-1.0, min(1.0, gain / reward_scale))
-        if op.name == OperatorName.SIMPLIFY and reward >= 0.0 and best.reference_complexity > 0:
-            complexity_gain = (
-                best.reference_complexity - best.complexity
-            ) / best.reference_complexity
-            reward = max(-1.0, min(1.0, 0.8 * reward + 0.2 * complexity_gain))
         is_record = incumbent is None or _is_better(best.score, incumbent, self._maximize)
         is_near_record = is_record or self._is_near_record(best.score, incumbent)
+        cost_per_valid_candidate = self._batch_cost / max(len(observations), 1)
         self._portfolio.update_batch(
             op=op,
             iteration=attempt_id,
-            normalized_reward=reward,
+            batch_utility=batch_u,
+            downside=downside,
             best_valid=True,
             best_novel=best.accepted,
-            best_regress=reward < 0.0,
-            total_cost=self._batch_cost,
+            total_cost=cost_per_candidate,
             global_best=is_record,
             near_record=is_near_record,
         )
@@ -755,9 +909,15 @@ class TraceAAD:
             operator=op.name,
             best_child_id=best.node_id,
             best_score=best.score,
-            normalized_reward=reward,
-            global_best=is_record,
-            near_record=is_near_record,
+            anchor_type=best.anchor_type,
+            anchor_score=best.reference_score,
+            candidates=candidate_rows,
+            batch_utility=batch_u,
+            record_signal=is_record,
+            near_record_signal=is_near_record,
+            downside_signal=downside,
+            cost_per_candidate=cost_per_candidate,
+            cost_per_valid_candidate=cost_per_valid_candidate,
             total_cost=self._batch_cost,
             portfolio=self._portfolio.snapshot(),
         )
@@ -776,6 +936,17 @@ class TraceAAD:
         hi = scores[int(0.9 * (len(scores) - 1))]
         median = scores[len(scores) // 2]
         return max(abs(hi - lo), 0.05 * abs(median), 1e-3)
+
+    def _active_pool_anchor(self) -> float | None:
+        """Return a robust score anchor for a fresh start without an incumbent."""
+        scores = [
+            node.fitness
+            for trajectory in self._memory.unique_active()
+            if (node := self._graph.get_node(trajectory.endpoint_id)).fitness is not None
+        ]
+        if not scores:
+            return None
+        return float(statistics.median(scores))
 
     def _is_near_record(
         self,
@@ -808,7 +979,10 @@ class TraceAAD:
                       iteration=iteration, seq=0, prompt=prompt, response=response, sample_time=sample_time,
                       parsed_actions=actions, status="ok",
                       experience_chars=_prompt_section_chars(
-                          prompt, "[Past Action Evidence]", "[Contrast Feedback]"
+                          prompt, "[Past Action Evidence]", "[Elite Curriculum]"
+                      ),
+                      curriculum_chars=_prompt_section_chars(
+                          prompt, "[Elite Curriculum]", "[Contrast Feedback]"
                       ))
         return actions
 
@@ -875,17 +1049,48 @@ class TraceAAD:
         )
 
     # ---------------- bookkeeping ----------------
-    def _update_best(self, node: ProgramNode) -> None:
+    def _update_best(
+        self,
+        node: ProgramNode,
+        *,
+        iteration: int | None = None,
+        operator: str = "unknown",
+    ) -> None:
         if node.fitness is None:
             return
         if self._best_node is None or _is_better(node.fitness, self._best_node.fitness, self._maximize):
+            previous = self._best_node
+            event = self._curriculum.record_best_event(
+                previous_best_node_id=None if previous is None else previous.id,
+                new_best_node_id=node.id,
+                operator=operator,
+                iteration=iteration,
+                sample_order=self._tot_sample_nums,
+            )
             self._best_node = node
+            log_event(
+                self,
+                event="best_updated",
+                status="ok",
+                iteration=iteration,
+                sample_order=self._tot_sample_nums,
+                previous_best_node_id=event.previous_best_node_id,
+                new_best_node_id=event.new_best_node_id,
+                source_parent_node_id=event.source_parent_node_id,
+                source_edge_id=event.source_edge_id,
+                operator=operator,
+                delta_to_previous_best=event.delta_to_previous_best,
+                delta_to_parent=event.delta_to_parent,
+            )
 
     def active_trajectories(self) -> tuple[Trajectory, ...]:
         return self._memory.active()
 
     def operator_portfolio_snapshot(self) -> dict[str, dict]:
         return self._portfolio.snapshot()
+
+    def curriculum_snapshot(self) -> dict[str, object]:
+        return self._curriculum.snapshot()
 
     def _planned_iterations(self) -> int:
         if self._max_sample_nums is None:

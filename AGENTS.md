@@ -18,7 +18,7 @@
 ## 运行与实验工作流
 
 15. `experiments/` 的布局是 `experiments/<task>/<method>/run_experiment.py`。每个 task×method 组合一个入口脚本，模型与超参写在脚本顶部；每次运行在脚本目录下生成 `<timestamp>/`，含 `run_config.json`、`tmux_run.log` 和 `logs/`。
-16. 运行实验统一用 `uv run python experiments/<task>/<method>/run_experiment.py`，前台调试或使用 tmux 后台长跑。tmux 启动命令必须带 `NO_PROXY=<endpoint_ip>,localhost,127.0.0.1,::1` 绕过代理访问 vLLM endpoint。
+16. 运行实验统一用 `uv run python experiments/<task>/<method>/run_experiment.py`，前台调试或使用 tmux 后台长跑。tmux 启动命令必须带 `NO_PROXY=<endpoint_ip>,localhost,127.0.0.1,::1` 绕过代理访问 LLM endpoint。服务源见 `docs/LLM服务源.md`。
 17. 论文主实验通常对每个 task×method 跑 3 个独立 repeat 并行，启动时错开约 5 秒，避免 timestamp 冲突。先单跑一个做冒烟，确认 endpoint 返回 200、evaluate 产生有效分数、best 会随 sample 推进，再补启其余两个。
 17a. 测试集评估必须最终完成，不能因单个 heuristic 的固定 timeout 到期就放弃并把 `n/a` 写入最终结果。评估脚本应允许关闭 timeout，并优先对独立的 run×测试规模增加并行 worker；只有全部测试结果拿到后，才更新 `docs/results/`。
 18. `llm4ad/method/*` 从 evaluation 对象读取 `template_program` / `task_description` 构造 prompt，因此换 task 通常只需新建 runner 并替换 evaluation 实例，method 零改动。

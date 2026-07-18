@@ -1,8 +1,9 @@
-"""因果叙事 Context 构造 —— action prompt 三段式。
+"""因果叙事 Context 构造 —— action prompt 四段式。
 
 A. 因果叙事：trajectory 近 N 步的 (operator/Δf/ΔC/ΔR/outcome)。
 B. 边级经验：ExperienceMemory 的成功/失败 action 示例。
-C. 对比反馈：best vs worst（idea + fitness）。
+C. 精英课程：Champion / improve chain / repair / donor 参照。
+D. 对比反馈：best vs worst（idea + fitness）。
 
 novelty/init 算子走 initial-style（主循环分支），不经此函数。
 """
@@ -12,7 +13,7 @@ from ...base import Function
 from .derivation_graph import DerivationGraph
 from .experience_memory import ExperienceMemory
 from .prompt import fitness_direction_hint, format_fitness
-from .schema import ExperienceBatch, ProgramNode, Trajectory
+from .schema import CurriculumPacket, ExperienceBatch, ProgramNode, Trajectory
 
 _DEFAULT_ACTION_CHARS = 300
 
@@ -36,6 +37,7 @@ def build_action_prompt(
     positive_k: int = 2,
     negative_k: int = 2,
     max_action_chars: int = _DEFAULT_ACTION_CHARS,
+    curriculum: CurriculumPacket | None = None,
 ) -> str:
     base_node = graph.get_node(base_node_id)
     batch = experience_memory.examples(
@@ -57,6 +59,11 @@ def build_action_prompt(
         _experience_block(batch, max_action_chars=max_action_chars),
         "",
     ]
+    sections += [
+        "[Elite Curriculum]",
+        _curriculum_block(curriculum, max_action_chars=max_action_chars),
+        "",
+    ]
     sections += ["[Contrast Feedback]", _contrast_block(contrast), ""]
     sections += [
         "[Operator]",
@@ -76,7 +83,7 @@ def build_action_prompt(
         _contract(template_function),
         "",
         "[Instruction]",
-        "Use the trajectory, past action evidence, and contrast as a record of what worked and what did not.",
+        "Use the trajectory, past action evidence, elite curriculum, and contrast as a record of what worked and what did not.",
         f"Propose {action_count} next-step modifications for the base program above:",
         "- each modification must change one main algorithmic idea only;",
         "- follow the operator constraint;",
@@ -185,6 +192,56 @@ def _format_example(example, *, max_action_chars: int) -> str:
         f"- [operator={example.operator}] action={action} "
         f"delta={example.delta:+.4g}"
     )
+
+
+def _curriculum_block(
+    packet: CurriculumPacket | None,
+    *,
+    max_action_chars: int = _DEFAULT_ACTION_CHARS,
+) -> str:
+    if packet is None or not packet.trace_ids:
+        return "No elite curriculum is available yet."
+    lines: list[str] = []
+    for instruction in packet.instructions:
+        lines.append(f"Instruction: {instruction}")
+    for trace in packet.positive_traces:
+        lines.extend(_format_curriculum_trace(trace, max_action_chars=max_action_chars))
+    if packet.repair_trace is not None:
+        lines.append("Prefix repair:")
+        lines.extend(
+            _format_curriculum_trace(packet.repair_trace, max_action_chars=max_action_chars)
+        )
+    if packet.contrast_trace is not None:
+        lines.append("Contrastive boundary:")
+        lines.extend(
+            _format_curriculum_trace(packet.contrast_trace, max_action_chars=max_action_chars)
+        )
+    if packet.donor_trace is not None:
+        lines.append("Donor trace:")
+        lines.extend(
+            _format_curriculum_trace(packet.donor_trace, max_action_chars=max_action_chars)
+        )
+    return "\n".join(lines)
+
+
+def _format_curriculum_trace(trace, *, max_action_chars: int) -> list[str]:
+    lines = [
+        f"- [{trace.kind} id={trace.id} "
+        f"confidence={trace.confidence:.2f} causal={trace.causal_coherence:.2f}]"
+    ]
+    for index, step in enumerate(trace.steps):
+        action = step.action or "(no action recorded)"
+        if len(action) > max_action_chars:
+            action = action[: max_action_chars - 3].rstrip() + "..."
+        lines.append(
+            f"  step={index} evidence={step.evidence_type} "
+            f"causal_status={step.causal_status} operator={step.operator}"
+        )
+        lines.append(
+            f"  action={action} delta={step.delta_to_parent!s} "
+            f"outcome={step.outcome}"
+        )
+    return lines
 
 
 def _contrast_block(contrast: dict | None) -> str:

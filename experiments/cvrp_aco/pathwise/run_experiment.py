@@ -20,6 +20,8 @@ runner.TASK_KWARGS = {
     "n_ants": 30,
     "n_iterations": 100,
     "aco_seed": 1234,
+    # 训练评估：10 个 train 实例并行跑 ACO；可用 CVRP_EVAL_WORKERS 覆盖
+    "n_workers": int(os.environ.get("CVRP_EVAL_WORKERS", "10")),
 }
 runner.TSPEvaluation = CVRPACOEvaluation
 runner.TIMESTAMP = os.environ.get("RUN_TIMESTAMP") or datetime.now().strftime("%Y%m%d_%H%M%S")

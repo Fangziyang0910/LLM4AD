@@ -78,7 +78,7 @@ class MechanismCrossoverOp(Operator):
             "Recombine: transplant exactly ONE clear algorithmic idea from a donor trajectory "
             f"into the current base program. Donor idea for reference: {donor_idea}. "
             "Do NOT replace the whole program — keep the existing structure and change only "
-            "that single idea."
+            "that single idea. Any elite donor trace is evidence for one action, not a complete program to copy."
         )
 
     def insert(self, ctx: OperatorContext, child_id: NodeId, edge_id: int,

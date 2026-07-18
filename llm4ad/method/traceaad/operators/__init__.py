@@ -7,6 +7,7 @@ from .base import (
     branch_score,
     classify_outcome,
     select_base_node,
+    trajectory_step_outcomes,
 )
 from .backtrack import BacktrackBranchOp
 from .crossover import MechanismCrossoverOp
@@ -34,4 +35,5 @@ __all__ = [
     "select_base_node",
     "branch_score",
     "classify_outcome",
+    "trajectory_step_outcomes",
 ]

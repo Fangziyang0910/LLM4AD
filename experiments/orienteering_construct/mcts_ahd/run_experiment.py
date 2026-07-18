@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from llm4ad.method.mcts_ahd import MAProfiler, MCTS_AHD
 from llm4ad.task.optimization.generated_data_config import get_generated_task_kwargs
 from llm4ad.task.optimization.orienteering_construct import OrienteeringEvaluation
-from llm4ad.tools.llm.vllm_openai_api import VLLMOpenAIAPI
+from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
 
 
 TASK = "orienteering_construct"
@@ -84,7 +84,7 @@ def write_run_config() -> None:
 
 
 def build_method() -> MCTS_AHD:
-    llm = VLLMOpenAIAPI(
+    llm = OpenAIAPI(
         base_url=BASE_URL,
         api_key=API_KEY,
         model=MODEL,

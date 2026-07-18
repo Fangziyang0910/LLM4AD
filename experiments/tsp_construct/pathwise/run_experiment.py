@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from llm4ad.method.pathwise import PathWise, PathWiseProfiler
 from llm4ad.task.optimization.generated_data_config import get_generated_task_kwargs
 from llm4ad.task.optimization.tsp_construct import TSPEvaluation
-from llm4ad.tools.llm.vllm_openai_api import VLLMOpenAIAPI
+from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
 
 
 TASK = "tsp_construct"
@@ -23,7 +23,7 @@ RUN_DIR = Path(__file__).resolve().parent / TIMESTAMP
 LOG_DIR = RUN_DIR / "logs"
 TMUX_LOG = RUN_DIR / "tmux_run.log"
 
-# 与 mcts_ahd 共用同一 vLLM endpoint / 模型，便于同条件对比
+# 与 mcts_ahd 共用同一 OpenAI-compatible endpoint / 模型，便于同条件对比
 BASE_URL = "http://222.201.145.8:8080/v1"
 API_KEY = "EMPTY"
 MODEL = "qwen3.6-27b-awq"
@@ -92,7 +92,7 @@ def write_run_config() -> None:
 
 
 def build_method() -> PathWise:
-    llm = VLLMOpenAIAPI(
+    llm = OpenAIAPI(
         base_url=BASE_URL,
         api_key=API_KEY,
         model=MODEL,

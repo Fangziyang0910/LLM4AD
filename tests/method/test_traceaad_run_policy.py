@@ -196,6 +196,43 @@ def test_portfolio_learns_once_from_the_best_of_each_action_batch():
     assert endpoint_stats["global_best_rate"] == 1.0
 
 
+def test_operator_selection_event_matches_final_execution_context(monkeypatch):
+    events = []
+
+    def record_event(target, event=None, **payload):
+        if event == "operator_selection":
+            events.append(payload)
+
+    monkeypatch.setattr(
+        "llm4ad.method.traceaad.traceaad.log_event",
+        record_event,
+    )
+    method = _method(
+        llm=ScriptedTraceAADLLM(),
+        evaluation=ConstantEvaluation(),
+        max_samples=2,
+        actions=1,
+        operators=(EndpointRefineOp,),
+    )
+
+    method.run()
+
+    assert len(events) == 1
+    event = events[0]
+    assert event["selected_operator"] == OperatorName.ENDPOINT
+    assert event["target_trajectory_id"] == event["selected_trajectory_id"]
+    target = next(
+        trajectory
+        for trajectory in method.active_trajectories()
+        if trajectory.id == event["target_trajectory_id"]
+    )
+    assert event["base_node_id"] == target.endpoint_id
+    assert sum(event["probabilities"].values()) == pytest.approx(1.0)
+    assert event["temperature"] > 0.0
+    assert 0.0 <= event["epsilon"] <= 1.0
+    assert event["eligible"] == [OperatorName.ENDPOINT]
+
+
 def test_global_record_bypasses_similarity_gate_and_remains_active():
     method = _method(
         llm=ScriptedTraceAADLLM(),

@@ -71,6 +71,16 @@ class DerivationGraph:
     def get_edge(self, edge_id: EdgeId) -> ImprovementEdge:
         return self._edges[edge_id]
 
+    def incoming_edge(self, child_id: NodeId) -> ImprovementEdge | None:
+        edge_id = self._incoming_edge_by_child.get(child_id)
+        return None if edge_id is None else self._edges[edge_id]
+
+    def outgoing_edges(self, parent_id: NodeId) -> tuple[ImprovementEdge, ...]:
+        return tuple(
+            self._edges[edge_id]
+            for edge_id in self._outgoing_edges_by_parent.get(parent_id, ())
+        )
+
     def edges(self) -> tuple[ImprovementEdge, ...]:
         return tuple(self._edges.values())
 

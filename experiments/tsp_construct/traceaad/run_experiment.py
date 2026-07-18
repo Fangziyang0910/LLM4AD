@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import os
 import sys
 from dataclasses import asdict
 from datetime import datetime
@@ -16,16 +17,23 @@ from llm4ad.method.traceaad import (
     TraceAAD,
     TraceAADProfiler,
     ValueWeights,
+    resume_traceaad,
 )
 from llm4ad.task.optimization.generated_data_config import get_generated_task_kwargs
 from llm4ad.task.optimization.tsp_construct import TSPEvaluation
-from llm4ad.tools.llm.vllm_openai_api import VLLMOpenAIAPI
+from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
 
 
 TASK = "tsp_construct"
 METHOD = "traceaad"
-TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
-RUN_DIR = Path(__file__).resolve().parent / TIMESTAMP
+# RESUME_FROM=<run_dir> 时复用该目录并加载最新 checkpoint；否则新建 timestamp 目录
+RESUME_FROM = os.environ.get("RESUME_FROM", "").strip() or None
+if RESUME_FROM:
+    RUN_DIR = Path(RESUME_FROM).resolve()
+    TIMESTAMP = RUN_DIR.name
+else:
+    TIMESTAMP = os.environ.get("RUN_TIMESTAMP") or datetime.now().strftime("%Y%m%d_%H%M%S")
+    RUN_DIR = Path(__file__).resolve().parent / TIMESTAMP
 LOG_DIR = RUN_DIR / "logs"
 TMUX_LOG = RUN_DIR / "tmux_run.log"
 
@@ -35,6 +43,10 @@ MODEL = "qwen3.6-27b-awq"
 LLM_TIMEOUT = 600
 MAX_TOKENS = 16384
 LLM_TEMPERATURE = 1.0
+# 绕过代理访问本机 / 远端 OpenAI-compatible endpoint
+NO_PROXY_HOSTS = "222.201.145.8,183.36.243.124,localhost,127.0.0.1,::1"
+os.environ.setdefault("NO_PROXY", NO_PROXY_HOSTS)
+os.environ.setdefault("no_proxy", NO_PROXY_HOSTS)
 
 TASK_SPLIT = "train"
 TASK_KWARGS = get_generated_task_kwargs(TASK, TASK_SPLIT)
@@ -51,10 +63,10 @@ N_ISLANDS = 4
 MAX_PER_ISLAND = 40
 NOVELTY_THRESHOLD = 0.92
 MIGRATION_INTERVAL = 20
-NUM_EVALUATORS = 1
+NUM_EVALUATORS = 4
 MAX_CONSECUTIVE_SAMPLE_FAILURES = 20
 MAX_STALLED_ITERATIONS = 20
-SEARCH_SEED = 2024
+SEARCH_SEED = int(os.environ.get("SEARCH_SEED", "2024"))  # 与上一轮正式实验训练 seed=2024 对齐
 EVAL_EXECUTOR = "thread"
 DEBUG = False
 
@@ -73,13 +85,14 @@ VALUE_WEIGHTS = ValueWeights(
 PORTFOLIO_WEIGHTS = PortfolioWeights()
 
 
-def write_run_config() -> None:
+def write_run_config(*, resumed_from: str | None = None) -> None:
     payload = {
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "run_dir": str(RUN_DIR),
         "task": TASK,
         "method": METHOD,
         "timestamp": TIMESTAMP,
+        "resume_from": resumed_from,
         "llm": {
             "base_url": BASE_URL,
             "api_key": API_KEY,
@@ -88,6 +101,7 @@ def write_run_config() -> None:
             "max_tokens": MAX_TOKENS,
             "temperature": LLM_TEMPERATURE,
             "enable_thinking": False,
+            "no_proxy": NO_PROXY_HOSTS,
         },
         "task_eval": {"split": TASK_SPLIT, **TASK_KWARGS},
         "method_params": {
@@ -120,7 +134,7 @@ def write_run_config() -> None:
 
 
 def build_method() -> TraceAAD:
-    llm = VLLMOpenAIAPI(
+    llm = OpenAIAPI(
         base_url=BASE_URL,
         api_key=API_KEY,
         model=MODEL,
@@ -156,14 +170,26 @@ def build_method() -> TraceAAD:
 
 
 def main() -> None:
-    RUN_DIR.mkdir(parents=True, exist_ok=False)
-    write_run_config()
+    os.environ["NO_PROXY"] = NO_PROXY_HOSTS
+    os.environ["no_proxy"] = NO_PROXY_HOSTS
+    resume_from = RESUME_FROM
+    if resume_from:
+        if not RUN_DIR.is_dir():
+            raise FileNotFoundError(f"RESUME_FROM directory does not exist: {RUN_DIR}")
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+    else:
+        RUN_DIR.mkdir(parents=True, exist_ok=False)
+    write_run_config(resumed_from=resume_from)
     print(f"run_dir={RUN_DIR}")
     with TMUX_LOG.open("a", encoding="utf-8", buffering=1) as log_file:
         with contextlib.redirect_stdout(log_file), contextlib.redirect_stderr(log_file):
             print(f"run_dir={RUN_DIR}", flush=True)
             print(f"log_dir={LOG_DIR}", flush=True)
-            build_method().run()
+            method = build_method()
+            if resume_from:
+                print(f"resume_from={resume_from}", flush=True)
+                resume_traceaad(method, LOG_DIR)
+            method.run()
 
 
 if __name__ == "__main__":

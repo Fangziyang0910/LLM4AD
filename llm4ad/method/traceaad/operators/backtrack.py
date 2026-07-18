@@ -55,7 +55,8 @@ class BacktrackBranchOp(Operator):
         return (
             "The selected trajectory's endpoint regressed or saturated, but an earlier prefix was strong. "
             "Branch from that high-value prefix and propose a modification DIFFERENT from the one that "
-            "caused the regression or plateau."
+            "caused the regression or plateau. Treat the elite prefix-repair trace as a boundary to repair, "
+            "not as a new parent edge."
         )
 
     def insert(self, ctx: OperatorContext, child_id: NodeId, edge_id: int,

@@ -123,3 +123,24 @@ def test_unknown_split_and_invalid_aco_settings_are_rejected():
     for kwargs in ({"n_ants": 0}, {"n_ants": 0.5}, {"n_iterations": 0.5}):
         with pytest.raises(ValueError, match="positive integers"):
             CVRPACOEvaluation(**kwargs)
+    for kwargs in ({"n_workers": 0}, {"n_workers": 0.5}, {"n_workers": True}):
+        with pytest.raises(ValueError, match="n_workers"):
+            CVRPACOEvaluation(**kwargs)
+
+
+def test_parallel_workers_match_serial_scores():
+    """Instance-parallel ACO must be numerically identical to serial evaluate."""
+    serial = CVRPACOEvaluation(
+        split="train", n_ants=3, n_iterations=2, n_workers=1
+    )
+    serial._datasets = serial._datasets[:4]
+    parallel = CVRPACOEvaluation(
+        split="train", n_ants=3, n_iterations=2, n_workers=4
+    )
+    parallel._datasets = parallel._datasets[:4]
+
+    serial_score = serial.evaluate(inverse_distance)
+    parallel_score = parallel.evaluate(inverse_distance)
+    assert serial_score is not None and parallel_score is not None
+    assert serial_score == parallel_score
+    assert serial_score < 0

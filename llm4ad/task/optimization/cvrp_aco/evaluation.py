@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import multiprocessing
 from typing import Any, Callable
 
 import numpy as np
@@ -16,6 +17,23 @@ from llm4ad.task.optimization.cvrp_aco.template import (
 )
 
 __all__ = ["CVRPACOEvaluation"]
+
+# (distances, demands, prior, capacity, n_ants, n_iterations, aco_seed, instance_index)
+_AcoJob = tuple[np.ndarray, np.ndarray, np.ndarray, int, int, int, int, int]
+
+
+def _run_aco_job(job: _AcoJob) -> float:
+    """Top-level worker for spawn ProcessPool (must be picklable)."""
+    distances, demands, prior, capacity, n_ants, n_iterations, aco_seed, instance_index = job
+    rng = np.random.default_rng(aco_seed + instance_index)
+    return ACO(
+        distances,
+        demands,
+        prior,
+        capacity,
+        n_ants=n_ants,
+        rng=rng,
+    ).run(n_iterations)
 
 
 class ACO:
@@ -134,6 +152,7 @@ class CVRPACOEvaluation(Evaluation):
         n_ants: int = 30,
         n_iterations: int = 100,
         aco_seed: int = 1234,
+        n_workers: int = 1,
         **kwargs,
     ):
         super().__init__(
@@ -151,6 +170,8 @@ class CVRPACOEvaluation(Evaluation):
             or n_iterations < 1
         ):
             raise ValueError("n_ants and n_iterations must be positive integers.")
+        if not isinstance(n_workers, int) or isinstance(n_workers, bool) or n_workers < 1:
+            raise ValueError("n_workers must be a positive integer.")
         self._datasets, self.dataset_metadata = load_split_instances(split)
         self.split = split
         self.n_instance = len(self._datasets)
@@ -159,10 +180,11 @@ class CVRPACOEvaluation(Evaluation):
         self.n_ants = n_ants
         self.n_iterations = n_iterations
         self.aco_seed = int(aco_seed)
+        self.n_workers = n_workers
 
-    def _solve_instance(
-        self, instance: np.ndarray, heuristic: Callable, instance_index: int
-    ) -> float:
+    def _build_prior(
+        self, instance: np.ndarray, heuristic: Callable
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         demands = instance[:, 0].copy()
         coordinates = instance[:, 1:].copy()
         distances = _distance_matrix(coordinates)
@@ -177,22 +199,49 @@ class CVRPACOEvaluation(Evaluation):
                 f"heuristics must return a finite {distances.shape} matrix."
             )
         prior = np.maximum(prior + 1e-9, 1e-9)
-        rng = np.random.default_rng(self.aco_seed + instance_index)
-        return ACO(
-            distances,
-            demands,
-            prior,
-            self.capacity,
-            n_ants=self.n_ants,
-            rng=rng,
-        ).run(self.n_iterations)
+        return distances, demands, prior
+
+    def _solve_instance(
+        self, instance: np.ndarray, heuristic: Callable, instance_index: int
+    ) -> float:
+        distances, demands, prior = self._build_prior(instance, heuristic)
+        return _run_aco_job(
+            (
+                distances,
+                demands,
+                prior,
+                self.capacity,
+                self.n_ants,
+                self.n_iterations,
+                self.aco_seed,
+                instance_index,
+            )
+        )
 
     def evaluate(self, heuristic: Callable) -> float | None:
         try:
-            costs = [
-                self._solve_instance(instance, heuristic, index)
-                for index, instance in enumerate(self._datasets)
-            ]
+            jobs: list[_AcoJob] = []
+            for index, instance in enumerate(self._datasets):
+                distances, demands, prior = self._build_prior(instance, heuristic)
+                jobs.append(
+                    (
+                        distances,
+                        demands,
+                        prior,
+                        self.capacity,
+                        self.n_ants,
+                        self.n_iterations,
+                        self.aco_seed,
+                        index,
+                    )
+                )
+            if self.n_workers <= 1 or len(jobs) <= 1:
+                costs = [_run_aco_job(job) for job in jobs]
+            else:
+                workers = min(self.n_workers, len(jobs))
+                context = multiprocessing.get_context("spawn")
+                with context.Pool(processes=workers) as pool:
+                    costs = pool.map(_run_aco_job, jobs)
         except Exception:
             return None
         return -float(np.mean(costs))

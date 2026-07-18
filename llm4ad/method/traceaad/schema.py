@@ -1,10 +1,11 @@
 """TraceAAD 领域数据结构。
 
-对应 TraceAAD 机制设计的三层记忆对象：
+对应 TraceAAD 机制设计的四层记忆对象：
 - ProgramNode：代码、思想、适应度、复杂度、runtime
 - ImprovementEdge：动作、算子、有向 Δ、outcome
 - Trajectory：有界路径 + ValueVec
 - ExperienceExample / ExperienceBatch：边级成功/失败 action 经验查询结果
+- ChampionEvent / CurriculumTrace / CurriculumPacket：精英课程事实与组装结果
 """
 from __future__ import annotations
 
@@ -125,3 +126,83 @@ class ExperienceBatch:
     """ExperienceMemory.examples 的有界返回。"""
     positives: tuple[ExperienceExample, ...] = ()
     negatives: tuple[ExperienceExample, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class ChampionEvent:
+    """一次真实的 global-best 刷新事件。
+
+    相邻事件可能来自不同 DAG 分支，因此课程层必须把它标记为 jump，
+    不能把事件链当成真实父子轨迹。
+    """
+
+    previous_best_node_id: NodeId | None
+    new_best_node_id: NodeId
+    source_parent_node_id: NodeId | None
+    source_edge_id: EdgeId | None
+    operator: str
+    delta_to_previous_best: float | None
+    delta_to_parent: float | None
+    iteration: int | None = None
+    sample_order: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TraceStep:
+    """课程中的一步，带有事实来源和因果等级。"""
+
+    source_node_id: NodeId
+    source_edge_id: EdgeId | None
+    parent_node_id: NodeId | None
+    operator: str
+    action: str
+    fitness_before: float | None
+    fitness_after: float | None
+    delta_to_parent: float | None
+    delta_to_incumbent: float | None
+    outcome: str
+    evidence_type: str
+    causal_status: str
+
+
+@dataclass(frozen=True, slots=True)
+class CurriculumTrace:
+    """从真实图事实构造出的生成参照，不是 active trajectory。"""
+
+    id: str
+    kind: str
+    steps: tuple[TraceStep, ...]
+    terminal_node_id: NodeId | None
+    quality_gain: float
+    causal_coherence: float
+    novelty: float
+    confidence: float
+
+    @property
+    def source_edge_ids(self) -> tuple[EdgeId, ...]:
+        return tuple(
+            step.source_edge_id
+            for step in self.steps
+            if step.source_edge_id is not None
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class CurriculumPacket:
+    """一次生成调用使用的有界课程包。"""
+
+    id: str
+    primary_trace_id: str | None = None
+    positive_traces: tuple[CurriculumTrace, ...] = ()
+    repair_trace: CurriculumTrace | None = None
+    contrast_trace: CurriculumTrace | None = None
+    donor_trace: CurriculumTrace | None = None
+    instructions: tuple[str, ...] = ()
+
+    @property
+    def trace_ids(self) -> tuple[str, ...]:
+        ids: list[str] = [trace.id for trace in self.positive_traces]
+        for trace in (self.repair_trace, self.contrast_trace, self.donor_trace):
+            if trace is not None and trace.id not in ids:
+                ids.append(trace.id)
+        return tuple(ids)

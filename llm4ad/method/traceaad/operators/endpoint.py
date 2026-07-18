@@ -16,5 +16,6 @@ class EndpointRefineOp(_ExtendFromEndpointOp):
     def build_constraint(self, ctx: OperatorContext, base_node_id: int | None) -> str:
         return (
             "Continue refining the current best direction. Propose ONE targeted modification that "
-            "strengthens the mechanism which recently improved fitness. Avoid directions that regressed."
+            "strengthens the mechanism which recently improved fitness. Use the elite curriculum as "
+            "observed evidence, but do not copy a whole historical trace. Avoid directions that regressed."
         )
