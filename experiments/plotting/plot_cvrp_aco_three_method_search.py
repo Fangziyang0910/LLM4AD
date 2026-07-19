@@ -1,4 +1,4 @@
-"""Render CVRP-ACO search curves for all three methods."""
+"""Render CVRP-ACO search curves for completed methods."""
 
 from __future__ import annotations
 
@@ -38,14 +38,20 @@ METHODS = {
         "color": "#2A9D5B",
         "band": "#A8D5BA",
     },
+    "TraceAAD version2": {
+        "directory": "traceaad/version2",
+        "runs": ("20260718_193305_cvrp_rep1", "20260718_193305_cvrp_rep2", "20260718_193305_cvrp_rep3"),
+        "budget": 1000,
+        "color": "#6A4C93",
+        "band": "#C9B1FF",
+    },
 }
-COMBINED_STEM = "搜索曲线"
-Y_MIN = -20.0
+Y_MIN = -13.0
 
 
-def _load_scores(method: str, run_name: str) -> dict[int, float]:
+def _load_scores(directory: str, run_name: str) -> dict[int, float]:
     scores: dict[int, float] = {}
-    samples_dir = EXPERIMENTS_DIR / METHODS[method]["directory"] / run_name / "logs" / "samples"
+    samples_dir = EXPERIMENTS_DIR / directory / run_name / "logs" / "samples"
     for path in samples_dir.glob("samples_*.json"):
         if path.name == "samples_best.json":
             continue
@@ -71,8 +77,8 @@ def _best_so_far(scores: dict[int, float], budget: int) -> np.ndarray:
     return curve
 
 
-def _method_curves(method: str) -> np.ndarray:
-    config = METHODS[method]
+def _method_curves(label: str) -> np.ndarray:
+    config = METHODS[label]
     curves = []
     for run_name in config["runs"]:
         summary_path = EXPERIMENTS_DIR / config["directory"] / run_name / "logs" / "run_summary.json"
@@ -81,7 +87,7 @@ def _method_curves(method: str) -> np.ndarray:
         summary = json.loads(summary_path.read_text(encoding="utf-8"))
         if summary.get("status") != "finished":
             raise RuntimeError(f"Run is not finished: {run_name} status={summary.get('status')!r}")
-        curves.append(_best_so_far(_load_scores(method, run_name), config["budget"]))
+        curves.append(_best_so_far(_load_scores(config["directory"], run_name), config["budget"]))
     return np.vstack(curves)
 
 
@@ -94,24 +100,28 @@ def _style() -> None:
             "axes.labelsize": 15,
             "xtick.labelsize": 12,
             "ytick.labelsize": 12,
-            "legend.fontsize": 10,
+            "legend.fontsize": 9,
             "figure.dpi": 300,
             "savefig.dpi": 300,
         }
     )
 
 
-def _limits(curves: list[np.ndarray]) -> tuple[float, float]:
+def _limits(curves: list[np.ndarray], *, floor: float | None = Y_MIN) -> tuple[float, float]:
     values = np.concatenate([curve[np.isfinite(curve)] for curve in curves])
     high = float(values.max())
-    padding = max((high - Y_MIN) * 0.08, 0.2)
-    return Y_MIN, high + padding
+    low = float(values.min()) if floor is None else floor
+    if floor is None:
+        padding = max((high - low) * 0.08, 0.2)
+        return low - padding, high + padding
+    padding = max((high - low) * 0.08, 0.2)
+    return low, high + padding
 
 
-def _render(method_names: tuple[str, ...], output_stem: str, combined: bool) -> None:
+def _render(method_names: tuple[str, ...], output_stem: str, *, y_floor: float | None = Y_MIN) -> None:
     data = [(name, _method_curves(name)) for name in method_names]
     _style()
-    fig, ax = plt.subplots(figsize=(7.2, 4.2) if combined else (6.4, 3.8))
+    fig, ax = plt.subplots(figsize=(7.2, 4.2))
     handles = []
     all_curves = []
     max_budget = max(METHODS[name]["budget"] for name in method_names)
@@ -130,14 +140,14 @@ def _render(method_names: tuple[str, ...], output_stem: str, combined: bool) -> 
             drawstyle="steps-post",
             color=config["color"],
             linewidth=2.2,
-            label=f"{name} 平均（{budget} 次评估）" if combined else f"{name} 平均",
+            label=f"{name} 平均（{budget} 次评估）",
             zorder=3,
         )
         handles.append(line)
     flattened = [curve for method_curves in all_curves for curve in method_curves]
     handles.append(Patch(facecolor="#999999", edgecolor="none", alpha=0.25, label="三次运行的最小-最大范围"))
     ax.set_xlim(0, max_budget)
-    ax.set_ylim(*_limits(flattened))
+    ax.set_ylim(*_limits(flattened, floor=y_floor))
     ax.set_xlabel("评估次数")
     ax.set_ylabel("训练集最佳分数（越高越好）")
     ax.grid(True, color="#D9D9D9", linewidth=0.7, alpha=0.55)
@@ -154,7 +164,8 @@ def _render(method_names: tuple[str, ...], output_stem: str, combined: bool) -> 
 
 
 def main() -> None:
-    _render(tuple(METHODS), COMBINED_STEM, combined=True)
+    _render(tuple(METHODS), "搜索曲线", y_floor=Y_MIN)
+    _render(("TraceAAD version1", "TraceAAD version2"), "搜索曲线_TraceAAD_v1_v2", y_floor=Y_MIN)
 
 
 if __name__ == "__main__":

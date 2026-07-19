@@ -1,4 +1,4 @@
-"""Render OP search curves for completed methods in one figure."""
+"""Render OP search curves for completed methods."""
 
 from __future__ import annotations
 
@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RESULTS_DIR = PROJECT_ROOT / "docs" / "results" / "orienteering_construct"
-OUTPUT_PATH = RESULTS_DIR / "搜索曲线_方法对比.png"
 
 
 @dataclass(frozen=True)
@@ -28,8 +27,8 @@ class MethodSpec:
     band_color: str
 
 
-METHODS = (
-    MethodSpec(
+METHODS = {
+    "MCTS-AHD": MethodSpec(
         label="MCTS-AHD",
         method_dir=PROJECT_ROOT / "experiments" / "orienteering_construct" / "mcts_ahd",
         runs=("20260713_125413", "20260713_125707", "20260713_125712"),
@@ -37,7 +36,7 @@ METHODS = (
         color="#0072B2",
         band_color="#56B4E9",
     ),
-    MethodSpec(
+    "PathWise": MethodSpec(
         label="PathWise",
         method_dir=PROJECT_ROOT / "experiments" / "orienteering_construct" / "pathwise",
         runs=("20260714_105543_rep1", "20260714_105543_rep2", "20260714_105543_rep3"),
@@ -45,7 +44,7 @@ METHODS = (
         color="#D55E00",
         band_color="#E69F00",
     ),
-    MethodSpec(
+    "TraceAAD version1": MethodSpec(
         label="TraceAAD version1",
         method_dir=PROJECT_ROOT / "experiments" / "orienteering_construct" / "traceaad" / "version1",
         runs=("20260714_141500_rep1", "20260714_141505_rep2", "20260714_141510_rep3"),
@@ -53,7 +52,15 @@ METHODS = (
         color="#009E73",
         band_color="#66C2A5",
     ),
-)
+    "TraceAAD version2": MethodSpec(
+        label="TraceAAD version2",
+        method_dir=PROJECT_ROOT / "experiments" / "orienteering_construct" / "traceaad" / "version2",
+        runs=("20260718_215554_op_rep1", "20260718_215554_op_rep2", "20260718_215554_op_rep3"),
+        budget=1000,
+        color="#6A4C93",
+        band_color="#C9B1FF",
+    ),
+}
 
 
 def _load_scores(method: MethodSpec, run_name: str) -> dict[int, float]:
@@ -100,7 +107,7 @@ def _method_curves(method: MethodSpec) -> np.ndarray:
     return curves
 
 
-def main() -> None:
+def _render(method_names: tuple[str, ...], output_name: str, title: str, y_bottom: float | None) -> None:
     plt.rcParams.update(
         {
             "font.sans-serif": ["Noto Sans CJK SC", "WenQuanYi Zen Hei", "DejaVu Sans"],
@@ -109,14 +116,14 @@ def main() -> None:
             "axes.labelsize": 15,
             "xtick.labelsize": 12,
             "ytick.labelsize": 12,
-            "legend.fontsize": 11,
+            "legend.fontsize": 10,
             "figure.dpi": 300,
             "savefig.dpi": 300,
         }
     )
-
     fig, ax = plt.subplots(figsize=(7.2, 4.2))
-    for method in METHODS:
+    for name in method_names:
+        method = METHODS[name]
         curves = _method_curves(method)
         x = np.arange(1, method.budget + 1)
         mean = curves.mean(axis=0)
@@ -131,19 +138,30 @@ def main() -> None:
             linewidth=2.2,
             label=f"{method.label} 平均",
         )
-
-    ax.set_xlim(0, max(method.budget for method in METHODS))
-    ax.set_ylim(bottom=13.0)
+    ax.set_xlim(0, max(METHODS[name].budget for name in method_names))
+    if y_bottom is not None:
+        ax.set_ylim(bottom=y_bottom)
     ax.set_xlabel("评估次数")
     ax.set_ylabel("训练集最佳分数（越高越好）")
-    ax.set_title("Orienteering Construct 方法搜索曲线")
+    ax.set_title(title)
     ax.grid(True, color="#D9D9D9", linewidth=0.8)
     ax.legend(frameon=False, loc="lower right")
     fig.tight_layout()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUTPUT_PATH, bbox_inches="tight")
+    output_path = RESULTS_DIR / output_name
+    fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
-    print(f"Wrote {OUTPUT_PATH}")
+    print(f"Wrote {output_path}")
+
+
+def main() -> None:
+    _render(tuple(METHODS), "搜索曲线_方法对比.png", "Orienteering Construct 方法搜索曲线", 13.0)
+    _render(
+        ("TraceAAD version1", "TraceAAD version2"),
+        "搜索曲线_TraceAAD_v1_v2.png",
+        "Orienteering Construct TraceAAD v1 vs v2",
+        13.0,
+    )
 
 
 if __name__ == "__main__":

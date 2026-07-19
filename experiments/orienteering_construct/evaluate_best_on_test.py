@@ -40,6 +40,16 @@ _WORKER_EVALUATOR: OrienteeringEvaluation | None = None
 _WORKER_HEURISTIC = None
 
 
+def _resolve_method(run_dir: Path) -> str:
+    config_path = run_dir / "run_config.json"
+    if config_path.exists():
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        method = config.get("method")
+        if isinstance(method, str) and method.strip():
+            return method.strip()
+    return run_dir.parent.name
+
+
 def _load_summary(run_dir: Path) -> dict[str, Any]:
     summary_path = run_dir / "logs" / "run_summary.json"
     if not summary_path.exists():
@@ -150,7 +160,7 @@ def main() -> None:
         raise ValueError("--sizes must contain at least one size")
 
     run_dirs = [run_dir.resolve() for run_dir in args.run_dirs]
-    methods = {run_dir.parent.name for run_dir in run_dirs}
+    methods = {_resolve_method(run_dir) for run_dir in run_dirs}
     if len(methods) != 1:
         raise ValueError(f"all run directories must belong to one method: {sorted(methods)}")
     method = next(iter(methods))

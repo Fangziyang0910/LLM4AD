@@ -1,4 +1,4 @@
-"""Compare MCTS-AHD, PathWise, and TraceAAD best-so-far training curves."""
+"""Compare MCTS-AHD, PathWise, and TraceAAD search curves for TSP Construct."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from matplotlib.patches import Patch
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RESULTS_DIR = PROJECT_ROOT / "docs" / "results" / "tsp_construct"
 EXPERIMENTS_DIR = PROJECT_ROOT / "experiments" / "tsp_construct"
-OUTPUT_STEM = RESULTS_DIR / "搜索曲线"
+Y_MIN = -8.0
 METHODS = {
     "MCTS-AHD": {
         "directory": "mcts_ahd",
@@ -39,12 +39,19 @@ METHODS = {
         "color": "#2A9D5B",
         "band": "#A8D5BA",
     },
+    "TraceAAD version2": {
+        "directory": "traceaad/version2",
+        "runs": ("20260718_174552_tsp_rep1", "20260718_174552_tsp_rep2", "20260718_174552_tsp_rep3"),
+        "budget": 1000,
+        "color": "#6A4C93",
+        "band": "#C9B1FF",
+    },
 }
 
 
-def _load_scores(method: str, run_name: str) -> dict[int, float]:
+def _load_scores(directory: str, run_name: str) -> dict[int, float]:
     scores: dict[int, float] = {}
-    samples_dir = EXPERIMENTS_DIR / method / run_name / "logs" / "samples"
+    samples_dir = EXPERIMENTS_DIR / directory / run_name / "logs" / "samples"
     for path in samples_dir.glob("samples_*.json"):
         if path.name == "samples_best.json":
             continue
@@ -67,7 +74,17 @@ def _best_so_far(scores: dict[int, float], budget: int) -> np.ndarray:
     return curve
 
 
-def main() -> None:
+def _method_curves(label: str) -> np.ndarray:
+    config = METHODS[label]
+    return np.vstack(
+        [
+            _best_so_far(_load_scores(config["directory"], run_name), config["budget"])
+            for run_name in config["runs"]
+        ]
+    )
+
+
+def _style() -> None:
     plt.rcParams.update(
         {
             "font.sans-serif": ["Noto Sans CJK SC", "WenQuanYi Zen Hei", "DejaVu Sans"],
@@ -76,25 +93,28 @@ def main() -> None:
             "axes.labelsize": 15,
             "xtick.labelsize": 12,
             "ytick.labelsize": 12,
-            "legend.fontsize": 10,
+            "legend.fontsize": 9,
             "figure.dpi": 300,
             "savefig.dpi": 300,
         }
     )
+
+
+def _render(method_names: tuple[str, ...], output_stem: str) -> None:
+    data = [(name, _method_curves(name)) for name in method_names]
+    _style()
     fig, ax = plt.subplots(figsize=(7.2, 4.2))
     handles = []
-    for label, config in METHODS.items():
+    all_curves = []
+    max_budget = max(METHODS[name]["budget"] for name in method_names)
+    for name, curves in data:
+        config = METHODS[name]
         budget = config["budget"]
-        curves = np.vstack(
-            [
-                _best_so_far(_load_scores(config["directory"], run_name), budget)
-                for run_name in config["runs"]
-            ]
-        )
         x = np.arange(1, budget + 1)
         mean = np.nanmean(curves, axis=0)
         lower = np.nanmin(curves, axis=0)
         upper = np.nanmax(curves, axis=0)
+        all_curves.append(curves)
         ax.fill_between(x, lower, upper, step="post", color=config["band"], alpha=0.25, linewidth=0)
         line, = ax.plot(
             x,
@@ -102,15 +122,18 @@ def main() -> None:
             drawstyle="steps-post",
             color=config["color"],
             linewidth=2.2,
-            label=f"{label} 平均（{budget} 次评估）",
+            label=f"{name} mean ({budget} evaluations)",
             zorder=3,
         )
         handles.append(line)
-    handles.append(Patch(facecolor="#999999", edgecolor="none", alpha=0.25, label="三次运行的最小-最大范围"))
-    ax.set_xlim(0, 1000)
-    ax.set_ylim(-7.0, -5.8)
-    ax.set_xlabel("评估次数")
-    ax.set_ylabel("训练集最佳分数（越高越好）")
+    values = np.concatenate([curve[np.isfinite(curve)] for curves in all_curves for curve in curves])
+    visible_values = values[values >= Y_MIN]
+    padding = max((float(visible_values.max()) - Y_MIN) * 0.08, 0.05)
+    ax.set_xlim(0, max_budget)
+    ax.set_ylim(Y_MIN, float(visible_values.max()) + padding)
+    handles.append(Patch(facecolor="#999999", edgecolor="none", alpha=0.25, label="Min-max range across three runs"))
+    ax.set_xlabel("Evaluations")
+    ax.set_ylabel("Best-so-far score (higher is better)")
     ax.grid(True, color="#D9D9D9", linewidth=0.7, alpha=0.55)
     ax.set_axisbelow(True)
     for spine in ax.spines.values():
@@ -118,8 +141,15 @@ def main() -> None:
     ax.legend(handles=handles, loc="lower right", frameon=True, framealpha=0.95, edgecolor="#444444")
     fig.tight_layout()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUTPUT_STEM.with_suffix(".png"), dpi=300)
-    print(f"Wrote {OUTPUT_STEM.with_suffix('.png')}")
+    output = RESULTS_DIR / output_stem
+    fig.savefig(output.with_suffix(".png"), dpi=300)
+    plt.close(fig)
+    print(f"Wrote {output.with_suffix('.png')}")
+
+
+def main() -> None:
+    _render(tuple(METHODS), "搜索曲线")
+    _render(("TraceAAD version1", "TraceAAD version2"), "搜索曲线_TraceAAD_v1_v2")
 
 
 if __name__ == "__main__":

@@ -30,6 +30,16 @@ _WORKER_EVALUATOR: CVRPACOEvaluation | None = None
 _WORKER_HEURISTIC = None
 
 
+def _resolve_method(run_dir: Path) -> str:
+    config_path = run_dir / "run_config.json"
+    if config_path.exists():
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        method = config.get("method")
+        if isinstance(method, str) and method.strip():
+            return method.strip()
+    return run_dir.parent.name
+
+
 def _load_samples(run_dir: Path) -> list[dict[str, Any]]:
     samples_dir = run_dir / "logs" / "samples"
     records: list[dict[str, Any]] = []
@@ -130,7 +140,7 @@ def main() -> None:
         raise ValueError("--splits must contain at least one split")
 
     run_dirs = [run_dir.resolve() for run_dir in args.run_dirs]
-    methods = {run_dir.parent.name for run_dir in run_dirs}
+    methods = {_resolve_method(run_dir) for run_dir in run_dirs}
     if len(methods) != 1:
         raise ValueError(f"all run directories must belong to one method: {sorted(methods)}")
     method = next(iter(methods))
