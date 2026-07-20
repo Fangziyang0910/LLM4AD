@@ -13,13 +13,11 @@ from .backtrack import BacktrackBranchOp
 from .crossover import MechanismCrossoverOp
 from .endpoint import EndpointRefineOp
 from .novelty import NoveltyJumpOp
-from .simplify import SimplifyOp
 
 DEFAULT_OPERATORS: tuple[type[Operator], ...] = (
     EndpointRefineOp,
     BacktrackBranchOp,
     MechanismCrossoverOp,
-    SimplifyOp,
     NoveltyJumpOp,
 )
 
@@ -30,7 +28,6 @@ __all__ = [
     "EndpointRefineOp",
     "BacktrackBranchOp",
     "MechanismCrossoverOp",
-    "SimplifyOp",
     "NoveltyJumpOp",
     "select_base_node",
     "branch_score",

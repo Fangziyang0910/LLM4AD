@@ -1,7 +1,4 @@
-"""Stepwise credit（design §5）。
-
-stepwise attribution：每个 step 只承担自己的 Δ，后代不回传（规避 MCTS max-backprop over-credit）。
-"""
+"""计算单步有向变化和一条轨迹近期的改进趋势。"""
 from __future__ import annotations
 
 from .derivation_graph import DerivationGraph

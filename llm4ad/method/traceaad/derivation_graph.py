@@ -1,11 +1,5 @@
-"""DerivationGraph —— Program Memory（结果库，ground truth）。
-
-单父 DAG：每个 child 恰好一条入边。
-"""
+"""保存程序及其单父修改关系。"""
 from __future__ import annotations
-
-from collections import defaultdict
-from typing import Mapping
 
 from .schema import EdgeId, ImprovementEdge, NodeId, ProgramNode
 
@@ -17,20 +11,13 @@ class DerivationGraph:
         self._nodes: dict[NodeId, ProgramNode] = {}
         self._edges: dict[EdgeId, ImprovementEdge] = {}
         self._incoming_edge_by_child: dict[NodeId, EdgeId] = {}
-        self._outgoing_edges_by_parent: dict[NodeId, list[EdgeId]] = defaultdict(list)
 
-    def add_node(self, *, code: str, idea: str, fitness: float | None, **fields) -> ProgramNode:
-        metrics = fields.get("complexity_metrics") or {}
-        if not isinstance(metrics, Mapping):
-            metrics = {}
+    def add_node(self, *, code: str, idea: str, fitness: float | None) -> ProgramNode:
         node = ProgramNode(
             id=self._next_node_id,
             code=code,
             idea=idea,
             fitness=fitness,
-            complexity=float(fields.get("complexity", 0.0) or 0.0),
-            runtime=float(fields.get("runtime", 0.0) or 0.0),
-            complexity_metrics=dict(metrics),
         )
         self._nodes[node.id] = node
         self._next_node_id += 1
@@ -64,22 +51,11 @@ class DerivationGraph:
         )
         self._edges[edge.id] = edge
         self._incoming_edge_by_child[child_id] = edge.id
-        self._outgoing_edges_by_parent[parent_id].append(edge.id)
         self._next_edge_id += 1
         return edge
 
     def get_edge(self, edge_id: EdgeId) -> ImprovementEdge:
         return self._edges[edge_id]
-
-    def incoming_edge(self, child_id: NodeId) -> ImprovementEdge | None:
-        edge_id = self._incoming_edge_by_child.get(child_id)
-        return None if edge_id is None else self._edges[edge_id]
-
-    def outgoing_edges(self, parent_id: NodeId) -> tuple[ImprovementEdge, ...]:
-        return tuple(
-            self._edges[edge_id]
-            for edge_id in self._outgoing_edges_by_parent.get(parent_id, ())
-        )
 
     def edges(self) -> tuple[ImprovementEdge, ...]:
         return tuple(self._edges.values())

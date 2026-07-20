@@ -1,8 +1,4 @@
-"""Mechanism Crossover —— recombination。从互补 donor 移植一个明确算法思路。
-
-保留算子名 mechanism_crossover 以兼容日志口径。触发始终可行（初始化后池中必有其他轨迹）；
-donor 按代码/轨迹互补性 + 质量软排序，不因门槛硬禁用算子。
-"""
+"""从另一条互补轨迹引入一个明确的算法思想。"""
 from __future__ import annotations
 
 from ..credit import normalize_fitness
@@ -17,12 +13,12 @@ from .base import Operator, OperatorContext
 
 class MechanismCrossoverOp(Operator):
     name = OperatorName.CROSSOVER
-    role = "recombine"
-    w_sim_code = 0.7
-    w_sim_trajectory = 0.3
 
     def trigger(self, ctx: OperatorContext) -> bool:
-        return True
+        return any(
+            trajectory.id != ctx.selected.id
+            for trajectory in ctx.memory.unique_active()
+        )
 
     def _select_donor(self, ctx: OperatorContext) -> Trajectory | None:
         candidates = [t for t in ctx.memory.active() if t.id != ctx.selected.id]
@@ -47,9 +43,10 @@ class MechanismCrossoverOp(Operator):
             sim_traj = trajectory_pattern_similarity(
                 sel_pattern, trajectory_pattern(ctx.graph, t)
             )
-            total = self.w_sim_code + self.w_sim_trajectory
+            w_code, w_trajectory = ctx.similarity_weights
+            total = w_code + w_trajectory
             sim = (
-                (self.w_sim_code * sim_code + self.w_sim_trajectory * sim_traj) / total
+                (w_code * sim_code + w_trajectory * sim_traj) / total
                 if total > 0
                 else 0.0
             )
@@ -69,16 +66,16 @@ class MechanismCrossoverOp(Operator):
         if donor is None:
             return ctx.selected.endpoint_id, "endpoint"
         donor_node = ctx.graph.get_node(donor.endpoint_id)
-        ctx.hints["donor_idea"] = donor_node.idea
+        ctx.donor_idea = donor_node.idea
         return ctx.selected.endpoint_id, "crossover_base"
 
     def build_constraint(self, ctx: OperatorContext, base_node_id: int | None) -> str:
-        donor_idea = ctx.hints.get("donor_idea", "an unreported idea")
+        donor_idea = ctx.donor_idea or "an unreported idea"
         return (
             "Recombine: transplant exactly ONE clear algorithmic idea from a donor trajectory "
             f"into the current base program. Donor idea for reference: {donor_idea}. "
             "Do NOT replace the whole program — keep the existing structure and change only "
-            "that single idea. Any elite donor trace is evidence for one action, not a complete program to copy."
+            "that single idea."
         )
 
     def insert(self, ctx: OperatorContext, child_id: NodeId, edge_id: int,

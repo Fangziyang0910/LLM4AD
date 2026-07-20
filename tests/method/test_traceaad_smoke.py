@@ -1,16 +1,5 @@
-"""TraceAAD smoke test: mock LLM + FakeEvaluation 跑通 init + iterations。
-
-验证三层记忆/三回路/5 算子/portfolio/因果 context 全链路无异常。
-不触网：FakeLLM 按提示类型返回程序/actions，FakeEvaluation 返回递增 fitness。
-"""
+"""Mock LLM 和评估器跑通 TraceAAD 核心搜索流程。"""
 from __future__ import annotations
-
-import sys
-from pathlib import Path
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
 
 from llm4ad.base import Evaluation, LLM
 from llm4ad.method.traceaad import TraceAAD
@@ -74,8 +63,7 @@ def run_smoke():
     method = TraceAAD(
         llm=llm, evaluation=ev, profiler=None,
         max_sample_nums=14, n_init=3, actions_per_iteration=2,
-        n_islands=2, max_per_island=10, maximize=True,
-        num_evaluators=1, multi_thread_or_process_eval="thread",
+        max_active_trajectories=10, maximize=True,
     )
     result = method.run()
     print("=== TraceAAD smoke result ===")
@@ -84,8 +72,9 @@ def run_smoke():
     print(f"best_fitness={result.best_node.fitness if result.best_node else None}")
     print(f"portfolio={method._portfolio.snapshot()}")
     assert result.best_node is not None, "best_node should exist"
-    assert result.n_samples > 0
+    assert result.n_samples == 14
     assert result.n_trajectories > 0
+    assert result.n_edges > 0
     print("SMOKE OK")
 
 

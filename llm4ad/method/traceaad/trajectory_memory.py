@@ -1,15 +1,10 @@
-"""TrajectoryMemory —— 路径层记忆（采样对象）。
-
-存储有界 trajectory，支持 create_initial / extend / branch_from（含滑窗截断）、
-按 island 分组、归档。value/scalar_value 由 value.py 计算后写入。
-"""
+"""保存、扩展和筛选有界算法改进轨迹。"""
 from __future__ import annotations
 
 from dataclasses import replace
 
 from .schema import (
     EdgeId,
-    IslandId,
     NodeId,
     Trajectory,
     TrajectoryId,
@@ -26,21 +21,19 @@ class TrajectoryMemory:
         self._next_id = 0
         self._trajectories: dict[TrajectoryId, Trajectory] = {}
 
-    def create_initial(self, *, node_id: NodeId, island_id: IslandId = 0) -> Trajectory:
+    def create_initial(self, *, node_id: NodeId) -> Trajectory:
         traj = Trajectory(
             id=self._next_id,
             node_ids=(node_id,),
             edge_ids=(),
             endpoint_id=node_id,
-            base_id=node_id,
-            island_id=island_id,
         )
         self._trajectories[traj.id] = traj
         self._next_id += 1
         return traj
 
     def extend(self, *, trajectory_id: TrajectoryId, parent_id: NodeId, child_id: NodeId,
-               edge_id: EdgeId, island_id: IslandId | None = None) -> Trajectory:
+               edge_id: EdgeId) -> Trajectory:
         parent = self.get_trajectory(trajectory_id)
         if parent.endpoint_id != parent_id:
             raise ValueError(
@@ -51,11 +44,10 @@ class TrajectoryMemory:
             base_node_id=parent.endpoint_id,
             child_id=child_id,
             edge_id=edge_id,
-            island_id=island_id,
         )
 
     def branch_from(self, *, trajectory_id: TrajectoryId, base_node_id: NodeId,
-                    child_id: NodeId, edge_id: EdgeId, island_id: IslandId | None = None) -> Trajectory:
+                    child_id: NodeId, edge_id: EdgeId) -> Trajectory:
         parent = self.get_trajectory(trajectory_id)
         if parent.status != TrajectoryStatus.ACTIVE:
             raise ValueError(f"cannot branch from archived trajectory: {trajectory_id}")
@@ -69,28 +61,17 @@ class TrajectoryMemory:
         if overflow > 0:
             node_ids = node_ids[overflow:]
             edge_ids = edge_ids[overflow:]
-        # 滑窗后 base 可能被截掉，endpoint 永远是最后一个节点
         endpoint_id = node_ids[-1]
-        new_base = node_ids[0]
 
         traj = Trajectory(
             id=self._next_id,
             node_ids=node_ids,
             edge_ids=edge_ids,
             endpoint_id=endpoint_id,
-            base_id=new_base,
-            island_id=parent.island_id if island_id is None else island_id,
         )
         self._trajectories[traj.id] = traj
         self._next_id += 1
         return traj
-
-    def move_to_island(self, trajectory_id: TrajectoryId, island_id: IslandId) -> Trajectory:
-        """Move one trajectory while preserving its identity and accumulated state."""
-        trajectory = self.get_trajectory(trajectory_id)
-        moved = replace(trajectory, island_id=island_id)
-        self._trajectories[trajectory_id] = moved
-        return moved
 
     def record_visit(self, trajectory_id: TrajectoryId) -> Trajectory:
         t = self.get_trajectory(trajectory_id)
@@ -144,12 +125,6 @@ class TrajectoryMemory:
         for trajectory_id in duplicate_ids:
             self.archive(trajectory_id)
         return len(duplicate_ids)
-
-    def active_in_island(self, island_id: IslandId) -> tuple[Trajectory, ...]:
-        return tuple(t for t in self.active() if t.island_id == island_id)
-
-    def island_ids(self) -> tuple[IslandId, ...]:
-        return tuple(sorted({t.island_id for t in self.active()}))
 
     def total_visits(self) -> int:
         return sum(t.visit_count for t in self.unique_active())

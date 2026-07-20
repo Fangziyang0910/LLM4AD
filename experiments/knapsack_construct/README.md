@@ -10,7 +10,6 @@
 
 - 训练数据：`n_instance=32`，`n_items=50`，`knapsack_capacity=100`，**`seed=2024`**
 - 分数语义：平均总价值，**越高越好**（启动前修正了评估符号：原先误返回负值）
-- TraceAAD 搜索种子：`SEARCH_SEED=2024`
 - tmux 会话：`kp_<method>_rep{1,2,3}`
 - 启动日志：`launch_20260719_223427.log`
 - 重启命令：`bash experiments/knapsack_construct/launch_nine_tmux.sh`

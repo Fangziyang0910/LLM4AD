@@ -1,335 +1,151 @@
 from __future__ import annotations
 
 from llm4ad.method.traceaad.derivation_graph import DerivationGraph
-from llm4ad.method.traceaad.experience_memory import ExperienceMemory
-from llm4ad.method.traceaad.islands import IslandsManager
 from llm4ad.method.traceaad.operators import (
     BacktrackBranchOp,
+    EndpointRefineOp,
     MechanismCrossoverOp,
     NoveltyJumpOp,
     OperatorContext,
-    SimplifyOp,
 )
 from llm4ad.method.traceaad.schema import ValueVec
 from llm4ad.method.traceaad.trajectory_memory import TrajectoryMemory
 
 
-def _context(*, graph: DerivationGraph, memory: TrajectoryMemory, selected, **fields):
-    return OperatorContext(
-        graph=graph,
-        memory=memory,
-        experience_memory=ExperienceMemory(graph),
-        islands=fields.pop("islands", IslandsManager(n_islands=1)),
-        selected=selected,
-        maximize=True,
-        **fields,
-    )
-
-
-def _trajectory_with_fitnesses(*fitnesses: float, complexities: tuple[int, ...] | None = None):
+def _regressing_trajectory():
     graph = DerivationGraph()
-    memory = TrajectoryMemory(max_trajectory_length=8)
-    complexities = complexities or tuple(0 for _ in fitnesses)
-    root = graph.add_node(
-        code="root", idea="root", fitness=fitnesses[0], complexity=complexities[0],
+    memory = TrajectoryMemory()
+    root = graph.add_node(code="root", idea="root", fitness=10.0)
+    child = graph.add_node(code="child", idea="bad change", fitness=8.0)
+    edge = graph.add_edge(
+        parent_id=root.id,
+        child_id=child.id,
+        action="bad change",
+        operator="endpoint_refine",
+        delta=-2.0,
+        outcome="regress",
     )
     trajectory = memory.create_initial(node_id=root.id)
-    for index, (fitness, complexity) in enumerate(zip(fitnesses[1:], complexities[1:]), start=1):
-        child = graph.add_node(
-            code=f"child-{index}", idea=f"child-{index}", fitness=fitness, complexity=complexity,
-        )
-        edge = graph.add_edge(
-            parent_id=trajectory.endpoint_id,
-            child_id=child.id,
-            action=f"step-{index}",
-        )
-        trajectory = memory.extend(
-            trajectory_id=trajectory.id,
-            parent_id=trajectory.endpoint_id,
-            child_id=child.id,
-            edge_id=edge.id,
-        )
+    trajectory = memory.extend(
+        trajectory_id=trajectory.id,
+        parent_id=root.id,
+        child_id=child.id,
+        edge_id=edge.id,
+    )
     return graph, memory, trajectory
 
 
-def _initial_trajectory(
-    *,
-    graph: DerivationGraph,
-    memory: TrajectoryMemory,
-    fitness: float,
-    code: str,
-    idea: str,
-    quality: float,
-    scalar: float,
-    island_id: int = 0,
-):
-    node = graph.add_node(code=code, idea=idea, fitness=fitness)
-    trajectory = memory.create_initial(node_id=node.id, island_id=island_id)
-    memory.set_value(trajectory.id, ValueVec(quality=quality), scalar)
-    return memory.get_trajectory(trajectory.id)
+def _context(graph, memory, trajectory):
+    return OperatorContext(
+        graph=graph,
+        memory=memory,
+        selected=trajectory,
+        maximize=True,
+    )
 
 
-def test_backtrack_does_not_rename_an_endpoint_rewrite_as_internal():
-    graph, memory, trajectory = _trajectory_with_fitnesses(10.0, 0.0)
-    ctx = _context(graph=graph, memory=memory, selected=trajectory)
-
-    base_id, reason = BacktrackBranchOp().select_base(ctx)
-
-    assert base_id == trajectory.endpoint_id
-    assert reason == "endpoint"
-
-
-def test_backtrack_is_ineligible_when_base_selection_stays_at_endpoint():
-    graph, memory, trajectory = _trajectory_with_fitnesses(10.0, 0.0)
-    ctx = _context(graph=graph, memory=memory, selected=trajectory)
-
+def test_backtrack_selects_an_earlier_program_after_regression() -> None:
+    graph, memory, trajectory = _regressing_trajectory()
     operator = BacktrackBranchOp()
+    context = _context(graph, memory, trajectory)
 
-    assert operator.select_trajectory(ctx) is None
-    assert not operator.trigger(ctx)
-
-
-def test_backtrack_remains_eligible_when_base_selection_is_strictly_internal():
-    graph, memory, trajectory = _trajectory_with_fitnesses(10.0, 9.0)
-    ctx = _context(graph=graph, memory=memory, selected=trajectory)
-
-    operator = BacktrackBranchOp()
-    target = operator.select_trajectory(ctx)
-
+    target = operator.select_trajectory(context)
     assert target is not None
-    ctx.selected = target
-    base_id, _ = operator.select_base(ctx)
-    assert base_id != target.endpoint_id
+    context.selected = target
+    base_id, reason = operator.select_base(context)
+
+    assert base_id == target.node_ids[0]
+    assert reason in {"last_regressed", "endpoint_not_best"}
 
 
-def test_operator_preview_uses_actual_backtrack_target_not_initial_selection():
-    from llm4ad.method.traceaad.operator_signals import build_operator_previews
-    from llm4ad.method.traceaad.operators import EndpointRefineOp, NoveltyJumpOp
-
-    graph, memory, regressing = _trajectory_with_fitnesses(10.0, 9.0)
-    # Helper keeps the length-1 root active; use it as the UCB-selected trajectory.
-    selected = next(t for t in memory.active() if not t.edge_ids)
-    ctx = _context(graph=graph, memory=memory, selected=selected)
-    ops = (EndpointRefineOp(), BacktrackBranchOp(), NoveltyJumpOp())
-    previews = build_operator_previews(ctx=ctx, operators=ops, context_bound=0.2)
-
-    assert previews["backtrack_branch"].eligible
-    assert previews["backtrack_branch"].target_trajectory_id == regressing.id
-    assert previews["backtrack_branch"].target_trajectory_id != selected.id
-    assert previews["backtrack_branch"].details.get("last_outcome") == "regress"
-    assert previews["backtrack_branch"].details.get("branch_score") is not None
-    assert previews["backtrack_branch"].context_bonus > 0.0
-
-
-def test_simplify_triggers_on_relative_complexity_alone():
-    graph, memory, trajectory = _trajectory_with_fitnesses(
-        10.0, 10.0, complexities=(10, 20),
+def test_endpoint_extends_the_selected_trajectory() -> None:
+    graph, memory, trajectory = _regressing_trajectory()
+    context = _context(graph, memory, trajectory)
+    child = graph.add_node(code="better", idea="repair", fitness=11.0)
+    edge = graph.add_edge(
+        parent_id=trajectory.endpoint_id,
+        child_id=child.id,
+        action="repair",
     )
-    ctx = _context(graph=graph, memory=memory, selected=trajectory)
 
-    assert SimplifyOp().trigger(ctx)
-
-
-def test_simplify_does_not_trigger_without_relative_complexity_pressure():
-    # selected endpoint is the simpler of the two active endpoints
-    graph, memory, trajectory = _trajectory_with_fitnesses(
-        10.0, 11.0, complexities=(100, 10),
+    extended = EndpointRefineOp().insert(
+        context,
+        child.id,
+        edge.id,
+        trajectory.endpoint_id,
     )
-    ctx = _context(graph=graph, memory=memory, selected=trajectory)
 
-    assert not SimplifyOp().trigger(ctx)
+    assert extended.node_ids[-2:] == (trajectory.endpoint_id, child.id)
 
 
-def test_simplify_does_not_trigger_with_single_active_endpoint_pool():
+def test_crossover_uses_a_different_trajectory_as_idea_donor() -> None:
     graph = DerivationGraph()
     memory = TrajectoryMemory()
-    node = graph.add_node(code="only", idea="only", fitness=10.0, complexity=100)
+    base_node = graph.add_node(code="def f(): return 1", idea="base", fitness=10.0)
+    donor_node = graph.add_node(code="def g(): return 2", idea="donor idea", fitness=9.0)
+    base = memory.create_initial(node_id=base_node.id)
+    donor = memory.create_initial(node_id=donor_node.id)
+    memory.set_value(base.id, ValueVec(quality=1.0), 1.0)
+    memory.set_value(donor.id, ValueVec(quality=0.8), 0.8)
+    context = _context(graph, memory, base)
+
+    operator = MechanismCrossoverOp()
+    assert operator.trigger(context)
+    operator.select_base(context)
+
+    assert context.donor_idea == "donor idea"
+
+
+def test_crossover_is_unavailable_without_a_donor_trajectory() -> None:
+    graph = DerivationGraph()
+    memory = TrajectoryMemory()
+    node = graph.add_node(code="def f(): return 1", idea="only route", fitness=10.0)
     trajectory = memory.create_initial(node_id=node.id)
-    ctx = _context(graph=graph, memory=memory, selected=trajectory)
+    context = _context(graph, memory, trajectory)
 
-    assert not SimplifyOp().trigger(ctx)
+    assert not MechanismCrossoverOp().trigger(context)
 
 
-def test_crossover_rejects_a_low_quality_donor_despite_high_scalar_value():
+def test_crossover_uses_the_configured_similarity_weights() -> None:
     graph = DerivationGraph()
     memory = TrajectoryMemory()
-    selected = _initial_trajectory(
-        graph=graph, memory=memory, fitness=10.0,
-        code=(
-            "def score(current, candidates):\n"
-            "    dens = [local_density(current, c) for c in candidates]\n"
-            "    return dens.index(max(dens))\n"
-        ),
-        idea="density scoring",
-        quality=0.9, scalar=0.9,
+    selected_node = graph.add_node(code="def f(): return 1", idea="selected", fitness=5.0)
+    quality_node = graph.add_node(code="def f(): return 1", idea="quality donor", fitness=10.0)
+    different_node = graph.add_node(code="while x: y()", idea="different donor", fitness=1.0)
+    selected = memory.create_initial(node_id=selected_node.id)
+    quality = memory.create_initial(node_id=quality_node.id)
+    different = memory.create_initial(node_id=different_node.id)
+    memory.set_value(quality.id, ValueVec(quality=1.0), 1.0)
+    memory.set_value(different.id, ValueVec(quality=0.0), 0.0)
+    operator = MechanismCrossoverOp()
+
+    code_context = OperatorContext(
+        graph=graph,
+        memory=memory,
+        selected=selected,
+        maximize=True,
+        similarity_weights=(1.0, 0.0),
     )
-    low_quality = _initial_trajectory(
-        graph=graph, memory=memory, fitness=1.0,
-        code=(
-            "import random\n"
-            "def pick_next(state, options):\n"
-            "    ranks = sorted(options, key=lambda item: random.random() * priority(item))\n"
-            "    return ranks[0]\n"
-        ),
-        idea="sparse list",
-        quality=0.1, scalar=10.0,
+    operator.select_base(code_context)
+    assert code_context.donor_idea == "different donor"
+
+    trajectory_context = OperatorContext(
+        graph=graph,
+        memory=memory,
+        selected=selected,
+        maximize=True,
+        similarity_weights=(0.0, 1.0),
     )
-    qualified = _initial_trajectory(
-        graph=graph, memory=memory, fitness=8.0,
-        code=(
-            "import random\n"
-            "def pick_next(state, options):\n"
-            "    ranks = sorted(options, key=lambda item: random.random() * priority(item))\n"
-            "    return ranks[0]\n"
-        ),
-        idea="edge contrast",
-        quality=0.8, scalar=0.6,
-    )
-    ctx = _context(graph=graph, memory=memory, selected=selected)
-
-    MechanismCrossoverOp().select_base(ctx)
-
-    assert ctx.hints["donor_idea"] == "edge contrast"
-    assert graph.get_node(qualified.endpoint_id).idea == "edge contrast"
-    assert graph.get_node(low_quality.endpoint_id).idea == "sparse list"
+    operator.select_base(trajectory_context)
+    assert trajectory_context.donor_idea == "quality donor"
 
 
-def test_crossover_prefers_higher_complementarity_plus_quality():
-    graph = DerivationGraph()
-    memory = TrajectoryMemory()
-    selected = _initial_trajectory(
-        graph=graph, memory=memory, fitness=10.0,
-        code=(
-            "def score(current, candidates):\n"
-            "    dens = [local_density(current, c) for c in candidates]\n"
-            "    return dens.index(max(dens))\n"
-        ),
-        idea="density scoring",
-        quality=0.9, scalar=0.9,
-    )
-    similar = _initial_trajectory(
-        graph=graph, memory=memory, fitness=8.0,
-        code=(
-            "def score(current, candidates):\n"
-            "    dens = [local_density(current, c) for c in candidates]\n"
-            "    return dens.index(max(dens))\n"
-        ),
-        idea="almost same density",
-        quality=0.85, scalar=0.85,
-    )
-    complementary = _initial_trajectory(
-        graph=graph, memory=memory, fitness=8.0,
-        code=(
-            "import random\n"
-            "def pick_next(state, options):\n"
-            "    ranks = sorted(options, key=lambda item: random.random() * priority(item))\n"
-            "    return ranks[0]\n"
-        ),
-        idea="rank scaling",
-        quality=0.8, scalar=0.8,
-    )
-    ctx = _context(graph=graph, memory=memory, selected=selected)
+def test_novelty_starts_a_new_single_node_trajectory() -> None:
+    graph, memory, trajectory = _regressing_trajectory()
+    context = _context(graph, memory, trajectory)
+    node = graph.add_node(code="new", idea="new route", fitness=7.0)
 
-    MechanismCrossoverOp().select_base(ctx)
+    fresh = NoveltyJumpOp().insert(context, node.id, None, None)
 
-    assert ctx.hints["donor_idea"] == "rank scaling"
-    assert ctx.hints["donor_idea"] != graph.get_node(similar.endpoint_id).idea
-    assert "donor_mechanism" not in ctx.hints
-
-
-def test_crossover_constraint_mentions_donor_idea_not_mechanism_family():
-    graph = DerivationGraph()
-    memory = TrajectoryMemory()
-    selected = _initial_trajectory(
-        graph=graph, memory=memory, fitness=10.0,
-        code=(
-            "def score(current, candidates):\n"
-            "    dens = [local_density(current, c) for c in candidates]\n"
-            "    return dens.index(max(dens))\n"
-        ),
-        idea="density scoring",
-        quality=0.9, scalar=0.9,
-    )
-    _initial_trajectory(
-        graph=graph, memory=memory, fitness=8.0,
-        code=(
-            "import random\n"
-            "def pick_next(state, options):\n"
-            "    ranks = sorted(options, key=lambda item: random.random() * priority(item))\n"
-            "    return ranks[0]\n"
-        ),
-        idea="rank scaling",
-        quality=0.8, scalar=0.8,
-    )
-    op = MechanismCrossoverOp()
-    ctx = _context(graph=graph, memory=memory, selected=selected)
-    base_id, _ = op.select_base(ctx)
-    constraint = op.build_constraint(ctx, base_id)
-
-    assert "rank scaling" in constraint
-    assert "mechanism family" not in constraint.lower()
-
-
-def test_novelty_always_triggers():
-    graph, memory, trajectory = _trajectory_with_fitnesses(10.0)
-    op = NoveltyJumpOp()
-    ctx = _context(graph=graph, memory=memory, selected=trajectory, best_stagnation=0, iteration=0)
-    assert op.trigger(ctx)
-    ctx.best_stagnation = 100
-    ctx.iteration = 99
-    assert op.trigger(ctx)
-
-
-def test_novelty_constraint_lists_existing_ideas_without_preset_families():
-    graph = DerivationGraph()
-    memory = TrajectoryMemory()
-    selected = _initial_trajectory(
-        graph=graph, memory=memory, fitness=10.0,
-        code="def a():\n    return 1", idea="alpha idea",
-        quality=0.9, scalar=0.9,
-    )
-    _initial_trajectory(
-        graph=graph, memory=memory, fitness=8.0,
-        code="def b():\n    return 2", idea="beta idea",
-        quality=0.8, scalar=0.8,
-    )
-    op = NoveltyJumpOp()
-    ctx = _context(
-        graph=graph, memory=memory, selected=selected,
-        best_stagnation=12, iteration=0,
-    )
-    constraint = op.build_constraint(ctx, None)
-
-    assert "alpha idea" in constraint
-    assert "beta idea" in constraint
-    assert "local_density" not in constraint
-    assert "nearest neighbor" not in constraint.lower()
-
-
-def test_novelty_assigns_to_least_loaded_island():
-    graph = DerivationGraph()
-    memory = TrajectoryMemory()
-    selected = _initial_trajectory(
-        graph=graph, memory=memory, fitness=10.0,
-        code="def a():\n    return 1", idea="a",
-        quality=0.9, scalar=0.9, island_id=0,
-    )
-    _initial_trajectory(
-        graph=graph, memory=memory, fitness=8.0,
-        code="def b():\n    return 2", idea="b",
-        quality=0.8, scalar=0.8, island_id=0,
-    )
-    _initial_trajectory(
-        graph=graph, memory=memory, fitness=7.0,
-        code="def c():\n    return 3", idea="c",
-        quality=0.7, scalar=0.7, island_id=1,
-    )
-    child = graph.add_node(code="def d():\n    return 4", idea="d", fitness=6.0)
-    islands = IslandsManager(n_islands=3)
-    ctx = _context(
-        graph=graph, memory=memory, selected=selected, islands=islands,
-    )
-
-    traj = NoveltyJumpOp().insert(ctx, child.id, None, None)
-
-    assert traj.island_id == 2
+    assert fresh.node_ids == (node.id,)
+    assert fresh.edge_ids == ()

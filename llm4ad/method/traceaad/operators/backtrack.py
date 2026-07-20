@@ -1,8 +1,4 @@
-"""Backtrack Branch —— path correction（design §4.2，优化版：独立选题）。
-
-不依赖 UCB 刚选中的轨迹；主动扫描活跃池，找「存在不同于 endpoint 的内部 base」
-的多步轨迹。可行性门槛：池中至少有一条长度 ≥ 2 且能选出内部前缀的轨迹。
-"""
+"""从活跃轨迹的较好中间程序重新分叉。"""
 from __future__ import annotations
 
 from ..schema import NodeId, OperatorName, Trajectory
@@ -16,7 +12,6 @@ from .base import (
 
 class BacktrackBranchOp(Operator):
     name = OperatorName.BACKTRACK
-    role = "path_correct"
 
     def _candidates(self, ctx: OperatorContext) -> list[tuple[Trajectory, float]]:
         out: list[tuple[Trajectory, float]] = []
@@ -55,8 +50,7 @@ class BacktrackBranchOp(Operator):
         return (
             "The selected trajectory's endpoint regressed or saturated, but an earlier prefix was strong. "
             "Branch from that high-value prefix and propose a modification DIFFERENT from the one that "
-            "caused the regression or plateau. Treat the elite prefix-repair trace as a boundary to repair, "
-            "not as a new parent edge."
+            "caused the regression or plateau."
         )
 
     def insert(self, ctx: OperatorContext, child_id: NodeId, edge_id: int,

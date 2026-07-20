@@ -7,7 +7,6 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
 BATCH_TS="${BATCH_TS:-$(date +%Y%m%d_%H%M%S)}"
-SEARCH_SEED="${SEARCH_SEED:-2024}"
 NO_PROXY_ALL="183.36.243.124,222.201.145.8,localhost,127.0.0.1,::1"
 
 # rep -> GPU source
@@ -33,7 +32,6 @@ LAUNCH_LOG="$ROOT/experiments/knapsack_construct/launch_${BATCH_TS}.log"
 mkdir -p "$ROOT/experiments/knapsack_construct"
 {
   echo "batch_ts=$BATCH_TS"
-  echo "search_seed=$SEARCH_SEED"
   echo "train_seed=2024 (from generated_data_config)"
   echo "task=knapsack_construct n_instance=32 n_items=50 capacity=100"
 } | tee "$LAUNCH_LOG"
@@ -54,7 +52,7 @@ start_one() {
   cmd="cd '$ROOT' && \
 export NO_PROXY='$NO_PROXY_ALL' no_proxy='$NO_PROXY_ALL' \
 LLM_BASE_URL='${BASE_URL[$rep]}' LLM_MODEL='${MODEL[$rep]}' LLM_API_KEY='${API_KEY[$rep]}' \
-RUN_TIMESTAMP='$run_ts' SEARCH_SEED='$SEARCH_SEED' EXPERIMENT_VERSION='version2' && \
+RUN_TIMESTAMP='$run_ts' && \
 echo starting method=$method rep=$rep source=${SOURCE_NAME[$rep]} run_ts=$run_ts && \
 uv run python '$script'; echo EXIT:\$?; exec bash"
 

@@ -1,8 +1,6 @@
-"""两层相似度：程序层 + 轨迹行为层。
+"""程序代码和轨迹修改结果的组合相似度。
 
-不引入外部 embedding 模型：code 层用规范化 token Jaccard，轨迹层用
-(operator, outcome) 行为指纹 Jaccard。组合相似度供 novelty gate 与
-V_diversity / V_novelty 共用。
+该相似度同时用于路线差异和相似轨迹过滤。
 """
 from __future__ import annotations
 

@@ -1,8 +1,4 @@
-"""Novelty Jump —— exploration。
-
-始终可作为探索候选；由 portfolio 的历史收益与阶段 bonus 控制调用频率。
-生成与当前活跃精英 idea 明显不同的完整新方案，分配到活跃轨迹最少的 island。
-"""
+"""重新探索一个不同于现有路线的完整方案。"""
 from __future__ import annotations
 
 from ..schema import NodeId, OperatorName, Trajectory
@@ -11,7 +7,6 @@ from .base import Operator, OperatorContext
 
 class NoveltyJumpOp(Operator):
     name = OperatorName.NOVELTY
-    role = "explore"
 
     def __init__(self, *, max_avoid_ideas: int = 4) -> None:
         self.max_avoid_ideas = max_avoid_ideas
@@ -37,11 +32,7 @@ class NoveltyJumpOp(Operator):
 
     def insert(self, ctx: OperatorContext, child_id: NodeId, edge_id: int,
                base_node_id: NodeId | None) -> Trajectory:
-        counts = {i: 0 for i in range(ctx.islands.n_islands)}
-        for t in ctx.memory.active():
-            counts[t.island_id] = counts.get(t.island_id, 0) + 1
-        island_id = min(counts.items(), key=lambda kv: (kv[1], kv[0]))[0]
-        return ctx.memory.create_initial(node_id=child_id, island_id=island_id)
+        return ctx.memory.create_initial(node_id=child_id)
 
     def _avoid_ideas(self, ctx: OperatorContext) -> list[str]:
         scored: list[tuple[float, str]] = []

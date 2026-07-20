@@ -1,172 +1,167 @@
 # AAD 搜索机制综合：种群、树、轨迹与图
 
-本文从搜索状态、信用分配和生成上下文三个正交维度，综合分析 EoH、ReEvo、HSEvo、MEoH、MCTS-AHD、ShinkaEvolve 和 PathWise，并据此定位 TraceAAD 的机制假设。重点不是复述论文叙事，而是区分哪些机制有实验证据、哪些只是动机解释，以及不同方法究竟把什么当作可继续投资的搜索资产。
+本文围绕三个直接问题综合分析 EoH、ReEvo、HSEvo、MEoH、MCTS-AHD、ShinkaEvolve 和 PathWise：搜索过程保留什么信息，怎样判断一个方案是否值得继续，以及 LLM 根据什么信息生成下一步。分析同时区分已有实验证据与尚未验证的设计动机，并据此说明 TraceAAD 的研究位置。
 
 ## 1. 统一视角
 
-LLM-based automatic algorithm design 是一种带反馈的昂贵程序搜索。每种方法都必须回答以下问题：
+大模型驱动的自动算法设计需要反复生成程序、评估结果并决定从哪里继续。由于每次生成和评估都有成本，每种方法都必须回答以下问题：
 
-1. **搜索状态是什么**：单个程序、种群、树节点、轨迹、图状态，还是 Pareto set。
-2. **搜索经验如何压缩**：只保留 fitness，还是同时保留代码、思想、父子关系、修改动作、反思、路径和多目标指标。
-3. **预算如何分配**：精英选择、rank sampling、diversity-aware selection、UCT/UCB、bandit，还是 LLM policy planning。
-4. **LLM 看到什么上下文**：当前个体、多个 parent、tree path、trajectory history、reflection、public metrics 或 parent metadata。
-5. **什么会被保留**：最好个体、非支配个体、多样性个体、未完成潜力分支、可复用轨迹，还是完整 ancestry。
+1. **什么是下一步选择的对象**：单个程序、种群、树节点、改进轨迹，还是由多个程序及其关系组成的图。
+2. **保留哪些历史信息**：只保留适应度，还是同时保留代码、设计思想、父子关系、修改动作、反思和逐步结果。
+3. **怎样分配评估预算**：优先选择高分程序、多样程序、高价值树枝或有潜力的改进轨迹。
+4. **LLM 根据什么生成**：当前程序、多个父程序、树路径、改进历史、反思文本或评价反馈。
+5. **哪些内容继续留在搜索中**：最好程序、非支配程序、多样程序、尚有潜力的分支、可复用的改进轨迹，或者完整的派生关系。
 
-因此，种群法和树法的根本差异不只是数据结构，而是它们把搜索经验压缩成了不同的可采样对象。
+因此，种群法和树法的差异不只在保存形式，也在于下一次搜索究竟选择一个程序、一条树枝，还是一段改进过程。
 
-更稳健的分析框架是三个正交维度：
+可以用三个相互独立的问题比较这些方法：
 
-| 维度 | 典型选项 |
+| 问题 | 常见做法 |
 |---|---|
-| memory structure | active population、derivation tree、archive、trajectory library、semantic graph |
-| credit assignment | endpoint fitness、best descendant、backprop、path return、stepwise delta、pairwise rank |
-| generation context | current program、parent set、lineage、trajectory history、reflection、critic feedback |
+| 保存什么 | 活跃种群、派生树、历史程序库、轨迹集合、语义关系图 |
+| 怎样判断价值 | 当前程序适应度、最好后代、树上回传值、整条路径收益、每步变化、成对排名 |
+| LLM 看到什么 | 当前程序、多个父程序、程序来历、轨迹历史、反思文本、评价反馈 |
 
-同一个方法可以在不同维度上混合多种机制。例如，ShinkaEvolve 同时使用 archive、islands 和 UCB bandit；PathWise 同时使用 outer population 和 inner graph。因此，“population method”“tree method”更适合表示主要搜索单位，而不是互斥的算法类别。
+同一个方法可以组合多种做法。例如，ShinkaEvolve 同时使用历史程序库、多个搜索分组和 UCB 调度；PathWise 同时维护外层种群和内部关系图。因此，“种群方法”和“树方法”只说明主要搜索单位，并不构成互斥分类。
 
 ### 1.1 统一视角的适用边界
 
 “带反馈的昂贵搜索”作为统一框架有解释力，但不能把 AAD 简化成普通黑箱优化：
 
-1. **搜索步长由 LLM 先验主导**。一次 forward pass 会把巨大的程序空间压缩到很窄的候选分布。因此 prompt/context 构造不是搜索外部的辅助模块，而是搜索策略本身。
-2. **反馈不一定干净**。fitness 可能带有随机性、实例偏差、复杂度目标和 deceptive local optimum。不同 credit 规则对这些噪声的敏感性不同。
-3. **搜索同时在抽取知识**。reflection、critic 和 derivation rationale 的产物不仅是候选程序，也可能是下一轮生成的经验。
-4. **最终目标通常是可迁移算法，而不是单个 benchmark 上的最高分程序**。如果只使用 in-distribution fitness，搜索可能走向过拟合。
+1. **LLM 决定了实际会生成哪些候选。** 提示中提供的信息会直接改变候选程序的分布，因此生成提示本身就是搜索机制的一部分。
+2. **评估结果可能含有噪声。** 适应度可能受随机性、实例选择、复杂度目标和局部最优影响，不同的价值判断方法可能得到不同结论。
+3. **搜索过程也在积累算法设计经验。** 反思、评价和修改理由既能帮助生成当前候选，也能成为下一轮可复用的信息。
+4. **最终目标通常是得到可以迁移的算法。** 如果只依据当前训练实例的适应度进行搜索，结果可能过度适应这些实例。
 
-因此，AAD 方法应同时被看作程序搜索器和经验抽取器。搜索单位、credit 和 context 三者必须一起分析。
+因此，分析 AAD 方法时，需要同时考察它如何搜索程序、如何保留经验、如何把经验用于下一次生成。
 
-## 2. 种群方法的底层逻辑
+## 2. 种群方法如何搜索
 
-种群方法把搜索经验压缩成 bounded active set。每个个体通常是一个已评估的 heuristic，保存代码、自然语言思想和 fitness。搜索通过 parent selection、LLM mutation/crossover、evaluation 和 survival 形成闭环。
+种群方法维护数量有限的候选程序。每个程序通常带有代码、自然语言设计思想和适应度。搜索反复选择父程序，由 LLM 修改或组合，再评估新程序并决定哪些程序继续保留。
 
 ### 2.1 EoH：思想和代码共同进化
 
-EoH 将 heuristic 表示为 natural language description、code 和 fitness，并维护固定大小的 population。每一代通过五类 prompt strategy 生成候选，再按 fitness 保留下一代 population。
+EoH 用自然语言描述、代码和适应度表示一个启发式算法，并维护固定大小的种群。每一代通过五类提示生成候选，再按适应度保留下一代程序。
 
-它的主要贡献是把 algorithmic thought 作为显式搜索对象，使 LLM 可以在高层机制和低层实现之间迁移。局限是 survival pressure 很强：暂时较差但包含有用思想的中间个体，可能在获得多步 refinement 之前就被淘汰。
+它的重要做法是同时搜索算法思想和代码，使 LLM 能先提出设计思路，再形成具体实现。其局限在于保留规则主要看当前适应度：暂时较差但含有可发展思想的中间程序，可能在经过多步改进之前就被淘汰。
 
-### 2.2 ReEvo：反思作为 in-context 信号
+### 2.2 ReEvo：把评价反馈写成下一轮可用的反思
 
-ReEvo 仍以种群为主，但加入 pairwise comparison、short-term reflection、crossover、long-term reflection 和 elitist mutation。reflection 将评价反馈语言化，再注入下一轮 prompt。
+ReEvo 仍以种群为主，但增加了成对比较、短期反思、交叉、长期反思和精英变异。反思将评价反馈转成自然语言，并提供给下一轮生成。
 
-论文把 reflection 描述成“verbal gradient”并声称它改变了 fitness landscape，但这一理论解释的证据较弱。已有 landscape 实验规模有限，且 neighborhood 定义本身包含 prompt 和 reflection，因此无法清楚区分“reflection 改变搜索空间几何”和“reflection 提供更好的上下文”。
+论文把反思描述为“语言梯度”，并认为它改变了适应度景观，但支持这一解释的证据仍然有限。已有实验规模较小，而且邻域的定义本身受提示与反思影响，因而无法清楚区分反思究竟改变了搜索空间，还是仅仅为生成提供了更有用的信息。
 
-更稳妥的结论是：reflection 的可复用机制是把 evaluation feedback verbalize 成更有信息量的 in-context signal，而不是已经被证明的 landscape 几何变换。其局限是历史经验主要被压缩成文本反思，而不是结构化保留为可分叉路径。
+更稳妥的结论是：反思把评估结果整理成下一轮可以利用的文字经验。其局限是，历史主要被概括成反思文本，没有保留为能够继续延伸或从中间位置重新尝试的改进路径。
 
 ### 2.3 HSEvo：把多样性变成可测量变量
 
-HSEvo 关注 objective 与 population diversity 的冲突。它通过代码清洗、格式标准化、code embedding 和 diversity metrics 测量 population 结构，再用 harmony search 优化高分个体的参数。
+HSEvo 关注算法质量与种群多样性之间的关系。它通过代码清洗、格式标准化、代码向量和多样性指标测量种群结构，再用和声搜索调整高分程序的参数。
 
-它的启发是：多样性不应只是直觉上的“看起来不同”，而应成为可测量、可控制的搜索变量。但它仍在 program population 层管理个体，不能直接回答一条改进路径中哪一步导致了改进或退步。
+它说明多样性可以被具体测量并用于搜索选择，而不只依靠“看起来不同”的直觉。但它仍然以程序为管理对象，不能直接说明一条改进路径中的哪一步造成了提升或退步。
 
 ### 2.4 MEoH：从单目标精英主义到 Pareto 保留
 
-MEoH 将 heuristic search 建模为 multi-objective optimization，维护 non-dominated set，并同时考虑 objective-space dominance 和 search-space dissimilarity。
+MEoH 将启发式算法搜索表示为多目标优化，维护非支配解集合，并同时考虑目标值上的支配关系和程序之间的差异。
 
-它重新定义了“值得保留”：一个程序即使不是单一 fitness 上的最优，也可能因为速度、复杂度、泛化性或结构差异而有价值。对 TraceAAD 的启发是，轨迹价值也不应只由 endpoint fitness 决定。
+它扩展了“值得保留”的判断标准：一个程序即使适应度不是最高，也可能因为速度、复杂度、泛化性或结构差异而有价值。对 TraceAAD 的启发是，判断一条轨迹是否值得继续，也不能只看最后一个程序的适应度。
 
-## 3. 树方法的底层逻辑
+## 3. 树方法如何搜索
 
-树方法把搜索经验压缩成 ancestry tree。节点是 heuristic，边是 LLM action，预算主要由 tree policy 分配。节点质量、访问次数、UCT/UCB bonus 和 progressive widening 共同决定哪个分支继续被开发。
+树方法按父子关系保存程序的产生过程。节点是启发式算法，边表示一次 LLM 修改。节点质量、访问次数、UCT/UCB 探索项和渐进扩展共同决定接下来继续尝试哪条分支。
 
 ### 3.1 MCTS-AHD：树组织上下文，UCT 分配预算
 
-MCTS-AHD 不只是 EoH 的“树版本”。它改变了搜索状态的记忆方式和评估信用的路由方式：
+MCTS-AHD 不只是把 EoH 换成树形存储，它同时改变了历史保存方式和后代结果如何影响祖先：
 
-- EoH 主要维护 bounded active population；
-- MCTS-AHD 保存 derivation tree 中的节点、访问次数和父子关系；
-- selection 使用 UCT；
-- expansion 通过 mutation、crossover 和 path action 生成子节点；
-- simulation 评估子节点；
-- backprop 将后代质量回传给祖先；
-- progressive widening 控制节点何时继续扩展。
+- EoH 主要维护数量有限的活跃种群；
+- MCTS-AHD 保存派生树中的程序、访问次数和父子关系；
+- 选择阶段使用 UCT；
+- 扩展阶段通过变异、交叉和路径相关动作生成子节点；
+- 评估阶段测量子节点质量；
+- 回传阶段把后代质量传给祖先；
+- 渐进扩展控制一个节点何时增加新的子节点。
 
-论文的主要动机是 population survival 可能过早丢弃较弱的中间 heuristic。但这一动机本身没有被充分验证：论文主要提供叙述和个别节点案例，没有统计“被淘汰的弱节点经过后续 refinement 后有多少真正变好”。论文还承认每个 heuristic 的扩展次数有限并依赖 LLM 单次生成质量，这与“通过多步 refinement 挽救弱节点”的叙事存在张力。
+论文的主要动机是种群筛选可能过早丢弃较弱的中间程序。但这一判断没有得到充分验证：论文主要提供文字分析和个别节点案例，没有统计较弱节点经过后续多步改进后有多少真正变好。论文也指出，每个程序的扩展次数有限，结果仍较依赖 LLM 单次生成质量，这会限制多步改进较弱节点的机会。
 
 从已有消融更能确认的机制是：
 
-1. **UCT 与 progressive widening 提供了有结构的预算分配**。progressive widening 的消融带来约 1.47pp 的差异。
-2. **tree-path prompt 提供了多步 lineage 上下文**。s1 action 的消融带来约 1.26pp 的差异。
+1. **UCT 与渐进扩展共同决定预算投向哪些树枝。** 渐进扩展的消融带来约 1.47pp 的差异。
+2. **树路径提示向 LLM 提供了多步改进历史。** s1 action 的消融带来约 1.26pp 的差异。
 
-因此，更准确的概括是：MCTS-AHD 主要换了一种预算分配方式和上下文组织方式，而不是已经证明“保留弱节点”本身有效。
+因此，更准确的概括是：MCTS-AHD 的证据主要支持树上的预算分配和路径信息对生成的帮助，尚不能单独证明保留较弱节点本身有效。
 
 ### 3.2 MCTS-AHD 的信用分配风险
 
-MCTS-AHD 的 backprop 使用 best-child quality 的 max 语义，而不是标准均值；这一规则没有被充分消融。它可能产生 over-credit：某个早期节点只是偶然拥有一个强后代，却被沿 ancestry 赋予过高价值。
+MCTS-AHD 在回传时使用最好子节点的质量，而不是子节点质量的均值；这一规则没有被充分消融。它可能高估某些早期节点：一个节点即使只是偶然产生了一个强后代，也会因此在整条祖先路径上获得较高价值。
 
-这暴露出树法的关键问题：节点知道 visit/value，却不一定知道一段修改序列是稳定改进、先升后跌，还是已经饱和。若要把 trajectory 作为搜索单位，必须把 fitness delta 归因到具体 step，而不是再次把整条路径压成一个没有解释的回传标量。
+这暴露出树方法的一个关键问题：访问次数和节点价值不能说明一段修改是持续改进、先升后降，还是已经停滞。如果把轨迹作为搜索单位，就需要记录每一步造成的适应度变化，并据此理解整段改进过程，避免只用一个回传值概括整条路径。
 
 ## 4. ShinkaEvolve 与 PathWise
 
-### 4.1 ShinkaEvolve：工程化资源调度
+### 4.1 ShinkaEvolve：在多种程序和生成方式之间分配预算
 
-ShinkaEvolve 更像可扩展的 evolutionary discovery scheduler。它维护 fixed-size archive 和 islands，从 archive/islands 中采样 parent 与 inspiration programs，支持 diff edit、full rewrite、crossover、novelty rejection、LLM bandit 和 meta-scratchpad。
+ShinkaEvolve 维护固定大小的历史程序库和多个搜索分组，从中选择父程序与参考程序，并支持局部修改、完整重写、交叉、重复候选过滤、LLM 选择和经验摘要。
 
-它的主要价值在资源调度：
+它的主要特点是决定不同程序和生成方式各获得多少尝试机会：
 
-1. parent sampling 同时考虑 performance 与 novelty；
-2. islands 和 migration 保护不同 discovery substreams；
-3. novelty rejection 减少重复评估；
-4. LLM bandit 学习不同模型或生成器在当前任务上的收益；
-5. meta-scratchpad 将成功经验压缩成后续上下文。
+1. 选择父程序时同时考虑性能与新颖性；
+2. 多个搜索分组及其程序交换维持不同的探索方向；
+3. 过滤过于相似的候选，减少重复评估；
+4. 根据历史效果调整不同模型或生成器的使用频率；
+5. 把成功经验整理成后续生成可以阅读的摘要。
 
-ShinkaEvolve 对 TraceAAD 的启发是：trajectory-level sampling、diversity、novelty、operator value 和 model feedback 都可以被看作需要调度的资源。
+ShinkaEvolve 对 TraceAAD 的启发是：搜索不仅要选择程序，也要决定优先继续哪条轨迹、采用哪种改法，以及如何维持不同的探索方向。
 
-### 4.2 PathWise：语义图和状态感知规划
+### 4.2 PathWise：利用程序关系和评价反馈规划下一步
 
-PathWise 用 entailment graph 保存 heuristic 节点、derivation rationale 和 parent metadata，并将 heuristic evolution 建模为 MDP。outer population 控制状态规模，inner graph 保存局部派生过程；policy、world model 和 critic 共同参与生成与反馈。
+PathWise 用蕴含图保存启发式程序、修改理由和父程序信息，并把启发式算法的改进表示为马尔可夫决策过程。外层种群限制参与搜索的程序数量，内部图保存局部派生过程；策略模型、世界模型和评价模型共同生成候选与反馈。
 
 其重要机制包括：
 
-1. **动作语义化**：policy 生成自然语言 derivation rationale，而不是只在固定 operator 中选择；
-2. **图状态规划**：parent selection 可以使用 derivation history、diversity 和上下文；
-3. **critic 反馈**：policy critic 和 world model critic 比较不同 rollout，产生 routed feedback；
-4. **混合管理**：outer population 与 inner graph 共同限制搜索规模。
+1. **用自然语言描述修改。** 策略模型生成具体的修改理由，不局限于预先定义的固定改法。
+2. **根据图中的历史选择父程序。** 选择时可以利用派生历史、多样性和当前上下文。
+3. **用评价模型比较多次生成结果。** 策略评价模型和世界模型评价器比较不同生成过程，并把反馈交给相应环节。
+4. **同时使用种群和图控制规模。** 外层种群限制总体候选，内部图保留局部派生关系。
 
-需要谨慎区分的是：PathWise 的论文消融主要支持 critic feedback 和 prompt-level diversity，而没有直接比较 entailment graph 与扁平 population，也没有比较语义化 rationale 与固定 operator。因此，graph/MDP 本身的增量价值仍未被独立证明。
+需要谨慎区分的是：PathWise 的论文消融主要支持评价反馈和提示层面的多样性，没有直接比较蕴含图与扁平种群，也没有比较自然语言修改理由与固定改法。因此，图结构和 MDP 表达本身带来的增量价值仍未被独立证明。
 
-PathWise 还存在预算口径问题：一次 evaluation 背后包含多次 rollout 和 critic 调用，输入 token 可能是 baseline 的数倍，但论文主要控制 evaluation budget，没有完全控制 token/call budget。跨方法比较时必须匹配 token、LLM call 和 evaluation budget，否则无法区分“机制更好”和“调用更多”。
+PathWise 还存在预算口径问题：一次程序评估背后可能包含多次生成和评价模型调用，输入 token 数可能达到基线的数倍，但论文主要控制程序评估次数，没有完全控制 token 数和 LLM 调用次数。跨方法比较时必须同时匹配程序评估、LLM 调用和 token 预算，否则无法判断差异来自机制还是更多的模型调用。
 
 ## 5. 四类搜索单位的比较
 
-| 范式 | 搜索单位 | 经验压缩方式 | 预算分配 | 主要优势 | 主要风险 |
+| 方法 | 下一步选择的对象 | 保留的历史 | 预算分配方式 | 主要优势 | 主要风险 |
 |---|---|---|---|---|---|
-| Population | program individual | bounded population、archive、reflection | rank、elite、diversity、weighted sampling | 简单高效，适合 recombination 和规模化管理 | 暂时较差的中间思想容易被淘汰 |
-| Tree/MCTS | heuristic node / branch | derivation tree、Q/N、backprop | UCT、progressive widening | lineage 显式，能重访非精英分支 | credit 回传和树结构可能限制语义表达 |
-| Path/Trajectory | bounded improvement path | trajectory history、endpoint、step outcome | path score、trajectory UCB、prefix branching | 把改进过程形状作为信用对象 | 轨迹管理不当时会退化成短链 population |
-| Entailment Graph | graph state / parent-set action | semantic graph、parent metadata、reflection | LLM policy、critic feedback | 语义规划能力强，能动态发明 action | agent/context 成本高，早期稳定性敏感 |
+| 种群 | 单个程序 | 有限种群、历史程序库、反思 | 排名、精英、多样性、加权采样 | 简单高效，适合组合程序和管理大量候选 | 暂时较差的中间思想容易被淘汰 |
+| 树 / MCTS | 程序节点或树枝 | 派生树、节点价值与访问次数、回传结果 | UCT、渐进扩展 | 父子关系清楚，能够重新尝试非精英分支 | 回传值可能错误归因，树结构也可能限制修改表达 |
+| 路径 / 轨迹 | 一段有界改进路径 | 轨迹历史、最终程序、每步结果 | 路径价值、轨迹 UCB、从中间位置分叉 | 能根据连续改进过程判断路线是否值得继续 | 管理不当时会退化成只看少量近期程序的种群 |
+| 蕴含图 | 关系图及其父程序组合 | 语义关系、父程序信息、反思 | LLM 策略、评价反馈 | 能根据程序关系规划并动态提出修改 | 模型调用和上下文成本较高，早期搜索可能不稳定 |
 
-这个划分不是互斥分类。真实方法往往是混合体；更有解释力的比较单位仍然是：
-
-$$
-\text{memory structure}
-\times
-\text{credit assignment}
-\times
-\text{generation context}.
-$$
+这些方法可以相互组合。比较它们时，仍应分别回答三个问题：保存了什么历史，怎样判断各步和各条路线的价值，以及 LLM 根据什么信息生成下一步。
 
 ## 6. TraceAAD 的定位
 
-TraceAAD 应被定位为一种 **trajectory-as-individual** 的自动算法设计方法，而不是轻量 MCTS 或带轨迹的 EoH。它把一段有界的改进路径作为搜索单位，通过 endpoint quality、path quality、step outcome 和 UCB 探索项分配预算，并允许从轨迹内部的有效前缀重新分叉。
+TraceAAD 把一段有界的算法改进轨迹作为下一步选择和继续改进的基本对象。它同时考察当前程序质量、整段路径中的变化、每一步的结果和 UCB 探索项，并允许从轨迹中较有价值的中间程序重新尝试。
 
 其核心假设是：
 
-> 有用的算法思路可能存在于一条部分改进路径上，而不只存在于当前最优程序或单个树节点中。
+> `[待验证]` 在当前程序、LLM 和评估预算相同的条件下，提供与当前程序匹配的真实改进历史，能够帮助 LLM 作出更有效的下一步修改。
+
+轨迹还保留了尚未形成最好程序但仍有发展价值的中间思想，使搜索能够沿原路线继续，也能够回到较好的中间位置重新尝试。
 
 TraceAAD 从不同范式中吸收了不同成分：
 
-1. 从 population 方法借鉴 active set、archive、diversity、crossover 和 operator portfolio，但管理对象从 program 改为 trajectory；
-2. 从 MCTS 借鉴 ancestry、UCB 和非精英重访，但不把全部预算绑定到树的 UCT/backprop；
-3. 从 PathWise 借鉴结构化反馈和上下文组织，但保持轻量的 action/code 两阶段生成，不直接引入多 agent graph planning；
-4. 从多目标搜索借鉴 Pareto survival，同时保留质量、路径潜力和多样性；
-5. 从反馈写回类方法（ReEvo reflection / Shinka meta-scratchpad 等）借鉴：将当前 run 内的历史试错写回后续 prompt。TraceAAD 实现为无标签的边级成功/失败 action 检索，不依赖任务相关机制词表，也不额外调用 LLM 做长文反思。
+1. 借鉴种群方法对候选数量、多样性、交叉和改法选择的管理，但主要管理对象由单个程序改为改进轨迹；
+2. 借鉴 MCTS 对父子关系、UCB 和非精英分支重访的利用，但不通过树上的统一回传值分配全部预算；
+3. 借鉴 PathWise 对历史和反馈的组织方式，但只使用“先提出修改、再生成代码”的两阶段过程，不引入多智能体图规划；
+4. 用当前质量、路径潜力和多样性的加权价值判断轨迹，并用 UCB 为访问较少的路线保留探索机会；
+5. 借鉴 ReEvo 和 ShinkaEvolve 把搜索经验用于后续生成的思想。TraceAAD 直接检索当前搜索中成功和失败的修改记录，不依赖任务专用词表，也不额外调用 LLM 撰写长篇反思。
 
-TraceAAD 的真正技术增量不应只是“增加 trajectory 数据结构”，而应体现在三个可验证的机制差异：
+TraceAAD 是否形成了新的有效机制，取决于以下可以通过实验检验的问题，而不取决于是否增加了一种名为“轨迹”的存储结构：
 
-- **path-level credit** 是否比 endpoint-only 更能预测后续改进；
-- **prefix branching** 是否能回收 population survival 丢掉的中间思想；
-- **trajectory-level diversity and survival** 是否比 program-level 多样性更能避免搜索坍缩。
+- 真实改进历史是否比不提供历史或提供不匹配的历史更有利于下一步改进；
+- 根据整段路径判断路线价值，是否比只看当前程序更能预测后续改进；
+- 从轨迹中的有效中间程序重新尝试，是否能继续发展种群筛选可能丢掉的思想；
+- 在轨迹层面维持多样路线，是否比只维持程序差异更能避免搜索过早集中。
 
 这些都是待验证假设，不应直接写成已被证明的优势。
 
@@ -174,32 +169,32 @@ TraceAAD 的真正技术增量不应只是“增加 trajectory 数据结构”�
 
 后续实验应优先验证以下假设：
 
-1. **Path value 假设**：path-level value 能比 endpoint-only 更早识别稳定改进方向。
-2. **Prefix branching 假设**：当 endpoint 退步或 plateau 时，从内部 base node 分叉能恢复有价值的中间思想。
-3. **Trajectory diversity 假设**：active trajectory 的代码/行为多样性比仅靠 endpoint fitness 更能避免坍缩。
-4. **Operator portfolio 假设**：endpoint refinement、backtrack、crossover、simplify、novelty jump 和 scale transfer 在不同阶段具有不同收益。
-5. **Multi-objective trajectory 假设**：将 quality、potential、novelty、diversity 和可选泛化信号用于轨迹管理，比单一 endpoint fitness 更稳健。
+1. **历史上下文假设。** `[待验证]` 与当前程序匹配的真实改进历史，比不提供历史或提供不匹配的历史更有利于 LLM 提出有效的下一步修改。
+2. **轨迹价值假设。** `[待验证]` 同时利用当前程序质量和路径中的逐步变化，能够比只看当前程序更早识别稳定改进的方向。
+3. **中间位置分叉假设。** `[待验证]` 当轨迹末端退步或停滞时，从较早的有效程序重新尝试，能够继续发展仍有价值的中间思想。
+4. **轨迹多样性假设。** `[待验证]` 保留代码和改进行为不同的多条活跃轨迹，比只按当前程序适应度筛选更能避免搜索过早集中。
+5. **改法选择假设。** `[待验证]` 终点改进、回退分叉、交叉和新路线探索具有不同收益，根据平均收益和尝试次数选择改法能够提高搜索效率。
+6. **轨迹价值假设。** `[待验证]` 同时考虑质量、路径潜力和多样性，比只看当前程序适应度更稳健。
 
 建议的消融包括：
 
-- endpoint-only sampling；
-- 去掉 path value；
-- 去掉 prefix branching；
+- 去掉生成提示中的轨迹历史，或替换为与当前程序不匹配的历史；
+- 只根据当前程序采样；
+- 去掉路径潜力；
+- 去掉从中间位置重新分叉；
 - 随机轨迹采样；
-- 去掉 top-k softmax 或 elite protection；
-- 去掉 diversity/novelty gate；
-- 去掉 Pareto survival；
-- 去掉 operator adaptation；
-- 对比 scalar-only 与显式 per-instance generalization evidence。
+- 去掉多样性和相似程序过滤；
+- 固定各类改法的选择概率，或只使用平均收益而不使用 UCB；
+- 去掉跨轨迹成功和失败 action，只保留当前轨迹历史。
 
-所有跨方法比较都应尽可能匹配 evaluation budget、LLM call budget、token budget 和并发配置，否则无法区分机制收益与调用规模差异。
+所有跨方法比较都应尽可能匹配程序评估次数、LLM 调用次数、token 数和并发配置，否则无法区分机制收益与调用规模差异。
 
 ## 8. 论文依据索引
 
-- EoH：papers/EoH/3-method.tex 描述 thought+code 表示、五类 prompt strategies、每代 5N 生成和 best N survival。
-- ReEvo：papers/ReEvo/sections/04_evolution.tex 描述 short-term/long-term reflection、crossover 和 elitist mutation；sections/06_ablation.tex 给出 reflection 与 landscape 相关实验。
-- HSEvo：papers/HSEvo/aaai25.tex 描述 diversity metrics、diversity/objective trade-off、flash reflection 和 harmony search。
-- MEoH：papers/MEoH/MEoH.tex 描述 multi-objective heuristic search、non-dominated set 和 dominance-dissimilarity。
-- MCTS-AHD：papers/MCTS-AHD/icml2025.tex 描述 MCTS tree、UCT、progressive widening、tree-path action 和 backprop；其中“保留弱节点”的动机与多步 refinement 的因果贡献仍需要独立验证。
-- ShinkaEvolve：papers/ShinkaEvolve/sections/03_method.tex 描述 archive/islands、weighted parent sampling、novelty rejection、LLM bandit 和 meta-scratchpad。
-- PathWise：papers/PathWise/example_paper.tex 描述 entailment graph、MDP view、policy/world model/critics 和 outer population + inner graph；graph 本身的独立消融仍不足。
+- EoH：`papers/EoH/3-method.tex` 描述思想与代码的联合表示、五类生成提示、每代生成 $5N$ 个候选并保留最好的 $N$ 个。
+- ReEvo：`papers/ReEvo/sections/04_evolution.tex` 描述短期与长期反思、交叉和精英变异；`sections/06_ablation.tex` 给出反思与适应度景观相关实验。
+- HSEvo：`papers/HSEvo/aaai25.tex` 描述多样性指标、质量与多样性的权衡、快速反思和和声搜索。
+- MEoH：`papers/MEoH/MEoH.tex` 描述多目标启发式算法搜索、非支配解集合，以及结合支配关系与程序差异的筛选。
+- MCTS-AHD：`papers/MCTS-AHD/icml2025.tex` 描述 MCTS 树、UCT、渐进扩展、利用树路径的修改和结果回传；其中“保留较弱节点”的动机与多步改进的因果贡献仍需要独立验证。
+- ShinkaEvolve：`papers/ShinkaEvolve/sections/03_method.tex` 描述历史程序库、多个搜索分组、加权父程序采样、重复候选过滤、LLM 选择和经验摘要。
+- PathWise：`papers/PathWise/example_paper.tex` 描述蕴含图、MDP 表达、策略模型、世界模型、评价模型，以及外层种群与内部图；图结构本身的独立消融仍不充分。

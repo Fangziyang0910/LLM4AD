@@ -1,58 +1,125 @@
 from __future__ import annotations
 
+import contextlib
+import json
 import os
-import sys
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from experiments.tsp_construct.traceaad import run_experiment as runner
+from llm4ad.method.traceaad import PortfolioWeights, TraceAAD, TraceAADProfiler, ValueWeights
 from llm4ad.task.optimization.cvrp_aco import CVRPACOEvaluation
+from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
 
-runner.TASK = "cvrp_aco"
-runner.TASK_SPLIT = "train"
-runner.TASK_KWARGS = {
-    "split": runner.TASK_SPLIT,
+TASK = "cvrp_aco"
+TASK_KWARGS = {
+    "split": "train",
     "timeout_seconds": 120,
     "n_ants": 30,
     "n_iterations": 100,
     "aco_seed": 1234,
-    # 训练评估：10 个 train 实例并行跑 ACO；可用 CVRP_EVAL_WORKERS 覆盖
     "n_workers": int(os.environ.get("CVRP_EVAL_WORKERS", "10")),
 }
-runner.TSPEvaluation = CVRPACOEvaluation
+EXPERIMENT_ROOT = Path(__file__).resolve().parent
+DEFAULT_BASE_URL = "http://127.0.0.1:8001/v1"
+DEFAULT_MODEL = "Qwen3.6-27B"
+DEFAULT_NO_PROXY = "127.0.0.1,localhost,::1"
 
-# 本机 llama.cpp（qwen3.6-27b，-np 3）
-runner.BASE_URL = "http://127.0.0.1:8001/v1"
-runner.API_KEY = "EMPTY"
-runner.MODEL = "Qwen3.6-27B"
-runner.NO_PROXY_HOSTS = "127.0.0.1,localhost,::1"
-os.environ["NO_PROXY"] = runner.NO_PROXY_HOSTS
-os.environ["no_proxy"] = runner.NO_PROXY_HOSTS
 
-# 与上一轮正式实验对齐：训练/ACO 相关固定 1234；搜索 seed 也固定为 1234
-runner.SEARCH_SEED = int(os.environ.get("SEARCH_SEED", "1234"))
-
-# RESUME_FROM 优先；否则新建到 version2/（EXPERIMENT_VERSION 可覆盖）
-runner.RESUME_FROM = os.environ.get("RESUME_FROM", "").strip() or None
-runner.EXPERIMENT_VERSION = os.environ.get("EXPERIMENT_VERSION", "version2").strip()
-if runner.RESUME_FROM:
-    runner.RUN_DIR = Path(runner.RESUME_FROM).resolve()
-    runner.TIMESTAMP = runner.RUN_DIR.name
-else:
-    runner.TIMESTAMP = os.environ.get("RUN_TIMESTAMP") or datetime.now().strftime("%Y%m%d_%H%M%S")
-    method_root = Path(__file__).resolve().parent
-    runner.RUN_DIR = (
-        method_root / runner.EXPERIMENT_VERSION / runner.TIMESTAMP
-        if runner.EXPERIMENT_VERSION
-        else method_root / runner.TIMESTAMP
+def build_method(log_dir: Path, resume_from: Path | None = None) -> TraceAAD:
+    no_proxy = os.environ.get("LLM_NO_PROXY", DEFAULT_NO_PROXY)
+    os.environ["NO_PROXY"] = no_proxy
+    os.environ["no_proxy"] = no_proxy
+    return TraceAAD(
+        llm=OpenAIAPI(
+            base_url=os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL),
+            api_key=os.environ.get("LLM_API_KEY", "EMPTY"),
+            model=os.environ.get("LLM_MODEL", DEFAULT_MODEL),
+            timeout=600,
+            max_tokens=16384,
+            temperature=1.0,
+            enable_thinking=False,
+        ),
+        evaluation=CVRPACOEvaluation(**TASK_KWARGS),
+        profiler=TraceAADProfiler(
+            log_dir=str(log_dir), log_style="complex", create_random_path=False
+        ),
+        max_sample_nums=1000,
+        n_init=4,
+        actions_per_iteration=2,
+        max_trajectory_length=8,
+        max_active_trajectories=160,
+        novelty_threshold=0.92,
+        value_weights=ValueWeights(),
+        portfolio_weights=PortfolioWeights(),
+        max_consecutive_sample_failures=20,
+        max_stalled_iterations=20,
+        checkpoint_dir=log_dir / "checkpoints",
+        checkpoint_interval=10,
+        resume_from=resume_from,
     )
-runner.LOG_DIR = runner.RUN_DIR / "logs"
-runner.TMUX_LOG = runner.RUN_DIR / "tmux_run.log"
+
+
+def main() -> None:
+    resume_from = os.environ.get("RESUME_FROM", "").strip() or None
+    if resume_from:
+        run_dir = Path(resume_from).resolve()
+        if not run_dir.is_dir():
+            raise FileNotFoundError(f"resume run directory does not exist: {run_dir}")
+    else:
+        timestamp = os.environ.get("RUN_TIMESTAMP") or datetime.now().strftime(
+            "%Y%m%d_%H%M%S"
+        )
+        run_dir = EXPERIMENT_ROOT / timestamp
+        run_dir.mkdir(parents=True, exist_ok=False)
+        _write_run_config(run_dir, timestamp)
+
+    print(f"run_dir={run_dir}")
+    log_dir = run_dir / "logs"
+    with (run_dir / "tmux_run.log").open(
+        "a", encoding="utf-8", buffering=1
+    ) as log_file:
+        with contextlib.redirect_stdout(log_file), contextlib.redirect_stderr(log_file):
+            print(f"run_dir={run_dir}", flush=True)
+            build_method(log_dir, None if resume_from is None else run_dir).run()
+
+
+def _write_run_config(run_dir: Path, timestamp: str) -> None:
+    payload = {
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+        "run_dir": str(run_dir),
+        "task": TASK,
+        "method": "traceaad",
+        "timestamp": timestamp,
+        "llm": {
+            "base_url": os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL),
+            "model": os.environ.get("LLM_MODEL", DEFAULT_MODEL),
+            "timeout": 600,
+            "max_tokens": 16384,
+            "temperature": 1.0,
+            "enable_thinking": False,
+            "api_key_configured": bool(os.environ.get("LLM_API_KEY", "EMPTY")),
+            "no_proxy": os.environ.get("LLM_NO_PROXY", DEFAULT_NO_PROXY),
+        },
+        "task_eval": TASK_KWARGS,
+        "method_params": {
+            "max_sample_nums": 1000,
+            "n_init": 4,
+            "actions_per_iteration": 2,
+            "max_trajectory_length": 8,
+            "max_active_trajectories": 160,
+            "novelty_threshold": 0.92,
+            "max_consecutive_sample_failures": 20,
+            "max_stalled_iterations": 20,
+            "checkpoint_interval": 10,
+            "value_weights": asdict(ValueWeights()),
+            "portfolio_weights": asdict(PortfolioWeights()),
+        },
+    }
+    (run_dir / "run_config.json").write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 if __name__ == "__main__":
-    runner.main()
+    main()

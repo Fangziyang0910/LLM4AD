@@ -1,22 +1,13 @@
-"""TraceAAD 领域数据结构。
-
-对应 TraceAAD 机制设计的四层记忆对象：
-- ProgramNode：代码、思想、适应度、复杂度、runtime
-- ImprovementEdge：动作、算子、有向 Δ、outcome
-- Trajectory：有界路径 + ValueVec
-- ExperienceExample / ExperienceBatch：边级成功/失败 action 经验查询结果
-- ChampionEvent / CurriculumTrace / CurriculumPacket：精英课程事实与组装结果
-"""
+"""TraceAAD 的程序、修改、轨迹和跨轨迹经验。"""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import StrEnum
-from typing import Mapping, TypeAlias
+from typing import TypeAlias
 
 NodeId: TypeAlias = int
 EdgeId: TypeAlias = int
 TrajectoryId: TypeAlias = int
-IslandId: TypeAlias = int
 
 
 class TrajectoryStatus(StrEnum):
@@ -28,21 +19,13 @@ class OperatorName(StrEnum):
     ENDPOINT = "endpoint_refine"
     BACKTRACK = "backtrack_branch"
     CROSSOVER = "mechanism_crossover"
-    SIMPLIFY = "simplify"
     NOVELTY = "novelty_jump"
-
-
-def _empty_metrics() -> Mapping[str, float]:
-    return {}
 
 
 @dataclass(frozen=True, slots=True)
 class EvalResult:
     """单次程序评估结果。现有平台 task 返回标量 fitness。"""
     fitness: float | None
-    complexity: float = 0.0
-    runtime: float = 0.0
-    complexity_metrics: Mapping[str, float] = field(default_factory=_empty_metrics)
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,9 +34,6 @@ class ProgramNode:
     code: str
     idea: str
     fitness: float | None
-    complexity: float = 0.0
-    runtime: float = 0.0
-    complexity_metrics: Mapping[str, float] = field(default_factory=_empty_metrics)
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,26 +50,14 @@ class ImprovementEdge:
 
 @dataclass(frozen=True, slots=True)
 class ValueVec:
-    """多维 trajectory 价值（采样用 scalarize，survival 用 non-dominated）。
+    """轨迹的终点质量、沿途改进潜力和路线差异。"""
 
-    compactness / speed 均为「越大越好」的池相对效率维（由 raw complexity/runtime 翻转）。
-    """
     quality: float = 0.0
     potential: float = 0.0
     diversity: float = 0.0
-    novelty: float = 0.0
-    compactness: float = 0.0
-    speed: float = 0.0
 
-    def as_tuple(self) -> tuple[float, float, float, float, float, float]:
-        return (
-            self.quality,
-            self.potential,
-            self.diversity,
-            self.novelty,
-            self.compactness,
-            self.speed,
-        )
+    def as_tuple(self) -> tuple[float, float, float]:
+        return self.quality, self.potential, self.diversity
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,8 +66,6 @@ class Trajectory:
     node_ids: tuple[NodeId, ...]
     edge_ids: tuple[EdgeId, ...]
     endpoint_id: NodeId
-    base_id: NodeId
-    island_id: IslandId = 0
     visit_count: int = 0
     status: TrajectoryStatus = TrajectoryStatus.ACTIVE
     value: ValueVec | None = None
@@ -124,85 +90,6 @@ class ExperienceExample:
 @dataclass(frozen=True, slots=True)
 class ExperienceBatch:
     """ExperienceMemory.examples 的有界返回。"""
+
     positives: tuple[ExperienceExample, ...] = ()
     negatives: tuple[ExperienceExample, ...] = ()
-
-
-@dataclass(frozen=True, slots=True)
-class ChampionEvent:
-    """一次真实的 global-best 刷新事件。
-
-    相邻事件可能来自不同 DAG 分支，因此课程层必须把它标记为 jump，
-    不能把事件链当成真实父子轨迹。
-    """
-
-    previous_best_node_id: NodeId | None
-    new_best_node_id: NodeId
-    source_parent_node_id: NodeId | None
-    source_edge_id: EdgeId | None
-    operator: str
-    delta_to_previous_best: float | None
-    delta_to_parent: float | None
-    iteration: int | None = None
-    sample_order: int | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class TraceStep:
-    """课程中的一步，带有事实来源和因果等级。"""
-
-    source_node_id: NodeId
-    source_edge_id: EdgeId | None
-    parent_node_id: NodeId | None
-    operator: str
-    action: str
-    fitness_before: float | None
-    fitness_after: float | None
-    delta_to_parent: float | None
-    delta_to_incumbent: float | None
-    outcome: str
-    evidence_type: str
-    causal_status: str
-
-
-@dataclass(frozen=True, slots=True)
-class CurriculumTrace:
-    """从真实图事实构造出的生成参照，不是 active trajectory。"""
-
-    id: str
-    kind: str
-    steps: tuple[TraceStep, ...]
-    terminal_node_id: NodeId | None
-    quality_gain: float
-    causal_coherence: float
-    novelty: float
-    confidence: float
-
-    @property
-    def source_edge_ids(self) -> tuple[EdgeId, ...]:
-        return tuple(
-            step.source_edge_id
-            for step in self.steps
-            if step.source_edge_id is not None
-        )
-
-
-@dataclass(frozen=True, slots=True)
-class CurriculumPacket:
-    """一次生成调用使用的有界课程包。"""
-
-    id: str
-    primary_trace_id: str | None = None
-    positive_traces: tuple[CurriculumTrace, ...] = ()
-    repair_trace: CurriculumTrace | None = None
-    contrast_trace: CurriculumTrace | None = None
-    donor_trace: CurriculumTrace | None = None
-    instructions: tuple[str, ...] = ()
-
-    @property
-    def trace_ids(self) -> tuple[str, ...]:
-        ids: list[str] = [trace.id for trace in self.positive_traces]
-        for trace in (self.repair_trace, self.contrast_trace, self.donor_trace):
-            if trace is not None and trace.id not in ids:
-                ids.append(trace.id)
-        return tuple(ids)

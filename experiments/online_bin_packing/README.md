@@ -9,7 +9,6 @@
 | TraceAAD | 1000 | `traceaad/version2/20260719_150058_obp_rep{1,2,3}` | 同上 |
 
 - 训练数据：Weibull，`n_instances=5`，`n_items=5000`，`capacity=100`，**`seed=2024`**
-- TraceAAD 搜索种子：`SEARCH_SEED=2024`
 - tmux 会话：`obp_<method>_rep{1,2,3}`
 - 启动日志：`launch_20260719_150058.log`
 - 重启命令：`bash experiments/online_bin_packing/launch_nine_tmux.sh`

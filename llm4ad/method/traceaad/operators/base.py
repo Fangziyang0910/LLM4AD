@@ -1,18 +1,11 @@
-"""Operator 协议与 base 选择。
-
-算子统一形式：trigger → select_base → build_constraint → (主循环生成+评估) → insert。
-- _ExtendFromEndpointOp：endpoint/simplify 共用（base=endpoint，insert=extend）。
-- select_base_node：4 规则门控 + branch_score，供 Backtrack 使用。
-"""
+"""四种改法的共同协议与中间起点选择。"""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from ..credit import directed_delta, normalize_fitness
 from ..derivation_graph import DerivationGraph
-from ..experience_memory import ExperienceMemory
-from ..islands import IslandsManager
 from ..schema import NodeId, OperatorName, Trajectory
 from ..trajectory_memory import TrajectoryMemory
 
@@ -31,19 +24,15 @@ def classify_outcome(delta: float | None, positive_threshold: float = 1e-6) -> s
 class OperatorContext:
     graph: DerivationGraph
     memory: TrajectoryMemory
-    experience_memory: ExperienceMemory
-    islands: IslandsManager
     selected: Trajectory
     maximize: bool
     positive_threshold: float = 1e-6
-    iteration: int = 0
-    best_stagnation: int = 0
-    hints: dict = field(default_factory=dict)
+    similarity_weights: tuple[float, float] = (0.7, 0.3)
+    donor_idea: str | None = None
 
 
 class Operator(ABC):
     name: str = ""
-    role: str = ""
 
     @abstractmethod
     def trigger(self, ctx: OperatorContext) -> bool:
@@ -68,7 +57,7 @@ class Operator(ABC):
 
 
 class _ExtendFromEndpointOp(Operator):
-    """endpoint/simplify 共性：从 endpoint 扩展，extend 接入。"""
+    """从当前轨迹终点继续。"""
 
     def select_base(self, ctx: OperatorContext) -> tuple[NodeId | None, str]:
         return ctx.selected.endpoint_id, "endpoint"

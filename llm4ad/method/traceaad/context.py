@@ -1,21 +1,15 @@
-"""因果叙事 Context 构造 —— action prompt 四段式。
-
-A. 因果叙事：trajectory 近 N 步的 (operator/Δf/ΔC/ΔR/outcome)。
-B. 边级经验：ExperienceMemory 的成功/失败 action 示例。
-C. 精英课程：Champion / improve chain / repair / donor 参照。
-D. 对比反馈：best vs worst（idea + fitness）。
-
-novelty/init 算子走 initial-style（主循环分支），不经此函数。
-"""
+"""把当前轨迹和少量跨轨迹成败经验组织为下一步修改提示。"""
 from __future__ import annotations
+
+import copy
 
 from ...base import Function
 from .derivation_graph import DerivationGraph
 from .experience_memory import ExperienceMemory
 from .prompt import fitness_direction_hint, format_fitness
-from .schema import CurriculumPacket, ExperienceBatch, ProgramNode, Trajectory
+from .schema import ExperienceBatch, Trajectory
 
-_DEFAULT_ACTION_CHARS = 300
+_MAX_ACTION_CHARS = 300
 
 
 def build_action_prompt(
@@ -25,10 +19,8 @@ def build_action_prompt(
     base_node_id: int,
     base_reason: str,
     operator_name: str,
-    operator_role: str,
     operator_constraint: str,
     experience_memory: ExperienceMemory,
-    contrast: dict | None,
     task_description: str,
     template_function: Function,
     action_count: int,
@@ -36,228 +28,104 @@ def build_action_prompt(
     max_steps: int = 5,
     positive_k: int = 2,
     negative_k: int = 2,
-    max_action_chars: int = _DEFAULT_ACTION_CHARS,
-    curriculum: CurriculumPacket | None = None,
 ) -> str:
     base_node = graph.get_node(base_node_id)
-    batch = experience_memory.examples(
+    experiences = experience_memory.examples(
         operator=operator_name,
         positive_k=positive_k,
         negative_k=negative_k,
     )
-    sections: list[str] = []
-    sections += ["[Task Description]", task_description.strip(), ""]
-    sections += [
-        "[Algorithm Improvement Context]",
-        "The selected trajectory records attempted modifications and observed outcomes.",
+    target = copy.deepcopy(template_function)
+    target.body = ""
+    sections = [
+        "[Task Description]",
+        task_description.strip(),
+        "",
+        "[Algorithm Improvement History]",
+        "The selected trajectory records the modifications that led to the current program.",
         fitness_direction_hint(maximize),
-        _causal_narrative(graph, trajectory, max_steps),
+        _trajectory_history(graph, trajectory, max_steps=max_steps),
         "",
-    ]
-    sections += [
-        "[Past Action Evidence]",
-        _experience_block(batch, max_action_chars=max_action_chars),
+        "[Cross-Trajectory Action Evidence]",
+        _experience_block(experiences),
         "",
-    ]
-    sections += [
-        "[Elite Curriculum]",
-        _curriculum_block(curriculum, max_action_chars=max_action_chars),
-        "",
-    ]
-    sections += ["[Contrast Feedback]", _contrast_block(contrast), ""]
-    sections += [
         "[Operator]",
-        f"name={operator_name} role={operator_role}",
+        f"name={operator_name}",
         f"Constraint: {operator_constraint}",
         "",
         "[Base Program To Modify]",
         f"Continue from Node p{base_node.id}. Selection reason: {base_reason}.",
         f"Idea: {base_node.idea}",
-        _structure_summary(base_node),
         "Code:",
         "```python",
         base_node.code.rstrip(),
         "```",
         "",
         "[Target Function Contract]",
-        _contract(template_function),
+        f"Only evolve:\n```python\n{target}\n```",
         "",
         "[Instruction]",
-        "Use the trajectory, past action evidence, elite curriculum, and contrast as a record of what worked and what did not.",
-        f"Propose {action_count} next-step modifications for the base program above:",
-        "- each modification must change one main algorithmic idea only;",
-        "- follow the operator constraint;",
-        "- avoid repeating directions that regressed or stayed unchanged;",
-        "- prefer changes that improve fitness without unnecessary complexity or runtime growth.",
-        "Each modification must be concrete and implementable. Do not output code or rationale.",
+        "Use the selected trajectory as the main account of how the current program was formed.",
+        "Use cross-trajectory actions only as supporting evidence of what worked or failed.",
+        f"Propose exactly {action_count} concrete next-step modifications.",
+        "Each modification must change one main algorithmic idea and follow the operator constraint.",
+        "Do not output code or rationale.",
         f"Return only a numbered list of exactly {action_count} ideas, one per line.",
     ]
     return "\n".join(sections).strip()
 
 
-def _causal_narrative(graph: DerivationGraph, trajectory: Trajectory, max_steps: int) -> str:
+def _trajectory_history(
+    graph: DerivationGraph,
+    trajectory: Trajectory,
+    *,
+    max_steps: int,
+) -> str:
     if not trajectory.edge_ids:
-        return "No previous improvement actions exist yet. This is an initial program."
+        return "No previous modification exists; this is an initial program."
     edge_ids = trajectory.edge_ids[-max_steps:]
     node_ids = trajectory.node_ids[-(len(edge_ids) + 1):]
     lines: list[str] = []
-    for i, eid in enumerate(edge_ids):
-        parent = graph.get_node(node_ids[i])
-        child = graph.get_node(node_ids[i + 1])
-        edge = graph.get_edge(eid)
-        delta = edge.delta if edge.delta is not None else 0.0
-        delta_c = child.complexity - parent.complexity
-        delta_r = child.runtime - parent.runtime
-        lines.append(
-            f"Step {i}: p{parent.id} -> p{child.id}  [op={edge.operator}]"
-        )
-        lines.append(f"  action: {edge.action}")
-        lines.append(
-            f"  fitness: {format_fitness(parent.fitness)} -> {format_fitness(child.fitness)} "
-            f"(Δ={delta:+.4g}, outcome={edge.outcome})"
-        )
-        lines.append(
-            f"  structure: {_short_metrics(parent)} -> {_short_metrics(child)} "
-            f"(ΔC={delta_c:+.3g})"
-        )
-        lines.append(
-            f"  runtime: {_format_runtime(parent.runtime)} -> {_format_runtime(child.runtime)} "
-            f"(ΔR={delta_r:+.3g}s)"
+    for index, edge_id in enumerate(edge_ids, start=1):
+        parent = graph.get_node(node_ids[index - 1])
+        child = graph.get_node(node_ids[index])
+        edge = graph.get_edge(edge_id)
+        lines.extend(
+            [
+                f"Step {index}: p{parent.id} -> p{child.id} [operator={edge.operator}]",
+                f"  action: {edge.action}",
+                (
+                    f"  fitness: {format_fitness(parent.fitness)} -> "
+                    f"{format_fitness(child.fitness)} "
+                    f"(delta={edge.delta!s}, outcome={edge.outcome})"
+                ),
+            ]
         )
     return "\n".join(lines)
 
 
-def _structure_summary(node: ProgramNode) -> str:
-    return (
-        f"Structure/runtime: {_short_metrics(node)}; "
-        f"runtime={_format_runtime(node.runtime)}; "
-        f"complexity_score={node.complexity:.3g}"
-    )
-
-
-def _short_metrics(node: ProgramNode) -> str:
-    metrics = node.complexity_metrics
-    cc = metrics.get("cyclomatic_complexity")
-    nest = metrics.get("max_nesting_depth")
-    loc = metrics.get("lines_of_code")
-    parts: list[str] = []
-    if cc is not None:
-        parts.append(f"cc={cc:.3g}")
-    if nest is not None:
-        parts.append(f"nest={nest:.3g}")
-    if loc is not None:
-        parts.append(f"loc={loc:.3g}")
-    if not parts:
-        parts.append(f"score={node.complexity:.3g}")
-    return " ".join(parts)
-
-
-def _format_runtime(runtime: float) -> str:
-    if runtime is None or runtime <= 0:
-        return "n/a"
-    if runtime < 0.001:
-        return f"{runtime * 1000:.2g}ms"
-    return f"{runtime:.3g}s"
-
-
-def _experience_block(
-    batch: ExperienceBatch,
-    *,
-    max_action_chars: int = _DEFAULT_ACTION_CHARS,
-) -> str:
+def _experience_block(batch: ExperienceBatch) -> str:
     if not batch.positives and not batch.negatives:
-        return "No successful or failed past actions recorded yet."
-    lines: list[str] = []
-    lines.append("Successful past actions:")
-    if batch.positives:
-        for example in batch.positives:
-            lines.append(_format_example(example, max_action_chars=max_action_chars))
-    else:
+        return "No cross-trajectory action evidence is available yet."
+    lines = ["Successful actions:"]
+    lines.extend(_format_example(example) for example in batch.positives)
+    if not batch.positives:
         lines.append("- (none)")
-    lines.append("")
-    lines.append("Failed past actions:")
-    if batch.negatives:
-        for example in batch.negatives:
-            lines.append(_format_example(example, max_action_chars=max_action_chars))
-    else:
+    lines.append("Failed actions:")
+    lines.extend(_format_example(example) for example in batch.negatives)
+    if not batch.negatives:
         lines.append("- (none)")
     return "\n".join(lines)
 
 
-def _format_example(example, *, max_action_chars: int) -> str:
+def _format_example(example) -> str:
     action = example.action
-    if len(action) > max_action_chars:
-        action = action[: max_action_chars - 3].rstrip() + "..."
+    if len(action) > _MAX_ACTION_CHARS:
+        action = action[: _MAX_ACTION_CHARS - 3].rstrip() + "..."
     return (
         f"- [operator={example.operator}] action={action} "
         f"delta={example.delta:+.4g}"
     )
 
 
-def _curriculum_block(
-    packet: CurriculumPacket | None,
-    *,
-    max_action_chars: int = _DEFAULT_ACTION_CHARS,
-) -> str:
-    if packet is None or not packet.trace_ids:
-        return "No elite curriculum is available yet."
-    lines: list[str] = []
-    for instruction in packet.instructions:
-        lines.append(f"Instruction: {instruction}")
-    for trace in packet.positive_traces:
-        lines.extend(_format_curriculum_trace(trace, max_action_chars=max_action_chars))
-    if packet.repair_trace is not None:
-        lines.append("Prefix repair:")
-        lines.extend(
-            _format_curriculum_trace(packet.repair_trace, max_action_chars=max_action_chars)
-        )
-    if packet.contrast_trace is not None:
-        lines.append("Contrastive boundary:")
-        lines.extend(
-            _format_curriculum_trace(packet.contrast_trace, max_action_chars=max_action_chars)
-        )
-    if packet.donor_trace is not None:
-        lines.append("Donor trace:")
-        lines.extend(
-            _format_curriculum_trace(packet.donor_trace, max_action_chars=max_action_chars)
-        )
-    return "\n".join(lines)
-
-
-def _format_curriculum_trace(trace, *, max_action_chars: int) -> list[str]:
-    lines = [
-        f"- [{trace.kind} id={trace.id} "
-        f"confidence={trace.confidence:.2f} causal={trace.causal_coherence:.2f}]"
-    ]
-    for index, step in enumerate(trace.steps):
-        action = step.action or "(no action recorded)"
-        if len(action) > max_action_chars:
-            action = action[: max_action_chars - 3].rstrip() + "..."
-        lines.append(
-            f"  step={index} evidence={step.evidence_type} "
-            f"causal_status={step.causal_status} operator={step.operator}"
-        )
-        lines.append(
-            f"  action={action} delta={step.delta_to_parent!s} "
-            f"outcome={step.outcome}"
-        )
-    return lines
-
-
-def _contrast_block(contrast: dict | None) -> str:
-    if not contrast:
-        return "(not enough samples for contrast yet)"
-    best, worst = contrast["best"], contrast["worst"]
-    return (
-        f"Recent best: fitness={format_fitness(best['fitness'])} "
-        f"idea='{best['idea'][:60]}'\n"
-        f"Recent worst: fitness={format_fitness(worst['fitness'])} "
-        f"idea='{worst['idea'][:60]}'"
-    )
-
-
-def _contract(template_function: Function) -> str:
-    import copy
-    signature = copy.deepcopy(template_function)
-    signature.body = ""
-    return f"Only evolve:\n```python\n{signature}\n```"
+__all__ = ["build_action_prompt"]
