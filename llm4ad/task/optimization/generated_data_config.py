@@ -275,13 +275,13 @@ GENERATED_TASK_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
     },
     "tsp_gls_2O": {
         "train": {
-            "timeout_seconds": 20,
+            "timeout_seconds": 60,
             "n_instance": 16,
             "problem_size": 100,
             "seed": TRAIN_SEED,
         },
         "eval": {
-            "timeout_seconds": 20,
+            "timeout_seconds": 60,
             "n_instance": 16,
             "problem_size": 100,
             "seed": EVAL_SEED,

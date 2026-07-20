@@ -168,7 +168,8 @@ class KnapsackEvaluation(Evaluation):
             total_value += value
 
         average_value = total_value / self.n_instance
-        return -average_value  # Positive because we want to maximize the total value
+        # Higher score is better (maximize total value), matching the shared profiler.
+        return float(average_value)
 
 
 if __name__ == '__main__':

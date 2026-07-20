@@ -11,7 +11,7 @@ from llm4ad.task.optimization.tsp_gls_2O.get_instance import GetData, TSPInstanc
 from llm4ad.task.optimization.tsp_gls_2O.template import template_program, task_description
 from .gls import guided_local_search_with_time
 
-__all__ = ['TSP_GLS_2O_Evaluation']
+__all__ = ['TSP_GLS_2O_Evaluation', 'TSPGLSEvaluation']
 
 perturbation_moves = 5
 iter_limit = 1000
@@ -77,7 +77,25 @@ class TSP_GLS_2O_Evaluation(Evaluation):
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
         return evaluate(self._datasets,self.n_instance,self.problem_size, callable_func)
-    
+
+
+class TSPGLSEvaluation(TSP_GLS_2O_Evaluation):
+    """Single-objective TSP-GLS evaluator for scalar-score AHD methods.
+
+    Returns only -mean_tour_cost (higher is better), matching the common
+    paper protocol that optimizes tour quality rather than the bi-objective
+    (cost, runtime) vector from ``TSP_GLS_2O_Evaluation``.
+    """
+
+    def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
+        score = super().evaluate_program(program_str, callable_func)
+        if score is None:
+            return None
+        arr = np.asarray(score, dtype=float).reshape(-1)
+        if arr.size == 0 or not np.isfinite(arr[0]):
+            return None
+        return float(arr[0])
+
 
 if __name__ == '__main__':
     import numpy as np

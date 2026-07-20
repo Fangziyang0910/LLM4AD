@@ -21,7 +21,7 @@ runner.TSPEvaluation = OrienteeringEvaluation
 
 # zhong-server
 runner.BASE_URL = "http://183.36.243.124:9000/v1"
-runner.API_KEY = "a41d07d327b81f06d3a76e4eed20608feb5d0adfc070200ae269b6f5fda7822a"
+runner.API_KEY = os.environ.get("LLM_API_KEY", "EMPTY")
 runner.MODEL = "Qwen3.6-27B-Q4_K_M"
 runner.NO_PROXY_HOSTS = "183.36.243.124,localhost,127.0.0.1,::1"
 os.environ["NO_PROXY"] = runner.NO_PROXY_HOSTS

@@ -2,7 +2,7 @@
   "created_at": "2026-07-18T21:56:01",
   "experiment_version": "version2",
   "llm": {
-    "api_key": "a41d07d327b81f06d3a76e4eed20608feb5d0adfc070200ae269b6f5fda7822a",
+    "api_key": "REDACTED",
     "base_url": "http://183.36.243.124:9000/v1",
     "enable_thinking": false,
     "max_tokens": 16384,
