@@ -1,5 +1,6 @@
 template_program = '''
 import numpy as np
+from typing import List, Tuple
 
 def select_next_item(remaining_capacity: int, remaining_items: List[Tuple[int, int, int]]) -> Tuple[int, int, int] | None:
     """

@@ -7,7 +7,7 @@ from typing import List, Tuple, Dict
 def solve(m: int, n: int, warehouses: list, customers: list) -> dict:
     """
     Solves the Uncapacitated Warehouse Location Problem.
-    Input kwargs:
+    Input arguments:
       - m: Number of potential warehouses (int)
       - n: Number of customers (int)
       - warehouses: A list of dictionaries, each with keys:
@@ -29,8 +29,8 @@ def solve(m: int, n: int, warehouses: list, customers: list) -> dict:
     ## placeholder. You do not need to write anything here.
     return {
         "total_cost": 0.0,
-        "warehouse_open": [0] * kwargs["m"],
-        "assignments": [[0] * kwargs["m"] for _ in range(kwargs["n"])]
+        "warehouse_open": [0] * m,
+        "assignments": [[0] * m for _ in range(n)]
     }
 '''
 

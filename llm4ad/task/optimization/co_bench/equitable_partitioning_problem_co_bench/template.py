@@ -8,7 +8,7 @@ def solve(data: list[list[int]]) -> dict:
     """
     Partition individuals into 8 groups so that for every binary attribute the count of 1's is as evenly
     distributed across the groups as possible.
-    Input kwargs:
+    Input arguments:
       - data (list of list of int): A matrix where each inner list represents the binary attributes (0 or 1)
         of one individual.
     Evaluation Metric:
@@ -24,7 +24,6 @@ def solve(data: list[list[int]]) -> dict:
     """
     # --- Placeholder solution ---
     # For this placeholder, we assign every individual to group 1.
-    data = kwargs.get('data', [])
     num_individuals = len(data)
     return {'assignment': [1] * num_individuals}
 '''

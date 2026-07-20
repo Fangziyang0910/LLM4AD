@@ -16,7 +16,7 @@ def solve(m: int, stock_length: int, stock_width: int, piece_types: list) -> dic
         - The number of pieces placed for any type does not exceed its allowed maximum.
         - The orientation of the pieces is fixed (i.e. no rotation is allowed).
         - The total value reported equals the sum of the values of the placed pieces.
-    Input kwargs (for one case):
+    Input arguments (for one case):
       - m: integer, the number of piece types.
       - stock_length: integer, the length of the stock sheet.
       - stock_width: integer, the width of the stock sheet.

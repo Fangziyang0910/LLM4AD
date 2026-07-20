@@ -72,8 +72,8 @@ class VRPREvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['depot'], j['costumers'], j['vehicles_per_day'], j['vehicle_capacity'], j['period_length'])
-                    fitness = self.eval_func(depot=j['depot'], customers=j['costumers'], vehicles_per_day=j['vehicles_per_day'], vehicle_capacity=j['vehicle_capacity'], period_length=j['period_length'], selected_schedules=result['selected_schedules'], tours=result['tours'])
+                    result = eva(j['depot'], j['customers'], j['vehicles_per_day'], j['vehicle_capacity'], j['period_length'])
+                    fitness = self.eval_func(depot=j['depot'], customers=j['customers'], vehicles_per_day=j['vehicles_per_day'], vehicle_capacity=j['vehicle_capacity'], period_length=j['period_length'], selected_schedules=result['selected_schedules'], tours=result['tours'])
                     fitness_list.append(fitness)
 
             return -np.mean(fitness_list)

@@ -1,5 +1,6 @@
 template_program = '''
 import numpy as np
+from typing import List, Optional, Tuple
 
 def determine_next_assignment(remaining_items: List[int], remaining_capacities: List[int]) -> Tuple[int, Optional[int]]:
     """
@@ -7,7 +8,8 @@ def determine_next_assignment(remaining_items: List[int], remaining_capacities: 
 
     Args:
         remaining_items: A list of remaining item weights.
-        remaining_capacities: A list of remaining capacities of feasible bins.
+        remaining_capacities: Remaining capacity of every available bin. The
+            selected item must fit in the selected bin.
 
     Returns:
         A tuple containing:
@@ -24,6 +26,7 @@ def determine_next_assignment(remaining_items: List[int], remaining_capacities: 
 '''
 
 task_description = '''
-Given a set of bins and items, iteratively assign one item to feasible bins.
-Design a constructive heuristic used in each iteration, with the objective of minimizing the used bins.
+Given item weights and the remaining capacity of every available bin, iteratively
+choose one remaining item and a bin that can hold it. Design the constructive
+selection heuristic with the objective of minimizing the number of used bins.
 '''

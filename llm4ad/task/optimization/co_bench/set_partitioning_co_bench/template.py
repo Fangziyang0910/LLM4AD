@@ -10,7 +10,7 @@ def solve(num_rows: int, num_columns: int, columns_info: dict) -> dict:
     The problem: Given a set of rows and a set of columns (each with an associated cost and a set
     of rows it covers), select a subset of columns so that each row is covered exactly once and the
     total cost is minimized.
-    Input kwargs:
+    Input arguments:
   - num_rows (int): Total number of rows. (int)
   - num_columns (int): Total number of columns. (int)
   - columns_info (dict): Dictionary mapping 1-indexed column indices (int) to a tuple:

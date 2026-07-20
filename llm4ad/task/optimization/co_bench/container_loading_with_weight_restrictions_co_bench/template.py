@@ -7,7 +7,7 @@ from typing import List, Tuple, Dict
 def solve(container: tuple, n: int, cargo_vol: float, box_types: list) -> dict:
     """
     Solves the Container Loading with Weight Restrictions problem.
-    Input kwargs (for one test case):
+    Input arguments (for one test case):
       - container (tuple of int): (L, W, H) representing the container dimensions in cm.
       - n (int): the number of box types.
       - cargo_vol (float): the total cargo volume in m³ (provided for consistency).

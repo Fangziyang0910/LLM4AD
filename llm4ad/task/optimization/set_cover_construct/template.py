@@ -1,5 +1,7 @@
 template_program = '''
 import numpy as np
+from typing import List
+
 def select_next_subset(selected_subsets: List[List[int]], remaining_subsets: List[List[int]], remaining_elements: List[int]) -> List[int] | None:
     """
     A heuristic for the Set Covering Problem.

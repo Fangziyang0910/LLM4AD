@@ -6,7 +6,7 @@
 #              (https://github.com/Optima-CityU/llm4ad).
 #
 # Parameters:
-#    -   x: float - initial value of the ODE formula (default: None).
+#    -   x: np.ndarray - length-one current ODE state (default: None).
 #    -   params: np.ndarray - 1D array of numeric constants or parameters to be optimized (default: None).
 #    -   timeout_seconds: int - Maximum allowed time (in seconds) for the evaluation process (default: 20).
 #

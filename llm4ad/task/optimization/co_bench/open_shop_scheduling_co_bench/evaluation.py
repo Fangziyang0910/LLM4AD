@@ -75,7 +75,8 @@ class OSSEvaluationCB(Evaluation):
                     fitness = self.eval_func(j['n_jobs'], j['n_machines'], j['times'], j['machines'], result['start_times'], lower_bound=j['lower_bound'], upper_bound=j['upper_bound'])
                     fitness_list.append(fitness)
 
-            return -np.mean(fitness_list)
+            # eval_func returns lower_bound/makespan (higher is better), matching job_shop.
+            return float(np.mean(fitness_list))
 
         except ValueError as e:
             print(e)

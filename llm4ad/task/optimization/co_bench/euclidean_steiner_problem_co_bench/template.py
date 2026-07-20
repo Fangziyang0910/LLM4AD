@@ -12,7 +12,7 @@ def solve(points: list) -> dict:
       such that when you compute the MST over the union of the original terminals and these Steiner points,
       the total length (measured via Euclidean distances) is minimized.
       (Recall, the Euclidean distance between two points (x1, y1) and (x2, y2) is sqrt((x1-x2)^2 + (y1-y2)^2).)
-    Input kwargs:
+    Input arguments:
       - points: a list of points, where each point is a tuple of floats (x, y),
                 representing the coordinates of an original terminal.
     Returns:
@@ -21,10 +21,6 @@ def solve(points: list) -> dict:
       It is assumed that the candidate solution’s computed total length can be derived by computing
       the MST over the union of the original terminals and the returned Steiner points.
     """
-    points = kwargs.get("points")
-    if points is None:
-        raise ValueError("Missing input: 'points' key is required.")
-
     # Placeholder for an actual Steiner tree algorithm:
     # In a real implementation, you would compute extra Steiner points to lower the MST length.
     steiner_points = []  # For now, return no additional Steiner points.

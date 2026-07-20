@@ -12,7 +12,7 @@ def solve(m: int, stock_width: int, stock_height: int, pieces: dict, allow_rotat
     the goal is to select and place some pieces (each used at most once) within the stock rectangle.
     If the keyword argument 'allow_rotation' is True, each piece may be placed in its original orientation or rotated 90° (swapping its dimensions);
     otherwise, pieces must be placed in their original orientation. In all cases, placements must not overlap and must lie entirely within the stock.
-    Input kwargs:
+    Input arguments:
         - m (int): Number of available pieces.
         - stock_width (int): The width of the stock rectangle.
         - stock_height (int): The height of the stock rectangle.

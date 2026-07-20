@@ -8,7 +8,7 @@ def solve(n: int, cx: float, cy: float, R: float, items: list, shape: str, rotat
     """
     Solves the problem of packing a subset of unequal rectangles and squares into a fixed‐size circular container
     with the objective of maximizing the total area of the items placed inside the container.
-    Input kwargs:
+    Input arguments:
       - n         : int, the number of items (rectangles or squares)
       - cx, cy    : floats, the coordinates of the container center
       - R         : float, the radius of the container
@@ -37,7 +37,7 @@ task_description = ("We consider the problem of selecting and placing a subset o
                     "packed items. Each item  i  has given dimensions  L_i  and  W_i  (with  L_i = W_i  for squares) "
                     "and an associated area  L_iW_i . The decision variables include a binary indicator \\alpha_i for "
                     "whether item  i  is packed and continuous variables (x_i, y_i) for the placement of its center, "
-                    "along with a rotation angle  \\theta_i  when 90^\circ rotations are allowed. The formulation "
+                    "along with a rotation angle  \\theta_i  when 90^\\circ rotations are allowed. The formulation "
                     "enforces that for every packed item, all four of its rotated corners must lie within the circle, "
                     "and that no two packed items overlap; if an item is not packed, it is fixed at a dummy position."
                     "Help me design a novel algorithm to solve this problem.")

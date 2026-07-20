@@ -6,7 +6,7 @@ import random
 from typing import List, Tuple, Dict
 def solve(N: int, target: int, countries: dict, withholding: dict) -> dict:
     """
-    Input kwargs:
+    Input arguments:
       - N: (int) The number of countries.
       - target: (int) The target country (1-indexed) which must be the root (its parent is 0).
       - countries: (dict) Mapping country id (1-indexed) to a tuple:
@@ -20,12 +20,12 @@ def solve(N: int, target: int, countries: dict, withholding: dict) -> dict:
     """
     # --- Placeholder implementation ---
     # For demonstration, we simply return a structure that includes only the target country.
-    structure = {kwargs['target']: 0}
+    structure = {target: 0}
     # In an actual solution, you would build a tree covering all countries with positive profit.
     return {"structure": structure}
 '''
 
-task_description = '''Given N countries, each defined by:
+task_description = r'''Given N countries, each defined by:
   - a tax code (1: Exemption, 2: Deduction, 3: Source-by-source Pooling, 4: World-wide Pooling),
   - a foreign income tax rate,
   - a domestic income tax rate, and

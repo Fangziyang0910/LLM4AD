@@ -9,7 +9,7 @@ from typing import Any
 import numpy as np
 
 from llm4ad.base import Evaluation
-from llm4ad.task.optimization.online_bin_packing.template import template_program, task_description
+from llm4ad.task.optimization.online_bin_packing_2O.template import template_program, task_description
 from llm4ad.task.optimization.online_bin_packing.generate_weibull_instances import generate_weibull_dataset
 
 import time

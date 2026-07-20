@@ -2,19 +2,24 @@ template_program = '''
 import numpy as np
 
 def equation(t: np.ndarray, x: np.ndarray, v: np.ndarray, params: np.ndarray) -> np.ndarray:
-    """ Mathematical function for acceleration in a damped nonlinear oscillator
+    """Equation skeleton for oscillator acceleration with explicit time.
+
     Args:
-        t: A numpy array representing time.
-        x: A numpy array representing observations of current position.
-        v: A numpy array representing observations of velocity.
-        params: Array of numeric constants or parameters to be optimized
+        t: Time observations.
+        x: Position observations.
+        v: Velocity observations.
+        params: Numeric constants fitted by the evaluator.
 
     Return:
-        A numpy array representing acceleration as the result of applying the mathematical function to the inputs.
+        Predicted acceleration array of the same length.
     """
-    dv = params[0] * t + params[1] * x  +  params[2] * v +  + params[3]
+    dv = params[0] * t + params[1] * x + params[2] * v + params[3]
     return dv
 '''
 
-task_description = ("Find the mathematical function skeleton that represents acceleration in a damped nonlinear "
-                    "oscillator system with driving force, given data on time, position, and velocity.")
+task_description = (
+    "Design an equation skeleton for acceleration in a damped nonlinear oscillator with "
+    "driving force. The function receives time t, position x, velocity v, and parameter "
+    "vector params, and must return predicted acceleration. The evaluator fits params by "
+    "MSE; the search score is the negated MSE (higher is better)."
+)

@@ -64,8 +64,9 @@ class GAPEvaluationCB(Evaluation):
 
     def evaluate(self, eva: callable) -> float | None:
         ins_cases = []
-        for case_id, ins in enumerate(self._datasets.values()):
-            ins_cases.append(self.load_data(ins))
+        for filename, ins in self._datasets.items():
+            problem_type = 'min' if filename in {'gapa.txt', 'gapb.txt', 'gapc.txt', 'gapd.txt'} else 'max'
+            ins_cases.append(self.load_data(ins, problem_type))
 
         fitness_list = []
         try:
@@ -73,15 +74,16 @@ class GAPEvaluationCB(Evaluation):
                 for j in i:
                     result = eva(j['m'], j['n'], j['cost_matrix'], j['consumption_matrix'], j['capacities'], j['problem_type'])
                     fitness = self.eval_func(j['m'], j['n'], j['cost_matrix'], j['consumption_matrix'], j['capacities'], result['assignments'])
-                    fitness_list.append(fitness)
+                    fitness_list.append(fitness if j['problem_type'] == 'max' else -fitness)
 
-            return -np.mean(fitness_list)
+            # Convert both objective types to the framework's higher-is-better convention.
+            return float(np.mean(fitness_list))
 
         except ValueError as e:
             print(e)
             return None
 
-    def load_data(self, input_string):
+    def load_data(self, input_string, problem_type='max'):
         """
         Load and parse the input file for the Generalised Assignment Problem (GAP).
         The input is expected to be a whitespace‐delimited text file with the following format:
@@ -92,7 +94,8 @@ class GAPEvaluationCB(Evaluation):
               • m×n numbers representing the resource consumption matrix (row by row).
               • m numbers representing the capacities for each agent.
         Parameters:
-          input_file_path: (str) Path to the input text file.
+          input_string: (str) Contents of one input text file.
+          problem_type: (str) Either 'max' or 'min', inferred from the dataset filename.
         Returns:
           A list of dictionaries. Each dictionary corresponds to one case and contains the keys:
               'm', 'n', 'cost_matrix', 'consumption_matrix', and 'capacities'.
@@ -147,10 +150,6 @@ class GAPEvaluationCB(Evaluation):
                 except Exception as e:
                     raise Exception("Error reading capacity value: " + str(e))
                 ptr += 1
-            # Determine problem type based on content analysis or default to 'max'
-            # Since we don't have file name, we'll default to 'max' for now
-            problem_type = 'max'
-
             case = {
                 'm': m,
                 'n': n,
@@ -261,7 +260,5 @@ class GAPEvaluationCB(Evaluation):
                'gapd.txt': [5, 4, 1]}
 
         return dev
-
-
 
 

@@ -10,7 +10,7 @@ def solve(n: int, edges: list, adjacency: dict) -> dict:
         Given a graph in DIMACS format (with vertices, edges, and an adjacency list),
         assign a positive integer color to each vertex (1..n) so that no two adjacent vertices
         share the same color. The objective is to use as few colors as possible.
-    Input kwargs:
+    Input arguments:
     The keyword arguments are expected to include at least:
       - n: int (int), the number of vertices.
       - edges: list of (u, v) tuples (tuple of int (int), int (int)) representing edges.
@@ -27,10 +27,10 @@ def solve(n: int, edges: list, adjacency: dict) -> dict:
     return {}  # Replace {} with the actual solution dictionary when implemented.
 '''
 
-task_description = ("Given a graph in DIMACS format with vertices, edges, and an adjacency list, the goal is to "
-                    "assign a positive integer color (1..n) to each vertex while ensuring that no two adjacent "
-                    "vertices share the same color. The objective is to minimize the number of distinct colors used. "
-                    "If any two adjacent vertices have the same color, the solution is invalid and receives no score. "
-                    "Otherwise, the score is equal to the number of distinct colors used, with a lower score being "
-                    "better."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "Design a graph colouring solver. Given n vertices, an edge list, and an adjacency map, "
+    "assign a positive integer color to every vertex so that no adjacent vertices share a color. "
+    "The function must return a dict mapping each vertex id (1..n) to its color. "
+    "Feasible solutions are scored by the number of distinct colors used: fewer colors are better. "
+    "The evaluator returns the negated color count so that the search treats higher scores as better."
+)

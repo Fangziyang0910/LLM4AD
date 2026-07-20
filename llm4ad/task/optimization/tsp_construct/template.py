@@ -18,5 +18,10 @@ def select_next_node(current_node: int, destination_node: int, unvisited_nodes: 
     return next_node
 '''
 
-task_description = "Given a set of nodes with their coordinates, you need to find the shortest route that visits each node once and returns to the starting node. \
-The task can be solved step-by-step by starting from the current node and iteratively choosing the next node. Help me design a novel algorithm that is different from the algorithms in literature to select the next node in each step."
+task_description = (
+    "The Traveling Salesman Problem asks for a shortest tour that visits each node once and returns to the start. "
+    "Instances are generated from node coordinates, but the constructive heuristic does not receive coordinates. "
+    "At each step it receives the current node id, the destination/start node id, an array of unvisited candidate "
+    "node ids, and the pairwise distance matrix, and must return the id of the next node to visit. "
+    "Help me design a novel algorithm to select the next node in each step."
+)

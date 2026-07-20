@@ -8,7 +8,7 @@ from scipy.optimize import linear_sum_assignment
 def solve(id: str, bin_capacity: int, num_items: int, items: list[int], **kwargs) -> dict:
     """
     Solve the one-dimensional bin packing problem for a single test case.
-    Input kwargs (for a single test case):
+    Input arguments (for a single test case):
       - id:           The problem identifier (string)
       - bin_capacity: The capacity of each bin (int)
       - num_items:    The number of items (int)

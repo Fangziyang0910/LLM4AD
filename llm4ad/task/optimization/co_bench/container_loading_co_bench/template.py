@@ -7,7 +7,7 @@ from typing import List, Tuple, Dict
 def solve(problem_index: int, container: tuple, box_types: dict) -> dict:
     """
     Solves a container loading problem.
-    Input kwargs:
+    Input arguments:
       - problem_index: an integer identifier for the test case.
       - container: a tuple of three integers (container_length, container_width, container_height).
       - box_types: a dictionary mapping each box type (integer) to a dict with:

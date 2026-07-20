@@ -17,9 +17,7 @@ def choose_action(x: float, y: float, av: float, last_action: float) -> float:
     return action
 '''
 
-task_description = ("Implement a novel control strategy for the inverted pendulum swing-up problem. The goal is to "
-                    "apply an appropriate torque at each step to swing the pendulum into an upright position (center "
-                    "of gravity directly above the fixed point) and stabilize it. The torque should be selected based "
-                    "on the pendulum's current state, including its x-y coordinates (`cos(theta)` and `sin(theta)`) "
-                    "and angular velocity. The solution should minimize the time required to reach the upright "
-                    "position while ensuring stability.")
+task_description = ("Implement a novel control strategy for the inverted pendulum swing-up problem. At each step "
+                    "apply a torque based on cos(theta), sin(theta), angular velocity, and the previous torque to "
+                    "reach and stabilize the upright position. Fitness is based on the final uprightness/stability "
+                    "error at episode end; if the pendulum is perfectly upright, shorter episodes are preferred.")

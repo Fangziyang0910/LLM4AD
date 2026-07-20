@@ -21,10 +21,11 @@ def solve(nodes: list) -> dict:
     }
 '''
 
-task_description = ("The Traveling Salesman Problem (TSP) is a classic combinatorial optimization problem where, "
-                    "given a set of cities with known pairwise distances, the objective is to find the shortest "
-                    "possible tour that visits each city exactly once and returns to the starting city. More "
-                    "formally, given a complete graph G = (V, E) with vertices V representing cities and edges E with "
-                    "weights representing distances, we seek to find a Hamiltonian cycle (a closed path visiting each "
-                    "vertex exactly once) of minimum total weight."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The Traveling Salesman Problem (TSP) asks for a shortest tour that visits each city "
+    "exactly once and returns to the start. The function receives a list of city coordinates "
+    "nodes = [(x, y), ...] and must return a dict {'tour': [...]} with a permutation of "
+    "0-based city indices forming a Hamiltonian cycle. Distances are Euclidean and computed "
+    "by the evaluator from the coordinates. The objective is to minimize tour length; the "
+    "evaluator returns the negated mean length (higher is better)."
+)

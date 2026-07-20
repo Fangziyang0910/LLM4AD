@@ -7,7 +7,7 @@ from typing import List, Tuple, Dict
 def solve(n_jobs: int, n_machines: int, times: list, machines: list) -> dict:
     """
     Solves a single open shop scheduling test case.
-    Input kwargs:
+    Input arguments:
         - n_jobs (int): Number of jobs.
         - n_machines (int): Number of machines (and operations per job).
         - times (list of list of int): A 2D list of processing times for each operation.
@@ -25,10 +25,7 @@ def solve(n_jobs: int, n_machines: int, times: list, machines: list) -> dict:
     """
 
     # Extract the case parameters
-    n_jobs = kwargs["n_jobs"]
-    n_machines = kwargs["n_machines"]
-    times = kwargs["times"]
-    machines = kwargs["machines"]
+    # Parameters are already provided as function arguments.
 
     # TODO: Implement the scheduling algorithm here.
     # For now, we provide a dummy solution where all operations start at time 0.

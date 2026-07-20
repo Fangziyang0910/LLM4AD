@@ -1,6 +1,5 @@
 template_program = '''
 import numpy as np
-import cv2
     
 def choose_action(observation, car_speed, pre_action, pre_observation):
     """
@@ -84,4 +83,3 @@ task_description = (
     "### Function Requirements\n"
     "The Python function should incorporate a control policy that combines visual perception from the RGB observations and past information (previous observation and action). This policy should enable the agent to maintain optimal control of the car, keep the car on the track, and maximize the efficiency of lap completion."
 )
-

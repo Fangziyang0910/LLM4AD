@@ -7,7 +7,7 @@ from typing import List, Tuple, Dict
 def solve(m:int, n:int, cost_matrix:list, consumption_matrix:list, capacities:list, problem_type:str='max') -> dict:
     """
     Solve the Generalised Assignment Problem (GAP) for a single case.
-    Input arguments (passed as keyword arguments):
+    Input arguments (passed as function arguments):
       - m: (int) Number of agents.
       - n: (int) Number of jobs.
       - cost_matrix: (list of list of float) A matrix of size m×n where cost_matrix[i][j]
@@ -22,11 +22,11 @@ def solve(m:int, n:int, cost_matrix:list, consumption_matrix:list, capacities:li
       Each integer is an agent number (using 1-indexing) that is assigned to the corresponding job.
     """
     # For illustration purposes, we provide a trivial solution that assigns every job to agent 1.
-    assignments = [1] * kwargs['n']
+    assignments = [1] * n
     return {'assignments': assignments}
 '''
 
-task_description = ("The Generalized Assignment Problem (GAP) involves assigning \( n \) jobs to \( m \) agents such "
+task_description = ("The Generalized Assignment Problem (GAP) involves assigning \\( n \\) jobs to \\( m \\) agents such "
                     "that each job is assigned to exactly one agent, and the resource consumption for each agent does "
                     "not exceed its capacity. The objective is to optimize the total cost based on the problem type. "
                     "When formulated as a maximization problem, the goal is to maximize the total cost; when "

@@ -5,25 +5,29 @@ import scipy.optimize as opt
 import math
 import random
 from typing import List, Tuple, Dict
-def solve(graph: networkx.Graph):
+def solve(graph: nx.Graph) -> dict:
     """
     Solve the Maximum Independent Set problem for a given test case.
-   Input:
-        kwargs (dict): A dictionary with the following keys:
-            - graph (networkx.Graph): The graph to solve
+
+    Input:
+        graph (nx.Graph): Undirected graph whose nodes are integers.
+
     Returns:
         dict: A solution dictionary containing:
-            - mis_nodes (list): List of node indices in the maximum independent set
+            - mis_nodes (list): List of node indices in an independent set.
+              Larger feasible sets score higher.
     """
-    # TODO: Implement your MIS solving algorithm here. Below is a placeholder.
+    # Placeholder: return an empty independent set.
     solution = {
-        'mis_nodes': [0, 1, ...],
+        'mis_nodes': [],
     }
     return solution
 '''
 
-task_description = ("The Maximum Independent Set (MIS) problem is a fundamental NP-hard optimization problem in graph "
-                    "theory. Given an undirected graph G = (V, E), where V is a set of vertices and E is a set of "
-                    "edges, the goal is to find the largest subset S ⊆ V such that no two vertices in S are adjacent "
-                    "(i.e., connected by an edge)."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "Design a solver for the Maximum Independent Set (MIS) problem. "
+    "Given an undirected NetworkX graph G = (V, E), return a largest subset S of vertices "
+    "such that no two vertices in S are adjacent. The function receives the graph object and "
+    "must return a dict with key 'mis_nodes' listing the chosen node ids. The evaluator checks "
+    "independence and scores the set by its size (higher is better)."
+)

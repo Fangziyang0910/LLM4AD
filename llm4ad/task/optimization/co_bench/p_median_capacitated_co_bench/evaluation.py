@@ -75,7 +75,8 @@ class PMCEvaluationCB(Evaluation):
                     fitness = self.eval_func(best_known=j['best_known'], n=j['n'], p=j['p'], Q=j['Q'], customers=j['customers'], objective=result['objective'], medians=result['medians'], assignments=result['assignments'])
                     fitness_list.append(fitness)
 
-            return -np.mean(fitness_list)
+            # eval_func returns best_known/cost (higher is better), matching CO-Bench normalized score.
+            return float(np.mean(fitness_list))
 
         except ValueError as e:
             print(e)

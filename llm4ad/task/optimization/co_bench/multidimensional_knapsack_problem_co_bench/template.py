@@ -7,7 +7,7 @@ from typing import List, Tuple, Dict
 def solve(n: int, m: int, p: list, r: list, b: list) -> dict:
     """
     Solves a multidimensional knapsack problem instance.
-    Input kwargs (for one test case):
+    Input arguments (for one test case):
       - n: int, number of decision variables.
       - m: int, number of constraints.
       - p: list of floats, profit coefficients (length n).
@@ -24,7 +24,7 @@ def solve(n: int, m: int, p: list, r: list, b: list) -> dict:
       A dict with key 'x' whose value is a list of n binary decisions (0 or 1).
     """
     # Placeholder implementation: a dummy solution that selects no items.
-    x = [0] * kwargs['n']
+    x = [0] * n
     return {'x': x}
 '''
 

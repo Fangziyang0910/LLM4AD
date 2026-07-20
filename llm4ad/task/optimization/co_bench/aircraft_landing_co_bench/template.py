@@ -15,7 +15,7 @@ def solve(num_planes: int, num_runways: int, freeze_time: float, planes: list[di
           - The overall penalty is minimized. For each plane, if its landing time is earlier than its target time, a penalty
             is incurred proportional to the earliness; if later than its target time, a penalty proportional to the lateness is incurred.
           - If any constraint is violated, the solution receives no score.
-    Input kwargs:
+    Input arguments:
         num_planes  : (int) Number of planes.
         num_runways : (int) Number of runways.
         freeze_time : (float) Freeze time (unused in scheduling decisions).

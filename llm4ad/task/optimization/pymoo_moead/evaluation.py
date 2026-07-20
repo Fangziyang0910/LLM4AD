@@ -109,7 +109,9 @@ class MOEAD_PYMOO_Evaluation(Evaluation):
 
         hv_value = self.hv_calculator(res.opt.get("F"))
         self.last_result = {"hv": hv_value, "pareto_front": res.opt}
-        return -hv_value
+        # LLM4AD methods rank scores as higher-better. EoH's original repo minimized and
+        # therefore returned -HV; here we return +HV so larger hypervolume is preferred.
+        return float(hv_value)
 
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any:

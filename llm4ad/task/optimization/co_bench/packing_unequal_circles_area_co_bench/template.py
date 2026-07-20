@@ -22,7 +22,7 @@ def solve(n:int, cx: float, cy: float, R: float, radii: list) -> dict:
          (For circles not packed, we force (x_i, y_i) to equal (cx, cy).)
       4. Objective: Maximize the total area of the circles packed:
          maximize sum_{i=1}^n α_i * (pi * radii[i]^2).
-    Input kwargs:
+    Input arguments:
       - n     : int, the number of circles.
       - cx    : float, x-coordinate of the container's center.
       - cy    : float, y-coordinate of the container's center.
@@ -42,7 +42,7 @@ task_description = ("The problem involves packing a subset of unequal circles in
                     "radius R_0 and center at the origin, where each circle i has a given radius R_i (sorted in "
                     "non-decreasing order) and is associated with a binary decision variable \\alpha_i indicating "
                     "whether it is packed. The goal is to maximize the total area of all circles packed—that is, "
-                    "maximize \sum_{i=1}^{n}\\alpha_i*pi*R_i^2—subject to two sets of nonlinear constraints: (1) each "
+                    "maximize \\sum_{i=1}^{n}\\alpha_i*pi*R_i^2—subject to two sets of nonlinear constraints: (1) each "
                     "packed circle must lie entirely within the container, which is enforced by ensuring that the "
                     "distance from its center to the container’s center plus its radius does not exceed R_0; and (2) "
                     "any two packed circles must not overlap, meaning the distance between their centers must be at "

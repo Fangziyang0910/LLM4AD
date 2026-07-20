@@ -7,7 +7,7 @@ from typing import List, Tuple, Dict
 def solve(n:int, m:int, K:int, lower_bounds:list, upper_bounds:list, vertex_resources:list, graph:dict) -> dict:
     """
     Solve the Resource Constrained Shortest Path problem.
-    Input kwargs should include:
+    Input arguments are:
       - n (int): number of vertices,
       - m (int): number of arcs,
       - K (int): number of resources,
@@ -28,7 +28,6 @@ def solve(n:int, m:int, K:int, lower_bounds:list, upper_bounds:list, vertex_reso
     (Placeholder implementation)
     """
     # Placeholder implementation.
-    n = kwargs.get("n", 1)
     # Return a trivial solution: just go directly from vertex 1 to vertex n.
     return {"total_cost": 0.0, "path": [1, n]}
 '''

@@ -32,5 +32,9 @@ def select_next_assignment(flow_matrix: np.ndarray, distance_matrix: np.ndarray)
 '''
 
 task_description = '''
-The task is to assign a set of facilities to a set of locations in such a way that the total cost of interactions between facilities is minimized.
+The Quadratic Assignment Problem (QAP) assigns each facility to exactly one location so that
+the total interaction cost is minimized. The constructive heuristic does not receive raw
+coordinates. It receives the facility-flow matrix and the location-distance matrix, and must
+return a complete permutation assignment in one call: assignment[i] is the location assigned
+to facility i. The objective is to minimize sum_i sum_j flow[i,j] * distance[assignment[i], assignment[j]].
 '''

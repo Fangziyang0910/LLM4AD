@@ -2,18 +2,22 @@ template_program = '''
 import numpy as np
 
 def equation(strain: np.ndarray, temp: np.ndarray, params: np.ndarray) -> np.ndarray:
-    """ Mathematical function for stress in Aluminium rod
+    """Equation skeleton for stress in an aluminium rod.
+
     Args:
-        strain: A numpy array representing observations of strain.
-        temp: A numpy array representing observations of temperature.
-        params: Array of numeric constants or parameters to be optimized
+        strain: Strain observations.
+        temp: Temperature observations.
+        params: Numeric constants fitted by the evaluator.
 
     Return:
-        A numpy array representing stress as the result of applying the mathematical function to the inputs.
+        Predicted stress array of the same length.
     """
-    return params[0] * strain  +  params[1] * temp
+    return params[0] * strain + params[1] * temp
 '''
 
-task_description = ("Find the mathematical function skeleton that represents stress, given data on strain and "
-                    "temperature in an Aluminium rod for both elastic and plastic regions.")
-
+task_description = (
+    "Design an equation skeleton for stress given strain and temperature observations of "
+    "an aluminium rod (elastic and plastic regimes). The function receives strain, temp, "
+    "and parameter vector params, and must return predicted stress. The evaluator fits "
+    "params by MSE; the search score is the negated MSE (higher is better)."
+)

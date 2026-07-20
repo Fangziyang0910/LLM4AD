@@ -12,7 +12,7 @@ def solve(m: int, n: int, costs: list, row_cover: list) -> dict:
       choose a subset of columns such that every row is covered (i.e. for every row,
       at least one chosen column appears in that row's coverage list) while minimizing
       the total cost (the sum of the costs of the chosen columns).
-    Input kwargs:
+    Input arguments:
       - m: (int) number of rows.
       - n: (int) number of columns.
       - costs: (list of int) where costs[j] is the cost for column j+1.

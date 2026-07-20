@@ -12,4 +12,10 @@ def priority(item: float, bins: np.ndarray) -> np.ndarray:
     return item - bins
 '''
 
-task_description = "Implement a function that returns the priority with which we want to add an item to each bin."
+task_description = (
+    "Implement a priority function for online one-dimensional bin packing. "
+    "Items arrive one by one and must be placed immediately into a bin with enough remaining capacity. "
+    "The function receives the item size and an array of remaining capacities of currently feasible bins, "
+    "and must return a priority score for each feasible bin. The item is placed into the bin with the "
+    "highest priority. The objective is to minimize the number of bins used."
+)

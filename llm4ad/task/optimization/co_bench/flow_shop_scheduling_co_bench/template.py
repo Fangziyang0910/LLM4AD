@@ -7,7 +7,7 @@ from typing import List, Tuple, Dict
 def solve(n: int, m: int, matrix: list) -> dict:
     """
     Solves the flow shop scheduling problem.
-    Input kwargs:
+    Input arguments:
       - n (int): Number of jobs.
       - m (int): Number of machines.
       - matrix (list of list of int): Processing times for each job, where each sublist
@@ -22,7 +22,7 @@ def solve(n: int, m: int, matrix: list) -> dict:
     Note: This is a placeholder implementation.
     """
     # Placeholder: simply return the identity permutation.
-    return {'job_sequence': list(range(1, kwargs['n'] + 1))}
+    return {'job_sequence': list(range(1, n + 1))}
 '''
 
 task_description = ("Given  n  jobs and  m  machines, the goal of the flow shop scheduling problem is to determine "

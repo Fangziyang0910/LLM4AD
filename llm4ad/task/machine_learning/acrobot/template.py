@@ -12,7 +12,7 @@ def choose_action(ct1: float, st1: float, ct2: float, st2: float, avt1: float, a
         st2: sine of theta2, float between [-1, 1].
         avt1: angular velocity of theta1, float between [-12.567, 12.567].
         avt2: angular velocity of theta2, float between [-28.274, 28.274].
-
+        last_action: Previous action, one of 0, 1, or 2.
 
     Return:
          An integer representing the selected action for the acrobot.
@@ -27,8 +27,8 @@ def choose_action(ct1: float, st1: float, ct2: float, st2: float, avt1: float, a
     return action
 '''
 
-task_description = ("I need help designing an innovative heuristic strategy function to control an acrobot, aiming to "
-                    "swing the lower link to generate enough momentum for the upper link to reach a target height. At "
-                    "each step, the function should select a specific action based on the acrobot's joint angles and "
-                    "angular velocities to efficiently reach the goal without unnecessary oscillations or excessive "
-                    "control effort.")
+task_description = ("Design an innovative control heuristic for an acrobot. At each step the function selects an "
+                    "action from joint angles and angular velocities (and the previous action) to swing the lower "
+                    "link and raise the tip to the target height. Fitness rewards reaching the goal in fewer steps; "
+                    "if the episode ends without success, it uses a height-based proxy of how close the tip is to "
+                    "the goal.")

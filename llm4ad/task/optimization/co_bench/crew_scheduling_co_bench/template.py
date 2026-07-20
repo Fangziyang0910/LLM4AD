@@ -12,15 +12,15 @@ def solve(N: int, K: int, time_limit: float, tasks: dict, arcs: dict) -> dict:
       - The tasks within each crew are executed in non-overlapping order.
       - For every consecutive pair of tasks in a crew’s schedule, a valid transition arc exists (with an associated cost).
       - The overall duty time (finish time of the last task minus start time of the first task) does not exceed the specified time limit.
-      - Exactly K crews are used.
-    Input kwargs (for one case):
+      - At most K crews are used.
+    Input arguments (for one case):
       - N (int): Number of tasks.
-      - K (int): Maximum number of crews to be used.
+      - K (int): Maximum number of crews that may be used.
       - time_limit (float): Maximum allowed duty time.
       - tasks (dict): Dictionary mapping task ID (1 to N) to a tuple (start_time, finish_time).
       - arcs (dict): Dictionary mapping (from_task, to_task) pairs to transition cost.
     Evaluation metric:
-      - If all constraints are met (no task overlap, valid transition arcs, duty time within the limit, and exactly K crews used), the score is the sum of transition costs across all crews.
+      - If all constraints are met (no task overlap, valid transition arcs, duty time within the limit, and at most K crews used), the score is the sum of transition costs across all crews.
       - If any constraint is violated, the solution is infeasible and receives no score.
       - A lower score indicates a more cost-effective solution.
     Returns:
@@ -29,13 +29,11 @@ def solve(N: int, K: int, time_limit: float, tasks: dict, arcs: dict) -> dict:
     """
     # --- placeholder implementation ---
     # For example, here we distribute tasks evenly across K crews.
-    N = kwargs.get("N")
-    K = kwargs.get("K")
     tasks_ids = list(range(1, N + 1))
     crews = [[] for _ in range(K)]
     for i, task in enumerate(tasks_ids):
         crews[i % K].append(task)
-    # In practice, you would implement a heuristic or optimization method that groups tasks into exactly K crews
+    # In practice, you would implement a heuristic or optimization method that groups tasks into at most K crews
     # while satisfying the non-overlap, valid transitions, and duty time constraints.
     return {"crews": crews}
 '''

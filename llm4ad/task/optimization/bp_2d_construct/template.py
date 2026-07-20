@@ -1,38 +1,47 @@
 template_program = '''
+from typing import List, Optional, Tuple
 import numpy as np
-def determine_next_assignment(remaining_items: List[Tuple[int, int]], point_matrices: List[List[List[int]]]) -> Tuple[Tuple[int, int], int]:
-    """
-    A simple heuristic function to select the next item and bin for packing.
+
+def determine_next_assignment(
+    remaining_items: List[Tuple[int, int]],
+    point_matrices: List[List[List[int]]],
+) -> Tuple[Tuple[int, int], Optional[int]]:
+    """Choose the next item and target bin for 2D bin packing.
+
+    Called repeatedly while packing remaining rectangular items.
 
     Args:
-        remaining_items: A list of tuples, where each tuple represents the (width, height) of an item.
-        point_matrices: A list of 2D matrices representing the occupied (1) and unoccupied (0) points in each bin.
+        remaining_items: Items still to pack as (width, height).
+        point_matrices: For each open bin, a 2-d occupancy grid where 0 is free
+            and 1 is occupied. Grid shape is (bin_width, bin_height).
 
     Returns:
-        A tuple containing:
-        - The selected item (width, height).
-        - The selected bin index (or None if no bin is feasible).
+        (selected_item, bin_index). selected_item must be one of remaining_items.
+        bin_index is the chosen open bin, or None if a new bin must be opened.
     """
-    # Select the largest item (based on area) from the remaining items
     selected_item = max(remaining_items, key=lambda item: item[0] * item[1])
 
-    # Try to find a feasible bin for the selected item
     for bin_idx, point_matrix in enumerate(point_matrices):
         bin_width = len(point_matrix)
         bin_height = len(point_matrix[0]) if bin_width > 0 else 0
-        # Check if the item fits in the bin
         if bin_width >= selected_item[0] and bin_height >= selected_item[1]:
-            # Check for a feasible position in the bin
             for x in range(bin_width - selected_item[0] + 1):
                 for y in range(bin_height - selected_item[1] + 1):
-                    # Check if the area is unoccupied
-                    if all(point_matrix[x + dx][y + dy] == 0 for dx in range(selected_item[0]) for dy in range(selected_item[1])):
+                    if all(
+                        point_matrix[x + dx][y + dy] == 0
+                        for dx in range(selected_item[0])
+                        for dy in range(selected_item[1])
+                    ):
                         return selected_item, bin_idx
-    # If no feasible bin is found, return None for the bin
     return selected_item, None
-
 '''
 
-task_description = '''
-Given a set of rectangular bins and rectangular items, iteratively assign each item to a feasible position in one of the bins. Design a constructive heuristic that, in each iteration, selects the best item and placement from the remaining items and feasible corners, with the objective of minimizing the number of used bins.
-'''
+task_description = (
+    "Design a constructive heuristic for 2D bin packing. "
+    "At each step choose one remaining rectangle and either place it into an existing "
+    "bin or request a new bin. The function receives remaining items as (width, height) "
+    "and each open bin as an occupancy grid (0 free, 1 occupied). It must return "
+    "(item, bin_index) where item is one of the remaining items and bin_index is an "
+    "existing bin index or None to open a new bin. The objective is to minimize the "
+    "number of bins; the evaluator returns the negated average bin count."
+)

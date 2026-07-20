@@ -118,11 +118,11 @@ def choose_action(s: list, last_action: int, s_pre: list) -> int:
 # '''
 
 task_description = (
-    "Implement a novel heuristic strategy function that guides the lander in selecting actions step-by-step "
-    "to achieve a safe landing. At each step, an appropriate action could be chosen based on the lander's "
-    "current state and previous state, with the objective of reaching the target location in as few steps as possible. "
-    "A 'safe landing' is defined as a touchdown with low vertical speed, upright orientation, and both "
-    "angular velocity and angle close to zero, and both legs in contact with the ground."
+    "Implement a novel heuristic that selects Lunar Lander actions step by step from the current state, "
+    "previous action, and previous state to achieve a safe landing. A safe landing means low vertical speed, "
+    "upright orientation, near-zero angular velocity and angle, and both legs in contact with the ground. "
+    "Fitness combines normalized Gym episode reward, fuel efficiency, and landing success rate; it is not "
+    "purely minimizing the number of steps."
 )
 
 non_image_representation_explanation = ("The execution result is a two-dimensional list where each element is an 8-dimensional "

@@ -7,7 +7,7 @@ from typing import List, Tuple, Dict
 def solve(stock_length: int, stock_width: int, pieces: list) -> dict:
     """
     Solves the constrained non-guillotine cutting problem.
-    Input kwargs:
+    Input arguments:
       - stock_length (int): Length of the stock rectangle.
       - stock_width (int): Width of the stock rectangle.
       - pieces (list of dict): List of pieces, where each dict has:

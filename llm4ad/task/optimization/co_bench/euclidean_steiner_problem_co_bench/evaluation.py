@@ -148,11 +148,11 @@ class ESPEvaluationCB(Evaluation):
                 is sqrt((x1-x2)^2 + (y1-y2)^2).)
              3. A valid candidate must have candidate_value ≤ MST_original (within a small tolerance).
                 If not, a ValueError is raised.
-                Otherwise, the quality ratio is computed as candidate_value / MST_original.
-                (A lower ratio indicates a better solution.)
-          The overall score is the average of the ratios over all test problems.
+                Otherwise, the quality score is 1 - candidate_value / MST_original.
+                A larger score indicates a larger improvement over the original MST.
+          The overall score is the average quality score over all test problems.
         Returns:
-          overall_score (float): The average ratio over all test problems.
+          overall_score (float): The average higher-is-better quality score.
         """
         import math
 
@@ -294,6 +294,5 @@ class ESPEvaluationCB(Evaluation):
                'estein90.txt': [14, 3, 4, 8, 2, 5, 10]}
 
         return dev
-
 
 

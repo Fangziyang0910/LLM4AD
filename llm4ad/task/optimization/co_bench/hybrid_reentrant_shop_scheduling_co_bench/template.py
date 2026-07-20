@@ -21,7 +21,6 @@ def solve(n_jobs: int, n_machines: int, init_time: int, setup_times: list, proce
     # TODO: Implement the solution logic.
 
     # Placeholder return
-    n_jobs = kwargs['n_jobs']
     return {
         'permutation': list(range(1, n_jobs + 1)),
         'batch_assignment': [1 if i % 2 == 0 else 2 for i in range(n_jobs)]

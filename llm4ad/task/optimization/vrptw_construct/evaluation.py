@@ -60,7 +60,7 @@ class VRPTWEvaluation(Evaluation):
         self.n_instance = n_instance
         self.seed = seed
 
-        getData = GetData(self.n_instance, self.problem_size + 1, self.seed)
+        getData = GetData(self.n_instance, self.problem_size, self.seed)
         self._datasets = getData.generate_instances()
 
     def tour_cost(self, distance_matrix, solution, time_service, time_windows):
@@ -98,12 +98,33 @@ class VRPTWEvaluation(Evaluation):
             current_time = 0
             route.append(current_node)
             unvisited_nodes = set(range(1, self.problem_size + 1))  # Assuming node 0 is the depot
-            all_nodes = np.array(list(unvisited_nodes))
-            feasible_unvisited_nodes = all_nodes
 
-            unvisited_nodes_depot = np.array(list(unvisited_nodes))
+            def feasible_customers():
+                return np.array([
+                    node for node in sorted(unvisited_nodes)
+                    if current_load + demands[node] <= vehicle_capacity
+                    and max(
+                        current_time + distance_matrix[current_node, node],
+                        time_windows[node, 0],
+                    ) <= time_windows[node, 1]
+                    and max(
+                        current_time + distance_matrix[current_node, node],
+                        time_windows[node, 0],
+                    ) + time_service[node] + distance_matrix[node, 0] <= time_windows[0, 1]
+                ], dtype=int)
+
+            feasible_unvisited_nodes = feasible_customers()
 
             while unvisited_nodes:
+                if len(feasible_unvisited_nodes) == 0:
+                    if current_node == 0:
+                        return None
+                    route.append(0)
+                    current_load = 0
+                    current_time = 0
+                    current_node = 0
+                    feasible_unvisited_nodes = feasible_customers()
+                    continue
 
                 next_node = heuristic(current_node,
                                       0,
@@ -114,12 +135,15 @@ class VRPTWEvaluation(Evaluation):
                                       copy.deepcopy(distance_matrix),
                                       copy.deepcopy(time_windows))
                 if next_node == 0:
+                    if current_node == 0:
+                        return None
                     route.append(next_node)
                     current_load = 0
                     current_time = 0
                     current_node = 0
-                    unvisited_nodes_depot = np.array(list(unvisited_nodes))
                 else:
+                    if next_node not in feasible_unvisited_nodes:
+                        return None
                     travel_time = distance_matrix[current_node, next_node]
                     current_time += (travel_time)
                     current_time = max(current_time, time_windows[next_node][0])
@@ -134,21 +158,11 @@ class VRPTWEvaluation(Evaluation):
                     current_load += demands[next_node]
                     unvisited_nodes.remove(next_node)
                     current_node = next_node
-                    unvisited_nodes_depot = np.append(np.array(list(unvisited_nodes)), 0)
 
-                feasible_nodes_tw = np.array([node for node in all_nodes \
-                                              if max(current_time + distance_matrix[current_node][node], time_windows[node][0]) < time_windows[node][1] - 0.0001 \
-                                              and max(current_time + distance_matrix[current_node][node], time_windows[node][0]) + time_service[node] + distance_matrix[node][0] < time_windows[0][1] - 0.0001])
-                feasible_nodes_capacity = np.array([node for node in all_nodes if current_load + demands[node] <= vehicle_capacity])
-                # Determine feasible and unvisited nodes
-                feasible_unvisited_nodes = np.intersect1d(np.intersect1d(feasible_nodes_tw, feasible_nodes_capacity), list(unvisited_nodes))
+                feasible_unvisited_nodes = feasible_customers()
 
-                if len(unvisited_nodes) > 0 and len(feasible_unvisited_nodes) < 1:
-                    route.append(0)
-                    current_load = 0
-                    current_time = 0
-                    current_node = 0
-                    feasible_unvisited_nodes = np.array(list(unvisited_nodes))
+            if route[-1] != 0:
+                route.append(0)
 
             # print(set(route))
 
@@ -167,7 +181,7 @@ class VRPTWEvaluation(Evaluation):
 
 
 if __name__ == '__main__':
-    def select_next_node(current_node: int, depot: int, unvisited_nodes: np.ndarray, rest_capacity: np.ndarray, current_time: np.ndarray, demands: np.ndarray, distance_matrix: np.ndarray, time_windows: np.ndarray) -> int:
+    def select_next_node(current_node: int, depot: int, unvisited_nodes: np.ndarray, rest_capacity: float, current_time: float, demands: np.ndarray, distance_matrix: np.ndarray, time_windows: np.ndarray) -> int:
         """Design a novel algorithm to select the next node in each step.
         Args:
             current_node: ID of the current node.

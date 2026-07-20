@@ -1,5 +1,6 @@
 template_program = '''
 import numpy as np
+from typing import List, Tuple
 
 def select_next_assignment(assignments: List[List[int]], remaining_customers: List[int], remaining_capacities: List[int], customer_demands: List[int], assignment_costs: List[List[int]]) -> Tuple[int, int]:
     """

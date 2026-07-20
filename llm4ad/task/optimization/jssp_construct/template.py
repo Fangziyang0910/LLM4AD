@@ -9,41 +9,39 @@ ProcessingTime: TypeAlias = int
 Operation: TypeAlias = Tuple[JobId, MachineId, ProcessingTime]  # (job_id, machine_id, proc_time)
 
 
+class CurrentStatus(TypedDict):
+    machine_status: Sequence[int]
+    job_status: Sequence[int]
+
+
 def determine_next_operation(
     current_status: CurrentStatus,
     feasible_operations: Sequence[Operation],
 ) -> Operation:
-    """
-    Choose one operation from `feasible_operations` to schedule next.
+    """Choose the next operation to schedule in a constructive JSSP solver.
 
-    Input contract (must match the evaluation block)
-    -----------------------------------------------
-    current_status:
-        Dict-like object with exactly these keys:
-        - 'machine_status': list[int] in the evaluator (Sequence[int] here)
-        - 'job_status': list[int] in the evaluator (Sequence[int] here)
+    Called once per scheduling decision while building a complete schedule.
 
-    feasible_operations:
-        A (usually non-empty) list of operations, where each operation is:
-        (job_id: int, machine_id: int, processing_time: int)
+    Args:
+        current_status: Dict with
+            - machine_status: current available time of each machine
+            - job_status: current available time of each job
+        feasible_operations: Candidate operations as
+            (job_id, machine_id, processing_time) tuples.
 
-        These tuples are created in the evaluator as:
-        all_operations.append((job_id, machine_id, processing_times[job_id][machine_id]))
-
-    Output contract (must match the evaluation block)
-    -------------------------------------------------
     Returns:
-        One `Operation` tuple of the same form:
-        (job_id: int, machine_id: int, processing_time: int)
-
-        IMPORTANT: It should be one of the tuples from `feasible_operations`
-        (the evaluator does `all_operations.remove(next_operation)`).
-
+        One operation from feasible_operations. The evaluator removes that
+        exact tuple from the remaining candidate list.
     """
-    # Example baseline heuristic: shortest processing time
+    # Baseline: shortest processing time
     return min(feasible_operations, key=lambda op: op[2])
 '''
 
-task_description = '''
-Given jobs and machines, schedule jobs on machines to minimize the total makespan. Design an algorithm to select the next operation in each step.
-'''
+task_description = (
+    "Design a constructive heuristic for the Job Shop Scheduling Problem. "
+    "At each step the function chooses one feasible operation to schedule next, "
+    "given current machine/job available times and the list of candidate operations. "
+    "It must return one of the provided (job_id, machine_id, processing_time) tuples. "
+    "The evaluator assembles a full schedule and scores it by negated average makespan "
+    "(higher is better)."
+)

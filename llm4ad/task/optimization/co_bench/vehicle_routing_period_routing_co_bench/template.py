@@ -7,7 +7,7 @@ from typing import List, Tuple, Dict
 def solve(depot: dict, customers: list, vehicles_per_day: list, vehicle_capacity: float, period_length: int) -> dict:
     """
     Solves an instance of the Period Vehicle Routing Problem.
-    Input kwargs includes:
+    Input arguments include:
       - depot: dict with keys:
             "id": int, always 0.
             "x": float, the x-coordinate.
@@ -23,10 +23,10 @@ def solve(depot: dict, customers: list, vehicles_per_day: list, vehicle_capacity
       - period_length: int, the number of days in the planning period.
     The solution must decide:
       1. Which service schedule (from the candidate schedules) is selected for each customer.
-      2. For each day (days are 1-indexed), the daily tours: a list of tours—one per available vehicle.
+      2. For each day (days are 1-indexed), the daily tours: a list containing at most one tour per available vehicle.
          Each tour is a continuous route that starts at the depot (0), visits some customers (each exactly once),
          and returns to the depot. The depot may only appear as the first and last vertex in each tour.
-         The number of tours for day d must be exactly equal to vehicles_per_day[d-1].
+         The number of tours for day d must not exceed vehicles_per_day[d-1]; unused vehicles may be omitted.
     The returned solution is a dictionary containing:
       - "selected_schedules": dict mapping each customer id (integer) to the chosen schedule (a list of binary integers).
       - "tours": dict mapping day (an integer between 1 and period_length) to a list of tours.

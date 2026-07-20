@@ -20,9 +20,12 @@ def select_next_node(current_node: int, destination_node: int, unvisited_nodes: 
     return next_node
 '''
 
-task_description = ("Given a depot and a set of optional customer nodes with coordinates and prizes, "
-                    "the Orienteering Problem asks for a route that starts and ends at the depot, "
-                    "keeps total travel distance within a fixed budget, and maximizes collected prize. "
-                    "The task can be solved step-by-step by repeatedly selecting one feasible unvisited node. "
-                    "Help me design a novel algorithm to select the next node in each step.")
+task_description = (
+    "The Orienteering Problem asks for a route that starts and ends at the depot, keeps total travel distance "
+    "within a fixed budget, and maximizes collected prize. Instances may be defined from node coordinates and "
+    "prizes, but the constructive heuristic does not receive coordinates. At each step it receives the current "
+    "node id, destination node id, an array of feasible unvisited node ids (those that still leave enough budget "
+    "to return), the pairwise distance matrix, the prize vector, and the remaining travel budget, and must return "
+    "the id of the next node to visit. Help me design a novel algorithm to select the next node in each step."
+)
 
