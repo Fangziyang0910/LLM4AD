@@ -1,6 +1,10 @@
 # Online Bin Packing 实验
 
-## 本轮正式跑（20260719_150058）
+权威数据配置见 `docs/实验配置.md`：训练 Weibull 5k\_100；测试 1k/5k/10k × C∈{100,500}。
+
+## 本轮正式跑（20260719_150058，旧测试协议）
+
+训练与主流一致（5k\_100）；测试当时仅为同规模 held-out。结果页仍为旧测试口径，多规模重测后再更新。
 
 | Method | Budget | Run dirs | GPU 源 |
 |---|---:|---|---|
@@ -21,7 +25,7 @@ tail -20 experiments/online_bin_packing/*/20260719_150058_obp_rep1/tmux_run.log
 tail -20 experiments/online_bin_packing/traceaad/version2/20260719_150058_obp_rep1/tmux_run.log
 ```
 
-测试评估（已完成权威结果见 `docs/results/online_bin_packing/`）：
+测试评估（新协议默认扫 1k/5k/10k × 100/500）：
 
 ```bash
 uv run python experiments/online_bin_packing/evaluate_best_on_test.py <run_dirs...> --output-dir <eval_dir>

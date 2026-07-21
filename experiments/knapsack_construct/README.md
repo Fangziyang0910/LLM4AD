@@ -1,6 +1,10 @@
 # Knapsack Construct 实验
 
-## 本轮正式跑（20260719_223427）
+权威数据配置见 `docs/实验配置.md`：训练 KP100，测试 KP50/100/200。
+
+## 本轮正式跑（20260719_223427，旧协议）
+
+本批仍按旧配置训练与测试：`n_items=50`、同规模 held-out。新协议重跑前勿覆盖结果页。
 
 | Method | Budget | Run dirs | GPU 源 |
 |---|---:|---|---|
@@ -8,8 +12,8 @@
 | PathWise | 500 | `pathwise/20260719_223427_kp_rep{1,2,3}` | 同上 |
 | TraceAAD | 1000 | `traceaad/version2/20260719_223427_kp_rep{1,2,3}` | 同上 |
 
-- 训练数据：`n_instance=32`，`n_items=50`，`knapsack_capacity=100`，**`seed=2024`**
-- 分数语义：平均总价值，**越高越好**（启动前修正了评估符号：原先误返回负值）
+- 训练数据（旧）：`n_instance=32`，`n_items=50`，`knapsack_capacity=100`，**`seed=2024`**
+- 分数语义：平均总价值，**越高越好**
 - tmux 会话：`kp_<method>_rep{1,2,3}`
 - 启动日志：`launch_20260719_223427.log`
 - 重启命令：`bash experiments/knapsack_construct/launch_nine_tmux.sh`
@@ -22,7 +26,7 @@ tail -20 experiments/knapsack_construct/*/20260719_223427_kp_rep1/tmux_run.log
 tail -20 experiments/knapsack_construct/traceaad/version2/20260719_223427_kp_rep1/tmux_run.log
 ```
 
-测试评估（权威结果见 `docs/results/knapsack_construct/`）：
+测试评估（新协议默认扫 KP50/100/200）：
 
 ```bash
 uv run python experiments/knapsack_construct/evaluate_best_on_test.py <run_dirs...> --output-dir <eval_dir>

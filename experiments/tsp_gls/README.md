@@ -2,7 +2,11 @@
 
 单目标（平均 tour cost）；底层任务实现为 `tsp_gls_2O`，实验用 `TSPGLSEvaluation` 只取 `-mean_cost`。
 
-## 本轮正式跑（20260720_140109）
+权威数据配置见 `docs/实验配置.md`：训练 TSP200，测试 TSP100/200/500/1000。
+
+## 本轮正式跑（20260720_140109，旧协议）
+
+本批仍按旧配置：训练/测试均为 TSP100。新协议重跑前勿覆盖结果页。
 
 | Method | Budget | Run dirs | GPU 源 |
 |---|---:|---|---|
@@ -10,7 +14,7 @@
 | PathWise | 500 | `pathwise/20260720_140109_tspgls_rep{1,2,3}` | 同上 |
 | TraceAAD | 1000 | `traceaad/version2/20260720_140109_tspgls_rep{1,2,3}` | 同上 |
 
-- 训练：`n_instance=16`，`problem_size=100`，`seed=2024`，`timeout_seconds=60`
+- 训练（旧）：`n_instance=16`，`problem_size=100`，`seed=2024`，`timeout_seconds=60`
 - 分数：`-mean_tour_cost`，越高越好
 - tmux：`tspgls_<method>_rep{1,2,3}`
 - 启动日志：`launch_20260720_140109.log`
@@ -24,13 +28,13 @@ tail -20 experiments/tsp_gls/*/20260720_140109_tspgls_rep1/tmux_run.log
 tail -20 experiments/tsp_gls/traceaad/version2/20260720_140109_tspgls_rep1/tmux_run.log
 ```
 
-## PathWise 已完成（2026-07-20）
+## 已完成评估（旧协议）
 
-三重复均 `finished`；held-out `seed=2025` 评估与训练曲线见 `docs/results/tsp_gls/`。
+三方法 held-out `seed=2025`（同规模 TSP100）与训练曲线见 `docs/results/tsp_gls/`。
 
 ```bash
 uv run python experiments/tsp_gls/evaluate_best_on_test.py \
   experiments/tsp_gls/pathwise/20260720_140109_tspgls_rep{1,2,3} \
   --output-dir experiments/tsp_gls/pathwise/eval_best_20260720_140109
-MPLCONFIGDIR=/tmp/matplotlib uv run python experiments/plotting/plot_tsp_gls_pathwise_search.py
+MPLCONFIGDIR=/tmp/matplotlib uv run python experiments/plotting/plot_tsp_gls_three_method_search.py
 ```

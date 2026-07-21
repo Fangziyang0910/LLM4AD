@@ -156,12 +156,6 @@ def _render(method_names: tuple[str, ...], output_name: str, title: str, y_botto
 
 def main() -> None:
     _render(tuple(METHODS), "搜索曲线_方法对比.png", "Orienteering Construct 方法搜索曲线", 13.0)
-    _render(
-        ("TraceAAD version1", "TraceAAD version2"),
-        "搜索曲线_TraceAAD_v1_v2.png",
-        "Orienteering Construct TraceAAD v1 vs v2",
-        13.0,
-    )
 
 
 if __name__ == "__main__":

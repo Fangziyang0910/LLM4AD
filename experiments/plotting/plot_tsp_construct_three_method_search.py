@@ -149,7 +149,6 @@ def _render(method_names: tuple[str, ...], output_stem: str) -> None:
 
 def main() -> None:
     _render(tuple(METHODS), "搜索曲线")
-    _render(("TraceAAD version1", "TraceAAD version2"), "搜索曲线_TraceAAD_v1_v2")
 
 
 if __name__ == "__main__":

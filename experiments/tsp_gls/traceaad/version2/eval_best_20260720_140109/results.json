@@ -1,0 +1,81 @@
+{
+  "created_at": "2026-07-21T11:08:14",
+  "eval_timeout_seconds": 60,
+  "method": "traceaad",
+  "model": "Qwen3.6-27B",
+  "run_records": [
+    {
+      "best_operator": "mechanism_crossover",
+      "best_sample_order": 788,
+      "eval_mean_tour_cost": 7.711423136535061,
+      "eval_score": -7.711423136535061,
+      "eval_seconds": 8.633800268173218,
+      "num_valid_samples": 885,
+      "program_path": "experiments/tsp_gls/traceaad/version2/eval_best_20260720_140109/20260720_140109_tspgls_rep1_sample_788_program.py",
+      "run_dir": "experiments/tsp_gls/traceaad/version2/20260720_140109_tspgls_rep1",
+      "run_name": "20260720_140109_tspgls_rep1",
+      "train_artifact_score": -7.667369893463411,
+      "train_eval_seconds": 8.6068696975708,
+      "train_mean_tour_cost": 7.667369893463411,
+      "train_recomputed_score": -7.667369893463411
+    },
+    {
+      "best_operator": "backtrack_branch",
+      "best_sample_order": 117,
+      "eval_mean_tour_cost": 7.7021689979475845,
+      "eval_score": -7.7021689979475845,
+      "eval_seconds": 39.23601031303406,
+      "num_valid_samples": 938,
+      "program_path": "experiments/tsp_gls/traceaad/version2/eval_best_20260720_140109/20260720_140109_tspgls_rep2_sample_117_program.py",
+      "run_dir": "experiments/tsp_gls/traceaad/version2/20260720_140109_tspgls_rep2",
+      "run_name": "20260720_140109_tspgls_rep2",
+      "train_artifact_score": -7.667369893463411,
+      "train_eval_seconds": 39.706411838531494,
+      "train_mean_tour_cost": 7.667369893463411,
+      "train_recomputed_score": -7.667369893463411
+    },
+    {
+      "best_operator": "mechanism_crossover",
+      "best_sample_order": 927,
+      "eval_mean_tour_cost": 7.705225641262404,
+      "eval_score": -7.705225641262404,
+      "eval_seconds": 8.472957372665405,
+      "num_valid_samples": 912,
+      "program_path": "experiments/tsp_gls/traceaad/version2/eval_best_20260720_140109/20260720_140109_tspgls_rep3_sample_927_program.py",
+      "run_dir": "experiments/tsp_gls/traceaad/version2/20260720_140109_tspgls_rep3",
+      "run_name": "20260720_140109_tspgls_rep3",
+      "train_artifact_score": -7.667519946213209,
+      "train_eval_seconds": 8.685776472091675,
+      "train_mean_tour_cost": 7.667519946213209,
+      "train_recomputed_score": -7.667519946213209
+    }
+  ],
+  "score_semantics": "TSPGLSEvaluation returns -mean_tour_cost across instances; higher score is better. mean_tour_cost = -score.",
+  "source": "3 completed traceaad tsp_gls repeat(s)",
+  "split_configs": {
+    "eval": {
+      "n_instance": 16,
+      "problem_size": 100,
+      "seed": 2025,
+      "timeout_seconds": 60
+    },
+    "train": {
+      "n_instance": 16,
+      "problem_size": 100,
+      "seed": 2024,
+      "timeout_seconds": 60
+    }
+  },
+  "summary": {
+    "mean_eval_score": -7.706272591915017,
+    "mean_eval_tour_cost": 7.706272591915017,
+    "mean_train_recomputed_score": -7.667419911046676,
+    "mean_train_tour_cost": 7.667419911046676,
+    "num_runs": 3,
+    "sample_std_eval_score": 0.004715066224435479,
+    "sample_std_eval_tour_cost": 0.004715066224435479,
+    "sample_std_train_recomputed_score": 8.663299548849437e-05,
+    "sample_std_train_tour_cost": 8.663299548849437e-05
+  },
+  "task": "tsp_gls_2O"
+}

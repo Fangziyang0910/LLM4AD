@@ -49,7 +49,7 @@ class KnapsackEvaluation(Evaluation):
     def __init__(self,
                  timeout_seconds=20,
                  n_instance=32,
-                 n_items=50,
+                 n_items=100,
                  knapsack_capacity=100,
                  seed=2024,
                  **kwargs):

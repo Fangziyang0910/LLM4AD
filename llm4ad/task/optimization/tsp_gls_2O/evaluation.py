@@ -48,9 +48,9 @@ class TSP_GLS_2O_Evaluation(Evaluation):
 
     def __init__(
             self,
-            timeout_seconds=20,
+            timeout_seconds=120,
             n_instance=16,
-            problem_size=100,
+            problem_size=200,
             seed=2024,
             **kwargs):
 

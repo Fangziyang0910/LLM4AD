@@ -117,14 +117,14 @@ GENERATED_TASK_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
         "train": {
             "timeout_seconds": 20,
             "n_instance": 32,
-            "n_items": 50,
+            "n_items": 100,
             "knapsack_capacity": 100,
             "seed": TRAIN_SEED,
         },
         "eval": {
             "timeout_seconds": 20,
             "n_instance": 32,
-            "n_items": 50,
+            "n_items": 100,
             "knapsack_capacity": 100,
             "seed": EVAL_SEED,
         },
@@ -275,15 +275,15 @@ GENERATED_TASK_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
     },
     "tsp_gls_2O": {
         "train": {
-            "timeout_seconds": 60,
+            "timeout_seconds": 120,
             "n_instance": 16,
-            "problem_size": 100,
+            "problem_size": 200,
             "seed": TRAIN_SEED,
         },
         "eval": {
-            "timeout_seconds": 60,
+            "timeout_seconds": 120,
             "n_instance": 16,
-            "problem_size": 100,
+            "problem_size": 200,
             "seed": EVAL_SEED,
         },
     },

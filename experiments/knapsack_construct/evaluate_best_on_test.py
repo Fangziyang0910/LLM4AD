@@ -1,10 +1,12 @@
 """Evaluate the best heuristic from finished Knapsack Construct search runs.
 
+Train in-domain: KP100. Held-out test: KP50/100/200 (seed=2025).
+
     uv run python experiments/knapsack_construct/evaluate_best_on_test.py \\
-      experiments/knapsack_construct/mcts_ahd/20260719_223427_kp_rep1 \\
-      experiments/knapsack_construct/mcts_ahd/20260719_223427_kp_rep2 \\
-      experiments/knapsack_construct/mcts_ahd/20260719_223427_kp_rep3 \\
-      --output-dir experiments/knapsack_construct/mcts_ahd/eval_best_20260719_223427
+      experiments/knapsack_construct/mcts_ahd/<run_rep1> \\
+      experiments/knapsack_construct/mcts_ahd/<run_rep2> \\
+      experiments/knapsack_construct/mcts_ahd/<run_rep3> \\
+      --output-dir experiments/knapsack_construct/mcts_ahd/eval_best_<tag>
 """
 
 from __future__ import annotations
@@ -28,6 +30,7 @@ from llm4ad.task.optimization.knapsack_construct import KnapsackEvaluation
 
 
 TASK = "knapsack_construct"
+DEFAULT_SIZES = (50, 100, 200)
 
 
 def _resolve_method(run_dir: Path) -> str:
@@ -38,7 +41,7 @@ def _resolve_method(run_dir: Path) -> str:
         if isinstance(method, str) and method.strip():
             return method.strip()
     parts = run_dir.parts
-    if "version2" in parts or "version1" in parts:
+    if "version3" in parts or "version2" in parts or "version1" in parts:
         return "traceaad"
     return run_dir.parent.name
 
@@ -96,10 +99,15 @@ def _mean_std(values: list[float]) -> dict[str, float | None]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Evaluate best KP heuristics from finished search runs on held-out seed=2025."
+        description="Evaluate best KP heuristics on held-out KP50/100/200 (seed=2025)."
     )
     parser.add_argument("run_dirs", nargs="+", type=Path)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument(
+        "--sizes",
+        default=",".join(str(size) for size in DEFAULT_SIZES),
+        help="comma-separated n_items (default: 50,100,200)",
+    )
     parser.add_argument(
         "--timeout-seconds",
         type=float,
@@ -107,6 +115,9 @@ def main() -> None:
         help="per-program timeout; default None disables timeout",
     )
     args = parser.parse_args()
+    sizes = [int(item.strip()) for item in args.sizes.split(",") if item.strip()]
+    if not sizes:
+        raise ValueError("--sizes must contain at least one size")
 
     run_dirs = [run_dir.resolve() for run_dir in args.run_dirs]
     methods = {_resolve_method(run_dir) for run_dir in run_dirs}
@@ -122,7 +133,7 @@ def main() -> None:
         **get_generated_task_kwargs(TASK, "train"),
         "timeout_seconds": args.timeout_seconds,
     }
-    eval_kwargs = {
+    eval_base_kwargs = {
         **get_generated_task_kwargs(TASK, "eval"),
         "timeout_seconds": args.timeout_seconds,
     }
@@ -140,7 +151,6 @@ def main() -> None:
             config = json.loads(config_path.read_text(encoding="utf-8"))
             model = config.get("llm", {}).get("model", model)
         train_score, train_seconds = _evaluate_program(program, train_kwargs)
-        eval_score, eval_seconds = _evaluate_program(program, eval_kwargs)
         try:
             relative_run_dir = str(run_dir.relative_to(PROJECT_ROOT))
         except ValueError:
@@ -159,33 +169,62 @@ def main() -> None:
                 "train_artifact_score": float(best["score"]),
                 "train_recomputed_score": train_score,
                 "train_eval_seconds": train_seconds,
-                "eval_score": eval_score,
-                "eval_seconds": eval_seconds,
                 "program_path": relative_program_path,
+                "program": program,
             }
         )
 
+    eval_results_by_size: dict[str, Any] = {}
+    for n_items in sizes:
+        eval_kwargs = {**eval_base_kwargs, "n_items": n_items}
+        rows: list[dict[str, Any]] = []
+        for row in run_records:
+            score, eval_seconds = _evaluate_program(row["program"], eval_kwargs)
+            rows.append(
+                {
+                    "run_name": row["run_name"],
+                    "best_sample_order": row["best_sample_order"],
+                    "best_operator": row["best_operator"],
+                    "eval_score": score,
+                    "eval_seconds": eval_seconds,
+                    "program_path": row["program_path"],
+                }
+            )
+        scores = [float(item["eval_score"]) for item in rows]
+        eval_results_by_size[f"kp{n_items}"] = {
+            "n_items": n_items,
+            "eval_config": eval_kwargs,
+            "results": rows,
+            "summary": {
+                "num_runs": len(rows),
+                "num_successful_eval_runs": len(scores),
+                "mean_eval_score": _mean_std(scores)["mean"],
+                "sample_std_eval_score": _mean_std(scores)["sample_std"],
+            },
+        }
+
     train_scores = [float(row["train_recomputed_score"]) for row in run_records]
-    eval_scores = [float(row["eval_score"]) for row in run_records]
     payload = {
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "task": TASK,
         "method": method,
         "model": model,
         "source": f"{len(run_records)} completed {method} knapsack_construct repeat(s)",
+        "problem_sizes": sizes,
         "eval_timeout_seconds": args.timeout_seconds,
-        "split_configs": {"train": train_kwargs, "eval": eval_kwargs},
+        "split_configs": {"train": train_kwargs, "eval_base": eval_base_kwargs},
         "score_semantics": (
             "KnapsackEvaluation returns mean total value across instances; "
             "higher score is better."
         ),
-        "run_records": run_records,
+        "run_records": [
+            {key: value for key, value in row.items() if key != "program"} for row in run_records
+        ],
+        "eval_results_by_size": eval_results_by_size,
         "summary": {
             "num_runs": len(run_records),
             "mean_train_recomputed_score": _mean_std(train_scores)["mean"],
             "sample_std_train_recomputed_score": _mean_std(train_scores)["sample_std"],
-            "mean_eval_score": _mean_std(eval_scores)["mean"],
-            "sample_std_eval_score": _mean_std(eval_scores)["sample_std"],
         },
     }
     output_path = output_dir / "results.json"

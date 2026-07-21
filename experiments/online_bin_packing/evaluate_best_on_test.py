@@ -1,12 +1,12 @@
 """Evaluate the best heuristic from finished Online Bin Packing search runs.
 
-One shared entry point per task. Pass any method's finished run directories:
+Train in-domain: Weibull 5k_100. Held-out test: 1k/5k/10k × C∈{100,500}.
 
     uv run python experiments/online_bin_packing/evaluate_best_on_test.py \\
-      experiments/online_bin_packing/mcts_ahd/20260719_150058_obp_rep1 \\
-      experiments/online_bin_packing/mcts_ahd/20260719_150058_obp_rep2 \\
-      experiments/online_bin_packing/mcts_ahd/20260719_150058_obp_rep3 \\
-      --output-dir experiments/online_bin_packing/mcts_ahd/eval_best_20260719_150058
+      experiments/online_bin_packing/mcts_ahd/<run_rep1> \\
+      experiments/online_bin_packing/mcts_ahd/<run_rep2> \\
+      experiments/online_bin_packing/mcts_ahd/<run_rep3> \\
+      --output-dir experiments/online_bin_packing/mcts_ahd/eval_best_<tag>
 """
 
 from __future__ import annotations
@@ -30,6 +30,39 @@ from llm4ad.task.optimization.online_bin_packing import OBPEvaluation
 
 
 TASK = "online_bin_packing"
+# Paper-aligned test scales (EoH / ReEvo / MCTS-AHD / PathWise).
+DEFAULT_TEST_SCALES = (
+    (1000, 100),
+    (5000, 100),
+    (10000, 100),
+    (1000, 500),
+    (5000, 500),
+    (10000, 500),
+)
+
+
+def _scale_key(n_items: int, capacity: int) -> str:
+    if n_items % 1000 == 0 and n_items >= 1000:
+        return f"{n_items // 1000}k_{capacity}"
+    return f"{n_items}_{capacity}"
+
+
+def _parse_scales(text: str) -> list[tuple[int, int]]:
+    scales: list[tuple[int, int]] = []
+    for part in text.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "_" not in part:
+            raise ValueError(f"invalid scale {part!r}; expected like 5k_100 or 5000_100")
+        left, right = part.rsplit("_", 1)
+        capacity = int(right)
+        if left.endswith("k") or left.endswith("K"):
+            n_items = int(left[:-1]) * 1000
+        else:
+            n_items = int(left)
+        scales.append((n_items, capacity))
+    return scales
 
 
 def _resolve_method(run_dir: Path) -> str:
@@ -40,7 +73,7 @@ def _resolve_method(run_dir: Path) -> str:
         if isinstance(method, str) and method.strip():
             return method.strip()
     parts = run_dir.parts
-    if "version2" in parts or "version1" in parts:
+    if "version3" in parts or "version2" in parts or "version1" in parts:
         return "traceaad"
     return run_dir.parent.name
 
@@ -98,10 +131,15 @@ def _mean_std(values: list[float]) -> dict[str, float | None]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Evaluate best OBP heuristics from finished search runs on held-out seed=2025."
+        description="Evaluate best OBP heuristics on held-out Weibull multi-scale tests."
     )
     parser.add_argument("run_dirs", nargs="+", type=Path)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument(
+        "--scales",
+        default=",".join(_scale_key(n, c) for n, c in DEFAULT_TEST_SCALES),
+        help="comma-separated scales like 1k_100,5k_100,...,10k_500",
+    )
     parser.add_argument(
         "--timeout-seconds",
         type=float,
@@ -109,6 +147,9 @@ def main() -> None:
         help="per-program timeout; default None disables timeout",
     )
     args = parser.parse_args()
+    scales = _parse_scales(args.scales)
+    if not scales:
+        raise ValueError("--scales must contain at least one scale")
 
     run_dirs = [run_dir.resolve() for run_dir in args.run_dirs]
     methods = {_resolve_method(run_dir) for run_dir in run_dirs}
@@ -124,7 +165,7 @@ def main() -> None:
         **get_generated_task_kwargs(TASK, "train"),
         "timeout_seconds": args.timeout_seconds,
     }
-    eval_kwargs = {
+    eval_base_kwargs = {
         **get_generated_task_kwargs(TASK, "eval"),
         "timeout_seconds": args.timeout_seconds,
     }
@@ -142,7 +183,6 @@ def main() -> None:
             config = json.loads(config_path.read_text(encoding="utf-8"))
             model = config.get("llm", {}).get("model", model)
         train_score, train_seconds = _evaluate_program(program, train_kwargs)
-        eval_score, eval_seconds = _evaluate_program(program, eval_kwargs)
         try:
             relative_run_dir = str(run_dir.relative_to(PROJECT_ROOT))
         except ValueError:
@@ -161,37 +201,72 @@ def main() -> None:
                 "train_artifact_score": float(best["score"]),
                 "train_recomputed_score": train_score,
                 "train_eval_seconds": train_seconds,
-                "eval_score": eval_score,
-                "eval_seconds": eval_seconds,
-                "bins_used_mean": -eval_score,
                 "program_path": relative_program_path,
+                "program": program,
             }
         )
 
+    eval_results_by_scale: dict[str, Any] = {}
+    for n_items, capacity in scales:
+        key = _scale_key(n_items, capacity)
+        eval_kwargs = {
+            **eval_base_kwargs,
+            "n_items": n_items,
+            "capacity": capacity,
+        }
+        rows: list[dict[str, Any]] = []
+        for row in run_records:
+            score, eval_seconds = _evaluate_program(row["program"], eval_kwargs)
+            rows.append(
+                {
+                    "run_name": row["run_name"],
+                    "best_sample_order": row["best_sample_order"],
+                    "best_operator": row["best_operator"],
+                    "eval_score": score,
+                    "bins_used_mean": -score,
+                    "eval_seconds": eval_seconds,
+                    "program_path": row["program_path"],
+                }
+            )
+        scores = [float(item["eval_score"]) for item in rows]
+        bins_used = [float(item["bins_used_mean"]) for item in rows]
+        eval_results_by_scale[key] = {
+            "n_items": n_items,
+            "capacity": capacity,
+            "eval_config": eval_kwargs,
+            "results": rows,
+            "summary": {
+                "num_runs": len(rows),
+                "num_successful_eval_runs": len(scores),
+                "mean_eval_score": _mean_std(scores)["mean"],
+                "sample_std_eval_score": _mean_std(scores)["sample_std"],
+                "mean_bins_used": _mean_std(bins_used)["mean"],
+                "sample_std_bins_used": _mean_std(bins_used)["sample_std"],
+            },
+        }
+
     train_scores = [float(row["train_recomputed_score"]) for row in run_records]
-    eval_scores = [float(row["eval_score"]) for row in run_records]
-    bins_used = [float(row["bins_used_mean"]) for row in run_records]
     payload = {
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "task": TASK,
         "method": method,
         "model": model,
         "source": f"{len(run_records)} completed {method} online_bin_packing repeat(s)",
+        "test_scales": [_scale_key(n, c) for n, c in scales],
         "eval_timeout_seconds": args.timeout_seconds,
-        "split_configs": {"train": train_kwargs, "eval": eval_kwargs},
+        "split_configs": {"train": train_kwargs, "eval_base": eval_base_kwargs},
         "score_semantics": (
             "OBPEvaluation returns negative mean bins used across instances; "
             "higher score is better. bins_used_mean = -score."
         ),
-        "run_records": run_records,
+        "run_records": [
+            {key: value for key, value in row.items() if key != "program"} for row in run_records
+        ],
+        "eval_results_by_scale": eval_results_by_scale,
         "summary": {
             "num_runs": len(run_records),
             "mean_train_recomputed_score": _mean_std(train_scores)["mean"],
             "sample_std_train_recomputed_score": _mean_std(train_scores)["sample_std"],
-            "mean_eval_score": _mean_std(eval_scores)["mean"],
-            "sample_std_eval_score": _mean_std(eval_scores)["sample_std"],
-            "mean_bins_used": _mean_std(bins_used)["mean"],
-            "sample_std_bins_used": _mean_std(bins_used)["sample_std"],
         },
     }
     output_path = output_dir / "results.json"

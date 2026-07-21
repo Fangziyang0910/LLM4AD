@@ -64,7 +64,8 @@ def main() -> None:
         timestamp = os.environ.get("RUN_TIMESTAMP") or datetime.now().strftime(
             "%Y%m%d_%H%M%S"
         )
-        run_dir = EXPERIMENT_ROOT / timestamp
+        version = os.environ.get("EXPERIMENT_VERSION", "version3")
+        run_dir = EXPERIMENT_ROOT / version / timestamp
         run_dir.mkdir(parents=True, exist_ok=False)
         _write_run_config(run_dir, timestamp)
 
@@ -84,6 +85,7 @@ def _write_run_config(run_dir: Path, timestamp: str) -> None:
         "run_dir": str(run_dir),
         "task": TASK,
         "method": "traceaad",
+        "experiment_version": os.environ.get("EXPERIMENT_VERSION", "version3"),
         "timestamp": timestamp,
         "llm": {
             "base_url": os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL),
