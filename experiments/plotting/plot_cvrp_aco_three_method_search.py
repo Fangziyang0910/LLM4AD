@@ -1,4 +1,4 @@
-"""Render CVRP-ACO search curves for completed methods."""
+"""Render CVRP-ACO search curves for MCTS-AHD, PathWise, and TraceAAD v2/v3."""
 
 from __future__ import annotations
 
@@ -31,19 +31,23 @@ METHODS = {
         "color": "#E76F51",
         "band": "#FFB4A2",
     },
-    "TraceAAD version1": {
-        "directory": "traceaad/version1",
-        "runs": ("20260711_115024", "20260712_041631", "20260712_041658"),
-        "budget": 1000,
-        "color": "#2A9D5B",
-        "band": "#A8D5BA",
-    },
     "TraceAAD version2": {
         "directory": "traceaad/version2",
         "runs": ("20260718_193305_cvrp_rep1", "20260718_193305_cvrp_rep2", "20260718_193305_cvrp_rep3"),
         "budget": 1000,
         "color": "#6A4C93",
         "band": "#C9B1FF",
+    },
+    "TraceAAD version3": {
+        "directory": "traceaad/version3",
+        "runs": (
+            "20260720_233339_cvrp_v3_rep1",
+            "20260720_233339_cvrp_v3_rep2",
+            "20260720_233339_cvrp_v3_rep3",
+        ),
+        "budget": 1000,
+        "color": "#2A9D5B",
+        "band": "#A8D5BA",
     },
 }
 Y_MIN = -13.0

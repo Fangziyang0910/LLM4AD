@@ -10,6 +10,7 @@ from pathlib import Path
 from llm4ad.method.traceaad import PortfolioWeights, TraceAAD, TraceAADProfiler, ValueWeights
 from llm4ad.task.optimization.cvrp_aco import CVRPACOEvaluation
 from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
+from llm4ad.tools.env import resolve_llm_api_key
 
 TASK = "cvrp_aco"
 TASK_KWARGS = {
@@ -30,10 +31,11 @@ def build_method(log_dir: Path, resume_from: Path | None = None) -> TraceAAD:
     no_proxy = os.environ.get("LLM_NO_PROXY", DEFAULT_NO_PROXY)
     os.environ["NO_PROXY"] = no_proxy
     os.environ["no_proxy"] = no_proxy
+    base_url = os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL)
     return TraceAAD(
         llm=OpenAIAPI(
-            base_url=os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL),
-            api_key=os.environ.get("LLM_API_KEY", "EMPTY"),
+            base_url=base_url,
+            api_key=resolve_llm_api_key(base_url=base_url),
             model=os.environ.get("LLM_MODEL", DEFAULT_MODEL),
             timeout=600,
             max_tokens=16384,
@@ -100,7 +102,7 @@ def _write_run_config(run_dir: Path, timestamp: str) -> None:
             "max_tokens": 16384,
             "temperature": 1.0,
             "enable_thinking": False,
-            "api_key_configured": bool(os.environ.get("LLM_API_KEY", "EMPTY")),
+            "api_key_configured": bool(resolve_llm_api_key(base_url=os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL)) != "EMPTY"),
             "no_proxy": os.environ.get("LLM_NO_PROXY", DEFAULT_NO_PROXY),
         },
         "task_eval": TASK_KWARGS,

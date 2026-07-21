@@ -1,4 +1,4 @@
-"""Compare MCTS-AHD, PathWise, and TraceAAD search curves for TSP Construct."""
+"""Compare MCTS-AHD, PathWise, and TraceAAD v2/v3 search curves for TSP Construct."""
 
 from __future__ import annotations
 
@@ -32,19 +32,23 @@ METHODS = {
         "color": "#E76F51",
         "band": "#FFB4A2",
     },
-    "TraceAAD version1": {
-        "directory": "traceaad/version1",
-        "runs": ("20260710_203531", "20260710_203541", "20260710_203551"),
-        "budget": 1000,
-        "color": "#2A9D5B",
-        "band": "#A8D5BA",
-    },
     "TraceAAD version2": {
         "directory": "traceaad/version2",
         "runs": ("20260718_174552_tsp_rep1", "20260718_174552_tsp_rep2", "20260718_174552_tsp_rep3"),
         "budget": 1000,
         "color": "#6A4C93",
         "band": "#C9B1FF",
+    },
+    "TraceAAD version3": {
+        "directory": "traceaad/version3",
+        "runs": (
+            "20260720_233339_tspc_v3_rep1",
+            "20260720_233339_tspc_v3_rep2",
+            "20260720_233339_tspc_v3_rep3",
+        ),
+        "budget": 1000,
+        "color": "#2A9D5B",
+        "band": "#A8D5BA",
     },
 }
 
