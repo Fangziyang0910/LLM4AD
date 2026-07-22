@@ -2,8 +2,6 @@
 
 与 ReEvo / HSEvo / PathWise / CALM 的 Orienteering ACO 协议对齐。权威配置见 `docs/实验配置.md`。
 
-后续正式 OP 对比默认用本 task，不再用 `orienteering_construct`。
-
 ## 数据与 ACO
 
 | 项目 | 配置 |

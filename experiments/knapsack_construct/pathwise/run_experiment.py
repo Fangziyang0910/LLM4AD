@@ -65,7 +65,7 @@ def write_run_config() -> None:
         "timestamp": TIMESTAMP,
         "llm": {
             "base_url": BASE_URL,
-            "api_key": API_KEY,
+            "api_key": "<from .env>",
             "model": MODEL,
             "timeout": LLM_TIMEOUT,
             "max_tokens": MAX_TOKENS,

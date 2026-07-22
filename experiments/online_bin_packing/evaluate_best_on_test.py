@@ -73,7 +73,7 @@ def _resolve_method(run_dir: Path) -> str:
         if isinstance(method, str) and method.strip():
             return method.strip()
     parts = run_dir.parts
-    if "version3" in parts or "version2" in parts or "version1" in parts:
+    if "version3" in parts or "version2" in parts:
         return "traceaad"
     return run_dir.parent.name
 

@@ -11,7 +11,7 @@ NO_PROXY_ALL="183.36.243.124,222.201.145.8,localhost,127.0.0.1,::1"
 
 declare -A BASE_URL MODEL API_KEY SOURCE_NAME
 BASE_URL[1]="http://183.36.243.124:9000/v1"
-MODEL[1]="Qwen3.6-27B-Q4_K_M"
+MODEL[1]="/home/fzy/models/Qwen3.6-27B-NVFP4"
 API_KEY[1]="${ZHONG_API_KEY:?set ZHONG_API_KEY to zhong api key}"
 SOURCE_NAME[1]="zhong"
 

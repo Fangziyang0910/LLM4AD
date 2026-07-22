@@ -17,7 +17,7 @@ TASK = "orienteering_construct"
 TASK_KWARGS = get_generated_task_kwargs(TASK, "train")
 EXPERIMENT_ROOT = Path(__file__).resolve().parent
 DEFAULT_BASE_URL = "http://183.36.243.124:9000/v1"
-DEFAULT_MODEL = "Qwen3.6-27B-Q4_K_M"
+DEFAULT_MODEL = "/home/fzy/models/Qwen3.6-27B-NVFP4"
 DEFAULT_NO_PROXY = "183.36.243.124,localhost,127.0.0.1,::1"
 
 

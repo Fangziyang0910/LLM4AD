@@ -55,7 +55,7 @@ TS=$(date +%Y%m%d_%H%M%S)
 
 ## 配置要点
 
-- **LLM**：通用 OpenAI-compatible 客户端（`OpenAIAPI`）；当前主实验默认连 server1 `qwen3.6-27b-awq`，服务源见 `docs/LLM服务源.md`
+- **LLM**：通用 OpenAI-compatible 客户端（`OpenAIAPI`）；实验入口从 `LLM_BASE_URL`、`LLM_MODEL`、`LLM_API_KEY` 读取连接配置
 - **task 数据**：`llm4ad/task/optimization/generated_data_config.py`（按 task 注册 train/eval 的 `problem_size`、`n_instance`、`seed` 等）
 - **method 与 task 解耦**：method 从 evaluation 对象读取 `template_program` / `task_description` 构造所有 prompt，换 task 通常只需换 evaluation 实例
 - **task 默认参数未必对齐论文**：新 task 上线前应对照 `../papers/` 核对设置（例如 `orienteering_construct` 的 budget/prize 已对齐 ReEvo/DeepACO 标准）
