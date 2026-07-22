@@ -36,7 +36,8 @@ def build_initial_prompt(*, task_description: str, template_function: Function, 
 
 
 def build_code_prompt(*, current_node: ProgramNode, action: str,
-                       task_description: str, template_function: Function) -> str:
+                       task_description: str, template_function: Function,
+                       history: str = "", operator_constraint: str = "") -> str:
     action = action.strip()
     if not action:
         raise ValueError("action must not be empty")
@@ -56,6 +57,12 @@ def build_code_prompt(*, current_node: ProgramNode, action: str,
         "",
         "[Requested Modification]",
         action,
+        "",
+        "[History Available During Implementation]",
+        history.strip() or "No previous modification history.",
+        "",
+        "[Operator Constraint]",
+        operator_constraint.strip() or "Preserve the target contract and implement the requested change.",
         "",
         "[Target Function Contract]",
         str(target).rstrip(),

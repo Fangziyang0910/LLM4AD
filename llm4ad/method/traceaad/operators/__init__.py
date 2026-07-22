@@ -10,7 +10,6 @@ from .base import (
     trajectory_step_outcomes,
 )
 from .backtrack import BacktrackBranchOp
-from .crossover import MechanismCrossoverOp
 from .endpoint import EndpointRefineOp
 from .novelty import NoveltyJumpOp
 from .semantic import (
@@ -18,8 +17,6 @@ from .semantic import (
     SemanticOperator,
     TraceIdeateOp,
     TraceRefineOp,
-    TraceSynthesizeOp,
-    TraceTransferOp,
 )
 
 DEFAULT_OPERATORS = DEFAULT_SEMANTIC_OPERATORS
@@ -30,7 +27,6 @@ __all__ = [
     "DEFAULT_OPERATORS",
     "EndpointRefineOp",
     "BacktrackBranchOp",
-    "MechanismCrossoverOp",
     "NoveltyJumpOp",
     "select_base_node",
     "branch_score",
@@ -39,6 +35,4 @@ __all__ = [
     "SemanticOperator",
     "TraceIdeateOp",
     "TraceRefineOp",
-    "TraceSynthesizeOp",
-    "TraceTransferOp",
 ]

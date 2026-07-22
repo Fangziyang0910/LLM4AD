@@ -5,7 +5,6 @@ import copy
 import math
 import random
 import re
-import statistics
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -33,18 +32,15 @@ from .._observability import (
     reset_sample_failures,
 )
 from .checkpoint import load_checkpoint, save_checkpoint
-from .context import build_action_prompt
+from .context import build_action_prompt, trajectory_history
 from .credit import directed_delta
 from .derivation_graph import DerivationGraph
-from .experience_memory import ExperienceMemory
 from .operators import DEFAULT_OPERATORS, Operator, OperatorContext, classify_outcome
-from .portfolio import OperatorPortfolio, PortfolioWeights, aggregate_batch_utility, signed_utility
 from .prompt import build_code_prompt, build_initial_prompt
 from .schema import EvalResult, ProgramNode, Trajectory
 from .trajectory_memory import TrajectoryMemory
 from .value import (
     ValueWeights,
-    sample_survivors,
     sample_trajectory,
     score_active_trajectories,
     select_diverse_trajectories,
@@ -95,14 +91,11 @@ class TraceAAD:
         actions_per_iteration: int = 2,
         max_trajectory_length: int = 8,
         max_active_trajectories: int = 30,
-        population_growth_factor: float = 2.0,
         elite_count: int | None = None,
         softmax_temperature: float = 0.2,
         maximize: bool = True,
         value_weights: ValueWeights | None = None,
-        portfolio_weights: PortfolioWeights | None = None,
         operators: tuple[type[Operator], ...] = DEFAULT_OPERATORS,
-        novelty_threshold: float | None = None,
         debug_mode: bool = False,
         max_consecutive_sample_failures: int = 20,
         max_stalled_iterations: int = 20,
@@ -116,8 +109,6 @@ class TraceAAD:
             raise ValueError("actions_per_iteration must be positive")
         if max_active_trajectories <= 0:
             raise ValueError("max_active_trajectories must be positive")
-        if population_growth_factor <= 1.0:
-            raise ValueError("population_growth_factor must be greater than 1")
         if softmax_temperature <= 0:
             raise ValueError("softmax_temperature must be positive")
         if checkpoint_interval <= 0:
@@ -131,11 +122,7 @@ class TraceAAD:
         self._n_init = n_init
         self._actions_per_iteration = actions_per_iteration
         self._max_active_trajectories = int(max_active_trajectories)
-        self._population_growth_factor = float(population_growth_factor)
-        self._management_threshold = max(
-            self._max_active_trajectories + 1,
-            math.ceil(self._population_growth_factor * self._max_active_trajectories),
-        )
+        self._management_threshold = 2 * self._max_active_trajectories
         self._elite_count = (
             max(2, math.ceil(0.1 * self._max_active_trajectories))
             if elite_count is None
@@ -145,10 +132,6 @@ class TraceAAD:
         self._softmax_temperature = float(softmax_temperature)
         self._maximize = maximize
         self._value_weights = value_weights or ValueWeights()
-        self._portfolio_weights = portfolio_weights or PortfolioWeights()
-        # Kept as a readable compatibility parameter; v4 deliberately does not gate
-        # candidates by code or trajectory similarity.
-        self._novelty_threshold = novelty_threshold
         self._debug_mode = debug_mode
         self._max_stalled_iterations = max(1, int(max_stalled_iterations))
         self._checkpoint_dir = None if checkpoint_dir is None else Path(checkpoint_dir)
@@ -167,13 +150,11 @@ class TraceAAD:
 
         self._graph = DerivationGraph()
         self._memory = TrajectoryMemory(max_trajectory_length=max_trajectory_length)
-        self._experience_memory = ExperienceMemory(self._graph)
         self._operators = tuple(operator_type() for operator_type in operators)
         if not self._operators:
             raise ValueError("at least one TraceAAD operator is required")
-        self._portfolio = OperatorPortfolio(self._operators, self._portfolio_weights)
-
         self._best_node: ProgramNode | None = None
+        self._best_trajectory_id: int | None = None
         self._tot_sample_nums = 0
         self._next_attempt_id = 0
         self._initialization_complete = False
@@ -273,7 +254,7 @@ class TraceAAD:
             stalled_draws = 0
             node = self._add_node(generated, evaluated)
             trajectory = self._memory.create_initial(node_id=node.id)
-            self._update_best(node, operator="init")
+            self._update_best(node, trajectory_id=trajectory.id, operator="init")
             log_event(
                 self,
                 event="trajectory_created",
@@ -296,29 +277,16 @@ class TraceAAD:
 
     def _run_iteration(self, attempt_id: int) -> None:
         selected = self._select_trajectory()
-        available = [operator for operator in self._operators if operator.trigger(
-            OperatorContext(
-                graph=self._graph,
-                memory=self._memory,
-                selected=selected,
-                maximize=self._maximize,
-            )
-        )]
-        operator = random.choice(available or list(self._operators))
-        secondary = None
-        if getattr(operator, "requires_second", False) and len(self._memory.active()) >= 2:
-            secondary = self._select_trajectory(exclude_ids={selected.id})
-        primary_anchor = self._select_anchor(selected)
-        secondary_anchor = None if secondary is None else self._select_anchor(secondary)
-        constraint = operator.build_constraint(
-            OperatorContext(
-                graph=self._graph,
-                memory=self._memory,
-                selected=selected,
-                maximize=self._maximize,
-            ),
-            primary_anchor,
+        context = OperatorContext(
+            graph=self._graph,
+            memory=self._memory,
+            selected=selected,
+            maximize=self._maximize,
         )
+        available = [operator for operator in self._operators if operator.trigger(context)]
+        operator = random.choice(available or list(self._operators))
+        primary_anchor = self._select_anchor(selected)
+        constraint = operator.build_constraint(context, primary_anchor)
         log_event(
             self,
             event="operator_selection",
@@ -326,11 +294,9 @@ class TraceAAD:
             attempt_id=attempt_id,
             selected_operator=operator.name,
             selected_trajectory_id=selected.id,
-            secondary_trajectory_id=None if secondary is None else secondary.id,
             base_node_id=primary_anchor,
-            secondary_base_node_id=secondary_anchor,
             eligible=[candidate.name for candidate in available or self._operators],
-            selection_mode="uniform_operator_softmax_trajectory",
+            selection_mode="uniform_operator_softmax_ucb_trajectory",
         )
         log_state(
             self,
@@ -349,14 +315,11 @@ class TraceAAD:
             base_reason="endpoint_or_best",
             operator_name=operator.name,
             operator_constraint=constraint,
-            experience_memory=self._experience_memory,
             task_description=self._task_description_str,
             template_function=self._function_to_evolve,
             action_count=self._actions_per_iteration,
             maximize=self._maximize,
             max_steps=self._memory.max_trajectory_length,
-            secondary_trajectory=secondary,
-            secondary_base_node_id=secondary_anchor,
         )
         actions = self._generate_actions(prompt, attempt_id)
         observations: list[_CandidateObservation] = []
@@ -369,6 +332,13 @@ class TraceAAD:
                 action=action,
                 task_description=self._task_description_str,
                 template_function=self._function_to_evolve,
+                history=trajectory_history(
+                    self._graph,
+                    selected,
+                    base_node_id=primary_anchor,
+                    max_steps=self._memory.max_trajectory_length,
+                ),
+                operator_constraint=constraint,
             )
             generated = self._draw_program(
                 code_prompt,
@@ -395,7 +365,7 @@ class TraceAAD:
                 outcome=primary_outcome,
                 iteration=attempt_id,
             )
-            primary_trajectory = self._memory.branch_from(
+            child_trajectory = self._memory.branch_from(
                 trajectory_id=selected.id,
                 base_node_id=primary_anchor,
                 child_id=child.id,
@@ -406,7 +376,7 @@ class TraceAAD:
                 seq=seq,
                 operator=operator,
                 child=child,
-                trajectory=primary_trajectory,
+                trajectory=child_trajectory,
                 accepted=True,
                 parent_id=primary_anchor,
                 edge_id=primary_edge.id,
@@ -414,43 +384,12 @@ class TraceAAD:
                 delta=primary_delta,
                 outcome=primary_outcome,
             )
-            if secondary is not None and secondary_anchor is not None:
-                if secondary_anchor == primary_anchor:
-                    secondary_edge = primary_edge
-                else:
-                    secondary_delta = directed_delta(
-                        self._graph.get_node(secondary_anchor).fitness,
-                        child.fitness,
-                        self._maximize,
-                    )
-                    secondary_edge = self._graph.add_edge(
-                        parent_id=secondary_anchor,
-                        child_id=child.id,
-                        action=action,
-                        operator=operator.name,
-                        delta=secondary_delta,
-                        outcome=classify_outcome(
-                            secondary_delta,
-                            self._value_weights.positive_threshold,
-                        ),
-                        iteration=attempt_id,
-                    )
-                secondary_trajectory = self._memory.branch_from(
-                    trajectory_id=secondary.id,
-                    base_node_id=secondary_anchor,
-                    child_id=child.id,
-                    edge_id=secondary_edge.id,
-                )
-                log_event(
-                    self,
-                    event="trajectory_created",
-                    status="ok",
-                    stage="dual_writeback",
-                    node_id=child.id,
-                    trajectory_id=secondary_trajectory.id,
-                    source_trajectory_id=secondary.id,
-                )
-            self._update_best(child, iteration=attempt_id, operator=operator.name)
+            self._update_best(
+                child,
+                trajectory_id=child_trajectory.id,
+                iteration=attempt_id,
+                operator=operator.name,
+            )
             observations.append(
                 _CandidateObservation(
                     node_id=child.id,
@@ -460,8 +399,6 @@ class TraceAAD:
                     outcome=primary_outcome,
                 )
             )
-        reward = self._portfolio_reward(observations)
-        self._portfolio.record(operator, reward)
         self._memory.record_visit(selected.id)
         log_event(
             self,
@@ -469,7 +406,6 @@ class TraceAAD:
             status="ok" if observations else "empty",
             attempt_id=attempt_id,
             operator=operator.name,
-            reward=reward,
             candidates=[
                 {
                     "node_id": observation.node_id,
@@ -481,17 +417,16 @@ class TraceAAD:
                 for observation in observations
             ],
             active_trajectories=len(self._memory.active()),
-            portfolio=self._portfolio.snapshot(),
+            parent_visit_count=self._memory.get_trajectory(selected.id).visit_count,
         )
 
-    def _select_trajectory(self, exclude_ids: set[int] | None = None) -> Trajectory:
+    def _select_trajectory(self) -> Trajectory:
         return sample_trajectory(
             memory=self._memory,
             graph=self._graph,
             maximize=self._maximize,
             w=self._value_weights,
             temperature=self._softmax_temperature,
-            exclude_ids=exclude_ids,
         )
 
     def _select_anchor(self, trajectory: Trajectory) -> int:
@@ -526,16 +461,6 @@ class TraceAAD:
             **fields,
         )
 
-    def _portfolio_reward(self, observations: list[_CandidateObservation]) -> float:
-        if not observations:
-            return -1.0
-        scale = self._fitness_scale()
-        utilities = []
-        for observation in observations:
-            delta = directed_delta(observation.reference_score, observation.score, self._maximize)
-            utilities.append(signed_utility((delta or 0.0) / scale))
-        return aggregate_batch_utility(utilities)
-
     def _score_active_pool(self) -> tuple[Trajectory, ...]:
         return score_active_trajectories(
             memory=self._memory,
@@ -562,26 +487,36 @@ class TraceAAD:
             return
         elite_count = min(self._elite_count, self._max_active_trajectories, len(ranked))
         elites = ranked[:elite_count]
+        # The best program is a result and a reusable anchor. Keep its route
+        # active even when its endpoint later regresses.
+        if self._best_trajectory_id is not None:
+            best_route = next(
+                (trajectory for trajectory in ranked if trajectory.id == self._best_trajectory_id),
+                None,
+            )
+            if best_route is not None and best_route.id not in {t.id for t in elites}:
+                elites = [best_route, *elites[: max(0, elite_count - 1)]]
         diversity_count = min(
             self._diversity_count,
             max(0, self._max_active_trajectories - elite_count),
             max(0, len(ranked) - elite_count),
         )
         diverse = select_diverse_trajectories(
-            candidates=tuple(ranked[elite_count:]),
+            candidates=tuple(
+                trajectory for trajectory in ranked if trajectory.id not in {t.id for t in elites}
+            ),
             graph=self._graph,
             count=diversity_count,
+            reference=tuple(elites),
         )
         diverse_ids = {trajectory.id for trajectory in diverse}
-        sampled = sample_survivors(
-            tuple(
-                trajectory
-                for trajectory in ranked[elite_count:]
-                if trajectory.id not in diverse_ids
-            ),
-            self._max_active_trajectories - elite_count - diversity_count,
-            self._softmax_temperature,
-        )
+        remaining = [
+            trajectory
+            for trajectory in ranked
+            if trajectory.id not in {t.id for t in elites} and trajectory.id not in diverse_ids
+        ]
+        sample_count = self._max_active_trajectories - len(elites) - diversity_count
+        sampled = self._weighted_survivor_sample(remaining, sample_count)
         keep_ids = {trajectory.id for trajectory in elites + list(diverse) + list(sampled)}
         archived = 0
         for trajectory in ranked:
@@ -601,15 +536,26 @@ class TraceAAD:
             selection_mode="elite_plus_diversity_plus_softmax_without_replacement",
         )
 
-    def _fitness_scale(self) -> float:
-        scores = [
-            node.fitness
-            for trajectory in self._memory.active()
-            if (node := self._graph.get_node(trajectory.endpoint_id)).fitness is not None
-        ]
-        if len(scores) < 2:
-            return 1.0
-        return max(max(scores) - min(scores), 0.05 * abs(statistics.median(scores)), 1e-3)
+    def _weighted_survivor_sample(
+        self, candidates: list[Trajectory], count: int
+    ) -> tuple[Trajectory, ...]:
+        if count <= 0 or not candidates:
+            return ()
+        remaining = list(candidates)
+        selected: list[Trajectory] = []
+        while remaining and len(selected) < count:
+            scores = [float(trajectory.scalar_value or 0.0) for trajectory in remaining]
+            maximum = max(scores)
+            weights = [math.exp((score - maximum) / self._softmax_temperature) for score in scores]
+            total = sum(weights)
+            needle = random.random() * total if total > 0 else 0.0
+            index = 0
+            for index, weight in enumerate(weights):
+                needle -= weight
+                if needle <= 0:
+                    break
+            selected.append(remaining.pop(index))
+        return tuple(selected)
 
     def _generate_actions(self, prompt: str, iteration: int) -> list[str]:
         start = time.time()
@@ -711,13 +657,22 @@ class TraceAAD:
         )
         return None if score is None else EvalResult(fitness=float(score))
 
-    def _update_best(self, node: ProgramNode, *, iteration: int | None = None, operator: str) -> None:
+    def _update_best(
+        self,
+        node: ProgramNode,
+        *,
+        trajectory_id: int | None = None,
+        iteration: int | None = None,
+        operator: str,
+    ) -> None:
         if node.fitness is None:
             return
         if self._best_node is not None and not _is_better(node.fitness, self._best_node.fitness, self._maximize):
             return
         previous = self._best_node
         self._best_node = node
+        if trajectory_id is not None:
+            self._best_trajectory_id = trajectory_id
         log_event(
             self,
             event="best_updated",
@@ -736,9 +691,6 @@ class TraceAAD:
 
     def active_trajectories(self) -> tuple[Trajectory, ...]:
         return self._memory.active()
-
-    def operator_portfolio_snapshot(self) -> dict[str, dict]:
-        return self._portfolio.snapshot()
 
     def _has_budget(self) -> bool:
         return self._max_sample_nums is None or self._tot_sample_nums < self._max_sample_nums

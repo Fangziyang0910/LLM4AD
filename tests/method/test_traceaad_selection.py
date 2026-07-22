@@ -81,7 +81,7 @@ def test_path_potential_distinguishes_improving_from_regressing_history() -> Non
         w=weights,
     )
 
-    assert improve_value.potential > regress_value.potential
+    assert improve_value.trend > regress_value.trend
 
 
 def test_minimization_direction_is_respected() -> None:

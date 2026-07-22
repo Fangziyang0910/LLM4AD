@@ -1,4 +1,4 @@
-"""TraceAAD 的程序、修改、轨迹和跨轨迹经验。"""
+"""TraceAAD 的程序、修改、轨迹和种群状态。"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -18,12 +18,10 @@ class TrajectoryStatus(StrEnum):
 class OperatorName(StrEnum):
     IDEATE = "trace_ideate"
     REFINE = "trace_refine"
-    SYNTHESIZE = "trace_synthesize"
-    TRANSFER = "trace_transfer"
-    # Legacy names remain readable in old experiment artifacts.
+    # Names are retained only for parsing historical operator tests/artifacts;
+    # they are not available in DEFAULT_OPERATORS.
     ENDPOINT = "endpoint_refine"
     BACKTRACK = "backtrack_branch"
-    CROSSOVER = "mechanism_crossover"
     NOVELTY = "novelty_jump"
 
 
@@ -55,14 +53,14 @@ class ImprovementEdge:
 
 @dataclass(frozen=True, slots=True)
 class ValueVec:
-    """轨迹的终点质量、沿途改进潜力和路线差异。"""
+    """轨迹的搜索质量、近期走势和路线差异代理。"""
 
     quality: float = 0.0
-    potential: float = 0.0
+    trend: float = 0.0
     diversity: float = 0.0
 
     def as_tuple(self) -> tuple[float, float, float]:
-        return self.quality, self.potential, self.diversity
+        return self.quality, self.trend, self.diversity
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,22 +77,3 @@ class Trajectory:
     @property
     def path_key(self) -> tuple[tuple[NodeId, ...], tuple[EdgeId, ...]]:
         return self.node_ids, self.edge_ids
-
-
-@dataclass(frozen=True, slots=True)
-class ExperienceExample:
-    """一条边级 action 经验（成功或失败）。"""
-    edge_id: EdgeId
-    operator: str
-    action: str
-    delta: float
-    outcome: str
-    iteration: int | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class ExperienceBatch:
-    """ExperienceMemory.examples 的有界返回。"""
-
-    positives: tuple[ExperienceExample, ...] = ()
-    negatives: tuple[ExperienceExample, ...] = ()

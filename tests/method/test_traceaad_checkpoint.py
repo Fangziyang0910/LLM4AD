@@ -148,7 +148,7 @@ def test_resume_rejects_a_different_search_configuration(tmp_path: Path) -> None
             n_init=2,
             actions_per_iteration=1,
             max_active_trajectories=10,
-            novelty_threshold=0.5,
+            softmax_temperature=0.3,
             resume_from=checkpoint_dir,
         )
 

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import random
+
 import pytest
 
 from llm4ad.base import Evaluation, LLM
 from llm4ad.method.traceaad import TraceAAD
-from llm4ad.method.traceaad.operators import TraceSynthesizeOp
 from llm4ad.method.traceaad.derivation_graph import DerivationGraph
 from llm4ad.method.traceaad.trajectory_memory import TrajectoryMemory
 from llm4ad.method.traceaad.value import (
@@ -12,6 +13,7 @@ from llm4ad.method.traceaad.value import (
     compute_value_vec,
     score_active_trajectories,
     select_diverse_trajectories,
+    sample_trajectory,
 )
 
 
@@ -68,7 +70,6 @@ def _method(*, budget: int, population: int = 3, n_init: int = 3, operators=None
         n_init=n_init,
         actions_per_iteration=2,
         max_active_trajectories=population,
-        operators=(TraceSynthesizeOp,) if operators else None,
     ) if operators else TraceAAD(
         llm=_V4LLM(),
         evaluation=_V4Evaluation(),
@@ -110,16 +111,15 @@ def test_population_management_returns_to_exact_target_size():
     assert len(method._memory.trajectories()) == 6
 
 
-def test_synthesis_evaluates_one_child_and_writes_two_trajectory_histories():
+def test_each_child_has_one_parent_and_one_trajectory_writeback():
     method = _method(budget=4, population=2, n_init=2, operators=True)
     result = method.run()
 
     assert result.n_samples == 4
     assert result.n_total_nodes == 4
-    assert result.n_trajectories == 6
-    assert result.n_edges == 4
-    assert len(method.active_trajectories()) == 2
-    assert sum(trajectory.status.value == "archived" for trajectory in method._memory.trajectories()) == 4
+    assert result.n_trajectories == 4
+    assert result.n_edges == 2
+    assert all(len([edge for edge in method._graph.edges() if edge.child_id == node.id]) <= 1 for node in method._graph.nodes())
 
 
 def test_trajectory_quality_keeps_a_small_credit_for_best_historical_node():
@@ -190,3 +190,61 @@ def test_diversity_representatives_keep_routes_with_different_signatures():
         "def f(x): return x + offset",
         "def f(items):\n    return max(items)",
     }
+
+
+def test_derivation_graph_rejects_a_second_parent_for_one_child():
+    graph = DerivationGraph()
+    parent_a = graph.add_node(code="a", idea="a", fitness=1.0)
+    parent_b = graph.add_node(code="b", idea="b", fitness=1.0)
+    child = graph.add_node(code="c", idea="c", fitness=2.0)
+    graph.add_edge(parent_id=parent_a.id, child_id=child.id, action="a")
+    with pytest.raises(ValueError, match="already has a parent"):
+        graph.add_edge(parent_id=parent_b.id, child_id=child.id, action="b")
+
+
+def test_ucb_bonus_can_select_a_less_visited_route(monkeypatch):
+    graph = DerivationGraph()
+    memory = TrajectoryMemory()
+    visited_node = graph.add_node(code="visited", idea="visited", fitness=10.0)
+    fresh_node = graph.add_node(code="fresh", idea="fresh", fitness=1.0)
+    visited = memory.create_initial(node_id=visited_node.id)
+    fresh = memory.create_initial(node_id=fresh_node.id)
+    for _ in range(20):
+        memory.record_visit(visited.id)
+    weights = ValueWeights(ucb_c=2.0)
+    random.seed(1)
+    monkeypatch.setattr(random, "random", lambda: 0.999999)
+    selected = sample_trajectory(
+        memory=memory, graph=graph, maximize=True, w=weights, temperature=0.2
+    )
+    assert selected.id == fresh.id
+
+
+def test_global_best_route_is_kept_as_an_active_anchor():
+    method = _method(budget=0, population=2, n_init=0)
+    root = method._graph.add_node(code="root", idea="best", fitness=10.0)
+    child = method._graph.add_node(code="child", idea="regression", fitness=1.0)
+    route = method._memory.create_initial(node_id=root.id)
+    edge = method._graph.add_edge(
+        parent_id=root.id,
+        child_id=child.id,
+        action="try a risky follow-up",
+        delta=-9.0,
+        outcome="regress",
+    )
+    best_route = method._memory.branch_from(
+        trajectory_id=route.id,
+        base_node_id=root.id,
+        child_id=child.id,
+        edge_id=edge.id,
+    )
+    for fitness in (9.0, 8.0, 7.0):
+        node = method._graph.add_node(code=f"n{fitness}", idea="other", fitness=fitness)
+        method._memory.create_initial(node_id=node.id)
+    method._best_node = root
+    method._best_trajectory_id = best_route.id
+
+    method._manage_population(force=False)
+
+    assert best_route.id in {trajectory.id for trajectory in method.active_trajectories()}
+    assert len(method.active_trajectories()) == 2

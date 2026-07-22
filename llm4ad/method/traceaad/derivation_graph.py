@@ -1,4 +1,4 @@
-"""保存程序节点及其可共享的多来源修改关系。"""
+"""保存单父代程序树及其修改边。"""
 from __future__ import annotations
 
 from .schema import EdgeId, ImprovementEdge, NodeId, ProgramNode
@@ -10,7 +10,7 @@ class DerivationGraph:
         self._next_edge_id = 0
         self._nodes: dict[NodeId, ProgramNode] = {}
         self._edges: dict[EdgeId, ImprovementEdge] = {}
-        self._incoming_edge_by_child: dict[NodeId, list[EdgeId]] = {}
+        self._incoming_edge_by_child: dict[NodeId, EdgeId] = {}
 
     def add_node(self, *, code: str, idea: str, fitness: float | None) -> ProgramNode:
         node = ProgramNode(
@@ -36,6 +36,8 @@ class DerivationGraph:
             raise KeyError(f"unknown child node: {child_id}")
         if parent_id == child_id:
             raise ValueError("an improvement edge cannot point to the same node")
+        if child_id in self._incoming_edge_by_child:
+            raise ValueError(f"child node already has a parent: {child_id}")
         edge = ImprovementEdge(
             id=self._next_edge_id,
             parent_id=parent_id,
@@ -47,7 +49,7 @@ class DerivationGraph:
             iteration=fields.get("iteration"),
         )
         self._edges[edge.id] = edge
-        self._incoming_edge_by_child.setdefault(child_id, []).append(edge.id)
+        self._incoming_edge_by_child[child_id] = edge.id
         self._next_edge_id += 1
         return edge
 
@@ -62,3 +64,14 @@ class DerivationGraph:
         if not values:
             return None, None
         return min(values), max(values)
+
+    def parent_edge(self, node_id: NodeId) -> ImprovementEdge | None:
+        edge_id = self._incoming_edge_by_child.get(node_id)
+        return None if edge_id is None else self._edges[edge_id]
+
+    def children(self, node_id: NodeId) -> tuple[ProgramNode, ...]:
+        return tuple(
+            self._nodes[edge.child_id]
+            for edge in self._edges.values()
+            if edge.parent_id == node_id
+        )

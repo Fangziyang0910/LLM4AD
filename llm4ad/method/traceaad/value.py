@@ -13,20 +13,14 @@ from .trajectory_memory import TrajectoryMemory
 
 @dataclass(frozen=True)
 class ValueWeights:
-    """v4 只使用终点质量 Q 和近期路径趋势 P。
-
-    保留旧字段名是为了让已有实验入口和 checkpoint 配置可读；相似度和 UCB
-    字段不再参与 v4 的搜索决策。
-    """
+    """Weights for search value and the separate parent-expansion UCB bonus."""
 
     w_quality: float = 0.6
-    w_potential: float = 0.4
-    w_diversity: float = 0.0
-    w_sim_code: float = 0.0
-    w_sim_trajectory: float = 0.0
+    w_trend: float = 0.4
     discount: float = 0.8
     positive_threshold: float = 1e-6
-    ucb_c: float = 0.0
+    # UCB is an expansion-scheduling bonus, not part of route quality.
+    ucb_c: float = 0.25
 
 
 def _directed_fitness(fitness: float, maximize: bool) -> float:
@@ -149,7 +143,7 @@ def compute_value_vec(
     )
     return ValueVec(
         quality=0.7 * endpoint_quality + 0.3 * best_quality,
-        potential=_path_trend(
+        trend=_path_trend(
             trajectory=trajectory,
             graph=graph,
             discount=w.discount,
@@ -161,7 +155,7 @@ def compute_value_vec(
 
 
 def scalarize(value: ValueVec, w: ValueWeights) -> float:
-    return w.w_quality * value.quality + w.w_potential * value.potential
+    return w.w_quality * value.quality + w.w_trend * value.trend
 
 
 def _percentile_fitness(
@@ -234,7 +228,7 @@ def score_active_trajectories(
         )
         value = ValueVec(
             quality=_percentile_quality(trajectory, candidates, graph, maximize),
-            potential=value.potential,
+            trend=value.trend,
             diversity=0.0,
         )
         scored.append(memory.set_value(trajectory.id, value, scalarize(value, w)))
@@ -246,6 +240,7 @@ def select_diverse_trajectories(
     candidates: tuple[Trajectory, ...],
     graph: DerivationGraph,
     count: int,
+    reference: tuple[Trajectory, ...] = (),
 ) -> tuple[Trajectory, ...]:
     """Select a small quality-aware max-min route-diversity reserve.
 
@@ -260,9 +255,13 @@ def select_diverse_trajectories(
     remaining.remove(first)
     while remaining and len(selected) < count:
         def reserve_score(candidate: Trajectory) -> tuple[float, float, int]:
+            compared = (*reference, *selected)
             similarity = max(
-                trajectory_similarity(graph=graph, left=candidate, right=chosen)
-                for chosen in selected
+                (
+                    trajectory_similarity(graph=graph, left=candidate, right=chosen)
+                    for chosen in compared
+                ),
+                default=0.0,
             )
             novelty = 1.0 - similarity
             scalar = float(candidate.scalar_value or 0.0)
@@ -297,8 +296,13 @@ def _weighted_sample_without_replacement(
 def softmax_weights(trajectories: tuple[Trajectory, ...], temperature: float) -> list[float]:
     if not trajectories:
         return []
+    return _softmax_scores([float(t.scalar_value or 0.0) for t in trajectories], temperature)
+
+
+def _softmax_scores(scores: list[float], temperature: float) -> list[float]:
+    if not scores:
+        return []
     temperature = max(float(temperature), 1e-8)
-    scores = [float(t.scalar_value or 0.0) for t in trajectories]
     maximum = max(scores)
     return [math.exp((score - maximum) / temperature) for score in scores]
 
@@ -310,18 +314,20 @@ def sample_trajectory(
     maximize: bool,
     w: ValueWeights,
     temperature: float = 0.2,
-    exclude_ids: set[int] | None = None,
 ) -> Trajectory:
     scored = list(score_active_trajectories(memory=memory, graph=graph, maximize=maximize, w=w))
-    if exclude_ids:
-        scored = [trajectory for trajectory in scored if trajectory.id not in exclude_ids]
     if not scored:
         raise ValueError("no eligible active trajectories available for sampling")
-    return _weighted_sample_without_replacement(scored, softmax_weights(tuple(scored), temperature), 1)[0]
-
-
-def sample_survivors(trajectories: tuple[Trajectory, ...], count: int, temperature: float) -> tuple[Trajectory, ...]:
-    return tuple(_weighted_sample_without_replacement(list(trajectories), softmax_weights(trajectories, temperature), count))
+    total_visits = sum(max(0, trajectory.visit_count) for trajectory in scored)
+    adjusted_scores = [
+        float(trajectory.scalar_value or 0.0)
+        + w.ucb_c
+        * math.sqrt(math.log1p(total_visits) / (1.0 + max(0, trajectory.visit_count)))
+        for trajectory in scored
+    ]
+    return _weighted_sample_without_replacement(
+        scored, _softmax_scores(adjusted_scores, temperature), 1
+    )[0]
 
 
 def select_trajectory(
@@ -346,7 +352,6 @@ __all__ = [
     "score_active_trajectories",
     "select_diverse_trajectories",
     "sample_trajectory",
-    "sample_survivors",
     "softmax_weights",
     "select_trajectory",
 ]

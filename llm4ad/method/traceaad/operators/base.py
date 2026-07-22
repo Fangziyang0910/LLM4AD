@@ -27,8 +27,6 @@ class OperatorContext:
     selected: Trajectory
     maximize: bool
     positive_threshold: float = 1e-6
-    similarity_weights: tuple[float, float] = (0.7, 0.3)
-    donor_idea: str | None = None
 
 
 class Operator(ABC):

@@ -4,11 +4,9 @@ from llm4ad.method.traceaad.derivation_graph import DerivationGraph
 from llm4ad.method.traceaad.operators import (
     BacktrackBranchOp,
     EndpointRefineOp,
-    MechanismCrossoverOp,
     NoveltyJumpOp,
     OperatorContext,
 )
-from llm4ad.method.traceaad.schema import ValueVec
 from llm4ad.method.traceaad.trajectory_memory import TrajectoryMemory
 
 
@@ -76,68 +74,6 @@ def test_endpoint_extends_the_selected_trajectory() -> None:
     )
 
     assert extended.node_ids[-2:] == (trajectory.endpoint_id, child.id)
-
-
-def test_crossover_uses_a_different_trajectory_as_idea_donor() -> None:
-    graph = DerivationGraph()
-    memory = TrajectoryMemory()
-    base_node = graph.add_node(code="def f(): return 1", idea="base", fitness=10.0)
-    donor_node = graph.add_node(code="def g(): return 2", idea="donor idea", fitness=9.0)
-    base = memory.create_initial(node_id=base_node.id)
-    donor = memory.create_initial(node_id=donor_node.id)
-    memory.set_value(base.id, ValueVec(quality=1.0), 1.0)
-    memory.set_value(donor.id, ValueVec(quality=0.8), 0.8)
-    context = _context(graph, memory, base)
-
-    operator = MechanismCrossoverOp()
-    assert operator.trigger(context)
-    operator.select_base(context)
-
-    assert context.donor_idea == "donor idea"
-
-
-def test_crossover_is_unavailable_without_a_donor_trajectory() -> None:
-    graph = DerivationGraph()
-    memory = TrajectoryMemory()
-    node = graph.add_node(code="def f(): return 1", idea="only route", fitness=10.0)
-    trajectory = memory.create_initial(node_id=node.id)
-    context = _context(graph, memory, trajectory)
-
-    assert not MechanismCrossoverOp().trigger(context)
-
-
-def test_crossover_uses_the_configured_similarity_weights() -> None:
-    graph = DerivationGraph()
-    memory = TrajectoryMemory()
-    selected_node = graph.add_node(code="def f(): return 1", idea="selected", fitness=5.0)
-    quality_node = graph.add_node(code="def f(): return 1", idea="quality donor", fitness=10.0)
-    different_node = graph.add_node(code="while x: y()", idea="different donor", fitness=1.0)
-    selected = memory.create_initial(node_id=selected_node.id)
-    quality = memory.create_initial(node_id=quality_node.id)
-    different = memory.create_initial(node_id=different_node.id)
-    memory.set_value(quality.id, ValueVec(quality=1.0), 1.0)
-    memory.set_value(different.id, ValueVec(quality=0.0), 0.0)
-    operator = MechanismCrossoverOp()
-
-    code_context = OperatorContext(
-        graph=graph,
-        memory=memory,
-        selected=selected,
-        maximize=True,
-        similarity_weights=(1.0, 0.0),
-    )
-    operator.select_base(code_context)
-    assert code_context.donor_idea == "different donor"
-
-    trajectory_context = OperatorContext(
-        graph=graph,
-        memory=memory,
-        selected=selected,
-        maximize=True,
-        similarity_weights=(0.0, 1.0),
-    )
-    operator.select_base(trajectory_context)
-    assert trajectory_context.donor_idea == "quality donor"
 
 
 def test_novelty_starts_a_new_single_node_trajectory() -> None:

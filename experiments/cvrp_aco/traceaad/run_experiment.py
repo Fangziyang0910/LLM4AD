@@ -7,7 +7,7 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
-from llm4ad.method.traceaad import PortfolioWeights, TraceAAD, TraceAADProfiler, ValueWeights
+from llm4ad.method.traceaad import TraceAAD, TraceAADProfiler, ValueWeights
 from llm4ad.task.optimization.cvrp_aco import CVRPACOEvaluation
 from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
 from llm4ad.tools.env import resolve_llm_api_key
@@ -51,11 +51,9 @@ def build_method(log_dir: Path, resume_from: Path | None = None) -> TraceAAD:
         actions_per_iteration=2,
         max_trajectory_length=8,
         max_active_trajectories=30,
-        population_growth_factor=2.0,
         elite_count=3,
         softmax_temperature=0.2,
         value_weights=ValueWeights(),
-        portfolio_weights=PortfolioWeights(),
         max_consecutive_sample_failures=20,
         max_stalled_iterations=20,
         checkpoint_dir=log_dir / "checkpoints",
@@ -114,14 +112,12 @@ def _write_run_config(run_dir: Path, timestamp: str) -> None:
             "actions_per_iteration": 2,
             "max_trajectory_length": 8,
             "max_active_trajectories": 30,
-            "population_growth_factor": 2.0,
             "elite_count": 3,
             "softmax_temperature": 0.2,
             "max_consecutive_sample_failures": 20,
             "max_stalled_iterations": 20,
             "checkpoint_interval": 10,
             "value_weights": asdict(ValueWeights()),
-            "portfolio_weights": asdict(PortfolioWeights()),
         },
     }
     (run_dir / "run_config.json").write_text(

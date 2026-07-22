@@ -10,8 +10,6 @@ from typing import Any, Mapping
 
 from ...base import TextFunctionProgramConverter
 from .derivation_graph import DerivationGraph
-from .experience_memory import ExperienceMemory
-from .portfolio import OperatorStats
 from .schema import (
     ImprovementEdge,
     ProgramNode,
@@ -21,7 +19,7 @@ from .schema import (
 )
 from .trajectory_memory import TrajectoryMemory
 
-CHECKPOINT_VERSION = 4
+CHECKPOINT_VERSION = 5
 
 
 def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
@@ -75,7 +73,9 @@ def _graph_from_dict(payload: Mapping[str, Any]) -> DerivationGraph:
             iteration=item["iteration"],
         )
         graph._edges[edge.id] = edge
-        graph._incoming_edge_by_child.setdefault(edge.child_id, []).append(edge.id)
+        if edge.child_id in graph._incoming_edge_by_child:
+            raise ValueError(f"checkpoint contains multiple parents for node {edge.child_id}")
+        graph._incoming_edge_by_child[edge.child_id] = edge.id
     graph._next_node_id = int(payload["next_node_id"])
     graph._next_edge_id = int(payload["next_edge_id"])
     return graph
@@ -129,12 +129,9 @@ def dump_state(method) -> dict[str, Any]:
         "best_node_id": (
             None if method._best_node is None else method._best_node.id
         ),
+        "best_trajectory_id": method._best_trajectory_id,
         "graph": _graph_to_dict(method._graph),
         "memory": _memory_to_dict(method._memory),
-        "portfolio": {
-            name: asdict(stats)
-            for name, stats in method._portfolio.stats.items()
-        },
     }
 
 
@@ -144,14 +141,11 @@ def _search_configuration(method) -> dict[str, Any]:
         "actions_per_iteration": method._actions_per_iteration,
         "max_trajectory_length": method._memory.max_trajectory_length,
         "max_active_trajectories": method._max_active_trajectories,
-        "population_growth_factor": method._population_growth_factor,
         "management_threshold": method._management_threshold,
         "elite_count": method._elite_count,
         "diversity_count": method._diversity_count,
         "softmax_temperature": method._softmax_temperature,
-        "novelty_threshold": method._novelty_threshold,
         "value_weights": asdict(method._value_weights),
-        "portfolio_weights": asdict(method._portfolio_weights),
         "operators": [operator.name for operator in method._operators],
     }
 
@@ -176,13 +170,6 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     memory = _memory_from_dict(payload["memory"])
     method._graph = graph
     method._memory = memory
-    method._experience_memory = ExperienceMemory(graph)
-    for name, item in payload.get("portfolio", {}).items():
-        if name in method._portfolio.stats:
-            method._portfolio.stats[name] = OperatorStats(
-                attempts=int(item["attempts"]),
-                total_reward=float(item["total_reward"]),
-            )
     method._tot_sample_nums = int(payload["total_samples"])
     method._next_attempt_id = int(payload.get("next_attempt_id", 0))
     method._initialization_complete = bool(
@@ -192,6 +179,7 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     method._best_node = (
         None if best_id is None else graph.get_node(int(best_id))
     )
+    method._best_trajectory_id = payload.get("best_trajectory_id")
     _restore_profiler(method)
 
 

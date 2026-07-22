@@ -70,7 +70,6 @@ def run_smoke():
     print(f"n_samples={result.n_samples} n_nodes={result.n_total_nodes} "
           f"n_valid={result.n_valid_nodes} n_traj={result.n_trajectories} n_edges={result.n_edges}")
     print(f"best_fitness={result.best_node.fitness if result.best_node else None}")
-    print(f"portfolio={method._portfolio.snapshot()}")
     assert result.best_node is not None, "best_node should exist"
     assert result.n_samples == 14
     assert result.n_trajectories > 0

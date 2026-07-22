@@ -6,11 +6,10 @@ from .base import Operator, OperatorContext
 
 
 class SemanticOperator(Operator):
-    requires_second: bool = False
     prompt_name: str = ""
 
     def trigger(self, ctx: OperatorContext) -> bool:
-        return not self.requires_second or len(ctx.memory.active()) >= 2
+        return True
 
     def select_base(self, ctx: OperatorContext) -> tuple[NodeId | None, str]:
         return ctx.selected.endpoint_id, "endpoint_or_best"
@@ -47,31 +46,11 @@ class TraceRefineOp(SemanticOperator):
     )
 
 
-class TraceSynthesizeOp(SemanticOperator):
-    name = OperatorName.SYNTHESIZE
-    prompt_name = "trace_synthesize"
-    requires_second = True
-    prompt_constraint = (
-        "Extract useful principles from both complete histories and define an explicit "
-        "operational relationship that synthesizes them."
-    )
-
-
-class TraceTransferOp(SemanticOperator):
-    name = OperatorName.TRANSFER
-    prompt_name = "trace_transfer"
-    requires_second = True
-    prompt_constraint = (
-        "Transfer exactly one evidence-backed idea from the second complete history into "
-        "the primary algorithm while preserving its main structure."
-    )
-
-
+# v4 is deliberately single-parent.  The two cross-trajectory operators remain
+# absent from the implementation; only the two single-parent operators are exposed.
 DEFAULT_SEMANTIC_OPERATORS: tuple[type[SemanticOperator], ...] = (
     TraceIdeateOp,
     TraceRefineOp,
-    TraceSynthesizeOp,
-    TraceTransferOp,
 )
 
 
@@ -79,7 +58,5 @@ __all__ = [
     "SemanticOperator",
     "TraceIdeateOp",
     "TraceRefineOp",
-    "TraceSynthesizeOp",
-    "TraceTransferOp",
     "DEFAULT_SEMANTIC_OPERATORS",
 ]

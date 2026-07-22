@@ -3,12 +3,9 @@ from __future__ import annotations
 import inspect
 
 import llm4ad.method.traceaad as traceaad_package
-from llm4ad.method.traceaad import PortfolioWeights, TraceAAD, ValueWeights
+from llm4ad.method.traceaad import TraceAAD, ValueWeights
 from llm4ad.method.traceaad.context import build_action_prompt
 from llm4ad.method.traceaad.derivation_graph import DerivationGraph
-from llm4ad.method.traceaad.experience_memory import ExperienceMemory
-from llm4ad.method.traceaad.operators import EndpointRefineOp, NoveltyJumpOp, OperatorContext
-from llm4ad.method.traceaad.portfolio import OperatorPortfolio
 from llm4ad.method.traceaad.schema import ValueVec
 from llm4ad.method.traceaad.trajectory_memory import TrajectoryMemory
 
@@ -49,21 +46,16 @@ def test_public_configuration_exposes_only_search_mechanism_controls():
 
     assert tuple(ValueWeights.__dataclass_fields__) == (
         "w_quality",
-        "w_potential",
-        "w_diversity",
-        "w_sim_code",
-        "w_sim_trajectory",
+        "w_trend",
         "discount",
         "positive_threshold",
         "ucb_c",
     )
-    assert tuple(PortfolioWeights.__dataclass_fields__) == ("ucb_c",)
     assert set(traceaad_package.__all__) == {
         "TraceAAD",
         "TraceAADRunResult",
         "TraceAADProfiler",
         "ValueWeights",
-        "PortfolioWeights",
     }
 
 
@@ -86,7 +78,6 @@ def test_action_prompt_uses_current_trajectory_and_cross_trajectory_actions_only
         base_reason="endpoint",
         operator_name="endpoint_refine",
         operator_constraint="continue the current direction",
-        experience_memory=ExperienceMemory(graph),
         task_description="Improve f.",
         template_function=template_function,
         action_count=1,
@@ -95,36 +86,22 @@ def test_action_prompt_uses_current_trajectory_and_cross_trajectory_actions_only
 
     assert "add a unit improvement" in prompt
     assert "[Algorithm Improvement History]" in prompt
-    assert "[Cross-Trajectory Action Evidence]" in prompt
+    assert "[Cross-Trajectory Action Evidence]" not in prompt
     assert "Elite Curriculum" not in prompt
     assert "Contrast Feedback" not in prompt
     assert "complexity" not in prompt.lower()
     assert "runtime" not in prompt.lower()
 
 
-def test_operator_selection_uses_empirical_reward_plus_ucb():
-    graph, memory, trajectory = _history_fixture()
-    ctx = OperatorContext(
-        graph=graph,
-        memory=memory,
-        selected=trajectory,
-        maximize=True,
-    )
-    endpoint = EndpointRefineOp()
-    novelty = NoveltyJumpOp()
-    portfolio = OperatorPortfolio(
-        (endpoint, novelty),
-        PortfolioWeights(ucb_c=0.5),
-    )
+def test_v4_uses_two_uniform_single_parent_semantic_operators():
+    from llm4ad.method.traceaad.operators import DEFAULT_OPERATORS
 
-    first = portfolio.choose(ctx)
-    portfolio.record(first.operator, reward=-1.0)
-    second = portfolio.choose(ctx)
-
-    assert first.operator.name != second.operator.name
-    assert set(second.scores) == {"endpoint_refine", "novelty_jump"}
+    assert {operator().name for operator in DEFAULT_OPERATORS} == {
+        "trace_ideate",
+        "trace_refine",
+    }
 
 
 def test_trajectory_value_has_only_quality_potential_and_diversity():
-    value = ValueVec(quality=0.8, potential=0.3, diversity=0.6)
+    value = ValueVec(quality=0.8, trend=0.3, diversity=0.6)
     assert value.as_tuple() == (0.8, 0.3, 0.6)
