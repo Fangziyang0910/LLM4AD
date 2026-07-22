@@ -1,4 +1,8 @@
-"""Compare MCTS-AHD, PathWise, and TraceAAD search curves for Knapsack Construct."""
+"""Compare Knapsack Construct search curves.
+
+Old-protocol (KP50) three-method curves stay in 搜索曲线.png.
+New-protocol TraceAAD v3 (KP100 train) is written to 搜索曲线_新协议.png.
+"""
 
 from __future__ import annotations
 
@@ -16,7 +20,7 @@ from matplotlib.patches import Patch
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RESULTS_DIR = PROJECT_ROOT / "docs" / "results" / "knapsack_construct"
 EXPERIMENTS_DIR = PROJECT_ROOT / "experiments" / "knapsack_construct"
-METHODS = {
+METHODS_OLD = {
     "MCTS-AHD": {
         "directory": "mcts_ahd",
         "runs": (
@@ -51,6 +55,20 @@ METHODS = {
         "band": "#C9B1FF",
     },
 }
+METHODS_NEW = {
+    "TraceAAD version3": {
+        "directory": "traceaad/version3",
+        "runs": (
+            "20260720_233339_kp_v3_rep1",
+            "20260720_233339_kp_v3_rep2",
+            "20260720_233339_kp_v3_rep3",
+        ),
+        "budget": 1000,
+        "color": "#2A9D5B",
+        "band": "#A8D5BA",
+    },
+}
+METHODS = METHODS_OLD
 
 
 def _load_scores(directory: str, run_name: str) -> dict[int, float]:
@@ -78,8 +96,8 @@ def _best_so_far(scores: dict[int, float], budget: int) -> np.ndarray:
     return curve
 
 
-def _method_curves(label: str) -> np.ndarray:
-    config = METHODS[label]
+def _method_curves(methods: dict[str, dict], label: str) -> np.ndarray:
+    config = methods[label]
     return np.vstack(
         [
             _best_so_far(_load_scores(config["directory"], run_name), config["budget"])
@@ -104,15 +122,15 @@ def _style() -> None:
     )
 
 
-def main() -> None:
-    data = [(name, _method_curves(name)) for name in METHODS]
+def _render(methods: dict[str, dict], output_name: str) -> None:
+    data = [(name, _method_curves(methods, name)) for name in methods]
     _style()
     fig, ax = plt.subplots(figsize=(7.2, 4.2))
     handles = []
     all_curves = []
-    max_budget = max(config["budget"] for config in METHODS.values())
+    max_budget = max(config["budget"] for config in methods.values())
     for name, curves in data:
-        config = METHODS[name]
+        config = methods[name]
         budget = config["budget"]
         x = np.arange(1, budget + 1)
         mean = np.nanmean(curves, axis=0)
@@ -145,10 +163,15 @@ def main() -> None:
     ax.legend(handles=handles, loc="lower right", frameon=True, framealpha=0.95, edgecolor="#444444")
     fig.tight_layout()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    output = RESULTS_DIR / "搜索曲线.png"
+    output = RESULTS_DIR / output_name
     fig.savefig(output, dpi=300)
     plt.close(fig)
     print(f"Wrote {output}")
+
+
+def main() -> None:
+    _render(METHODS_OLD, "搜索曲线.png")
+    _render(METHODS_NEW, "搜索曲线_新协议.png")
 
 
 if __name__ == "__main__":

@@ -60,6 +60,18 @@ METHODS = {
         color="#6A4C93",
         band_color="#C9B1FF",
     ),
+    "TraceAAD version3": MethodSpec(
+        label="TraceAAD version3",
+        method_dir=PROJECT_ROOT / "experiments" / "orienteering_construct" / "traceaad" / "version3",
+        runs=(
+            "20260720_233339_op_v3_rep1",
+            "20260720_233339_op_v3_rep2",
+            "20260720_233339_op_v3_rep3",
+        ),
+        budget=1000,
+        color="#2A9D5B",
+        band_color="#A8D5BA",
+    ),
 }
 
 
