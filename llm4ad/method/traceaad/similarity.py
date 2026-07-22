@@ -1,6 +1,6 @@
 """程序代码和轨迹修改结果的组合相似度。
 
-该相似度同时用于路线差异和相似轨迹过滤。
+该相似度用于生存管理中的路线差异 reserve；旧的相似过滤接口仍保留以读取历史 v3 工件。
 """
 from __future__ import annotations
 
@@ -72,6 +72,54 @@ def max_similarity_to_active(
         if sim > best:
             best = sim
     return best
+
+
+def trajectory_similarity(
+    *,
+    graph: DerivationGraph,
+    left: Trajectory,
+    right: Trajectory,
+    weights: tuple[float, float, float] = (0.5, 0.3, 0.2),
+) -> float:
+    """Return a lightweight code, idea and route similarity for diversity sampling."""
+    if left.id == right.id:
+        return 1.0
+    if len(weights) == 2:
+        w_code, w_traj = weights
+        w_idea = 0.0
+    else:
+        w_code, w_idea, w_traj = weights
+    total = w_code + w_traj
+    if total <= 0:
+        return 0.0
+    code = code_similarity(
+        graph.get_node(left.endpoint_id).code,
+        graph.get_node(right.endpoint_id).code,
+    )
+    idea = _jaccard(
+        trajectory_idea_tokens(graph, left),
+        trajectory_idea_tokens(graph, right),
+    )
+    pattern = trajectory_pattern_similarity(
+        trajectory_pattern(graph, left),
+        trajectory_pattern(graph, right),
+    )
+    total += w_idea
+    return (w_code * code + w_idea * idea + w_traj * pattern) / total if total > 0 else 0.0
+
+
+def trajectory_idea_tokens(
+    graph: DerivationGraph,
+    trajectory: Trajectory,
+) -> frozenset[str]:
+    """Return a cheap lexical signature of the ideas and actions on a route."""
+    texts = [graph.get_node(node_id).idea for node_id in trajectory.node_ids]
+    texts.extend(graph.get_edge(edge_id).action for edge_id in trajectory.edge_ids)
+    return frozenset(
+        token.lower()
+        for text in texts
+        for token in re.findall(r"[A-Za-z_][A-Za-z0-9_]+", text or "")
+    )
 
 
 def _jaccard(a: frozenset[str], b: frozenset[str]) -> float:

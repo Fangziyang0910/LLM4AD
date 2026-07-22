@@ -1,4 +1,4 @@
-"""保存程序及其单父修改关系。"""
+"""保存程序节点及其可共享的多来源修改关系。"""
 from __future__ import annotations
 
 from .schema import EdgeId, ImprovementEdge, NodeId, ProgramNode
@@ -10,7 +10,7 @@ class DerivationGraph:
         self._next_edge_id = 0
         self._nodes: dict[NodeId, ProgramNode] = {}
         self._edges: dict[EdgeId, ImprovementEdge] = {}
-        self._incoming_edge_by_child: dict[NodeId, EdgeId] = {}
+        self._incoming_edge_by_child: dict[NodeId, list[EdgeId]] = {}
 
     def add_node(self, *, code: str, idea: str, fitness: float | None) -> ProgramNode:
         node = ProgramNode(
@@ -36,9 +36,6 @@ class DerivationGraph:
             raise KeyError(f"unknown child node: {child_id}")
         if parent_id == child_id:
             raise ValueError("an improvement edge cannot point to the same node")
-        if child_id in self._incoming_edge_by_child:
-            raise ValueError(f"child node already has a parent edge: {child_id}")
-
         edge = ImprovementEdge(
             id=self._next_edge_id,
             parent_id=parent_id,
@@ -50,7 +47,7 @@ class DerivationGraph:
             iteration=fields.get("iteration"),
         )
         self._edges[edge.id] = edge
-        self._incoming_edge_by_child[child_id] = edge.id
+        self._incoming_edge_by_child.setdefault(child_id, []).append(edge.id)
         self._next_edge_id += 1
         return edge
 

@@ -1,7 +1,9 @@
-"""TraceAAD：利用算法改进轨迹指导下一步程序修改。"""
+"""TraceAAD v4：以完整算法改进轨迹驱动语义搜索。"""
 from __future__ import annotations
 
 import copy
+import math
+import random
 import re
 import statistics
 import time
@@ -36,20 +38,16 @@ from .credit import directed_delta
 from .derivation_graph import DerivationGraph
 from .experience_memory import ExperienceMemory
 from .operators import DEFAULT_OPERATORS, Operator, OperatorContext, classify_outcome
-from .portfolio import (
-    OperatorPortfolio,
-    PortfolioWeights,
-    aggregate_batch_utility,
-    signed_utility,
-)
+from .portfolio import OperatorPortfolio, PortfolioWeights, aggregate_batch_utility, signed_utility
 from .prompt import build_code_prompt, build_initial_prompt
 from .schema import EvalResult, ProgramNode, Trajectory
-from .similarity import max_similarity_to_active
 from .trajectory_memory import TrajectoryMemory
 from .value import (
     ValueWeights,
+    sample_survivors,
+    sample_trajectory,
     score_active_trajectories,
-    select_trajectory,
+    select_diverse_trajectories,
 )
 
 
@@ -79,6 +77,13 @@ class TraceAADRunResult:
 
 
 class TraceAAD:
+    """TraceAAD v4 implementation.
+
+    ``max_active_trajectories`` is the post-management population size ``M``.
+    During an expansion epoch all valid child trajectories remain active and can
+    be selected; management runs once the active pool reaches ``2 * M``.
+    """
+
     def __init__(
         self,
         llm: LLM,
@@ -86,15 +91,18 @@ class TraceAAD:
         profiler: ProfilerBase = None,
         max_sample_nums: Optional[int] = 100,
         *,
-        n_init: int = 4,
+        n_init: int = 30,
         actions_per_iteration: int = 2,
         max_trajectory_length: int = 8,
-        max_active_trajectories: int = 160,
+        max_active_trajectories: int = 30,
+        population_growth_factor: float = 2.0,
+        elite_count: int | None = None,
+        softmax_temperature: float = 0.2,
         maximize: bool = True,
         value_weights: ValueWeights | None = None,
         portfolio_weights: PortfolioWeights | None = None,
         operators: tuple[type[Operator], ...] = DEFAULT_OPERATORS,
-        novelty_threshold: float = 0.92,
+        novelty_threshold: float | None = None,
         debug_mode: bool = False,
         max_consecutive_sample_failures: int = 20,
         max_stalled_iterations: int = 20,
@@ -108,6 +116,10 @@ class TraceAAD:
             raise ValueError("actions_per_iteration must be positive")
         if max_active_trajectories <= 0:
             raise ValueError("max_active_trajectories must be positive")
+        if population_growth_factor <= 1.0:
+            raise ValueError("population_growth_factor must be greater than 1")
+        if softmax_temperature <= 0:
+            raise ValueError("softmax_temperature must be positive")
         if checkpoint_interval <= 0:
             raise ValueError("checkpoint_interval must be positive")
 
@@ -118,16 +130,28 @@ class TraceAAD:
         self._max_sample_nums = max_sample_nums
         self._n_init = n_init
         self._actions_per_iteration = actions_per_iteration
-        self._max_active_trajectories = max_active_trajectories
+        self._max_active_trajectories = int(max_active_trajectories)
+        self._population_growth_factor = float(population_growth_factor)
+        self._management_threshold = max(
+            self._max_active_trajectories + 1,
+            math.ceil(self._population_growth_factor * self._max_active_trajectories),
+        )
+        self._elite_count = (
+            max(2, math.ceil(0.1 * self._max_active_trajectories))
+            if elite_count is None
+            else max(1, int(elite_count))
+        )
+        self._diversity_count = max(2, math.ceil(0.1 * self._max_active_trajectories))
+        self._softmax_temperature = float(softmax_temperature)
         self._maximize = maximize
         self._value_weights = value_weights or ValueWeights()
         self._portfolio_weights = portfolio_weights or PortfolioWeights()
+        # Kept as a readable compatibility parameter; v4 deliberately does not gate
+        # candidates by code or trajectory similarity.
         self._novelty_threshold = novelty_threshold
         self._debug_mode = debug_mode
         self._max_stalled_iterations = max(1, int(max_stalled_iterations))
-        self._checkpoint_dir = (
-            None if checkpoint_dir is None else Path(checkpoint_dir)
-        )
+        self._checkpoint_dir = None if checkpoint_dir is None else Path(checkpoint_dir)
         self._checkpoint_interval = int(checkpoint_interval)
         self._last_checkpoint_sample = -1
         llm.debug_mode = debug_mode
@@ -145,6 +169,8 @@ class TraceAAD:
         self._memory = TrajectoryMemory(max_trajectory_length=max_trajectory_length)
         self._experience_memory = ExperienceMemory(self._graph)
         self._operators = tuple(operator_type() for operator_type in operators)
+        if not self._operators:
+            raise ValueError("at least one TraceAAD operator is required")
         self._portfolio = OperatorPortfolio(self._operators, self._portfolio_weights)
 
         self._best_node: ProgramNode | None = None
@@ -177,11 +203,7 @@ class TraceAAD:
                 save_checkpoint(self)
             while self._has_budget() and not is_search_aborted(self):
                 if not self._memory.active():
-                    log_event(
-                        self,
-                        event="search_stopped",
-                        status="no_active_trajectory",
-                    )
+                    log_event(self, event="search_stopped", status="no_active_trajectory")
                     break
                 samples_before = self._tot_sample_nums
                 self._run_iteration(attempt_id)
@@ -197,13 +219,14 @@ class TraceAAD:
                         break
                 else:
                     stalled_attempts = 0
-                    self._survive()
+                self._maybe_manage_population()
                 attempt_id += 1
                 self._next_attempt_id = attempt_id
                 self._save_checkpoint_if_due()
 
-            if self._memory.active():
-                self._survive()
+            # A run may end during an expansion epoch. Preserve that temporary
+            # pool; survival management is triggered only at the 2M threshold.
+            self._maybe_manage_population()
             result = self._result()
             finish_profiler(
                 self,
@@ -223,46 +246,31 @@ class TraceAAD:
     def _save_checkpoint_if_due(self) -> None:
         if (
             self._checkpoint_dir is not None
-            and self._tot_sample_nums - self._last_checkpoint_sample
-            >= self._checkpoint_interval
+            and self._tot_sample_nums - self._last_checkpoint_sample >= self._checkpoint_interval
         ):
             save_checkpoint(self)
 
     def _initialize(self) -> None:
         stalled_draws = 0
         draw_seq = 0
-        while (
-            self._tot_sample_nums < self._n_init
-            and self._has_budget()
-            and not is_search_aborted(self)
-        ):
+        while self._tot_sample_nums < self._n_init and self._has_budget() and not is_search_aborted(self):
             slot = self._tot_sample_nums
             prompt = build_initial_prompt(
                 task_description=self._task_description_str,
                 template_function=self._function_to_evolve,
                 diversity_hint=self._init_diversity_hint(slot),
             )
-            generated = self._draw_program(
-                prompt,
-                stage="init",
-                iteration=None,
-                seq=draw_seq,
-                operator="init",
-            )
+            generated = self._draw_program(prompt, stage="init", iteration=None, seq=draw_seq, operator="init")
             draw_seq += 1
             if generated is None:
                 stalled_draws += 1
                 if stalled_draws >= self._max_stalled_iterations:
                     break
                 continue
-            evaluated = self._evaluate(
-                generated.program,
-                idea=generated.idea,
-                operator="init",
-            )
-            stalled_draws = 0
+            evaluated = self._evaluate(generated.program, idea=generated.idea, operator="init")
             if evaluated is None or evaluated.fitness is None:
                 continue
+            stalled_draws = 0
             node = self._add_node(generated, evaluated)
             trajectory = self._memory.create_initial(node_id=node.id)
             self._update_best(node, operator="init")
@@ -280,38 +288,37 @@ class TraceAAD:
     def _init_diversity_hint(self, slot: int) -> str:
         if slot == 0:
             return "Provide a simple, complete, and valid algorithm."
-        ideas = [
-            node.idea.strip()
-            for node in self._graph.nodes()
-            if node.idea and node.idea.strip()
-        ][-4:]
+        ideas = [node.idea.strip() for node in self._graph.nodes() if node.idea and node.idea.strip()][-6:]
         if not ideas:
             return "Use a clearly different algorithmic idea from a trivial baseline."
-        listed = "; ".join(f"'{idea[:80]}'" for idea in ideas)
+        listed = "; ".join(f"'{idea[:100]}'" for idea in ideas)
         return f"Use a clearly different algorithmic idea from: {listed}."
 
     def _run_iteration(self, attempt_id: int) -> None:
-        incumbent = None if self._best_node is None else self._best_node.fitness
         selected = self._select_trajectory()
-        context = OperatorContext(
-            graph=self._graph,
-            memory=self._memory,
-            selected=selected,
-            maximize=self._maximize,
-            positive_threshold=self._value_weights.positive_threshold,
-            similarity_weights=(
-                self._value_weights.w_sim_code,
-                self._value_weights.w_sim_trajectory,
+        available = [operator for operator in self._operators if operator.trigger(
+            OperatorContext(
+                graph=self._graph,
+                memory=self._memory,
+                selected=selected,
+                maximize=self._maximize,
+            )
+        )]
+        operator = random.choice(available or list(self._operators))
+        secondary = None
+        if getattr(operator, "requires_second", False) and len(self._memory.active()) >= 2:
+            secondary = self._select_trajectory(exclude_ids={selected.id})
+        primary_anchor = self._select_anchor(selected)
+        secondary_anchor = None if secondary is None else self._select_anchor(secondary)
+        constraint = operator.build_constraint(
+            OperatorContext(
+                graph=self._graph,
+                memory=self._memory,
+                selected=selected,
+                maximize=self._maximize,
             ),
+            primary_anchor,
         )
-        decision = self._portfolio.choose(context)
-        operator = decision.operator
-        target = operator.select_trajectory(context)
-        if target is not None:
-            context.selected = self._memory.get_trajectory(target.id)
-        base_node_id, base_reason = operator.select_base(context)
-        constraint = operator.build_constraint(context, base_node_id)
-
         log_event(
             self,
             event="operator_selection",
@@ -319,49 +326,143 @@ class TraceAAD:
             attempt_id=attempt_id,
             selected_operator=operator.name,
             selected_trajectory_id=selected.id,
-            target_trajectory_id=context.selected.id,
-            base_node_id=base_node_id,
-            base_reason=base_reason,
-            eligible=list(decision.eligible),
-            scores=decision.scores,
+            secondary_trajectory_id=None if secondary is None else secondary.id,
+            base_node_id=primary_anchor,
+            secondary_base_node_id=secondary_anchor,
+            eligible=[candidate.name for candidate in available or self._operators],
+            selection_mode="uniform_operator_softmax_trajectory",
         )
         log_state(
             self,
             phase="iteration_start",
             iteration=attempt_id,
-            selected_trajectory_id=context.selected.id,
-            selected_endpoint_id=context.selected.endpoint_id,
+            selected_trajectory_id=selected.id,
+            selected_endpoint_id=selected.endpoint_id,
             operator=operator.name,
-            base_node_id=base_node_id,
-            base_reason=base_reason,
-            selected_value=(
-                None
-                if context.selected.value is None
-                else context.selected.value.as_tuple()
-            ),
-            selected_scalar_value=context.selected.scalar_value,
+            base_node_id=primary_anchor,
+            selected_value=selected.scalar_value,
         )
-
-        if base_node_id is None:
-            observations = self._run_fresh_start(
-                operator,
-                context,
-                constraint,
-                attempt_id,
-                incumbent,
+        prompt = build_action_prompt(
+            graph=self._graph,
+            trajectory=selected,
+            base_node_id=primary_anchor,
+            base_reason="endpoint_or_best",
+            operator_name=operator.name,
+            operator_constraint=constraint,
+            experience_memory=self._experience_memory,
+            task_description=self._task_description_str,
+            template_function=self._function_to_evolve,
+            action_count=self._actions_per_iteration,
+            maximize=self._maximize,
+            max_steps=self._memory.max_trajectory_length,
+            secondary_trajectory=secondary,
+            secondary_base_node_id=secondary_anchor,
+        )
+        actions = self._generate_actions(prompt, attempt_id)
+        observations: list[_CandidateObservation] = []
+        for seq, action in enumerate(actions):
+            if not self._has_budget() or is_search_aborted(self):
+                break
+            base_node = self._graph.get_node(primary_anchor)
+            code_prompt = build_code_prompt(
+                current_node=base_node,
+                action=action,
+                task_description=self._task_description_str,
+                template_function=self._function_to_evolve,
             )
-        else:
-            observations = self._run_refine(
-                operator,
-                context,
-                constraint,
-                base_node_id,
-                base_reason,
-                attempt_id,
+            generated = self._draw_program(
+                code_prompt,
+                stage="code",
+                iteration=attempt_id,
+                seq=seq,
+                operator=operator.name,
+                action=action,
+            )
+            if generated is None:
+                continue
+            evaluated = self._evaluate(generated.program, idea=generated.idea, operator=operator.name)
+            if evaluated is None or evaluated.fitness is None:
+                continue
+            child = self._add_node(generated, evaluated)
+            primary_delta = directed_delta(base_node.fitness, child.fitness, self._maximize)
+            primary_outcome = classify_outcome(primary_delta, self._value_weights.positive_threshold)
+            primary_edge = self._graph.add_edge(
+                parent_id=primary_anchor,
+                child_id=child.id,
+                action=action,
+                operator=operator.name,
+                delta=primary_delta,
+                outcome=primary_outcome,
+                iteration=attempt_id,
+            )
+            primary_trajectory = self._memory.branch_from(
+                trajectory_id=selected.id,
+                base_node_id=primary_anchor,
+                child_id=child.id,
+                edge_id=primary_edge.id,
+            )
+            self._log_child(
+                iteration=attempt_id,
+                seq=seq,
+                operator=operator,
+                child=child,
+                trajectory=primary_trajectory,
+                accepted=True,
+                parent_id=primary_anchor,
+                edge_id=primary_edge.id,
+                action=action,
+                delta=primary_delta,
+                outcome=primary_outcome,
+            )
+            if secondary is not None and secondary_anchor is not None:
+                if secondary_anchor == primary_anchor:
+                    secondary_edge = primary_edge
+                else:
+                    secondary_delta = directed_delta(
+                        self._graph.get_node(secondary_anchor).fitness,
+                        child.fitness,
+                        self._maximize,
+                    )
+                    secondary_edge = self._graph.add_edge(
+                        parent_id=secondary_anchor,
+                        child_id=child.id,
+                        action=action,
+                        operator=operator.name,
+                        delta=secondary_delta,
+                        outcome=classify_outcome(
+                            secondary_delta,
+                            self._value_weights.positive_threshold,
+                        ),
+                        iteration=attempt_id,
+                    )
+                secondary_trajectory = self._memory.branch_from(
+                    trajectory_id=secondary.id,
+                    base_node_id=secondary_anchor,
+                    child_id=child.id,
+                    edge_id=secondary_edge.id,
+                )
+                log_event(
+                    self,
+                    event="trajectory_created",
+                    status="ok",
+                    stage="dual_writeback",
+                    node_id=child.id,
+                    trajectory_id=secondary_trajectory.id,
+                    source_trajectory_id=secondary.id,
+                )
+            self._update_best(child, iteration=attempt_id, operator=operator.name)
+            observations.append(
+                _CandidateObservation(
+                    node_id=child.id,
+                    score=float(child.fitness),
+                    reference_score=float(base_node.fitness),
+                    accepted=True,
+                    outcome=primary_outcome,
+                )
             )
         reward = self._portfolio_reward(observations)
         self._portfolio.record(operator, reward)
-        self._memory.record_visit(context.selected.id)
+        self._memory.record_visit(selected.id)
         log_event(
             self,
             event="operator_batch",
@@ -379,217 +480,43 @@ class TraceAAD:
                 }
                 for observation in observations
             ],
+            active_trajectories=len(self._memory.active()),
             portfolio=self._portfolio.snapshot(),
         )
 
-    def _select_trajectory(self) -> Trajectory:
-        return select_trajectory(
+    def _select_trajectory(self, exclude_ids: set[int] | None = None) -> Trajectory:
+        return sample_trajectory(
             memory=self._memory,
             graph=self._graph,
             maximize=self._maximize,
             w=self._value_weights,
+            temperature=self._softmax_temperature,
+            exclude_ids=exclude_ids,
         )
 
-    def _run_fresh_start(
-        self,
-        operator: Operator,
-        context: OperatorContext,
-        constraint: str,
-        iteration: int,
-        incumbent: float | None,
-    ) -> list[_CandidateObservation]:
-        observations: list[_CandidateObservation] = []
-        reference = incumbent
-        if reference is None:
-            reference = self._active_pool_anchor()
-        for seq in range(self._actions_per_iteration):
-            if not self._has_budget() or is_search_aborted(self):
-                break
-            prompt = build_initial_prompt(
-                task_description=self._task_description_str,
-                template_function=self._function_to_evolve,
-                diversity_hint=constraint,
-            )
-            generated = self._draw_program(
-                prompt,
-                stage="novelty",
-                iteration=iteration,
-                seq=seq,
-                operator=operator.name,
-            )
-            if generated is None:
+    def _select_anchor(self, trajectory: Trajectory) -> int:
+        endpoint = trajectory.endpoint_id
+        best = endpoint
+        best_fitness = self._graph.get_node(endpoint).fitness
+        for node_id in trajectory.node_ids:
+            fitness = self._graph.get_node(node_id).fitness
+            if fitness is None:
                 continue
-            evaluated = self._evaluate(
-                generated.program,
-                idea=generated.idea,
-                operator=operator.name,
-            )
-            if evaluated is None or evaluated.fitness is None:
-                continue
-            node = self._add_node(generated, evaluated)
-            trajectory = operator.insert(context, node.id, None, None)
-            record = (
-                self._best_node is None
-                or _is_better(evaluated.fitness, self._best_node.fitness, self._maximize)
-            )
-            accepted = self._apply_novelty_gate(trajectory, protect=record)
-            self._update_best(node, iteration=iteration, operator=operator.name)
-            anchor = evaluated.fitness if reference is None else reference
-            outcome = classify_outcome(
-                directed_delta(anchor, evaluated.fitness, self._maximize),
-                self._value_weights.positive_threshold,
-            )
-            observations.append(
-                _CandidateObservation(
-                    node_id=node.id,
-                    score=evaluated.fitness,
-                    reference_score=anchor,
-                    accepted=accepted,
-                    outcome=outcome,
-                )
-            )
-            self._log_child(
-                iteration=iteration,
-                seq=seq,
-                operator=operator,
-                child=node,
-                trajectory=trajectory,
-                accepted=accepted,
-            )
-        return observations
+            if best_fitness is None or _is_better(fitness, best_fitness, self._maximize):
+                best, best_fitness = node_id, fitness
+        return random.choice((endpoint, best))
 
-    def _run_refine(
-        self,
-        operator: Operator,
-        context: OperatorContext,
-        constraint: str,
-        base_node_id: int,
-        base_reason: str,
-        iteration: int,
-    ) -> list[_CandidateObservation]:
-        base_node = self._graph.get_node(base_node_id)
-        prompt = build_action_prompt(
-            graph=self._graph,
-            trajectory=context.selected,
-            base_node_id=base_node_id,
-            base_reason=base_reason,
-            operator_name=operator.name,
-            operator_constraint=constraint,
-            experience_memory=self._experience_memory,
-            task_description=self._task_description_str,
-            template_function=self._function_to_evolve,
-            action_count=self._actions_per_iteration,
-            maximize=self._maximize,
-        )
-        actions = self._generate_actions(prompt, iteration)
-        observations: list[_CandidateObservation] = []
-        for seq, action in enumerate(actions):
-            if not self._has_budget() or is_search_aborted(self):
-                break
-            code_prompt = build_code_prompt(
-                current_node=base_node,
-                action=action,
-                task_description=self._task_description_str,
-                template_function=self._function_to_evolve,
-            )
-            generated = self._draw_program(
-                code_prompt,
-                stage="code",
-                iteration=iteration,
-                seq=seq,
-                operator=operator.name,
-                action=action,
-            )
-            if generated is None:
-                continue
-            evaluated = self._evaluate(
-                generated.program,
-                idea=generated.idea,
-                operator=operator.name,
-            )
-            if evaluated is None or evaluated.fitness is None:
-                continue
-            delta = directed_delta(
-                base_node.fitness,
-                evaluated.fitness,
-                self._maximize,
-            )
-            outcome = classify_outcome(
-                delta,
-                self._value_weights.positive_threshold,
-            )
-            child = self._add_node(generated, evaluated)
-            edge = self._graph.add_edge(
-                parent_id=base_node_id,
-                child_id=child.id,
-                action=action,
-                operator=operator.name,
-                delta=delta,
-                outcome=outcome,
-                iteration=iteration,
-            )
-            trajectory = operator.insert(
-                context,
-                child.id,
-                edge.id,
-                base_node_id,
-            )
-            record = (
-                self._best_node is None
-                or _is_better(evaluated.fitness, self._best_node.fitness, self._maximize)
-            )
-            accepted = self._apply_novelty_gate(trajectory, protect=record)
-            self._update_best(child, iteration=iteration, operator=operator.name)
-            observations.append(
-                _CandidateObservation(
-                    node_id=child.id,
-                    score=evaluated.fitness,
-                    reference_score=base_node.fitness,
-                    accepted=accepted,
-                    outcome=outcome,
-                )
-            )
-            self._log_child(
-                iteration=iteration,
-                seq=seq,
-                operator=operator,
-                child=child,
-                trajectory=trajectory,
-                accepted=accepted,
-                parent_id=base_node_id,
-                edge_id=edge.id,
-                action=action,
-                delta=delta,
-                outcome=outcome,
-            )
-        return observations
-
-    def _add_node(
-        self,
-        generated: _GeneratedProgram,
-        evaluated: EvalResult,
-    ) -> ProgramNode:
+    def _add_node(self, generated: _GeneratedProgram, evaluated: EvalResult) -> ProgramNode:
         return self._graph.add_node(
-            code=str(generated.program),
-            idea=generated.idea,
-            fitness=evaluated.fitness,
+            code=str(generated.program), idea=generated.idea, fitness=evaluated.fitness
         )
 
-    def _log_child(
-        self,
-        *,
-        iteration: int,
-        seq: int,
-        operator: Operator,
-        child: ProgramNode,
-        trajectory: Trajectory,
-        accepted: bool,
-        **fields,
-    ) -> None:
+    def _log_child(self, *, iteration: int, seq: int, operator: Operator,
+                   child: ProgramNode, trajectory: Trajectory, accepted: bool, **fields) -> None:
         log_event(
             self,
             event="child_accepted",
-            status="ok" if accepted else "novelty_rejected",
+            status="ok" if accepted else "rejected",
             iteration=iteration,
             seq=seq,
             operator=operator.name,
@@ -599,95 +526,15 @@ class TraceAAD:
             **fields,
         )
 
-    def _portfolio_reward(
-        self,
-        observations: list[_CandidateObservation],
-    ) -> float:
+    def _portfolio_reward(self, observations: list[_CandidateObservation]) -> float:
         if not observations:
             return -1.0
         scale = self._fitness_scale()
         utilities = []
         for observation in observations:
-            delta = directed_delta(
-                observation.reference_score,
-                observation.score,
-                self._maximize,
-            )
+            delta = directed_delta(observation.reference_score, observation.score, self._maximize)
             utilities.append(signed_utility((delta or 0.0) / scale))
         return aggregate_batch_utility(utilities)
-
-    def _survive(self) -> None:
-        duplicates = self._memory.archive_duplicate_paths()
-        if duplicates:
-            log_event(
-                self,
-                event="trajectory_deduplicated",
-                status="ok",
-                archived_duplicates=duplicates,
-            )
-        ranked = list(self._score_active_pool())
-        if len(ranked) <= self._max_active_trajectories:
-            return
-        protected_id = None
-        if self._best_node is not None:
-            matches = [
-                trajectory
-                for trajectory in ranked
-                if trajectory.endpoint_id == self._best_node.id
-            ]
-            if matches:
-                protected_id = matches[0].id
-        keep_ids = {
-            trajectory.id
-            for trajectory in ranked[: self._max_active_trajectories]
-        }
-        if protected_id is not None and protected_id not in keep_ids:
-            keep_ids.discard(ranked[self._max_active_trajectories - 1].id)
-            keep_ids.add(protected_id)
-        for trajectory in ranked:
-            if trajectory.id not in keep_ids:
-                self._memory.archive(trajectory.id)
-
-    def _apply_novelty_gate(
-        self,
-        trajectory: Trajectory,
-        *,
-        protect: bool,
-    ) -> bool:
-        others = tuple(
-            other
-            for other in self._memory.active()
-            if other.id != trajectory.id
-        )
-        similarity = max_similarity_to_active(
-            graph=self._graph,
-            candidate=trajectory,
-            others=others,
-            weights=(
-                self._value_weights.w_sim_code,
-                self._value_weights.w_sim_trajectory,
-            ),
-        )
-        rejected = similarity >= self._novelty_threshold and not protect
-        if rejected:
-            self._memory.archive(trajectory.id)
-        else:
-            self._score_active_pool()
-        log_event(
-            self,
-            event="novelty_gate",
-            status=(
-                "rejected"
-                if rejected
-                else "quality_override"
-                if protect and similarity >= self._novelty_threshold
-                else "accepted"
-            ),
-            trajectory_id=trajectory.id,
-            endpoint_id=trajectory.endpoint_id,
-            max_similarity=similarity,
-        )
-        return not rejected
 
     def _score_active_pool(self) -> tuple[Trajectory, ...]:
         return score_active_trajectories(
@@ -697,31 +544,72 @@ class TraceAAD:
             w=self._value_weights,
         )
 
-    def _fitness_scale(self) -> float:
-        scores = sorted(
-            node.fitness
-            for trajectory in self._memory.unique_active()
-            if (
-                node := self._graph.get_node(trajectory.endpoint_id)
-            ).fitness is not None
+    def _maybe_manage_population(self) -> None:
+        if len(self._memory.active()) >= self._management_threshold:
+            self._manage_population(force=False)
+
+    def _manage_population(self, *, force: bool) -> None:
+        active = self._memory.active()
+        if not active:
+            return
+        if not force and len(active) < self._management_threshold:
+            return
+        if force and len(active) <= self._max_active_trajectories:
+            self._score_active_pool()
+            return
+        ranked = list(self._score_active_pool())
+        if len(ranked) <= self._max_active_trajectories:
+            return
+        elite_count = min(self._elite_count, self._max_active_trajectories, len(ranked))
+        elites = ranked[:elite_count]
+        diversity_count = min(
+            self._diversity_count,
+            max(0, self._max_active_trajectories - elite_count),
+            max(0, len(ranked) - elite_count),
         )
-        if len(scores) < 2:
-            return 1.0
-        return max(
-            scores[-1] - scores[0],
-            0.05 * abs(statistics.median(scores)),
-            1e-3,
+        diverse = select_diverse_trajectories(
+            candidates=tuple(ranked[elite_count:]),
+            graph=self._graph,
+            count=diversity_count,
+        )
+        diverse_ids = {trajectory.id for trajectory in diverse}
+        sampled = sample_survivors(
+            tuple(
+                trajectory
+                for trajectory in ranked[elite_count:]
+                if trajectory.id not in diverse_ids
+            ),
+            self._max_active_trajectories - elite_count - diversity_count,
+            self._softmax_temperature,
+        )
+        keep_ids = {trajectory.id for trajectory in elites + list(diverse) + list(sampled)}
+        archived = 0
+        for trajectory in ranked:
+            if trajectory.id not in keep_ids:
+                self._memory.archive(trajectory.id)
+                archived += 1
+        log_event(
+            self,
+            event="population_management",
+            status="ok",
+            management_threshold=self._management_threshold,
+            before=len(ranked),
+            after=len(self._memory.active()),
+            elite_count=elite_count,
+            diversity_count=diversity_count,
+            archived=archived,
+            selection_mode="elite_plus_diversity_plus_softmax_without_replacement",
         )
 
-    def _active_pool_anchor(self) -> float | None:
+    def _fitness_scale(self) -> float:
         scores = [
             node.fitness
-            for trajectory in self._memory.unique_active()
-            if (
-                node := self._graph.get_node(trajectory.endpoint_id)
-            ).fitness is not None
+            for trajectory in self._memory.active()
+            if (node := self._graph.get_node(trajectory.endpoint_id)).fitness is not None
         ]
-        return None if not scores else float(statistics.median(scores))
+        if len(scores) < 2:
+            return 1.0
+        return max(max(scores) - min(scores), 0.05 * abs(statistics.median(scores)), 1e-3)
 
     def _generate_actions(self, prompt: str, iteration: int) -> list[str]:
         start = time.time()
@@ -734,21 +622,18 @@ class TraceAAD:
                 self,
                 exc,
                 stage="action",
-                operator="action",
+                operator="semantic",
                 sample_order=self._tot_sample_nums + 1,
                 prompt=prompt,
                 counts_budget=False,
                 iteration=iteration,
             )
             return []
-        actions = _parse_actions(
-            response,
-            expected_count=self._actions_per_iteration,
-        )
+        actions = _parse_actions(response, expected_count=self._actions_per_iteration)
         log_llm_call(
             self,
             stage="action",
-            operator="action",
+            operator="semantic",
             sample_order=self._tot_sample_nums + 1,
             iteration=iteration,
             seq=0,
@@ -760,16 +645,8 @@ class TraceAAD:
         )
         return actions
 
-    def _draw_program(
-        self,
-        prompt: str,
-        *,
-        stage: str,
-        iteration: int | None,
-        seq: int,
-        operator: str,
-        action: str | None = None,
-    ) -> _GeneratedProgram | None:
+    def _draw_program(self, prompt: str, *, stage: str, iteration: int | None, seq: int,
+                      operator: str, action: str | None = None) -> _GeneratedProgram | None:
         sample_order = self._tot_sample_nums + 1
         start = time.time()
         try:
@@ -790,11 +667,7 @@ class TraceAAD:
                 action=action,
             )
             return None
-        generated = _parse_program_response(
-            response,
-            self._template_program,
-            self._function_to_evolve.name,
-        )
+        generated = _parse_program_response(response, self._template_program, self._function_to_evolve.name)
         log_llm_call(
             self,
             stage=stage,
@@ -812,13 +685,7 @@ class TraceAAD:
         )
         return generated
 
-    def _evaluate(
-        self,
-        program: Program,
-        *,
-        idea: str,
-        operator: str,
-    ) -> EvalResult | None:
+    def _evaluate(self, program: Program, *, idea: str, operator: str) -> EvalResult | None:
         if not self._has_budget():
             return None
         result, eval_time = self._evaluator.evaluate_program_record_time(program)
@@ -842,24 +709,12 @@ class TraceAAD:
             evaluate_time=eval_time,
             counts_budget=True,
         )
-        if score is None:
-            return None
-        return EvalResult(fitness=float(score))
+        return None if score is None else EvalResult(fitness=float(score))
 
-    def _update_best(
-        self,
-        node: ProgramNode,
-        *,
-        iteration: int | None = None,
-        operator: str,
-    ) -> None:
+    def _update_best(self, node: ProgramNode, *, iteration: int | None = None, operator: str) -> None:
         if node.fitness is None:
             return
-        if self._best_node is not None and not _is_better(
-            node.fitness,
-            self._best_node.fitness,
-            self._maximize,
-        ):
+        if self._best_node is not None and not _is_better(node.fitness, self._best_node.fitness, self._maximize):
             return
         previous = self._best_node
         self._best_node = node
@@ -886,10 +741,7 @@ class TraceAAD:
         return self._portfolio.snapshot()
 
     def _has_budget(self) -> bool:
-        return (
-            self._max_sample_nums is None
-            or self._tot_sample_nums < self._max_sample_nums
-        )
+        return self._max_sample_nums is None or self._tot_sample_nums < self._max_sample_nums
 
     def _result(self) -> TraceAADRunResult:
         nodes = self._graph.nodes()
@@ -907,11 +759,7 @@ def _is_better(candidate: float, incumbent: float, maximize: bool) -> bool:
     return candidate > incumbent if maximize else candidate < incumbent
 
 
-def _parse_program_response(
-    response: str,
-    template_program: Program,
-    function_name: str,
-) -> _GeneratedProgram | None:
+def _parse_program_response(response: str, template_program: Program, function_name: str) -> _GeneratedProgram | None:
     idea = _extract_idea(response) or _extract_boxed_text(response) or "Generated program"
     code = _extract_first_code_block(response) or response
     parsed = TextFunctionProgramConverter.text_to_program(code)
@@ -920,17 +768,12 @@ def _parse_program_response(
         if function.name == function_name:
             program = parsed
         else:
-            program = TextFunctionProgramConverter.function_to_program(
-                function,
-                template_program,
-            )
+            program = TextFunctionProgramConverter.function_to_program(function, template_program)
             if program is None:
                 program = parsed
     else:
         program = SampleTrimmer.sample_to_program(code, template_program)
-    if program is None:
-        return None
-    return _GeneratedProgram(idea=idea, program=program)
+    return None if program is None else _GeneratedProgram(idea=idea, program=program)
 
 
 def _parse_actions(response: str, *, expected_count: int) -> list[str]:
@@ -950,29 +793,17 @@ def _parse_actions(response: str, *, expected_count: int) -> list[str]:
 
 
 def _extract_idea(response: str) -> str | None:
-    match = re.search(
-        r"^\s*Idea\s*:\s*(?P<idea>.+?)\s*$",
-        response,
-        flags=re.IGNORECASE | re.MULTILINE,
-    )
+    match = re.search(r"^\s*Idea\s*:\s*(?P<idea>.+?)\s*$", response, flags=re.IGNORECASE | re.MULTILINE)
     return None if match is None else match.group("idea").strip()
 
 
 def _extract_boxed_text(response: str) -> str | None:
-    match = re.search(
-        r"(?:\\)?boxed\s*\{(?P<idea>[^{}]+)\}",
-        response,
-        flags=re.IGNORECASE,
-    )
+    match = re.search(r"(?:\\)?boxed\s*\{(?P<idea>[^{}]+)\}", response, flags=re.IGNORECASE)
     return None if match is None else match.group("idea").strip()
 
 
 def _extract_first_code_block(response: str) -> str | None:
-    match = re.search(
-        r"```(?:python|py)?\s*(?P<code>.*?)```",
-        response,
-        flags=re.IGNORECASE | re.DOTALL,
-    )
+    match = re.search(r"```(?:python|py)?\s*(?P<code>.*?)```", response, flags=re.IGNORECASE | re.DOTALL)
     return None if match is None else match.group("code").strip()
 
 

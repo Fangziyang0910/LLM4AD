@@ -41,11 +41,13 @@ def build_method(log_dir: Path, resume_from: Path | None = None) -> TraceAAD:
             log_dir=str(log_dir), log_style="complex", create_random_path=False
         ),
         max_sample_nums=1000,
-        n_init=4,
+        n_init=30,
         actions_per_iteration=2,
         max_trajectory_length=8,
-        max_active_trajectories=160,
-        novelty_threshold=0.92,
+        max_active_trajectories=30,
+        population_growth_factor=2.0,
+        elite_count=3,
+        softmax_temperature=0.2,
         value_weights=ValueWeights(),
         portfolio_weights=PortfolioWeights(),
         max_consecutive_sample_failures=20,
@@ -66,7 +68,7 @@ def main() -> None:
         timestamp = os.environ.get("RUN_TIMESTAMP") or datetime.now().strftime(
             "%Y%m%d_%H%M%S"
         )
-        version = os.environ.get("EXPERIMENT_VERSION", "version3")
+        version = os.environ.get("EXPERIMENT_VERSION", "version4")
         run_dir = EXPERIMENT_ROOT / version / timestamp
         run_dir.mkdir(parents=True, exist_ok=False)
         _write_run_config(run_dir, timestamp)
@@ -87,7 +89,7 @@ def _write_run_config(run_dir: Path, timestamp: str) -> None:
         "run_dir": str(run_dir),
         "task": TASK,
         "method": "traceaad",
-        "experiment_version": os.environ.get("EXPERIMENT_VERSION", "version3"),
+        "experiment_version": os.environ.get("EXPERIMENT_VERSION", "version4"),
         "timestamp": timestamp,
         "llm": {
             "base_url": os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL),
@@ -102,11 +104,13 @@ def _write_run_config(run_dir: Path, timestamp: str) -> None:
         "task_eval": {"split": "train", **TASK_KWARGS},
         "method_params": {
             "max_sample_nums": 1000,
-            "n_init": 4,
+            "n_init": 30,
             "actions_per_iteration": 2,
             "max_trajectory_length": 8,
-            "max_active_trajectories": 160,
-            "novelty_threshold": 0.92,
+            "max_active_trajectories": 30,
+            "population_growth_factor": 2.0,
+            "elite_count": 3,
+            "softmax_temperature": 0.2,
             "max_consecutive_sample_failures": 20,
             "max_stalled_iterations": 20,
             "checkpoint_interval": 10,

@@ -21,7 +21,7 @@ from .schema import (
 )
 from .trajectory_memory import TrajectoryMemory
 
-CHECKPOINT_VERSION = 3
+CHECKPOINT_VERSION = 4
 
 
 def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
@@ -75,7 +75,7 @@ def _graph_from_dict(payload: Mapping[str, Any]) -> DerivationGraph:
             iteration=item["iteration"],
         )
         graph._edges[edge.id] = edge
-        graph._incoming_edge_by_child[edge.child_id] = edge.id
+        graph._incoming_edge_by_child.setdefault(edge.child_id, []).append(edge.id)
     graph._next_node_id = int(payload["next_node_id"])
     graph._next_edge_id = int(payload["next_edge_id"])
     return graph
@@ -144,6 +144,11 @@ def _search_configuration(method) -> dict[str, Any]:
         "actions_per_iteration": method._actions_per_iteration,
         "max_trajectory_length": method._memory.max_trajectory_length,
         "max_active_trajectories": method._max_active_trajectories,
+        "population_growth_factor": method._population_growth_factor,
+        "management_threshold": method._management_threshold,
+        "elite_count": method._elite_count,
+        "diversity_count": method._diversity_count,
+        "softmax_temperature": method._softmax_temperature,
         "novelty_threshold": method._novelty_threshold,
         "value_weights": asdict(method._value_weights),
         "portfolio_weights": asdict(method._portfolio_weights),

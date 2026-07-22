@@ -16,6 +16,11 @@ class TrajectoryStatus(StrEnum):
 
 
 class OperatorName(StrEnum):
+    IDEATE = "trace_ideate"
+    REFINE = "trace_refine"
+    SYNTHESIZE = "trace_synthesize"
+    TRANSFER = "trace_transfer"
+    # Legacy names remain readable in old experiment artifacts.
     ENDPOINT = "endpoint_refine"
     BACKTRACK = "backtrack_branch"
     CROSSOVER = "mechanism_crossover"
