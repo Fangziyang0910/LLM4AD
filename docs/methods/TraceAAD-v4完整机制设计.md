@@ -189,6 +189,6 @@ $$
 
 本文件只定义 v4 方法，不在这里维护实验快照、文献综述或下一版本方案。当前已知问题和过程证据分别见：
 
-- [程序膨胀研究](../../studies/程序膨胀.md)；
-- [TraceAAD v4 机制审计](../../evidence/audits/traceaad-v4/README.md)；
-- [TraceAAD v5 方法设计](v5.md)。
+- [程序膨胀研究](../studies/程序膨胀.md)；
+- [TraceAAD v4 机制审计](../evidence/audits/traceaad-v4/README.md)；
+- [TraceAAD v5 方法设计](TraceAAD-v5完整机制设计.md)。

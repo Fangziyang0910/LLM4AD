@@ -1,4 +1,4 @@
-"""Render CVRP-ACO search curves for MCTS-AHD, PathWise, and TraceAAD v2/v3."""
+"""Render CVRP-ACO search curves for completed runs."""
 
 from __future__ import annotations
 
@@ -33,7 +33,11 @@ METHODS = {
     },
     "TraceAAD version2": {
         "directory": "traceaad/version2",
-        "runs": ("20260718_193305_cvrp_rep1", "20260718_193305_cvrp_rep2", "20260718_193305_cvrp_rep3"),
+        "runs": (
+            "20260718_193305_cvrp_rep1",
+            "20260718_193305_cvrp_rep2",
+            "20260718_193305_cvrp_rep3",
+        ),
         "budget": 1000,
         "color": "#6A4C93",
         "band": "#C9B1FF",
@@ -48,6 +52,16 @@ METHODS = {
         "budget": 1000,
         "color": "#2A9D5B",
         "band": "#A8D5BA",
+    },
+    "TraceAAD version4 (2 completed)": {
+        "directory": "traceaad/version4",
+        "runs": (
+            "20260723_204526_cvrp_v4_rep1",
+            "20260723_204526_cvrp_v4_rep3",
+        ),
+        "budget": 1000,
+        "color": "#F4A261",
+        "band": "#FAD7A0",
     },
 }
 Y_MIN = -13.0
@@ -65,7 +79,11 @@ def _load_scores(directory: str, run_name: str) -> dict[int, float]:
         for record in data:
             score = record.get("score")
             order = record.get("sample_order")
-            if isinstance(score, (int, float)) and np.isfinite(score) and order is not None:
+            if (
+                isinstance(score, (int, float))
+                and np.isfinite(score)
+                and order is not None
+            ):
                 scores[int(order)] = float(score)
     return scores
 
@@ -85,13 +103,23 @@ def _method_curves(label: str) -> np.ndarray:
     config = METHODS[label]
     curves = []
     for run_name in config["runs"]:
-        summary_path = EXPERIMENTS_DIR / config["directory"] / run_name / "logs" / "run_summary.json"
+        summary_path = (
+            EXPERIMENTS_DIR
+            / config["directory"]
+            / run_name
+            / "logs"
+            / "run_summary.json"
+        )
         if not summary_path.exists():
             raise RuntimeError(f"Run is not finished: {run_name}")
         summary = json.loads(summary_path.read_text(encoding="utf-8"))
         if summary.get("status") != "finished":
-            raise RuntimeError(f"Run is not finished: {run_name} status={summary.get('status')!r}")
-        curves.append(_best_so_far(_load_scores(config["directory"], run_name), config["budget"]))
+            raise RuntimeError(
+                f"Run is not finished: {run_name} status={summary.get('status')!r}"
+            )
+        curves.append(
+            _best_so_far(_load_scores(config["directory"], run_name), config["budget"])
+        )
     return np.vstack(curves)
 
 
@@ -111,7 +139,9 @@ def _style() -> None:
     )
 
 
-def _limits(curves: list[np.ndarray], *, floor: float | None = Y_MIN) -> tuple[float, float]:
+def _limits(
+    curves: list[np.ndarray], *, floor: float | None = Y_MIN
+) -> tuple[float, float]:
     values = np.concatenate([curve[np.isfinite(curve)] for curve in curves])
     high = float(values.max())
     low = float(values.min()) if floor is None else floor
@@ -122,7 +152,9 @@ def _limits(curves: list[np.ndarray], *, floor: float | None = Y_MIN) -> tuple[f
     return low, high + padding
 
 
-def _render(method_names: tuple[str, ...], output_stem: str, *, y_floor: float | None = Y_MIN) -> None:
+def _render(
+    method_names: tuple[str, ...], output_stem: str, *, y_floor: float | None = Y_MIN
+) -> None:
     data = [(name, _method_curves(name)) for name in method_names]
     _style()
     fig, ax = plt.subplots(figsize=(7.2, 4.2))
@@ -137,8 +169,10 @@ def _render(method_names: tuple[str, ...], output_stem: str, *, y_floor: float |
         lower = np.nanmin(curves, axis=0)
         upper = np.nanmax(curves, axis=0)
         all_curves.append(curves)
-        ax.fill_between(x, lower, upper, step="post", color=config["band"], alpha=0.25, linewidth=0)
-        line, = ax.plot(
+        ax.fill_between(
+            x, lower, upper, step="post", color=config["band"], alpha=0.25, linewidth=0
+        )
+        (line,) = ax.plot(
             x,
             mean,
             drawstyle="steps-post",
@@ -149,7 +183,14 @@ def _render(method_names: tuple[str, ...], output_stem: str, *, y_floor: float |
         )
         handles.append(line)
     flattened = [curve for method_curves in all_curves for curve in method_curves]
-    handles.append(Patch(facecolor="#999999", edgecolor="none", alpha=0.25, label="三次运行的最小-最大范围"))
+    handles.append(
+        Patch(
+            facecolor="#999999",
+            edgecolor="none",
+            alpha=0.25,
+            label="已完成运行的最小-最大范围",
+        )
+    )
     ax.set_xlim(0, max_budget)
     ax.set_ylim(*_limits(flattened, floor=y_floor))
     ax.set_xlabel("评估次数")
@@ -158,7 +199,13 @@ def _render(method_names: tuple[str, ...], output_stem: str, *, y_floor: float |
     ax.set_axisbelow(True)
     for spine in ax.spines.values():
         spine.set_linewidth(1.0)
-    ax.legend(handles=handles, loc="lower right", frameon=True, framealpha=0.95, edgecolor="#444444")
+    ax.legend(
+        handles=handles,
+        loc="lower right",
+        frameon=True,
+        framealpha=0.95,
+        edgecolor="#444444",
+    )
     fig.tight_layout()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     output = RESULTS_DIR / output_stem

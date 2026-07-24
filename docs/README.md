@@ -6,8 +6,8 @@
 
 | 想回答的问题 | 入口 |
 | --- | --- |
-| TraceAAD 当前怎样运行？ | [`methods/traceaad/v4.md`](methods/traceaad/v4.md) |
-| TraceAAD v5 准备怎样设计？ | [`methods/traceaad/v5.md`](methods/traceaad/v5.md) |
+| TraceAAD v4 怎样运行？ | [`TraceAAD-v4完整机制设计.md`](methods/TraceAAD-v4完整机制设计.md) |
+| TraceAAD v5 怎样设计与运行？ | [`TraceAAD-v5完整机制设计.md`](methods/TraceAAD-v5完整机制设计.md) |
 | 当前形成了哪些长期研究认识？ | [`研究认识.md`](研究认识.md) |
 | 某个具体研究问题研究到了哪里？ | [`studies/`](studies/README.md) |
 | 某项判断由哪些运行或论文证据支持？ | [`evidence/`](evidence/) |
@@ -23,11 +23,11 @@
 
 ### `methods/`
 
-保存方法规范，回答方法的科学主张、状态、机制、完整流程、默认配置和可证伪假设。TraceAAD 按版本放在 `methods/traceaad/`：
+保存方法规范，回答方法的科学主张、状态、机制、完整流程、默认配置和可证伪假设。TraceAAD 各版本直接放在 `methods/`：
 
-- `v3.md`：历史方法规范；
-- `v4.md`：当前实现的权威规范；
-- `v5.md`：下一版本的权威设计，尚未实现。
+- `TraceAAD-v3完整机制设计.md`：历史方法规范；
+- `TraceAAD-v4完整机制设计.md`：冻结的 v4 实现规范；
+- `TraceAAD-v5完整机制设计.md`：已独立实现、等待正式实验的 v5 权威规范。
 
 方法文档可以简要说明设计动机和已知问题，但不嵌入大段文献综述、运行统计或审计案例；这些内容通过链接引用。
 

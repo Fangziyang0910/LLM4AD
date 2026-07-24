@@ -1,6 +1,6 @@
 # TraceAAD v4 机制审计
 
-> 状态：v4 搜索过程的冻结审计与证据索引。各页中的 v5 建议保留其形成时的研究判断，不作为当前设计规范；当前实现与下一版本分别见[TraceAAD v4](../../../methods/traceaad/v4.md)和[TraceAAD v5](../../../methods/traceaad/v5.md)。
+> 状态：v4 搜索过程的冻结审计与证据索引。各页中的 v5 建议保留其形成时的研究判断，不作为当前设计规范；当前实现与下一版本分别见[TraceAAD v4](../../../methods/TraceAAD-v4完整机制设计.md)和[TraceAAD v5](../../../methods/TraceAAD-v5完整机制设计.md)。
 
 ## 1. 审计目标
 

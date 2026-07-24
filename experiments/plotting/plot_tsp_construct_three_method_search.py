@@ -1,4 +1,4 @@
-"""Compare MCTS-AHD, PathWise, and TraceAAD v2/v3 search curves for TSP Construct."""
+"""Compare completed TSP Construct search runs."""
 
 from __future__ import annotations
 
@@ -34,7 +34,11 @@ METHODS = {
     },
     "TraceAAD version2": {
         "directory": "traceaad/version2",
-        "runs": ("20260718_174552_tsp_rep1", "20260718_174552_tsp_rep2", "20260718_174552_tsp_rep3"),
+        "runs": (
+            "20260718_174552_tsp_rep1",
+            "20260718_174552_tsp_rep2",
+            "20260718_174552_tsp_rep3",
+        ),
         "budget": 1000,
         "color": "#6A4C93",
         "band": "#C9B1FF",
@@ -50,6 +54,16 @@ METHODS = {
         "color": "#2A9D5B",
         "band": "#A8D5BA",
     },
+    "TraceAAD version4 (2 completed)": {
+        "directory": "traceaad/version4",
+        "runs": (
+            "20260723_181743_tspc_v4_rep1",
+            "20260723_181743_tspc_v4_rep3",
+        ),
+        "budget": 1000,
+        "color": "#F4A261",
+        "band": "#FAD7A0",
+    },
 }
 
 
@@ -62,7 +76,11 @@ def _load_scores(directory: str, run_name: str) -> dict[int, float]:
         for record in json.loads(path.read_text(encoding="utf-8")):
             score = record.get("score")
             sample_order = record.get("sample_order")
-            if isinstance(score, (int, float)) and np.isfinite(score) and sample_order is not None:
+            if (
+                isinstance(score, (int, float))
+                and np.isfinite(score)
+                and sample_order is not None
+            ):
                 scores[int(sample_order)] = float(score)
     return scores
 
@@ -119,8 +137,10 @@ def _render(method_names: tuple[str, ...], output_stem: str) -> None:
         lower = np.nanmin(curves, axis=0)
         upper = np.nanmax(curves, axis=0)
         all_curves.append(curves)
-        ax.fill_between(x, lower, upper, step="post", color=config["band"], alpha=0.25, linewidth=0)
-        line, = ax.plot(
+        ax.fill_between(
+            x, lower, upper, step="post", color=config["band"], alpha=0.25, linewidth=0
+        )
+        (line,) = ax.plot(
             x,
             mean,
             drawstyle="steps-post",
@@ -130,19 +150,34 @@ def _render(method_names: tuple[str, ...], output_stem: str) -> None:
             zorder=3,
         )
         handles.append(line)
-    values = np.concatenate([curve[np.isfinite(curve)] for curves in all_curves for curve in curves])
+    values = np.concatenate(
+        [curve[np.isfinite(curve)] for curves in all_curves for curve in curves]
+    )
     visible_values = values[values >= Y_MIN]
     padding = max((float(visible_values.max()) - Y_MIN) * 0.08, 0.05)
     ax.set_xlim(0, max_budget)
     ax.set_ylim(Y_MIN, float(visible_values.max()) + padding)
-    handles.append(Patch(facecolor="#999999", edgecolor="none", alpha=0.25, label="Min-max range across three runs"))
+    handles.append(
+        Patch(
+            facecolor="#999999",
+            edgecolor="none",
+            alpha=0.25,
+            label="Min-max range across completed runs",
+        )
+    )
     ax.set_xlabel("Evaluations")
     ax.set_ylabel("Best-so-far score (higher is better)")
     ax.grid(True, color="#D9D9D9", linewidth=0.7, alpha=0.55)
     ax.set_axisbelow(True)
     for spine in ax.spines.values():
         spine.set_linewidth(1.0)
-    ax.legend(handles=handles, loc="lower right", frameon=True, framealpha=0.95, edgecolor="#444444")
+    ax.legend(
+        handles=handles,
+        loc="lower right",
+        frameon=True,
+        framealpha=0.95,
+        edgecolor="#444444",
+    )
     fig.tight_layout()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     output = RESULTS_DIR / output_stem

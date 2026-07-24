@@ -2,7 +2,7 @@
 
 > 状态：历史方法规范，仅用于解释 version3 实验。
 
-> 本文描述仓库中用于 `version3` 实验的 TraceAAD v3。当前实现见[TraceAAD v4](v4.md)。
+> 本文描述仓库中用于 `version3` 实验的 TraceAAD v3。当前实现见[TraceAAD v4](TraceAAD-v4完整机制设计.md)。
 
 ## 1. 问题与方法概览
 
