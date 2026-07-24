@@ -1,0 +1,44 @@
+{
+  "created_at": "2026-07-24T18:09:48",
+  "experiment_version": "version4",
+  "llm": {
+    "api_key_configured": true,
+    "base_url": "http://183.36.243.124:9000/v1",
+    "enable_thinking": false,
+    "max_tokens": 16384,
+    "model": "/home/fzy/models/Qwen3.6-27B-NVFP4",
+    "no_proxy": "183.36.243.124,222.201.145.8,localhost,127.0.0.1,::1",
+    "temperature": 1.0,
+    "timeout": 600
+  },
+  "method": "traceaad",
+  "method_params": {
+    "actions_per_iteration": 2,
+    "checkpoint_interval": 10,
+    "elite_count": 3,
+    "max_active_trajectories": 30,
+    "max_consecutive_sample_failures": 20,
+    "max_sample_nums": 1000,
+    "max_stalled_iterations": 20,
+    "max_trajectory_length": 8,
+    "n_init": 30,
+    "softmax_temperature": 0.2,
+    "value_weights": {
+      "discount": 0.8,
+      "positive_threshold": 1e-06,
+      "ucb_c": 0.25,
+      "w_quality": 0.6,
+      "w_trend": 0.4
+    }
+  },
+  "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/tsp_gls/traceaad/version4/20260724_171305_tspgls_v4_rep2",
+  "task": "tsp_gls_2O",
+  "task_eval": {
+    "n_instance": 16,
+    "problem_size": 200,
+    "seed": 2024,
+    "split": "train",
+    "timeout_seconds": 120
+  },
+  "timestamp": "20260724_171305_tspgls_v4_rep2"
+}
