@@ -148,16 +148,39 @@ GENERATED_TASK_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
     "online_bin_packing": {
         "train": {
             "timeout_seconds": 30,
-            "n_instances": 5,
-            "n_items": 5000,
-            "capacity": 100,
+            "dataset_specs": [
+                {
+                    "n_instances": 1,
+                    "n_items": 1000,
+                    "capacities": [100, 500],
+                },
+                {
+                    "n_instances": 1,
+                    "n_items": 5000,
+                    "capacities": [100, 500],
+                },
+            ],
             "seed": TRAIN_SEED,
         },
         "eval": {
             "timeout_seconds": 30,
-            "n_instances": 5,
-            "n_items": 5000,
-            "capacity": 100,
+            "dataset_specs": [
+                {
+                    "n_instances": 5,
+                    "n_items": 1000,
+                    "capacities": [100, 500],
+                },
+                {
+                    "n_instances": 5,
+                    "n_items": 5000,
+                    "capacities": [100, 500],
+                },
+                {
+                    "n_instances": 5,
+                    "n_items": 10000,
+                    "capacities": [100, 500],
+                },
+            ],
             "seed": EVAL_SEED,
         },
     },
@@ -174,22 +197,6 @@ GENERATED_TASK_CONFIGS: dict[str, dict[str, dict[str, Any]]] = {
             "n_instances": 5,
             "n_items": 5000,
             "capacity": 100,
-            "seed": EVAL_SEED,
-        },
-    },
-    "orienteering_construct": {
-        "train": {
-            "timeout_seconds": 30,
-            "n_instance": 16,
-            "problem_size": 50,
-            "max_length_ratio": 0.35,
-            "seed": TRAIN_SEED,
-        },
-        "eval": {
-            "timeout_seconds": 30,
-            "n_instance": 16,
-            "problem_size": 50,
-            "max_length_ratio": 0.35,
             "seed": EVAL_SEED,
         },
     },

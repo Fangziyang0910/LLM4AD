@@ -2,7 +2,7 @@
 
 权威数据配置见 `docs/实验配置.md`：训练 KP100，测试 KP50/100/200。
 
-## 本轮正式跑（20260719_223427，旧协议）
+## 历史正式跑（20260719_223427，旧协议）
 
 本批仍按旧配置训练与测试：`n_items=50`、同规模 held-out。新协议重跑前勿覆盖结果页。
 
@@ -14,17 +14,7 @@
 
 - 训练数据（旧）：`n_instance=32`，`n_items=50`，`knapsack_capacity=100`，**`seed=2024`**
 - 分数语义：平均总价值，**越高越好**
-- tmux 会话：`kp_<method>_rep{1,2,3}`
 - 启动日志：`launch_20260719_223427.log`
-- 重启命令：`bash experiments/knapsack_construct/launch_nine_tmux.sh`
-
-查看进度：
-
-```bash
-tmux ls | rg '^kp_'
-tail -20 experiments/knapsack_construct/*/20260719_223427_kp_rep1/tmux_run.log
-tail -20 experiments/knapsack_construct/traceaad/version2/20260719_223427_kp_rep1/tmux_run.log
-```
 
 测试评估（新协议默认扫 KP50/100/200）：
 
@@ -32,3 +22,6 @@ tail -20 experiments/knapsack_construct/traceaad/version2/20260719_223427_kp_rep
 uv run python experiments/knapsack_construct/evaluate_best_on_test.py <run_dirs...> --output-dir <eval_dir>
 MPLCONFIGDIR=/tmp/matplotlib uv run python experiments/plotting/plot_knapsack_construct_three_method_search.py
 ```
+
+新的单次搜索直接使用各方法目录中的 `run_experiment.py`。实验覆盖与完成状态
+统一维护在 `docs/实验覆盖.md`，不在任务目录重复维护版本状态。

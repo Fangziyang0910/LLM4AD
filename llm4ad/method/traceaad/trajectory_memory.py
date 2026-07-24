@@ -1,4 +1,5 @@
 """保存、扩展和筛选有界算法改进轨迹。"""
+
 from __future__ import annotations
 
 from dataclasses import replace
@@ -32,22 +33,14 @@ class TrajectoryMemory:
         self._next_id += 1
         return traj
 
-    def extend(self, *, trajectory_id: TrajectoryId, parent_id: NodeId, child_id: NodeId,
-               edge_id: EdgeId) -> Trajectory:
-        parent = self.get_trajectory(trajectory_id)
-        if parent.endpoint_id != parent_id:
-            raise ValueError(
-                f"extend parent must be endpoint: {parent_id} != {parent.endpoint_id}"
-            )
-        return self.branch_from(
-            trajectory_id=trajectory_id,
-            base_node_id=parent.endpoint_id,
-            child_id=child_id,
-            edge_id=edge_id,
-        )
-
-    def branch_from(self, *, trajectory_id: TrajectoryId, base_node_id: NodeId,
-                    child_id: NodeId, edge_id: EdgeId) -> Trajectory:
+    def branch_from(
+        self,
+        *,
+        trajectory_id: TrajectoryId,
+        base_node_id: NodeId,
+        child_id: NodeId,
+        edge_id: EdgeId,
+    ) -> Trajectory:
         parent = self.get_trajectory(trajectory_id)
         if parent.status != TrajectoryStatus.ACTIVE:
             raise ValueError(f"cannot branch from archived trajectory: {trajectory_id}")
@@ -79,7 +72,9 @@ class TrajectoryMemory:
         self._trajectories[trajectory_id] = updated
         return updated
 
-    def set_value(self, trajectory_id: TrajectoryId, value: ValueVec, scalar: float) -> Trajectory:
+    def set_value(
+        self, trajectory_id: TrajectoryId, value: ValueVec, scalar: float
+    ) -> Trajectory:
         t = self.get_trajectory(trajectory_id)
         updated = replace(t, value=value, scalar_value=scalar)
         self._trajectories[trajectory_id] = updated
@@ -98,33 +93,8 @@ class TrajectoryMemory:
         return tuple(self._trajectories.values())
 
     def active(self) -> tuple[Trajectory, ...]:
-        return tuple(t for t in self._trajectories.values() if t.status == TrajectoryStatus.ACTIVE)
-
-    def unique_active(self) -> tuple[Trajectory, ...]:
-        """Return one representative per path, preferring accumulated visits."""
-        representatives: dict[tuple, Trajectory] = {}
-        for trajectory in self.active():
-            current = representatives.get(trajectory.path_key)
-            if current is None or (
-                trajectory.visit_count,
-                -trajectory.id,
-            ) > (
-                current.visit_count,
-                -current.id,
-            ):
-                representatives[trajectory.path_key] = trajectory
-        return tuple(sorted(representatives.values(), key=lambda trajectory: trajectory.id))
-
-    def archive_duplicate_paths(self) -> int:
-        keep_ids = {trajectory.id for trajectory in self.unique_active()}
-        duplicate_ids = [
-            trajectory.id
-            for trajectory in self.active()
-            if trajectory.id not in keep_ids
-        ]
-        for trajectory_id in duplicate_ids:
-            self.archive(trajectory_id)
-        return len(duplicate_ids)
-
-    def total_visits(self) -> int:
-        return sum(t.visit_count for t in self.unique_active())
+        return tuple(
+            t
+            for t in self._trajectories.values()
+            if t.status == TrajectoryStatus.ACTIVE
+        )

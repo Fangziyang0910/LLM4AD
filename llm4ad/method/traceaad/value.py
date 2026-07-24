@@ -1,4 +1,5 @@
 """TraceAAD v4 的轨迹质量、趋势和 softmax 选择。"""
+
 from __future__ import annotations
 
 import math
@@ -62,13 +63,29 @@ def _path_trend(
             if parent.fitness is None or child.fitness is None:
                 signal = 0.0
             else:
-                raw = (child.fitness - parent.fitness) if maximize else (parent.fitness - child.fitness)
-                signal = 1.0 if raw > positive_threshold else -1.0 if raw < -positive_threshold else 0.0
+                raw = (
+                    (child.fitness - parent.fitness)
+                    if maximize
+                    else (parent.fitness - child.fitness)
+                )
+                signal = (
+                    1.0
+                    if raw > positive_threshold
+                    else -1.0
+                    if raw < -positive_threshold
+                    else 0.0
+                )
         else:
             # Edges store the already directed delta in v4.
-            signal = 1.0 if delta > positive_threshold else -1.0 if delta < -positive_threshold else 0.0
+            signal = (
+                1.0
+                if delta > positive_threshold
+                else -1.0
+                if delta < -positive_threshold
+                else 0.0
+            )
         signals.append(signal)
-    denominator = sum(discount ** index for index in range(len(signals)))
+    denominator = sum(discount**index for index in range(len(signals)))
     weighted = sum(
         (discount ** (len(signals) - 1 - index)) * signal
         for index, signal in enumerate(signals)
@@ -114,7 +131,6 @@ def compute_value_vec(
     *,
     trajectory: Trajectory,
     graph: DerivationGraph,
-    active_others: tuple[Trajectory, ...],
     fmin: float | None,
     fmax: float | None,
     maximize: bool,
@@ -150,7 +166,6 @@ def compute_value_vec(
             positive_threshold=w.positive_threshold,
             maximize=maximize,
         ),
-        diversity=0.0,
     )
 
 
@@ -220,7 +235,6 @@ def score_active_trajectories(
         value = compute_value_vec(
             trajectory=trajectory,
             graph=graph,
-            active_others=(),
             fmin=fmin,
             fmax=fmax,
             maximize=maximize,
@@ -229,7 +243,6 @@ def score_active_trajectories(
         value = ValueVec(
             quality=_percentile_quality(trajectory, candidates, graph, maximize),
             trend=value.trend,
-            diversity=0.0,
         )
         scored.append(memory.set_value(trajectory.id, value, scalarize(value, w)))
     return tuple(sorted(scored, key=lambda t: (-(t.scalar_value or 0.0), t.id)))
@@ -254,6 +267,7 @@ def select_diverse_trajectories(
     selected = [first]
     remaining.remove(first)
     while remaining and len(selected) < count:
+
         def reserve_score(candidate: Trajectory) -> tuple[float, float, int]:
             compared = (*reference, *selected)
             similarity = max(
@@ -293,12 +307,6 @@ def _weighted_sample_without_replacement(
     return selected
 
 
-def softmax_weights(trajectories: tuple[Trajectory, ...], temperature: float) -> list[float]:
-    if not trajectories:
-        return []
-    return _softmax_scores([float(t.scalar_value or 0.0) for t in trajectories], temperature)
-
-
 def _softmax_scores(scores: list[float], temperature: float) -> list[float]:
     if not scores:
         return []
@@ -315,7 +323,9 @@ def sample_trajectory(
     w: ValueWeights,
     temperature: float = 0.2,
 ) -> Trajectory:
-    scored = list(score_active_trajectories(memory=memory, graph=graph, maximize=maximize, w=w))
+    scored = list(
+        score_active_trajectories(memory=memory, graph=graph, maximize=maximize, w=w)
+    )
     if not scored:
         raise ValueError("no eligible active trajectories available for sampling")
     total_visits = sum(max(0, trajectory.visit_count) for trajectory in scored)
@@ -330,20 +340,6 @@ def sample_trajectory(
     )[0]
 
 
-def select_trajectory(
-    *,
-    memory: TrajectoryMemory,
-    graph: DerivationGraph,
-    maximize: bool,
-    w: ValueWeights,
-) -> Trajectory:
-    """Compatibility helper: return the highest-valued trajectory."""
-    scored = score_active_trajectories(memory=memory, graph=graph, maximize=maximize, w=w)
-    if not scored:
-        raise ValueError("no active trajectories available for sampling")
-    return scored[0]
-
-
 __all__ = [
     "ValueWeights",
     "active_fitness_bounds",
@@ -352,6 +348,4 @@ __all__ = [
     "score_active_trajectories",
     "select_diverse_trajectories",
     "sample_trajectory",
-    "softmax_weights",
-    "select_trajectory",
 ]

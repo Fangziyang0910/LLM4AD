@@ -1,4 +1,5 @@
 """TraceAAD v4：以完整算法改进轨迹驱动语义搜索。"""
+
 from __future__ import annotations
 
 import copy
@@ -35,7 +36,7 @@ from .checkpoint import load_checkpoint, save_checkpoint
 from .context import build_action_prompt, trajectory_history
 from .credit import directed_delta
 from .derivation_graph import DerivationGraph
-from .operators import DEFAULT_OPERATORS, Operator, OperatorContext, classify_outcome
+from .operators import DEFAULT_OPERATORS, Operator, classify_outcome
 from .prompt import build_code_prompt, build_initial_prompt
 from .schema import EvalResult, ProgramNode, Trajectory
 from .trajectory_memory import TrajectoryMemory
@@ -139,7 +140,9 @@ class TraceAAD:
         self._last_checkpoint_sample = -1
         llm.debug_mode = debug_mode
 
-        template = TextFunctionProgramConverter.text_to_program(evaluation.template_program)
+        template = TextFunctionProgramConverter.text_to_program(
+            evaluation.template_program
+        )
         if template is None or len(template.functions) != 1:
             raise ValueError(
                 "TraceAAD requires an evaluation template with exactly one evolvable function."
@@ -184,7 +187,9 @@ class TraceAAD:
                 save_checkpoint(self)
             while self._has_budget() and not is_search_aborted(self):
                 if not self._memory.active():
-                    log_event(self, event="search_stopped", status="no_active_trajectory")
+                    log_event(
+                        self, event="search_stopped", status="no_active_trajectory"
+                    )
                     break
                 samples_before = self._tot_sample_nums
                 self._run_iteration(attempt_id)
@@ -213,7 +218,9 @@ class TraceAAD:
                 self,
                 status="aborted" if is_search_aborted(self) else "finished",
                 best_node_id=None if result.best_node is None else result.best_node.id,
-                best_score=None if result.best_node is None else result.best_node.fitness,
+                best_score=None
+                if result.best_node is None
+                else result.best_node.fitness,
                 n_total_nodes=result.n_total_nodes,
                 n_valid_nodes=result.n_valid_nodes,
                 n_edges=result.n_edges,
@@ -227,28 +234,37 @@ class TraceAAD:
     def _save_checkpoint_if_due(self) -> None:
         if (
             self._checkpoint_dir is not None
-            and self._tot_sample_nums - self._last_checkpoint_sample >= self._checkpoint_interval
+            and self._tot_sample_nums - self._last_checkpoint_sample
+            >= self._checkpoint_interval
         ):
             save_checkpoint(self)
 
     def _initialize(self) -> None:
         stalled_draws = 0
         draw_seq = 0
-        while self._tot_sample_nums < self._n_init and self._has_budget() and not is_search_aborted(self):
+        while (
+            self._tot_sample_nums < self._n_init
+            and self._has_budget()
+            and not is_search_aborted(self)
+        ):
             slot = self._tot_sample_nums
             prompt = build_initial_prompt(
                 task_description=self._task_description_str,
                 template_function=self._function_to_evolve,
                 diversity_hint=self._init_diversity_hint(slot),
             )
-            generated = self._draw_program(prompt, stage="init", iteration=None, seq=draw_seq, operator="init")
+            generated = self._draw_program(
+                prompt, stage="init", iteration=None, seq=draw_seq, operator="init"
+            )
             draw_seq += 1
             if generated is None:
                 stalled_draws += 1
                 if stalled_draws >= self._max_stalled_iterations:
                     break
                 continue
-            evaluated = self._evaluate(generated.program, idea=generated.idea, operator="init")
+            evaluated = self._evaluate(
+                generated.program, idea=generated.idea, operator="init"
+            )
             if evaluated is None or evaluated.fitness is None:
                 continue
             stalled_draws = 0
@@ -269,7 +285,11 @@ class TraceAAD:
     def _init_diversity_hint(self, slot: int) -> str:
         if slot == 0:
             return "Provide a simple, complete, and valid algorithm."
-        ideas = [node.idea.strip() for node in self._graph.nodes() if node.idea and node.idea.strip()][-6:]
+        ideas = [
+            node.idea.strip()
+            for node in self._graph.nodes()
+            if node.idea and node.idea.strip()
+        ][-6:]
         if not ideas:
             return "Use a clearly different algorithmic idea from a trivial baseline."
         listed = "; ".join(f"'{idea[:100]}'" for idea in ideas)
@@ -277,16 +297,9 @@ class TraceAAD:
 
     def _run_iteration(self, attempt_id: int) -> None:
         selected = self._select_trajectory()
-        context = OperatorContext(
-            graph=self._graph,
-            memory=self._memory,
-            selected=selected,
-            maximize=self._maximize,
-        )
-        available = [operator for operator in self._operators if operator.trigger(context)]
-        operator = random.choice(available or list(self._operators))
+        operator = random.choice(self._operators)
         primary_anchor = self._select_anchor(selected)
-        constraint = operator.build_constraint(context, primary_anchor)
+        constraint = operator.build_constraint()
         log_event(
             self,
             event="operator_selection",
@@ -295,7 +308,7 @@ class TraceAAD:
             selected_operator=operator.name,
             selected_trajectory_id=selected.id,
             base_node_id=primary_anchor,
-            eligible=[candidate.name for candidate in available or self._operators],
+            eligible=[candidate.name for candidate in self._operators],
             selection_mode="uniform_operator_softmax_ucb_trajectory",
         )
         log_state(
@@ -350,12 +363,18 @@ class TraceAAD:
             )
             if generated is None:
                 continue
-            evaluated = self._evaluate(generated.program, idea=generated.idea, operator=operator.name)
+            evaluated = self._evaluate(
+                generated.program, idea=generated.idea, operator=operator.name
+            )
             if evaluated is None or evaluated.fitness is None:
                 continue
             child = self._add_node(generated, evaluated)
-            primary_delta = directed_delta(base_node.fitness, child.fitness, self._maximize)
-            primary_outcome = classify_outcome(primary_delta, self._value_weights.positive_threshold)
+            primary_delta = directed_delta(
+                base_node.fitness, child.fitness, self._maximize
+            )
+            primary_outcome = classify_outcome(
+                primary_delta, self._value_weights.positive_threshold
+            )
             primary_edge = self._graph.add_edge(
                 parent_id=primary_anchor,
                 child_id=child.id,
@@ -437,17 +456,30 @@ class TraceAAD:
             fitness = self._graph.get_node(node_id).fitness
             if fitness is None:
                 continue
-            if best_fitness is None or _is_better(fitness, best_fitness, self._maximize):
+            if best_fitness is None or _is_better(
+                fitness, best_fitness, self._maximize
+            ):
                 best, best_fitness = node_id, fitness
         return random.choice((endpoint, best))
 
-    def _add_node(self, generated: _GeneratedProgram, evaluated: EvalResult) -> ProgramNode:
+    def _add_node(
+        self, generated: _GeneratedProgram, evaluated: EvalResult
+    ) -> ProgramNode:
         return self._graph.add_node(
             code=str(generated.program), idea=generated.idea, fitness=evaluated.fitness
         )
 
-    def _log_child(self, *, iteration: int, seq: int, operator: Operator,
-                   child: ProgramNode, trajectory: Trajectory, accepted: bool, **fields) -> None:
+    def _log_child(
+        self,
+        *,
+        iteration: int,
+        seq: int,
+        operator: Operator,
+        child: ProgramNode,
+        trajectory: Trajectory,
+        accepted: bool,
+        **fields,
+    ) -> None:
         log_event(
             self,
             event="child_accepted",
@@ -491,7 +523,11 @@ class TraceAAD:
         # active even when its endpoint later regresses.
         if self._best_trajectory_id is not None:
             best_route = next(
-                (trajectory for trajectory in ranked if trajectory.id == self._best_trajectory_id),
+                (
+                    trajectory
+                    for trajectory in ranked
+                    if trajectory.id == self._best_trajectory_id
+                ),
                 None,
             )
             if best_route is not None and best_route.id not in {t.id for t in elites}:
@@ -503,7 +539,9 @@ class TraceAAD:
         )
         diverse = select_diverse_trajectories(
             candidates=tuple(
-                trajectory for trajectory in ranked if trajectory.id not in {t.id for t in elites}
+                trajectory
+                for trajectory in ranked
+                if trajectory.id not in {t.id for t in elites}
             ),
             graph=self._graph,
             count=diversity_count,
@@ -513,11 +551,14 @@ class TraceAAD:
         remaining = [
             trajectory
             for trajectory in ranked
-            if trajectory.id not in {t.id for t in elites} and trajectory.id not in diverse_ids
+            if trajectory.id not in {t.id for t in elites}
+            and trajectory.id not in diverse_ids
         ]
         sample_count = self._max_active_trajectories - len(elites) - diversity_count
         sampled = self._weighted_survivor_sample(remaining, sample_count)
-        keep_ids = {trajectory.id for trajectory in elites + list(diverse) + list(sampled)}
+        keep_ids = {
+            trajectory.id for trajectory in elites + list(diverse) + list(sampled)
+        }
         archived = 0
         for trajectory in ranked:
             if trajectory.id not in keep_ids:
@@ -546,7 +587,10 @@ class TraceAAD:
         while remaining and len(selected) < count:
             scores = [float(trajectory.scalar_value or 0.0) for trajectory in remaining]
             maximum = max(scores)
-            weights = [math.exp((score - maximum) / self._softmax_temperature) for score in scores]
+            weights = [
+                math.exp((score - maximum) / self._softmax_temperature)
+                for score in scores
+            ]
             total = sum(weights)
             needle = random.random() * total if total > 0 else 0.0
             index = 0
@@ -591,8 +635,16 @@ class TraceAAD:
         )
         return actions
 
-    def _draw_program(self, prompt: str, *, stage: str, iteration: int | None, seq: int,
-                      operator: str, action: str | None = None) -> _GeneratedProgram | None:
+    def _draw_program(
+        self,
+        prompt: str,
+        *,
+        stage: str,
+        iteration: int | None,
+        seq: int,
+        operator: str,
+        action: str | None = None,
+    ) -> _GeneratedProgram | None:
         sample_order = self._tot_sample_nums + 1
         start = time.time()
         try:
@@ -613,7 +665,9 @@ class TraceAAD:
                 action=action,
             )
             return None
-        generated = _parse_program_response(response, self._template_program, self._function_to_evolve.name)
+        generated = _parse_program_response(
+            response, self._template_program, self._function_to_evolve.name
+        )
         log_llm_call(
             self,
             stage=stage,
@@ -631,7 +685,9 @@ class TraceAAD:
         )
         return generated
 
-    def _evaluate(self, program: Program, *, idea: str, operator: str) -> EvalResult | None:
+    def _evaluate(
+        self, program: Program, *, idea: str, operator: str
+    ) -> EvalResult | None:
         if not self._has_budget():
             return None
         result, eval_time = self._evaluator.evaluate_program_record_time(program)
@@ -667,7 +723,9 @@ class TraceAAD:
     ) -> None:
         if node.fitness is None:
             return
-        if self._best_node is not None and not _is_better(node.fitness, self._best_node.fitness, self._maximize):
+        if self._best_node is not None and not _is_better(
+            node.fitness, self._best_node.fitness, self._maximize
+        ):
             return
         previous = self._best_node
         self._best_node = node
@@ -693,7 +751,10 @@ class TraceAAD:
         return self._memory.active()
 
     def _has_budget(self) -> bool:
-        return self._max_sample_nums is None or self._tot_sample_nums < self._max_sample_nums
+        return (
+            self._max_sample_nums is None
+            or self._tot_sample_nums < self._max_sample_nums
+        )
 
     def _result(self) -> TraceAADRunResult:
         nodes = self._graph.nodes()
@@ -711,8 +772,12 @@ def _is_better(candidate: float, incumbent: float, maximize: bool) -> bool:
     return candidate > incumbent if maximize else candidate < incumbent
 
 
-def _parse_program_response(response: str, template_program: Program, function_name: str) -> _GeneratedProgram | None:
-    idea = _extract_idea(response) or _extract_boxed_text(response) or "Generated program"
+def _parse_program_response(
+    response: str, template_program: Program, function_name: str
+) -> _GeneratedProgram | None:
+    idea = (
+        _extract_idea(response) or _extract_boxed_text(response) or "Generated program"
+    )
     code = _extract_first_code_block(response) or response
     parsed = TextFunctionProgramConverter.text_to_program(code)
     if parsed is not None and len(parsed.functions) == 1:
@@ -720,7 +785,9 @@ def _parse_program_response(response: str, template_program: Program, function_n
         if function.name == function_name:
             program = parsed
         else:
-            program = TextFunctionProgramConverter.function_to_program(function, template_program)
+            program = TextFunctionProgramConverter.function_to_program(
+                function, template_program
+            )
             if program is None:
                 program = parsed
     else:
@@ -745,17 +812,27 @@ def _parse_actions(response: str, *, expected_count: int) -> list[str]:
 
 
 def _extract_idea(response: str) -> str | None:
-    match = re.search(r"^\s*Idea\s*:\s*(?P<idea>.+?)\s*$", response, flags=re.IGNORECASE | re.MULTILINE)
+    match = re.search(
+        r"^\s*Idea\s*:\s*(?P<idea>.+?)\s*$",
+        response,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
     return None if match is None else match.group("idea").strip()
 
 
 def _extract_boxed_text(response: str) -> str | None:
-    match = re.search(r"(?:\\)?boxed\s*\{(?P<idea>[^{}]+)\}", response, flags=re.IGNORECASE)
+    match = re.search(
+        r"(?:\\)?boxed\s*\{(?P<idea>[^{}]+)\}", response, flags=re.IGNORECASE
+    )
     return None if match is None else match.group("idea").strip()
 
 
 def _extract_first_code_block(response: str) -> str | None:
-    match = re.search(r"```(?:python|py)?\s*(?P<code>.*?)```", response, flags=re.IGNORECASE | re.DOTALL)
+    match = re.search(
+        r"```(?:python|py)?\s*(?P<code>.*?)```",
+        response,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
     return None if match is None else match.group("code").strip()
 
 

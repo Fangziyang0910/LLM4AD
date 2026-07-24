@@ -40,7 +40,10 @@ import matplotlib.pyplot as plt
 
 from llm4ad.base import Evaluation
 from llm4ad.task.optimization.online_bin_packing.template import template_program, task_description
-from llm4ad.task.optimization.online_bin_packing.generate_weibull_instances import generate_weibull_dataset
+from llm4ad.task.optimization.online_bin_packing.generate_weibull_instances import (
+    generate_weibull_dataset,
+    generate_weibull_multiscale_dataset,
+)
 
 __all__ = ['OBPEvaluation']
 
@@ -53,6 +56,7 @@ class OBPEvaluation(Evaluation):
                  n_items=5000,
                  capacity=100,
                  seed=2024,
+                 dataset_specs=None,
                  **kwargs):
         """
         Args:
@@ -60,6 +64,8 @@ class OBPEvaluation(Evaluation):
             n_items: Number of items per generated instance.
             capacity: Bin capacity.
             seed: Seed used to generate reproducible instances.
+            dataset_specs: Optional fixed multi-scale dataset description. Each
+                entry defines ``n_instances``, ``n_items``, and ``capacities``.
         """
 
         super().__init__(
@@ -74,11 +80,29 @@ class OBPEvaluation(Evaluation):
         self.capacity = capacity
         self.seed = seed
 
-        self._datasets = generate_weibull_dataset(
-            self.n_instances,
-            self.n_items,
-            self.capacity,
-            self.seed,
+        if dataset_specs is None:
+            self._datasets = generate_weibull_dataset(
+                self.n_instances,
+                self.n_items,
+                self.capacity,
+                self.seed,
+            )
+        else:
+            self._datasets = generate_weibull_multiscale_dataset(
+                dataset_specs,
+                self.seed,
+            )
+
+    @property
+    def dataset_metadata(self) -> tuple[tuple[str, int, int], ...]:
+        """Return the fixed instance names, sizes, and capacities."""
+        return tuple(
+            (
+                name,
+                int(instance["num_items"]),
+                int(instance["capacity"]),
+            )
+            for name, instance in self._datasets.items()
         )
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:

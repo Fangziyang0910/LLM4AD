@@ -24,9 +24,12 @@ uv run python experiments/op_aco/mcts_ahd/run_experiment.py
 uv run python experiments/op_aco/pathwise/run_experiment.py
 
 # TraceAAD
-EXPERIMENT_VERSION=version3 uv run python experiments/op_aco/traceaad/run_experiment.py
+uv run python experiments/op_aco/traceaad/run_experiment.py
 
 # 测试评估（默认 test_50/100/200）
 uv run python experiments/op_aco/evaluate_best_on_test.py <run_dirs...> \
   --output-dir experiments/op_aco/<method>/eval_best_<tag>
 ```
+
+TraceAAD 入口默认写入 `version4/`。实验覆盖与完成状态统一维护在
+`docs/实验覆盖.md`。

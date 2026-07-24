@@ -1,7 +1,5 @@
-"""程序代码和轨迹修改结果的组合相似度。
+"""生存管理中路线差异 reserve 使用的轻量相似度。"""
 
-该相似度用于生存管理中的路线差异 reserve；旧的相似过滤接口仍保留以读取历史 v3 工件。
-"""
 from __future__ import annotations
 
 import re
@@ -31,7 +29,9 @@ def code_similarity(code_a: str, code_b: str) -> float:
     return len(ta & tb) / len(ta | tb)
 
 
-def trajectory_pattern(graph: DerivationGraph, trajectory: Trajectory) -> frozenset[str]:
+def trajectory_pattern(
+    graph: DerivationGraph, trajectory: Trajectory
+) -> frozenset[str]:
     """(operator, outcome) 对的集合，刻画轨迹的搜索行为指纹。"""
     pairs: set[str] = set()
     for eid in trajectory.edge_ids:
@@ -40,38 +40,14 @@ def trajectory_pattern(graph: DerivationGraph, trajectory: Trajectory) -> frozen
     return frozenset(pairs)
 
 
-def trajectory_pattern_similarity(pat_a: frozenset[str], pat_b: frozenset[str]) -> float:
+def trajectory_pattern_similarity(
+    pat_a: frozenset[str], pat_b: frozenset[str]
+) -> float:
     if not pat_a and not pat_b:
         return 1.0
     if not pat_a or not pat_b:
         return 0.0
     return len(pat_a & pat_b) / len(pat_a | pat_b)
-
-
-def max_similarity_to_active(
-    *,
-    graph: DerivationGraph,
-    candidate: Trajectory,
-    others: tuple[Trajectory, ...],
-    weights: tuple[float, float] = (0.7, 0.3),
-) -> float:
-    """candidate 与一组活跃 trajectory 的最大相似度（novelty gate 用）。"""
-    if not others:
-        return 0.0
-    w_code, w_traj = weights
-    best = 0.0
-    cand_code_tokens = code_tokens(graph.get_node(candidate.endpoint_id).code)
-    cand_pattern = trajectory_pattern(graph, candidate)
-    for other in others:
-        if other.id == candidate.id:
-            continue
-        sim_code = _jaccard(cand_code_tokens, code_tokens(graph.get_node(other.endpoint_id).code))
-        sim_pat = trajectory_pattern_similarity(cand_pattern, trajectory_pattern(graph, other))
-        total = w_code + w_traj
-        sim = (w_code * sim_code + w_traj * sim_pat) / total if total > 0 else 0.0
-        if sim > best:
-            best = sim
-    return best
 
 
 def trajectory_similarity(
@@ -89,7 +65,7 @@ def trajectory_similarity(
         w_idea = 0.0
     else:
         w_code, w_idea, w_traj = weights
-    total = w_code + w_traj
+    total = w_code + w_idea + w_traj
     if total <= 0:
         return 0.0
     code = code_similarity(
@@ -104,8 +80,7 @@ def trajectory_similarity(
         trajectory_pattern(graph, left),
         trajectory_pattern(graph, right),
     )
-    total += w_idea
-    return (w_code * code + w_idea * idea + w_traj * pattern) / total if total > 0 else 0.0
+    return (w_code * code + w_idea * idea + w_traj * pattern) / total
 
 
 def trajectory_idea_tokens(

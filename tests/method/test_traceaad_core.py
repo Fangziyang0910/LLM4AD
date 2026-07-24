@@ -6,7 +6,6 @@ import llm4ad.method.traceaad as traceaad_package
 from llm4ad.method.traceaad import TraceAAD, ValueWeights
 from llm4ad.method.traceaad.context import build_action_prompt
 from llm4ad.method.traceaad.derivation_graph import DerivationGraph
-from llm4ad.method.traceaad.schema import ValueVec
 from llm4ad.method.traceaad.trajectory_memory import TrajectoryMemory
 
 
@@ -14,20 +13,22 @@ def _history_fixture():
     graph = DerivationGraph()
     memory = TrajectoryMemory(max_trajectory_length=4)
     root = graph.add_node(code="def f(x):\n    return x", idea="root", fitness=1.0)
-    child = graph.add_node(code="def f(x):\n    return x + 1", idea="add one", fitness=2.0)
+    child = graph.add_node(
+        code="def f(x):\n    return x + 1", idea="add one", fitness=2.0
+    )
     edge = graph.add_edge(
         parent_id=root.id,
         child_id=child.id,
         action="add a unit improvement",
-        operator="endpoint_refine",
+        operator="trace_refine",
         delta=1.0,
         outcome="improve",
         iteration=0,
     )
     trajectory = memory.create_initial(node_id=root.id)
-    trajectory = memory.extend(
+    trajectory = memory.branch_from(
         trajectory_id=trajectory.id,
-        parent_id=root.id,
+        base_node_id=root.id,
         child_id=child.id,
         edge_id=edge.id,
     )
@@ -59,7 +60,7 @@ def test_public_configuration_exposes_only_search_mechanism_controls():
     }
 
 
-def test_action_prompt_uses_current_trajectory_and_cross_trajectory_actions_only():
+def test_action_prompt_uses_single_trajectory_history_only():
     graph, _, trajectory = _history_fixture()
     template_function = type(
         "FunctionLike",
@@ -76,7 +77,7 @@ def test_action_prompt_uses_current_trajectory_and_cross_trajectory_actions_only
         trajectory=trajectory,
         base_node_id=trajectory.endpoint_id,
         base_reason="endpoint",
-        operator_name="endpoint_refine",
+        operator_name="trace_refine",
         operator_constraint="continue the current direction",
         task_description="Improve f.",
         template_function=template_function,
@@ -100,8 +101,3 @@ def test_v4_uses_two_uniform_single_parent_semantic_operators():
         "trace_ideate",
         "trace_refine",
     }
-
-
-def test_trajectory_value_has_only_quality_potential_and_diversity():
-    value = ValueVec(quality=0.8, trend=0.3, diversity=0.6)
-    assert value.as_tuple() == (0.8, 0.3, 0.6)

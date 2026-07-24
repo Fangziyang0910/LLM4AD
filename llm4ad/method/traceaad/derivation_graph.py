@@ -1,4 +1,5 @@
 """保存单父代程序树及其修改边。"""
+
 from __future__ import annotations
 
 from .schema import EdgeId, ImprovementEdge, NodeId, ProgramNode
@@ -29,7 +30,9 @@ class DerivationGraph:
     def nodes(self) -> tuple[ProgramNode, ...]:
         return tuple(self._nodes.values())
 
-    def add_edge(self, *, parent_id: NodeId, child_id: NodeId, action: str, **fields) -> ImprovementEdge:
+    def add_edge(
+        self, *, parent_id: NodeId, child_id: NodeId, action: str, **fields
+    ) -> ImprovementEdge:
         if parent_id not in self._nodes:
             raise KeyError(f"unknown parent node: {parent_id}")
         if child_id not in self._nodes:
@@ -58,20 +61,3 @@ class DerivationGraph:
 
     def edges(self) -> tuple[ImprovementEdge, ...]:
         return tuple(self._edges.values())
-
-    def fitness_range(self) -> tuple[float | None, float | None]:
-        values = [n.fitness for n in self._nodes.values() if n.fitness is not None]
-        if not values:
-            return None, None
-        return min(values), max(values)
-
-    def parent_edge(self, node_id: NodeId) -> ImprovementEdge | None:
-        edge_id = self._incoming_edge_by_child.get(node_id)
-        return None if edge_id is None else self._edges[edge_id]
-
-    def children(self, node_id: NodeId) -> tuple[ProgramNode, ...]:
-        return tuple(
-            self._nodes[edge.child_id]
-            for edge in self._edges.values()
-            if edge.parent_id == node_id
-        )

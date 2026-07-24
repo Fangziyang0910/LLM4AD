@@ -1,4 +1,5 @@
 """TraceAAD 搜索状态的原子化保存与恢复。"""
+
 from __future__ import annotations
 
 import json
@@ -74,7 +75,9 @@ def _graph_from_dict(payload: Mapping[str, Any]) -> DerivationGraph:
         )
         graph._edges[edge.id] = edge
         if edge.child_id in graph._incoming_edge_by_child:
-            raise ValueError(f"checkpoint contains multiple parents for node {edge.child_id}")
+            raise ValueError(
+                f"checkpoint contains multiple parents for node {edge.child_id}"
+            )
         graph._incoming_edge_by_child[edge.child_id] = edge.id
     graph._next_node_id = int(payload["next_node_id"])
     graph._next_edge_id = int(payload["next_edge_id"])
@@ -108,7 +111,14 @@ def _memory_from_dict(payload: Mapping[str, Any]) -> TrajectoryMemory:
             endpoint_id=int(item["endpoint_id"]),
             visit_count=int(item.get("visit_count", 0)),
             status=TrajectoryStatus(item["status"]),
-            value=None if value_payload is None else ValueVec(**value_payload),
+            value=(
+                None
+                if value_payload is None
+                else ValueVec(
+                    quality=float(value_payload.get("quality", 0.0)),
+                    trend=float(value_payload.get("trend", 0.0)),
+                )
+            ),
             scalar_value=item.get("scalar_value"),
         )
         memory._trajectories[trajectory.id] = trajectory
@@ -126,9 +136,7 @@ def dump_state(method) -> dict[str, Any]:
         "initialization_complete": method._initialization_complete,
         "total_samples": method._tot_sample_nums,
         "next_attempt_id": method._next_attempt_id,
-        "best_node_id": (
-            None if method._best_node is None else method._best_node.id
-        ),
+        "best_node_id": (None if method._best_node is None else method._best_node.id),
         "best_trajectory_id": method._best_trajectory_id,
         "graph": _graph_to_dict(method._graph),
         "memory": _memory_to_dict(method._memory),
@@ -172,13 +180,9 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     method._memory = memory
     method._tot_sample_nums = int(payload["total_samples"])
     method._next_attempt_id = int(payload.get("next_attempt_id", 0))
-    method._initialization_complete = bool(
-        payload.get("initialization_complete", True)
-    )
+    method._initialization_complete = bool(payload.get("initialization_complete", True))
     best_id = payload.get("best_node_id")
-    method._best_node = (
-        None if best_id is None else graph.get_node(int(best_id))
-    )
+    method._best_node = None if best_id is None else graph.get_node(int(best_id))
     method._best_trajectory_id = payload.get("best_trajectory_id")
     _restore_profiler(method)
 

@@ -1,4 +1,5 @@
 """TraceAAD 的程序、修改、轨迹和种群状态。"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -18,16 +19,12 @@ class TrajectoryStatus(StrEnum):
 class OperatorName(StrEnum):
     IDEATE = "trace_ideate"
     REFINE = "trace_refine"
-    # Names are retained only for parsing historical operator tests/artifacts;
-    # they are not available in DEFAULT_OPERATORS.
-    ENDPOINT = "endpoint_refine"
-    BACKTRACK = "backtrack_branch"
-    NOVELTY = "novelty_jump"
 
 
 @dataclass(frozen=True, slots=True)
 class EvalResult:
     """单次程序评估结果。现有平台 task 返回标量 fitness。"""
+
     fitness: float | None
 
 
@@ -53,14 +50,10 @@ class ImprovementEdge:
 
 @dataclass(frozen=True, slots=True)
 class ValueVec:
-    """轨迹的搜索质量、近期走势和路线差异代理。"""
+    """轨迹的搜索质量和近期走势。"""
 
     quality: float = 0.0
     trend: float = 0.0
-    diversity: float = 0.0
-
-    def as_tuple(self) -> tuple[float, float, float]:
-        return self.quality, self.trend, self.diversity
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,7 +66,3 @@ class Trajectory:
     status: TrajectoryStatus = TrajectoryStatus.ACTIVE
     value: ValueVec | None = None
     scalar_value: float | None = None
-
-    @property
-    def path_key(self) -> tuple[tuple[NodeId, ...], tuple[EdgeId, ...]]:
-        return self.node_ids, self.edge_ids

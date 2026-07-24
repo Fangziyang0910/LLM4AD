@@ -5,7 +5,7 @@ from llm4ad.method.traceaad.trajectory_memory import TrajectoryMemory
 from llm4ad.method.traceaad.value import (
     ValueWeights,
     compute_value_vec,
-    select_trajectory,
+    score_active_trajectories,
 )
 
 
@@ -17,17 +17,17 @@ def test_trajectory_selection_prefers_better_program_when_visits_match() -> None
     memory.create_initial(node_id=low.id)
     high_trajectory = memory.create_initial(node_id=high.id)
 
-    selected = select_trajectory(
+    selected = score_active_trajectories(
         memory=memory,
         graph=graph,
         maximize=True,
         w=ValueWeights(),
-    )
+    )[0]
 
     assert selected.id == high_trajectory.id
 
 
-def test_path_potential_distinguishes_improving_from_regressing_history() -> None:
+def test_path_trend_distinguishes_improving_from_regressing_history() -> None:
     graph = DerivationGraph()
     memory = TrajectoryMemory()
     root = graph.add_node(code="root", idea="root", fitness=1.0)
@@ -48,9 +48,9 @@ def test_path_potential_distinguishes_improving_from_regressing_history() -> Non
         delta=-1.0,
         outcome="regress",
     )
-    improving = memory.extend(
+    improving = memory.branch_from(
         trajectory_id=initial.id,
-        parent_id=root.id,
+        base_node_id=root.id,
         child_id=better.id,
         edge_id=improve_edge.id,
     )
@@ -65,7 +65,6 @@ def test_path_potential_distinguishes_improving_from_regressing_history() -> Non
     improve_value = compute_value_vec(
         trajectory=improving,
         graph=graph,
-        active_others=(regressing,),
         fmin=0.0,
         fmax=3.0,
         maximize=True,
@@ -74,7 +73,6 @@ def test_path_potential_distinguishes_improving_from_regressing_history() -> Non
     regress_value = compute_value_vec(
         trajectory=regressing,
         graph=graph,
-        active_others=(improving,),
         fmin=0.0,
         fmax=3.0,
         maximize=True,
@@ -92,11 +90,11 @@ def test_minimization_direction_is_respected() -> None:
     good_trajectory = memory.create_initial(node_id=good.id)
     memory.create_initial(node_id=bad.id)
 
-    selected = select_trajectory(
+    selected = score_active_trajectories(
         memory=memory,
         graph=graph,
         maximize=False,
         w=ValueWeights(),
-    )
+    )[0]
 
     assert selected.id == good_trajectory.id

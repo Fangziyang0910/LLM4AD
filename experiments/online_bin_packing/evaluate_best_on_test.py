@@ -1,6 +1,8 @@
 """Evaluate the best heuristic from finished Online Bin Packing search runs.
 
-Train in-domain: Weibull 5k_100. Held-out test: 1k/5k/10k × C∈{100,500}.
+Train in-domain: Weibull 1k/5k × C∈{100,500}, one fixed instance
+per configuration. Held-out test: different fixed instances for
+1k/5k/10k × C∈{100,500}; only the 10k configurations are OOD.
 
     uv run python experiments/online_bin_packing/evaluate_best_on_test.py \\
       experiments/online_bin_packing/mcts_ahd/<run_rep1> \\
@@ -63,6 +65,33 @@ def _parse_scales(text: str) -> list[tuple[int, int]]:
             n_items = int(left)
         scales.append((n_items, capacity))
     return scales
+
+
+def task_kwargs_for_scale(
+    base_kwargs: dict[str, Any],
+    n_items: int,
+    capacity: int,
+) -> dict[str, Any]:
+    """Select one fixed held-out scale from the task's evaluation protocol."""
+    kwargs = dict(base_kwargs)
+    dataset_specs = kwargs.get("dataset_specs")
+    if dataset_specs is None:
+        kwargs.update(n_items=n_items, capacity=capacity)
+        return kwargs
+
+    for spec in dataset_specs:
+        if int(spec["n_items"]) == n_items and capacity in spec["capacities"]:
+            kwargs["dataset_specs"] = [
+                {
+                    "n_instances": int(spec["n_instances"]),
+                    "n_items": n_items,
+                    "capacities": [capacity],
+                }
+            ]
+            return kwargs
+    raise ValueError(
+        f"scale {n_items}_{capacity} is not part of the fixed OBP test protocol"
+    )
 
 
 def _resolve_method(run_dir: Path) -> str:
@@ -209,11 +238,7 @@ def main() -> None:
     eval_results_by_scale: dict[str, Any] = {}
     for n_items, capacity in scales:
         key = _scale_key(n_items, capacity)
-        eval_kwargs = {
-            **eval_base_kwargs,
-            "n_items": n_items,
-            "capacity": capacity,
-        }
+        eval_kwargs = task_kwargs_for_scale(eval_base_kwargs, n_items, capacity)
         rows: list[dict[str, Any]] = []
         for row in run_records:
             score, eval_seconds = _evaluate_program(row["program"], eval_kwargs)

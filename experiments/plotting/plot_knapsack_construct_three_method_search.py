@@ -1,7 +1,7 @@
 """Compare Knapsack Construct search curves.
 
 Old-protocol (KP50) three-method curves stay in 搜索曲线.png.
-New-protocol TraceAAD v3 (KP100 train) is written to 搜索曲线_新协议.png.
+New-protocol (KP100 train) MCTS/PathWise/TraceAAD v3 curves go to 搜索曲线_新协议.png.
 """
 
 from __future__ import annotations
@@ -56,6 +56,28 @@ METHODS_OLD = {
     },
 }
 METHODS_NEW = {
+    "MCTS-AHD": {
+        "directory": "mcts_ahd",
+        "runs": (
+            "20260722_141158_kp_rep1",
+            "20260722_141158_kp_rep2",
+            "20260722_141158_kp_rep3",
+        ),
+        "budget": 1000,
+        "color": "#247BA0",
+        "band": "#A9D6E5",
+    },
+    "PathWise": {
+        "directory": "pathwise",
+        "runs": (
+            "20260722_141158_kp_rep1",
+            "20260722_141158_kp_rep2",
+            "20260722_141158_kp_rep3",
+        ),
+        "budget": 500,
+        "color": "#E76F51",
+        "band": "#FFB4A2",
+    },
     "TraceAAD version3": {
         "directory": "traceaad/version3",
         "runs": (

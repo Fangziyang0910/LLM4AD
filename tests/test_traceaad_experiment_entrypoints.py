@@ -8,7 +8,6 @@ ENTRYPOINTS = (
     "experiments.tsp_construct.traceaad.run_experiment",
     "experiments.cvrp_aco.traceaad.run_experiment",
     "experiments.op_aco.traceaad.run_experiment",
-    "experiments.orienteering_construct.traceaad.run_experiment",
     "experiments.online_bin_packing.traceaad.run_experiment",
     "experiments.knapsack_construct.traceaad.run_experiment",
     "experiments.tsp_gls.traceaad.run_experiment",

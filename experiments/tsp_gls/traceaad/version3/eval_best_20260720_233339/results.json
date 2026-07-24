@@ -1,0 +1,260 @@
+{
+  "created_at": "2026-07-23T19:51:55",
+  "eval_results_by_size": {
+    "tsp100": {
+      "eval_config": {
+        "n_instance": 16,
+        "problem_size": 100,
+        "seed": 2025,
+        "timeout_seconds": null
+      },
+      "problem_size": 100,
+      "results": [
+        {
+          "best_operator": "mechanism_crossover",
+          "best_sample_order": 983,
+          "eval_mean_tour_cost": 7.705539678904103,
+          "eval_score": -7.705539678904103,
+          "eval_seconds": 48.747480630874634,
+          "program_path": "experiments/tsp_gls/traceaad/version3/eval_best_20260720_233339/20260720_233339_tspgls_v3_rep1_sample_983_program.py",
+          "run_name": "20260720_233339_tspgls_v3_rep1"
+        },
+        {
+          "best_operator": "endpoint_refine",
+          "best_sample_order": 735,
+          "eval_mean_tour_cost": 7.711830994388296,
+          "eval_score": -7.711830994388296,
+          "eval_seconds": 5.318265676498413,
+          "program_path": "experiments/tsp_gls/traceaad/version3/eval_best_20260720_233339/20260720_233339_tspgls_v3_rep2_sample_735_program.py",
+          "run_name": "20260720_233339_tspgls_v3_rep2"
+        },
+        {
+          "best_operator": "endpoint_refine",
+          "best_sample_order": 994,
+          "eval_mean_tour_cost": 7.699933506544298,
+          "eval_score": -7.699933506544298,
+          "eval_seconds": 9.831510066986084,
+          "program_path": "experiments/tsp_gls/traceaad/version3/eval_best_20260720_233339/20260720_233339_tspgls_v3_rep3_sample_994_program.py",
+          "run_name": "20260720_233339_tspgls_v3_rep3"
+        }
+      ],
+      "summary": {
+        "mean_eval_score": -7.705768059945566,
+        "mean_eval_tour_cost": 7.705768059945566,
+        "num_runs": 3,
+        "num_successful_eval_runs": 3,
+        "sample_std_eval_score": 0.005952030970567686,
+        "sample_std_eval_tour_cost": 0.005952030970567686
+      }
+    },
+    "tsp1000": {
+      "eval_config": {
+        "n_instance": 16,
+        "problem_size": 1000,
+        "seed": 2025,
+        "timeout_seconds": null
+      },
+      "problem_size": 1000,
+      "results": [
+        {
+          "best_operator": "mechanism_crossover",
+          "best_sample_order": 983,
+          "eval_mean_tour_cost": 23.65851168244584,
+          "eval_score": -23.65851168244584,
+          "eval_seconds": 1927.3750755786896,
+          "program_path": "experiments/tsp_gls/traceaad/version3/eval_best_20260720_233339/20260720_233339_tspgls_v3_rep1_sample_983_program.py",
+          "run_name": "20260720_233339_tspgls_v3_rep1"
+        },
+        {
+          "best_operator": "endpoint_refine",
+          "best_sample_order": 735,
+          "eval_mean_tour_cost": 23.533784434150103,
+          "eval_score": -23.533784434150103,
+          "eval_seconds": 790.4706845283508,
+          "program_path": "experiments/tsp_gls/traceaad/version3/eval_best_20260720_233339/20260720_233339_tspgls_v3_rep2_sample_735_program.py",
+          "run_name": "20260720_233339_tspgls_v3_rep2"
+        },
+        {
+          "best_operator": "endpoint_refine",
+          "best_sample_order": 994,
+          "eval_mean_tour_cost": 23.571848955064866,
+          "eval_score": -23.571848955064866,
+          "eval_seconds": 866.2020101547241,
+          "program_path": "experiments/tsp_gls/traceaad/version3/eval_best_20260720_233339/20260720_233339_tspgls_v3_rep3_sample_994_program.py",
+          "run_name": "20260720_233339_tspgls_v3_rep3"
+        }
+      ],
+      "summary": {
+        "mean_eval_score": -23.58804835722027,
+        "mean_eval_tour_cost": 23.58804835722027,
+        "num_runs": 3,
+        "num_successful_eval_runs": 3,
+        "sample_std_eval_score": 0.06392211737341814,
+        "sample_std_eval_tour_cost": 0.06392211737341814
+      }
+    },
+    "tsp200": {
+      "eval_config": {
+        "n_instance": 16,
+        "problem_size": 200,
+        "seed": 2025,
+        "timeout_seconds": null
+      },
+      "problem_size": 200,
+      "results": [
+        {
+          "best_operator": "mechanism_crossover",
+          "best_sample_order": 983,
+          "eval_mean_tour_cost": 10.787051393722976,
+          "eval_score": -10.787051393722976,
+          "eval_seconds": 122.42044806480408,
+          "program_path": "experiments/tsp_gls/traceaad/version3/eval_best_20260720_233339/20260720_233339_tspgls_v3_rep1_sample_983_program.py",
+          "run_name": "20260720_233339_tspgls_v3_rep1"
+        },
+        {
+          "best_operator": "endpoint_refine",
+          "best_sample_order": 735,
+          "eval_mean_tour_cost": 10.774836733506378,
+          "eval_score": -10.774836733506378,
+          "eval_seconds": 25.808504104614258,
+          "program_path": "experiments/tsp_gls/traceaad/version3/eval_best_20260720_233339/20260720_233339_tspgls_v3_rep2_sample_735_program.py",
+          "run_name": "20260720_233339_tspgls_v3_rep2"
+        },
+        {
+          "best_operator": "endpoint_refine",
+          "best_sample_order": 994,
+          "eval_mean_tour_cost": 10.765987818057285,
+          "eval_score": -10.765987818057285,
+          "eval_seconds": 32.15926146507263,
+          "program_path": "experiments/tsp_gls/traceaad/version3/eval_best_20260720_233339/20260720_233339_tspgls_v3_rep3_sample_994_program.py",
+          "run_name": "20260720_233339_tspgls_v3_rep3"
+        }
+      ],
+      "summary": {
+        "mean_eval_score": -10.775958648428878,
+        "mean_eval_tour_cost": 10.775958648428878,
+        "num_runs": 3,
+        "num_successful_eval_runs": 3,
+        "sample_std_eval_score": 0.010576510519829824,
+        "sample_std_eval_tour_cost": 0.010576510519829824
+      }
+    },
+    "tsp500": {
+      "eval_config": {
+        "n_instance": 16,
+        "problem_size": 500,
+        "seed": 2025,
+        "timeout_seconds": null
+      },
+      "problem_size": 500,
+      "results": [
+        {
+          "best_operator": "mechanism_crossover",
+          "best_sample_order": 983,
+          "eval_mean_tour_cost": 16.891743484944307,
+          "eval_score": -16.891743484944307,
+          "eval_seconds": 522.1881625652313,
+          "program_path": "experiments/tsp_gls/traceaad/version3/eval_best_20260720_233339/20260720_233339_tspgls_v3_rep1_sample_983_program.py",
+          "run_name": "20260720_233339_tspgls_v3_rep1"
+        },
+        {
+          "best_operator": "endpoint_refine",
+          "best_sample_order": 735,
+          "eval_mean_tour_cost": 16.786605557766944,
+          "eval_score": -16.786605557766944,
+          "eval_seconds": 165.32404947280884,
+          "program_path": "experiments/tsp_gls/traceaad/version3/eval_best_20260720_233339/20260720_233339_tspgls_v3_rep2_sample_735_program.py",
+          "run_name": "20260720_233339_tspgls_v3_rep2"
+        },
+        {
+          "best_operator": "endpoint_refine",
+          "best_sample_order": 994,
+          "eval_mean_tour_cost": 16.867332858102944,
+          "eval_score": -16.867332858102944,
+          "eval_seconds": 190.61602926254272,
+          "program_path": "experiments/tsp_gls/traceaad/version3/eval_best_20260720_233339/20260720_233339_tspgls_v3_rep3_sample_994_program.py",
+          "run_name": "20260720_233339_tspgls_v3_rep3"
+        }
+      ],
+      "summary": {
+        "mean_eval_score": -16.84856063360473,
+        "mean_eval_tour_cost": 16.84856063360473,
+        "num_runs": 3,
+        "num_successful_eval_runs": 3,
+        "sample_std_eval_score": 0.055025387252127696,
+        "sample_std_eval_tour_cost": 0.055025387252127696
+      }
+    }
+  },
+  "eval_timeout_seconds": null,
+  "method": "traceaad",
+  "model": "Qwen3.6-27B-Q4_K_M",
+  "problem_sizes": [
+    100,
+    200,
+    500,
+    1000
+  ],
+  "run_records": [
+    {
+      "best_operator": "mechanism_crossover",
+      "best_sample_order": 983,
+      "num_valid_samples": 963,
+      "program_path": "experiments/tsp_gls/traceaad/version3/eval_best_20260720_233339/20260720_233339_tspgls_v3_rep1_sample_983_program.py",
+      "run_dir": "experiments/tsp_gls/traceaad/version3/20260720_233339_tspgls_v3_rep1",
+      "run_name": "20260720_233339_tspgls_v3_rep1",
+      "train_artifact_score": -10.72107586264094,
+      "train_eval_seconds": 120.56536102294922,
+      "train_mean_tour_cost": 10.72107586264094,
+      "train_recomputed_score": -10.72107586264094
+    },
+    {
+      "best_operator": "endpoint_refine",
+      "best_sample_order": 735,
+      "num_valid_samples": 953,
+      "program_path": "experiments/tsp_gls/traceaad/version3/eval_best_20260720_233339/20260720_233339_tspgls_v3_rep2_sample_735_program.py",
+      "run_dir": "experiments/tsp_gls/traceaad/version3/20260720_233339_tspgls_v3_rep2",
+      "run_name": "20260720_233339_tspgls_v3_rep2",
+      "train_artifact_score": -10.710589413671572,
+      "train_eval_seconds": 25.657584190368652,
+      "train_mean_tour_cost": 10.710589413671572,
+      "train_recomputed_score": -10.710589413671572
+    },
+    {
+      "best_operator": "endpoint_refine",
+      "best_sample_order": 994,
+      "num_valid_samples": 937,
+      "program_path": "experiments/tsp_gls/traceaad/version3/eval_best_20260720_233339/20260720_233339_tspgls_v3_rep3_sample_994_program.py",
+      "run_dir": "experiments/tsp_gls/traceaad/version3/20260720_233339_tspgls_v3_rep3",
+      "run_name": "20260720_233339_tspgls_v3_rep3",
+      "train_artifact_score": -10.716636222737826,
+      "train_eval_seconds": 32.04541373252869,
+      "train_mean_tour_cost": 10.716636222737826,
+      "train_recomputed_score": -10.716636222737826
+    }
+  ],
+  "score_semantics": "TSPGLSEvaluation returns -mean_tour_cost across instances; higher score is better. mean_tour_cost = -score.",
+  "source": "3 completed traceaad tsp_gls repeat(s)",
+  "split_configs": {
+    "eval_base": {
+      "n_instance": 16,
+      "problem_size": 200,
+      "seed": 2025,
+      "timeout_seconds": null
+    },
+    "train": {
+      "n_instance": 16,
+      "problem_size": 200,
+      "seed": 2024,
+      "timeout_seconds": null
+    }
+  },
+  "summary": {
+    "mean_train_recomputed_score": -10.716100499683447,
+    "mean_train_tour_cost": 10.716100499683447,
+    "num_runs": 3,
+    "sample_std_train_recomputed_score": 0.005263710895370114,
+    "sample_std_train_tour_cost": 0.005263710895370114
+  },
+  "task": "tsp_gls_2O"
+}

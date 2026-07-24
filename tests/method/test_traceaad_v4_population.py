@@ -7,6 +7,7 @@ import pytest
 from llm4ad.base import Evaluation, LLM
 from llm4ad.method.traceaad import TraceAAD
 from llm4ad.method.traceaad.derivation_graph import DerivationGraph
+from llm4ad.method.traceaad.similarity import trajectory_similarity
 from llm4ad.method.traceaad.trajectory_memory import TrajectoryMemory
 from llm4ad.method.traceaad.value import (
     ValueWeights,
@@ -62,15 +63,8 @@ class _V4Evaluation(Evaluation):
         return float(self.calls)
 
 
-def _method(*, budget: int, population: int = 3, n_init: int = 3, operators=None) -> TraceAAD:
+def _method(*, budget: int, population: int = 3, n_init: int = 3) -> TraceAAD:
     return TraceAAD(
-        llm=_V4LLM(),
-        evaluation=_V4Evaluation(),
-        max_sample_nums=budget,
-        n_init=n_init,
-        actions_per_iteration=2,
-        max_active_trajectories=population,
-    ) if operators else TraceAAD(
         llm=_V4LLM(),
         evaluation=_V4Evaluation(),
         max_sample_nums=budget,
@@ -84,7 +78,9 @@ def test_expansion_pool_is_not_managed_before_two_times_population():
     method = _method(budget=3, population=3, n_init=3)
     method._initialize()
     assert len(method._memory.active()) == 3
-    node = method._graph.add_node(code="def choose(value): return value + 1", idea="child", fitness=-1.0)
+    node = method._graph.add_node(
+        code="def choose(value): return value + 1", idea="child", fitness=-1.0
+    )
     method._memory.create_initial(node_id=node.id)
 
     method._maybe_manage_population()
@@ -112,14 +108,17 @@ def test_population_management_returns_to_exact_target_size():
 
 
 def test_each_child_has_one_parent_and_one_trajectory_writeback():
-    method = _method(budget=4, population=2, n_init=2, operators=True)
+    method = _method(budget=4, population=2, n_init=2)
     result = method.run()
 
     assert result.n_samples == 4
     assert result.n_total_nodes == 4
     assert result.n_trajectories == 4
     assert result.n_edges == 2
-    assert all(len([edge for edge in method._graph.edges() if edge.child_id == node.id]) <= 1 for node in method._graph.nodes())
+    assert all(
+        len([edge for edge in method._graph.edges() if edge.child_id == node.id]) <= 1
+        for node in method._graph.nodes()
+    )
 
 
 def test_trajectory_quality_keeps_a_small_credit_for_best_historical_node():
@@ -129,21 +128,44 @@ def test_trajectory_quality_keeps_a_small_credit_for_best_historical_node():
     peak = graph.add_node(code="peak", idea="valuable idea", fitness=10.0)
     regress = graph.add_node(code="regress", idea="failed follow-up", fitness=2.0)
     current = graph.add_node(code="current", idea="ordinary", fitness=3.0)
-    bad = graph.add_node(code="bad", idea="same endpoint without a valuable history", fitness=2.0)
+    bad = graph.add_node(
+        code="bad", idea="same endpoint without a valuable history", fitness=2.0
+    )
     route = memory.create_initial(node_id=root.id)
-    edge1 = graph.add_edge(parent_id=root.id, child_id=peak.id, action="peak", delta=9.0, outcome="improve")
-    route = memory.extend(trajectory_id=route.id, parent_id=root.id, child_id=peak.id, edge_id=edge1.id)
-    edge2 = graph.add_edge(parent_id=peak.id, child_id=regress.id, action="regress", delta=-8.0, outcome="regress")
-    route = memory.extend(trajectory_id=route.id, parent_id=peak.id, child_id=regress.id, edge_id=edge2.id)
+    edge1 = graph.add_edge(
+        parent_id=root.id, child_id=peak.id, action="peak", delta=9.0, outcome="improve"
+    )
+    route = memory.branch_from(
+        trajectory_id=route.id,
+        base_node_id=root.id,
+        child_id=peak.id,
+        edge_id=edge1.id,
+    )
+    edge2 = graph.add_edge(
+        parent_id=peak.id,
+        child_id=regress.id,
+        action="regress",
+        delta=-8.0,
+        outcome="regress",
+    )
+    route = memory.branch_from(
+        trajectory_id=route.id,
+        base_node_id=peak.id,
+        child_id=regress.id,
+        edge_id=edge2.id,
+    )
     memory.create_initial(node_id=current.id)
     bad_route = memory.create_initial(node_id=bad.id)
 
-    scored = {trajectory.id: trajectory for trajectory in score_active_trajectories(
-        memory=memory,
-        graph=graph,
-        maximize=True,
-        w=ValueWeights(),
-    )}
+    scored = {
+        trajectory.id: trajectory
+        for trajectory in score_active_trajectories(
+            memory=memory,
+            graph=graph,
+            maximize=True,
+            w=ValueWeights(),
+        )
+    }
 
     assert scored[route.id].value.quality > scored[bad_route.id].value.quality
     assert scored[route.id].scalar_value > scored[bad_route.id].scalar_value
@@ -158,7 +180,6 @@ def test_absolute_quality_normalization_respects_minimization_direction():
     value = compute_value_vec(
         trajectory=trajectory,
         graph=graph,
-        active_others=(),
         fmin=1.0,
         fmax=5.0,
         maximize=False,
@@ -168,16 +189,38 @@ def test_absolute_quality_normalization_respects_minimization_direction():
     assert value.quality == pytest.approx(0.75)
 
 
+def test_similarity_supports_idea_only_weighting():
+    graph = DerivationGraph()
+    memory = TrajectoryMemory()
+    left_node = graph.add_node(code="left", idea="shared mechanism", fitness=1.0)
+    right_node = graph.add_node(code="right", idea="shared mechanism", fitness=2.0)
+    left = memory.create_initial(node_id=left_node.id)
+    right = memory.create_initial(node_id=right_node.id)
+
+    similarity = trajectory_similarity(
+        graph=graph,
+        left=left,
+        right=right,
+        weights=(0.0, 1.0, 0.0),
+    )
+
+    assert similarity == 1.0
+
+
 def test_diversity_representatives_keep_routes_with_different_signatures():
     graph = DerivationGraph()
     memory = TrajectoryMemory()
     nodes = [
         graph.add_node(code="def f(x): return x + offset", idea="a", fitness=10.0),
         graph.add_node(code="def f(x): return x + offset", idea="b", fitness=9.0),
-        graph.add_node(code="def f(items):\n    return max(items)", idea="c", fitness=2.0),
+        graph.add_node(
+            code="def f(items):\n    return max(items)", idea="c", fitness=2.0
+        ),
     ]
     tuple(memory.create_initial(node_id=node.id) for node in nodes)
-    scored = score_active_trajectories(memory=memory, graph=graph, maximize=True, w=ValueWeights())
+    scored = score_active_trajectories(
+        memory=memory, graph=graph, maximize=True, w=ValueWeights()
+    )
 
     diverse = select_diverse_trajectories(
         candidates=scored,
@@ -246,5 +289,7 @@ def test_global_best_route_is_kept_as_an_active_anchor():
 
     method._manage_population(force=False)
 
-    assert best_route.id in {trajectory.id for trajectory in method.active_trajectories()}
+    assert best_route.id in {
+        trajectory.id for trajectory in method.active_trajectories()
+    }
     assert len(method.active_trajectories()) == 2

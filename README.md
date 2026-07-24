@@ -49,7 +49,6 @@ TS=$(date +%Y%m%d_%H%M%S)
 |---|:---:|:---:|:---:|
 | tsp_construct | ✅ | ✅ | ✅ |
 | cvrp_aco | ✅ | ✅ | ✅ |
-| orienteering_construct | 🔄 | — | — |
 
 ✅ 完成　🔄 进行中　— 未开始。定稿结果见 `docs/results/<task>/结果汇总.md`，运行过程和研究记录见当周 `docs/worklog/YYYY-Www.md`。
 
@@ -58,7 +57,7 @@ TS=$(date +%Y%m%d_%H%M%S)
 - **LLM**：通用 OpenAI-compatible 客户端（`OpenAIAPI`）；实验入口从 `LLM_BASE_URL`、`LLM_MODEL`、`LLM_API_KEY` 读取连接配置
 - **task 数据**：`llm4ad/task/optimization/generated_data_config.py`（按 task 注册 train/eval 的 `problem_size`、`n_instance`、`seed` 等）
 - **method 与 task 解耦**：method 从 evaluation 对象读取 `template_program` / `task_description` 构造所有 prompt，换 task 通常只需换 evaluation 实例
-- **task 默认参数未必对齐论文**：新 task 上线前应对照 `../papers/` 核对设置（例如 `orienteering_construct` 的 budget/prize 已对齐 ReEvo/DeepACO 标准）
+- **task 默认参数未必对齐论文**：新 task 上线前应对照 `../papers/` 核对设置，并明确记录有意采用的差异
 
 ## 测试
 

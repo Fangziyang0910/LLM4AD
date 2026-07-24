@@ -39,7 +39,7 @@ METHODS = {
         "color": "#E76F51",
         "band": "#FFB4A2",
     },
-    "TraceAAD version2": {
+    "TraceAAD v2": {
         "directory": "traceaad/version2",
         "runs": (
             "20260719_150058_obp_rep1",
@@ -50,7 +50,7 @@ METHODS = {
         "color": "#6A4C93",
         "band": "#C9B1FF",
     },
-    "TraceAAD version3": {
+    "TraceAAD v3": {
         "directory": "traceaad/version3",
         "runs": (
             "20260720_233339_obp_v3_rep1",
@@ -60,6 +60,17 @@ METHODS = {
         "budget": 1000,
         "color": "#2A9D5B",
         "band": "#A8D5BA",
+    },
+    "TraceAAD v4": {
+        "directory": "traceaad/version4",
+        "runs": (
+            "20260723_204526_obp_v4_rep1",
+            "20260723_204526_obp_v4_rep2",
+            "20260723_204526_obp_v4_rep3",
+        ),
+        "budget": 1000,
+        "color": "#D55E00",
+        "band": "#F3B49F",
     },
 }
 
@@ -102,15 +113,18 @@ def _method_curves(label: str) -> np.ndarray:
 def _style() -> None:
     plt.rcParams.update(
         {
-            "font.sans-serif": ["Noto Sans CJK SC", "WenQuanYi Zen Hei", "DejaVu Sans"],
-            "font.family": "sans-serif",
-            "font.size": 12,
-            "axes.labelsize": 15,
-            "xtick.labelsize": 12,
-            "ytick.labelsize": 12,
-            "legend.fontsize": 9,
+            "font.family": "serif",
+            "font.serif": ["Times New Roman", "DejaVu Serif"],
+            "font.size": 10,
+            "axes.labelsize": 11,
+            "xtick.labelsize": 9,
+            "ytick.labelsize": 9,
+            "legend.fontsize": 8,
             "figure.dpi": 300,
             "savefig.dpi": 300,
+            "savefig.bbox": "tight",
+            "axes.spines.top": False,
+            "axes.spines.right": False,
         }
     )
 
@@ -118,7 +132,7 @@ def _style() -> None:
 def main() -> None:
     data = [(name, _method_curves(name)) for name in METHODS]
     _style()
-    fig, ax = plt.subplots(figsize=(7.2, 4.2))
+    fig, ax = plt.subplots(figsize=(6.75, 3.6))
     handles = []
     all_curves = []
     max_budget = max(config["budget"] for config in METHODS.values())
@@ -137,7 +151,7 @@ def main() -> None:
             drawstyle="steps-post",
             color=config["color"],
             linewidth=2.2,
-            label=f"{name} mean ({budget} evaluations)",
+            label=f"{name} mean ({budget:,} evaluations)",
             zorder=3,
         )
         handles.append(line)
@@ -149,11 +163,9 @@ def main() -> None:
     handles.append(Patch(facecolor="#999999", edgecolor="none", alpha=0.25, label="Min-max range across three runs"))
     ax.set_xlabel("Evaluations")
     ax.set_ylabel("Best-so-far score (higher is better)")
-    ax.grid(True, color="#D9D9D9", linewidth=0.7, alpha=0.55)
+    ax.grid(True, color="#D9D9D9", linewidth=0.6, alpha=0.4)
     ax.set_axisbelow(True)
-    for spine in ax.spines.values():
-        spine.set_linewidth(1.0)
-    ax.legend(handles=handles, loc="lower right", frameon=True, framealpha=0.95, edgecolor="#444444")
+    ax.legend(handles=handles, loc="lower right", frameon=False)
     fig.tight_layout()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     output = RESULTS_DIR / "搜索曲线.png"

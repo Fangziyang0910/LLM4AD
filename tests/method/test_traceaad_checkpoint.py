@@ -92,6 +92,10 @@ def test_resume_continues_from_saved_budget_and_search_state(tmp_path: Path) -> 
         "fitness",
     }
     assert "base_id" not in first_payload["memory"]["trajectories"][0]
+    for trajectory in first_payload["memory"]["trajectories"]:
+        if trajectory["value"] is not None:
+            trajectory["value"]["diversity"] = 0.75
+    latest.write_text(json.dumps(first_payload), encoding="utf-8")
 
     resumed = _method(
         budget=10,
@@ -121,9 +125,7 @@ def test_interrupted_run_leaves_latest_checkpoint(tmp_path: Path) -> None:
     with pytest.raises(KeyboardInterrupt):
         method.run()
 
-    payload = json.loads(
-        (checkpoint_dir / "latest.json").read_text(encoding="utf-8")
-    )
+    payload = json.loads((checkpoint_dir / "latest.json").read_text(encoding="utf-8"))
     assert payload["total_samples"] == 0
     assert payload["next_attempt_id"] == 0
 
@@ -176,7 +178,6 @@ def test_resume_continues_profiler_sample_numbers(tmp_path: Path) -> None:
         if path.name == "samples_best.json":
             continue
         sample_orders.extend(
-            row["sample_order"]
-            for row in json.loads(path.read_text(encoding="utf-8"))
+            row["sample_order"] for row in json.loads(path.read_text(encoding="utf-8"))
         )
     assert sorted(sample_orders) == [1, 2, 3, 4, 5, 6]

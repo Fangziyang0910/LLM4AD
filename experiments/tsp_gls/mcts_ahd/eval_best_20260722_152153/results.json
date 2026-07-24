@@ -1,0 +1,260 @@
+{
+  "created_at": "2026-07-23T19:21:27",
+  "eval_results_by_size": {
+    "tsp100": {
+      "eval_config": {
+        "n_instance": 16,
+        "problem_size": 100,
+        "seed": 2025,
+        "timeout_seconds": null
+      },
+      "problem_size": 100,
+      "results": [
+        {
+          "best_operator": "s1",
+          "best_sample_order": 449,
+          "eval_mean_tour_cost": 7.702026559206037,
+          "eval_score": -7.702026559206037,
+          "eval_seconds": 7.283949851989746,
+          "program_path": "experiments/tsp_gls/mcts_ahd/eval_best_20260722_152153/20260722_152153_tspgls_rep1_sample_449_program.py",
+          "run_name": "20260722_152153_tspgls_rep1"
+        },
+        {
+          "best_operator": "s1",
+          "best_sample_order": 728,
+          "eval_mean_tour_cost": 7.7163455588231376,
+          "eval_score": -7.7163455588231376,
+          "eval_seconds": 7.027246952056885,
+          "program_path": "experiments/tsp_gls/mcts_ahd/eval_best_20260722_152153/20260722_152153_tspgls_rep2_sample_728_program.py",
+          "run_name": "20260722_152153_tspgls_rep2"
+        },
+        {
+          "best_operator": "e2",
+          "best_sample_order": 493,
+          "eval_mean_tour_cost": 7.701785154399089,
+          "eval_score": -7.701785154399089,
+          "eval_seconds": 6.457410097122192,
+          "program_path": "experiments/tsp_gls/mcts_ahd/eval_best_20260722_152153/20260722_152153_tspgls_rep3_sample_493_program.py",
+          "run_name": "20260722_152153_tspgls_rep3"
+        }
+      ],
+      "summary": {
+        "mean_eval_score": -7.706719090809422,
+        "mean_eval_tour_cost": 7.706719090809422,
+        "num_runs": 3,
+        "num_successful_eval_runs": 3,
+        "sample_std_eval_score": 0.00833763958710926,
+        "sample_std_eval_tour_cost": 0.00833763958710926
+      }
+    },
+    "tsp1000": {
+      "eval_config": {
+        "n_instance": 16,
+        "problem_size": 1000,
+        "seed": 2025,
+        "timeout_seconds": null
+      },
+      "problem_size": 1000,
+      "results": [
+        {
+          "best_operator": "s1",
+          "best_sample_order": 449,
+          "eval_mean_tour_cost": 23.727901778647823,
+          "eval_score": -23.727901778647823,
+          "eval_seconds": 877.5340414047241,
+          "program_path": "experiments/tsp_gls/mcts_ahd/eval_best_20260722_152153/20260722_152153_tspgls_rep1_sample_449_program.py",
+          "run_name": "20260722_152153_tspgls_rep1"
+        },
+        {
+          "best_operator": "s1",
+          "best_sample_order": 728,
+          "eval_mean_tour_cost": 23.691557496601085,
+          "eval_score": -23.691557496601085,
+          "eval_seconds": 763.1583499908447,
+          "program_path": "experiments/tsp_gls/mcts_ahd/eval_best_20260722_152153/20260722_152153_tspgls_rep2_sample_728_program.py",
+          "run_name": "20260722_152153_tspgls_rep2"
+        },
+        {
+          "best_operator": "e2",
+          "best_sample_order": 493,
+          "eval_mean_tour_cost": 23.594396107686425,
+          "eval_score": -23.594396107686425,
+          "eval_seconds": 767.6450455188751,
+          "program_path": "experiments/tsp_gls/mcts_ahd/eval_best_20260722_152153/20260722_152153_tspgls_rep3_sample_493_program.py",
+          "run_name": "20260722_152153_tspgls_rep3"
+        }
+      ],
+      "summary": {
+        "mean_eval_score": -23.67128512764511,
+        "mean_eval_tour_cost": 23.67128512764511,
+        "num_runs": 3,
+        "num_successful_eval_runs": 3,
+        "sample_std_eval_score": 0.06902295090785837,
+        "sample_std_eval_tour_cost": 0.06902295090785837
+      }
+    },
+    "tsp200": {
+      "eval_config": {
+        "n_instance": 16,
+        "problem_size": 200,
+        "seed": 2025,
+        "timeout_seconds": null
+      },
+      "problem_size": 200,
+      "results": [
+        {
+          "best_operator": "s1",
+          "best_sample_order": 449,
+          "eval_mean_tour_cost": 10.769719673920843,
+          "eval_score": -10.769719673920843,
+          "eval_seconds": 25.998916387557983,
+          "program_path": "experiments/tsp_gls/mcts_ahd/eval_best_20260722_152153/20260722_152153_tspgls_rep1_sample_449_program.py",
+          "run_name": "20260722_152153_tspgls_rep1"
+        },
+        {
+          "best_operator": "s1",
+          "best_sample_order": 728,
+          "eval_mean_tour_cost": 10.790945926929798,
+          "eval_score": -10.790945926929798,
+          "eval_seconds": 22.813650608062744,
+          "program_path": "experiments/tsp_gls/mcts_ahd/eval_best_20260722_152153/20260722_152153_tspgls_rep2_sample_728_program.py",
+          "run_name": "20260722_152153_tspgls_rep2"
+        },
+        {
+          "best_operator": "e2",
+          "best_sample_order": 493,
+          "eval_mean_tour_cost": 10.783018428308091,
+          "eval_score": -10.783018428308091,
+          "eval_seconds": 22.81559419631958,
+          "program_path": "experiments/tsp_gls/mcts_ahd/eval_best_20260722_152153/20260722_152153_tspgls_rep3_sample_493_program.py",
+          "run_name": "20260722_152153_tspgls_rep3"
+        }
+      ],
+      "summary": {
+        "mean_eval_score": -10.781228009719577,
+        "mean_eval_tour_cost": 10.781228009719577,
+        "num_runs": 3,
+        "num_successful_eval_runs": 3,
+        "sample_std_eval_score": 0.010725793828039565,
+        "sample_std_eval_tour_cost": 0.010725793828039565
+      }
+    },
+    "tsp500": {
+      "eval_config": {
+        "n_instance": 16,
+        "problem_size": 500,
+        "seed": 2025,
+        "timeout_seconds": null
+      },
+      "problem_size": 500,
+      "results": [
+        {
+          "best_operator": "s1",
+          "best_sample_order": 449,
+          "eval_mean_tour_cost": 16.859863214927834,
+          "eval_score": -16.859863214927834,
+          "eval_seconds": 179.0815725326538,
+          "program_path": "experiments/tsp_gls/mcts_ahd/eval_best_20260722_152153/20260722_152153_tspgls_rep1_sample_449_program.py",
+          "run_name": "20260722_152153_tspgls_rep1"
+        },
+        {
+          "best_operator": "s1",
+          "best_sample_order": 728,
+          "eval_mean_tour_cost": 16.884064327688975,
+          "eval_score": -16.884064327688975,
+          "eval_seconds": 147.85189056396484,
+          "program_path": "experiments/tsp_gls/mcts_ahd/eval_best_20260722_152153/20260722_152153_tspgls_rep2_sample_728_program.py",
+          "run_name": "20260722_152153_tspgls_rep2"
+        },
+        {
+          "best_operator": "e2",
+          "best_sample_order": 493,
+          "eval_mean_tour_cost": 16.82458883534829,
+          "eval_score": -16.82458883534829,
+          "eval_seconds": 156.55468249320984,
+          "program_path": "experiments/tsp_gls/mcts_ahd/eval_best_20260722_152153/20260722_152153_tspgls_rep3_sample_493_program.py",
+          "run_name": "20260722_152153_tspgls_rep3"
+        }
+      ],
+      "summary": {
+        "mean_eval_score": -16.856172125988365,
+        "mean_eval_tour_cost": 16.856172125988365,
+        "num_runs": 3,
+        "num_successful_eval_runs": 3,
+        "sample_std_eval_score": 0.029909056328493628,
+        "sample_std_eval_tour_cost": 0.029909056328493628
+      }
+    }
+  },
+  "eval_timeout_seconds": null,
+  "method": "mcts_ahd",
+  "model": "/home/fzy/models/Qwen3.6-27B-NVFP4",
+  "problem_sizes": [
+    100,
+    200,
+    500,
+    1000
+  ],
+  "run_records": [
+    {
+      "best_operator": "s1",
+      "best_sample_order": 449,
+      "num_valid_samples": 972,
+      "program_path": "experiments/tsp_gls/mcts_ahd/eval_best_20260722_152153/20260722_152153_tspgls_rep1_sample_449_program.py",
+      "run_dir": "experiments/tsp_gls/mcts_ahd/20260722_152153_tspgls_rep1",
+      "run_name": "20260722_152153_tspgls_rep1",
+      "train_artifact_score": -10.710568435875718,
+      "train_eval_seconds": 26.341936826705933,
+      "train_mean_tour_cost": 10.710568435875718,
+      "train_recomputed_score": -10.710568435875718
+    },
+    {
+      "best_operator": "s1",
+      "best_sample_order": 728,
+      "num_valid_samples": 914,
+      "program_path": "experiments/tsp_gls/mcts_ahd/eval_best_20260722_152153/20260722_152153_tspgls_rep2_sample_728_program.py",
+      "run_dir": "experiments/tsp_gls/mcts_ahd/20260722_152153_tspgls_rep2",
+      "run_name": "20260722_152153_tspgls_rep2",
+      "train_artifact_score": -10.727270015835627,
+      "train_eval_seconds": 22.872143507003784,
+      "train_mean_tour_cost": 10.727270015835627,
+      "train_recomputed_score": -10.727270015835627
+    },
+    {
+      "best_operator": "e2",
+      "best_sample_order": 493,
+      "num_valid_samples": 989,
+      "program_path": "experiments/tsp_gls/mcts_ahd/eval_best_20260722_152153/20260722_152153_tspgls_rep3_sample_493_program.py",
+      "run_dir": "experiments/tsp_gls/mcts_ahd/20260722_152153_tspgls_rep3",
+      "run_name": "20260722_152153_tspgls_rep3",
+      "train_artifact_score": -10.713008726018598,
+      "train_eval_seconds": 22.838501691818237,
+      "train_mean_tour_cost": 10.713008726018598,
+      "train_recomputed_score": -10.713008726018598
+    }
+  ],
+  "score_semantics": "TSPGLSEvaluation returns -mean_tour_cost across instances; higher score is better. mean_tour_cost = -score.",
+  "source": "3 completed mcts_ahd tsp_gls repeat(s)",
+  "split_configs": {
+    "eval_base": {
+      "n_instance": 16,
+      "problem_size": 200,
+      "seed": 2025,
+      "timeout_seconds": null
+    },
+    "train": {
+      "n_instance": 16,
+      "problem_size": 200,
+      "seed": 2024,
+      "timeout_seconds": null
+    }
+  },
+  "summary": {
+    "mean_train_recomputed_score": -10.716949059243314,
+    "mean_train_tour_cost": 10.716949059243314,
+    "num_runs": 3,
+    "sample_std_train_recomputed_score": 0.009021106513652184,
+    "sample_std_train_tour_cost": 0.009021106513652184
+  },
+  "task": "tsp_gls_2O"
+}
