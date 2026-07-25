@@ -1196,10 +1196,18 @@ class TraceAADV5:
     def _evaluate(self, program: Program, *, idea: str, operator) -> EvalResult | None:
         if not self._has_budget():
             return None
-        result, eval_time = self._evaluator.evaluate_program_record_time(program)
+        outcome, eval_time = (
+            self._evaluator.evaluate_program_record_time_with_details(program)
+        )
         self._tot_sample_nums += 1
+        result = outcome.result
         score = result.fitness if isinstance(result, EvalResult) else result
-        function = TextFunctionProgramConverter.program_to_function(program)
+        try:
+            function = copy.deepcopy(
+                program.get_function(self._function_to_evolve.name)
+            )
+        except ValueError:
+            function = None
         if function is not None:
             function.algorithm = idea
             function.score = score
@@ -1207,6 +1215,15 @@ class TraceAADV5:
             function.operator = str(operator)
             if self._profiler is not None:
                 self._profiler.register_function(function, program=str(program))
+        failure = (
+            {}
+            if score is not None
+            else {
+                "failure_kind": outcome.failure_kind,
+                "error_type": outcome.error_type,
+                "error": outcome.error,
+            }
+        )
         log_event(
             self,
             event="program_evaluated",
@@ -1216,6 +1233,7 @@ class TraceAADV5:
             score=score,
             evaluate_time=eval_time,
             counts_budget=True,
+            **failure,
         )
         return None if score is None else EvalResult(fitness=float(score))
 
@@ -1304,15 +1322,46 @@ def _parse_program_candidate(
     function_name: str,
 ) -> Program | None:
     parsed = TextFunctionProgramConverter.text_to_program(code)
-    if parsed is not None and len(parsed.functions) == 1:
-        function = parsed.functions[0]
-        if function.name == function_name:
-            return parsed
+    if parsed is not None:
+        completed = _complete_program(parsed, template_program, function_name)
+        if completed is not None:
+            return completed
     trimmed = SampleTrimmer.sample_to_program(code, template_program)
     if trimmed is None:
         return None
-    function = TextFunctionProgramConverter.program_to_function(trimmed)
-    return trimmed if function is not None and function.name == function_name else None
+    return _complete_program(trimmed, template_program, function_name)
+
+
+def _complete_program(
+    parsed: Program,
+    template_program: Program,
+    function_name: str,
+) -> Program | None:
+    try:
+        parsed.get_function(function_name)
+    except ValueError:
+        return None
+    return Program(
+        preface=_merge_prefaces(template_program.preface, parsed.preface),
+        functions=parsed.functions,
+    )
+
+
+def _merge_prefaces(template_preface: str, generated_preface: str) -> str:
+    future: list[str] = []
+    ordinary: list[str] = []
+    for source in (template_preface, generated_preface):
+        kept: list[str] = []
+        for line in source.splitlines():
+            if line.lstrip().startswith("from __future__"):
+                if line not in future:
+                    future.append(line)
+            else:
+                kept.append(line)
+        block = "\n".join(kept).strip()
+        if block and block not in ordinary:
+            ordinary.append(block)
+    return "\n".join(future + ordinary)
 
 
 def _extract_idea(response: str) -> str | None:

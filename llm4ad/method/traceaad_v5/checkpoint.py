@@ -227,7 +227,13 @@ def _restore_profiler(method) -> None:
     best = method._best_node
     if best is None or best.fitness is None or getattr(profiler, "_num_objs", 1) >= 2:
         return
-    function = TextFunctionProgramConverter.program_to_function(best.code)
+    program = TextFunctionProgramConverter.text_to_program(best.code)
+    function = None
+    if program is not None:
+        try:
+            function = program.get_function(method._function_to_evolve.name)
+        except ValueError:
+            pass
     if function is not None:
         function.score = best.fitness
         function.algorithm = best.idea

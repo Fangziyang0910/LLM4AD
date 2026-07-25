@@ -220,33 +220,36 @@ class CVRPACOEvaluation(Evaluation):
 
     def evaluate(self, heuristic: Callable) -> float | None:
         try:
-            jobs: list[_AcoJob] = []
-            for index, instance in enumerate(self._datasets):
-                distances, demands, prior = self._build_prior(instance, heuristic)
-                jobs.append(
-                    (
-                        distances,
-                        demands,
-                        prior,
-                        self.capacity,
-                        self.n_ants,
-                        self.n_iterations,
-                        self.aco_seed,
-                        index,
-                    )
-                )
-            if self.n_workers <= 1 or len(jobs) <= 1:
-                costs = [_run_aco_job(job) for job in jobs]
-            else:
-                workers = min(self.n_workers, len(jobs))
-                context = multiprocessing.get_context("spawn")
-                with context.Pool(processes=workers) as pool:
-                    costs = pool.map(_run_aco_job, jobs)
+            return self._evaluate_or_raise(heuristic)
         except Exception:
             return None
+
+    def _evaluate_or_raise(self, heuristic: Callable) -> float:
+        jobs: list[_AcoJob] = []
+        for index, instance in enumerate(self._datasets):
+            distances, demands, prior = self._build_prior(instance, heuristic)
+            jobs.append(
+                (
+                    distances,
+                    demands,
+                    prior,
+                    self.capacity,
+                    self.n_ants,
+                    self.n_iterations,
+                    self.aco_seed,
+                    index,
+                )
+            )
+        if self.n_workers <= 1 or len(jobs) <= 1:
+            costs = [_run_aco_job(job) for job in jobs]
+        else:
+            workers = min(self.n_workers, len(jobs))
+            context = multiprocessing.get_context("spawn")
+            with context.Pool(processes=workers) as pool:
+                costs = pool.map(_run_aco_job, jobs)
         return -float(np.mean(costs))
 
     def evaluate_program(
         self, program_str: str, callable_func: Callable, **kwargs
     ) -> Any | None:
-        return self.evaluate(callable_func)
+        return self._evaluate_or_raise(callable_func)

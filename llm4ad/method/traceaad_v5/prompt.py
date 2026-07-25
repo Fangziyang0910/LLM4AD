@@ -39,6 +39,10 @@ def build_initial_prompt(
                 f"{diversity_hint}"
             ),
             "Keep the function name, arguments, return type, and contract unchanged.",
+            (
+                "Imports from the task template remain available. "
+                "You may add small top-level helper functions when they clarify the implementation."
+            ),
             "",
             "Output format:",
             (
@@ -88,6 +92,10 @@ def build_code_prompt(
             ),
             "Keep the target function signature and contract unchanged.",
             "Return exactly one complete implementation.",
+            (
+                "Imports from the current program remain available. "
+                "You may retain or add small top-level helper functions."
+            ),
             "Output only:",
             (
                 "Idea: <one sentence describing the implemented change, "

@@ -93,7 +93,6 @@ class ACO:
             objs = self._gen_sol_obj(sols)
             sols_t = sols.T
             best_obj = float(objs.max())
-            best_idx = int(objs.argmax())
             if best_obj > self.alltime_best_obj:
                 self.alltime_best_obj = best_obj
             self._update_pheromone(sols_t, objs)
@@ -243,33 +242,36 @@ class OPACOEvaluation(Evaluation):
 
     def evaluate(self, heuristic: Callable) -> float | None:
         try:
-            jobs: list[_AcoJob] = []
-            for index, coordinates in enumerate(self._datasets):
-                prizes, distances, prior = self._build_prior(coordinates, heuristic)
-                jobs.append(
-                    (
-                        prizes,
-                        distances,
-                        prior,
-                        self.max_len,
-                        self.n_ants,
-                        self.n_iterations,
-                        self.aco_seed,
-                        index,
-                    )
-                )
-            if self.n_workers <= 1 or len(jobs) <= 1:
-                objs = [_run_aco_job(job) for job in jobs]
-            else:
-                workers = min(self.n_workers, len(jobs))
-                context = multiprocessing.get_context("spawn")
-                with context.Pool(processes=workers) as pool:
-                    objs = pool.map(_run_aco_job, jobs)
+            return self._evaluate_or_raise(heuristic)
         except Exception:
             return None
+
+    def _evaluate_or_raise(self, heuristic: Callable) -> float:
+        jobs: list[_AcoJob] = []
+        for index, coordinates in enumerate(self._datasets):
+            prizes, distances, prior = self._build_prior(coordinates, heuristic)
+            jobs.append(
+                (
+                    prizes,
+                    distances,
+                    prior,
+                    self.max_len,
+                    self.n_ants,
+                    self.n_iterations,
+                    self.aco_seed,
+                    index,
+                )
+            )
+        if self.n_workers <= 1 or len(jobs) <= 1:
+            objs = [_run_aco_job(job) for job in jobs]
+        else:
+            workers = min(self.n_workers, len(jobs))
+            context = multiprocessing.get_context("spawn")
+            with context.Pool(processes=workers) as pool:
+                objs = pool.map(_run_aco_job, jobs)
         return float(np.mean(objs))
 
     def evaluate_program(
         self, program_str: str, callable_func: Callable, **kwargs
     ) -> Any | None:
-        return self.evaluate(callable_func)
+        return self._evaluate_or_raise(callable_func)

@@ -181,6 +181,61 @@ class FirstEvaluationFails(IncreasingEvaluation):
         return None if self.calls == 1 else float(self.calls)
 
 
+class ExecutingEvaluation(Evaluation):
+    TEMPLATE = """import numpy as np
+
+def choose(value: int) -> int:
+    return value
+"""
+
+    def __init__(self) -> None:
+        super().__init__(
+            template_program=self.TEMPLATE,
+            task_description="Improve choose.",
+            use_numba_accelerate=False,
+            safe_evaluate=True,
+            timeout_seconds=10,
+        )
+
+    def evaluate_program(self, program_str, callable_func, **kwargs):
+        return float(callable_func(3))
+
+
+class FunctionOnlyNumpyLLM(LLM):
+    def draw_sample(self, prompt, *args, **kwargs):
+        return (
+            "Idea: use the template NumPy dependency\n"
+            "```python\n"
+            "def choose(value: int) -> int:\n"
+            "    return int(np.asarray([value]).sum())\n"
+            "```"
+        )
+
+
+class HelperFunctionLLM(LLM):
+    def draw_sample(self, prompt, *args, **kwargs):
+        return (
+            "Idea: keep a small reusable helper\n"
+            "```python\n"
+            "def offset(value: int) -> int:\n"
+            "    return value + 2\n\n"
+            "def choose(value: int) -> int:\n"
+            "    return offset(value)\n"
+            "```"
+        )
+
+
+class RuntimeFailureLLM(LLM):
+    def draw_sample(self, prompt, *args, **kwargs):
+        return (
+            "Idea: expose a generated runtime failure\n"
+            "```python\n"
+            "def choose(value: int) -> int:\n"
+            "    raise ValueError('generated failure')\n"
+            "```"
+        )
+
+
 class SingleActionLLM(ScriptedV5LLM):
     def draw_sample(self, prompt, *args, **kwargs):
         if "[Action Contract]" in prompt:
@@ -816,6 +871,71 @@ def test_traceaad_v5_retries_failed_evaluations_until_n_init_is_reached(
     assert result.n_valid_nodes == 2
     assert result.n_trajectories == 2
     assert result.n_edges == 0
+
+
+def test_traceaad_v5_preserves_template_imports_for_function_only_output(
+    tmp_path: Path,
+) -> None:
+    from llm4ad.method.traceaad_v5 import TraceAADV5
+
+    checkpoint_dir = tmp_path / "checkpoints"
+    result = TraceAADV5(
+        llm=FunctionOnlyNumpyLLM(),
+        evaluation=ExecutingEvaluation(),
+        max_sample_nums=1,
+        n_init=1,
+        checkpoint_dir=checkpoint_dir,
+    ).run()
+
+    payload = json.loads((checkpoint_dir / "latest.json").read_text())
+    assert result.n_valid_nodes == 1
+    assert payload["graph"]["nodes"][0]["code"].startswith("import numpy as np")
+
+
+def test_traceaad_v5_accepts_small_top_level_helper_functions(
+    tmp_path: Path,
+) -> None:
+    from llm4ad.method.traceaad_v5 import TraceAADV5
+
+    checkpoint_dir = tmp_path / "checkpoints"
+    result = TraceAADV5(
+        llm=HelperFunctionLLM(),
+        evaluation=ExecutingEvaluation(),
+        max_sample_nums=1,
+        n_init=1,
+        checkpoint_dir=checkpoint_dir,
+    ).run()
+
+    payload = json.loads((checkpoint_dir / "latest.json").read_text())
+    assert result.best_node is not None
+    assert result.best_node.fitness == 5.0
+    assert "def offset" in payload["graph"]["nodes"][0]["code"]
+
+
+def test_traceaad_v5_logs_structured_evaluation_failures(tmp_path: Path) -> None:
+    from llm4ad.method.traceaad_v5 import TraceAADProfiler, TraceAADV5
+
+    log_dir = tmp_path / "logs"
+    TraceAADV5(
+        llm=RuntimeFailureLLM(),
+        evaluation=ExecutingEvaluation(),
+        profiler=TraceAADProfiler(
+            log_dir=str(log_dir), log_style="simple", create_random_path=False
+        ),
+        max_sample_nums=1,
+        n_init=1,
+        checkpoint_dir=log_dir / "checkpoints",
+    ).run()
+
+    events = [
+        json.loads(line)
+        for line in (log_dir / "method_events.jsonl").read_text().splitlines()
+    ]
+    failure = next(event for event in events if event["event"] == "program_evaluated")
+    assert failure["status"] == "eval_failed"
+    assert failure["failure_kind"] == "runtime_error"
+    assert failure["error_type"] == "ValueError"
+    assert failure["error"] == "generated failure"
 
 
 def test_traceaad_v5_never_lets_parsimony_override_a_better_long_program(

@@ -20,14 +20,26 @@
 from __future__ import annotations
 
 import multiprocessing
+import queue
 import sys
 import time
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Any, Literal
 
 from .code import TextFunctionProgramConverter, Program
 from .modify_code import ModifyCode
 import traceback
+
+
+@dataclass(frozen=True)
+class EvaluationOutcome:
+    """Result and a compact reason when generated code cannot be evaluated."""
+
+    result: Any | None
+    failure_kind: str | None = None
+    error_type: str | None = None
+    error: str | None = None
 
 
 class Evaluation(ABC):
@@ -152,8 +164,7 @@ class SecureEvaluator:
             elif fork_proc is False:
                 multiprocessing.set_start_method('spawn', force=True)
 
-    def _modify_program_code(self, program_str: str) -> str:
-        function_name = TextFunctionProgramConverter.text_to_function(program_str).name
+    def _modify_program_code(self, program_str: str, function_name: str) -> str:
         if self._evaluator.use_numba_accelerate:
             program_str = ModifyCode.add_numba_decorator(
                 program_str, function_name=function_name
@@ -169,12 +180,16 @@ class SecureEvaluator:
         return program_str
 
     def evaluate_program(self, program: str | Program, **kwargs):
+        return self.evaluate_program_with_details(program, **kwargs).result
+
+    def evaluate_program_with_details(
+            self, program: str | Program, **kwargs
+    ) -> EvaluationOutcome:
         try:
             program_str = str(program)
-            # record function name BEFORE modifying program code
-            function_name = TextFunctionProgramConverter.text_to_function(program_str).name
+            function_name = self._target_function_name()
 
-            program_str = self._modify_program_code(program_str)
+            program_str = self._modify_program_code(program_str, function_name)
             if self._debug_mode:
                 print(f'DEBUG: evaluated program:\n{program_str}\n')
 
@@ -182,92 +197,141 @@ class SecureEvaluator:
             if self._evaluator.safe_evaluate:
                 result_queue = multiprocessing.Queue()
                 process = multiprocessing.Process(
-                    target=self._evaluate_in_safe_process,
+                    target=self._evaluate_in_safe_process_with_details,
                     args=(program_str, function_name, result_queue),
                     kwargs=kwargs,
                     daemon=self._evaluator.daemon_eval_process
                 )
                 process.start()
 
-                if self._evaluator.timeout_seconds is not None:
-                    try:
-                        # get the result in timeout seconds
-                        result = result_queue.get(timeout=self._evaluator.timeout_seconds)
-                        # after getting the result, terminate/kill the process
-                        process.terminate()
-                        process.join(timeout=5)
-                        if process.is_alive():
-                            process.kill()
-                            process.join()
-                    except:
-                        # timeout
-                        if self._debug_mode:
-                            print(f'DEBUG: the evaluation time exceeds {self._evaluator.timeout_seconds}s.')
-                        process.terminate()
-                        process.join(timeout=5)
-                        if process.is_alive():
-                            process.kill()
-                            process.join()
-                        result = None
-                else:
-                    result = result_queue.get()
+                try:
+                    if self._evaluator.timeout_seconds is None:
+                        outcome = result_queue.get()
+                    else:
+                        outcome = result_queue.get(
+                            timeout=self._evaluator.timeout_seconds
+                        )
+                except queue.Empty:
+                    if self._debug_mode:
+                        print(
+                            'DEBUG: the evaluation time exceeds '
+                            f'{self._evaluator.timeout_seconds}s.'
+                        )
+                    outcome = EvaluationOutcome(
+                        result=None,
+                        failure_kind='timeout',
+                        error_type='TimeoutError',
+                        error=(
+                            'evaluation exceeded '
+                            f'{self._evaluator.timeout_seconds}s'
+                        ),
+                    )
+                finally:
                     process.terminate()
                     process.join(timeout=5)
                     if process.is_alive():
                         process.kill()
                         process.join()
-                return result
+                return outcome
             else:
-                return self._evaluate(program_str, function_name, **kwargs)
+                return self._evaluate_with_details(
+                    program_str, function_name, **kwargs
+                )
         except Exception as e:
             if self._debug_mode:
                 print("DEBUG: Exception occurred in evaluate_program:")
                 traceback.print_exc()  # 这将打印完整红色报错信息
-            return None
+            return self._failure('prepare_error', e)
 
     def evaluate_program_record_time(self, program: str | Program, **kwargs):
         evaluate_start = time.time()
         result = self.evaluate_program(program, **kwargs)
         return result, time.time() - evaluate_start
 
-    def _evaluate_in_safe_process(self, program_str: str, function_name, result_queue: multiprocessing.Queue, **kwargs):
+    def evaluate_program_record_time_with_details(
+            self, program: str | Program, **kwargs
+    ) -> tuple[EvaluationOutcome, float]:
+        evaluate_start = time.time()
+        outcome = self.evaluate_program_with_details(program, **kwargs)
+        return outcome, time.time() - evaluate_start
+
+    def _target_function_name(self) -> str:
+        source = self._evaluator.template_program
+        template = (
+            source
+            if isinstance(source, Program)
+            else TextFunctionProgramConverter.text_to_program(source)
+        )
+        if template is None or len(template.functions) != 1:
+            raise ValueError('evaluation template must define one target function')
+        return template.functions[0].name
+
+    def _evaluate_in_safe_process_with_details(
+            self,
+            program_str: str,
+            function_name: str,
+            result_queue: multiprocessing.Queue,
+            **kwargs,
+    ) -> None:
         try:
             if self._evaluator.exec_code:
-                # compile the program, and maps the global func/var/class name to its address
                 all_globals_namespace = {}
-                # execute the program, map func/var/class to global namespace
                 exec(program_str, all_globals_namespace)
-                # get the pointer of 'function_to_run'
                 program_callable = all_globals_namespace[function_name]
             else:
                 program_callable = None
+        except Exception as exc:
+            result_queue.put(self._failure('exec_error', exc))
+            return
 
-            # get evaluate result
+        try:
             res = self._evaluator.evaluate_program(program_str, program_callable, **kwargs)
-            result_queue.put(res)
-        except Exception as e:
+            result_queue.put(self._outcome(res))
+        except Exception as exc:
             if self._debug_mode:
                 print("DEBUG: Exception occurred in evaluate_program:")
                 traceback.print_exc()  # 这将打印完整红色报错信息
-            result_queue.put(None)
+            result_queue.put(self._failure('runtime_error', exc))
 
-    def _evaluate(self, program_str: str, function_name, **kwargs):
+    def _evaluate_with_details(self, program_str: str, function_name, **kwargs):
         try:
             if self._evaluator.exec_code:
-                # compile the program, and maps the global func/var/class name to its address
                 all_globals_namespace = {}
-                # execute the program, map func/var/class to global namespace
                 exec(program_str, all_globals_namespace)
-                # get the pointer of 'function_to_run'
                 program_callable = all_globals_namespace[function_name]
             else:
                 program_callable = None
+        except Exception as exc:
+            return self._failure('exec_error', exc)
 
-            # get evaluate result
+        try:
             res = self._evaluator.evaluate_program(program_str, program_callable, **kwargs)
-            return res
-        except Exception as e:
+            return self._outcome(res)
+        except Exception as exc:
             if self._debug_mode:
                 print("DEBUG: Exception occurred in evaluate_program:")
                 traceback.print_exc()  # 这将打印完整红色报错信息
-            return None
+            return self._failure('runtime_error', exc)
+
+    @staticmethod
+    def _outcome(result: Any | None) -> EvaluationOutcome:
+        if result is None:
+            return EvaluationOutcome(
+                result=None,
+                failure_kind='invalid_result',
+                error_type='InvalidEvaluationResult',
+                error='evaluator returned None',
+            )
+        return EvaluationOutcome(result=result)
+
+    @staticmethod
+    def _failure(kind: str, exc: Exception) -> EvaluationOutcome:
+        message = str(exc)
+        if len(message) > 1000:
+            message = message[:997] + '...'
+        return EvaluationOutcome(
+            result=None,
+            failure_kind=kind,
+            error_type=type(exc).__name__,
+            error=message,
+        )

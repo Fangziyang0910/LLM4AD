@@ -7,6 +7,7 @@ from llm4ad.task.optimization.generated_data_config import (
     get_generated_task_kwargs,
 )
 from llm4ad.task.optimization.online_bin_packing import OBPEvaluation
+from llm4ad.task.optimization.online_bin_packing.template import task_description
 from llm4ad.task.optimization.online_bin_packing.generate_weibull_instances import (
     generate_weibull_multiscale_dataset,
 )
@@ -37,6 +38,12 @@ def test_obp_protocol_exposes_fixed_multicapacity_training_set():
         ("5k_100_instance_0", 5000, 100),
         ("5k_500_instance_0", 5000, 500),
     )
+
+
+def test_obp_prompt_exposes_integer_dtype_and_float_output_contract():
+    assert "integer dtype" in task_description
+    assert "finite floating-point array" in task_description
+    assert "cast integer-derived arrays" in task_description
 
 
 def test_obp_protocol_exposes_separate_fixed_multiscale_test_set():
