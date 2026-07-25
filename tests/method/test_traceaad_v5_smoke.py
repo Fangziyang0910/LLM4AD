@@ -24,17 +24,7 @@ class ScriptedV5LLM(LLM):
             return self._program(self.calls)
         if "[Requested Modification]" in prompt:
             return self._program(self.calls)
-        return json.dumps(
-            [
-                {
-                    "relation": "continue",
-                    "evidence_edges": [],
-                    "reference_evidence_edges": [],
-                    "change": "Add one deterministic offset to the current rule.",
-                    "novel_difference": "",
-                }
-            ]
-        )
+        return "1. Add one deterministic offset to the current rule."
 
     @staticmethod
     def _program(value: int) -> str:
@@ -82,18 +72,7 @@ class V5MechanismLLM(ScriptedV5LLM):
             return self._program(self.calls)
         if "[Requested Modification]" in prompt:
             return self._program(self.calls)
-        relation = "transfer" if "name=trace_transfer" in prompt else "continue"
-        return json.dumps(
-            [
-                {
-                    "relation": relation,
-                    "evidence_edges": [],
-                    "reference_evidence_edges": [],
-                    "change": "Adapt one deterministic offset without adding branches.",
-                    "novel_difference": "",
-                }
-            ]
-        )
+        return "1. Adapt one deterministic offset without adding branches."
 
 
 class RecoveringReflectionLLM(V5MechanismLLM):
@@ -127,24 +106,7 @@ class TwoActionReflectionLLM(V5MechanismLLM):
             self.calls += 1
             self.prompts.append(str(prompt))
             long_change = "尝试调整当前算法状态中的一个局部决策规则，观察真实适应度反馈。" * 8
-            return json.dumps(
-                [
-                    {
-                        "relation": "continue",
-                        "evidence_edges": [],
-                        "reference_evidence_edges": [],
-                        "change": long_change,
-                        "novel_difference": "",
-                    },
-                    {
-                        "relation": "redirect",
-                        "evidence_edges": [],
-                        "reference_evidence_edges": [],
-                        "change": long_change,
-                        "novel_difference": "",
-                    },
-                ]
-            )
+            return f"1. {long_change}\n2. {long_change}"
         return super().draw_sample(prompt, *args, **kwargs)
 
 
@@ -155,17 +117,7 @@ class ParsimonyLLM(LLM):
 
     def draw_sample(self, prompt, *args, **kwargs):
         if "[Action Contract]" in prompt:
-            return json.dumps(
-                [
-                    {
-                        "relation": "consolidate",
-                        "evidence_edges": [],
-                        "reference_evidence_edges": [],
-                        "change": "Remove redundant assignments.",
-                        "novel_difference": "",
-                    }
-                ]
-            )
+            return "1. Remove redundant assignments."
         self.program_draws += 1
         bodies = {
             1: "    copied = value\n    redundant = copied\n    return redundant\n",
@@ -187,28 +139,31 @@ class ConstantEvaluation(IncreasingEvaluation):
         return 1.0
 
 
-class PartiallyValidActionLLM(ScriptedV5LLM):
+class SingleActionLLM(ScriptedV5LLM):
     def draw_sample(self, prompt, *args, **kwargs):
         if "[Action Contract]" in prompt:
-            return json.dumps(
-                [
-                    {
-                        "relation": "continue",
-                        "evidence_edges": ["e999"],
-                        "reference_evidence_edges": [],
-                        "change": "This object has a fabricated citation.",
-                        "novel_difference": "",
-                    },
-                    {
-                        "relation": "redirect",
-                        "evidence_edges": [],
-                        "reference_evidence_edges": [],
-                        "change": "Try one uncited but explicit hypothesis.",
-                        "novel_difference": "",
-                    },
-                ]
-            )
+            return "1. Try one explicit hypothesis even when only one action is returned."
         return super().draw_sample(prompt, *args, **kwargs)
+
+
+class NaturalLanguageActionLLM(ScriptedV5LLM):
+    ACTIONS = (
+        "Replace the fixed offset with a state-dependent adjustment, unlike the "
+        "previous constant rule.",
+        "Simplify the current rule by removing the redundant branch while preserving "
+        "its useful behavior.",
+    )
+
+    def draw_sample(self, prompt, *args, **kwargs):
+        self.calls += 1
+        self.prompts.append(str(prompt))
+        if "Generate a complete implementation" in prompt:
+            return self._program(self.calls)
+        if "[Requested Modification]" in prompt:
+            return self._program(self.calls)
+        return "\n".join(
+            f"{index}. {action}" for index, action in enumerate(self.ACTIONS, start=1)
+        )
 
 
 def test_traceaad_v5_has_an_independent_public_method_class() -> None:
@@ -219,7 +174,7 @@ def test_traceaad_v5_has_an_independent_public_method_class() -> None:
     assert TraceAADV5.__module__.startswith("llm4ad.method.traceaad_v5")
 
 
-def test_traceaad_v5_runs_structured_actions_and_writes_v5_state(
+def test_traceaad_v5_runs_text_actions_and_writes_v5_state(
     tmp_path: Path,
 ) -> None:
     from llm4ad.method.traceaad_v5 import TraceAADV5
@@ -239,7 +194,7 @@ def test_traceaad_v5_runs_structured_actions_and_writes_v5_state(
     assert result.n_samples == 4
     assert result.n_edges == 2
     payload = json.loads((checkpoint_dir / "latest.json").read_text(encoding="utf-8"))
-    assert payload["format_version"] == 7
+    assert payload["format_version"] == 8
     assert all(
         {"program_loc", "code_hash"} <= set(node) for node in payload["graph"]["nodes"]
     )
@@ -247,7 +202,7 @@ def test_traceaad_v5_runs_structured_actions_and_writes_v5_state(
         len(route["node_ids"]) == len(route["edge_ids"]) + 1
         for route in payload["memory"]["trajectories"]
     )
-    assert payload["graph"]["edges"][0]["change"].startswith("Add one")
+    assert payload["graph"]["edges"][0]["action"].startswith("Add one")
 
 
 def test_traceaad_v5_keeps_full_paths_beyond_the_prompt_window(
@@ -486,7 +441,7 @@ def test_traceaad_v5_prefers_shorter_exact_ties_without_clone_churn(
     assert payload["graph"]["edges"][1]["new_global_best"] is False
 
 
-def test_traceaad_v5_executes_the_valid_subset_of_structured_actions(
+def test_traceaad_v5_executes_an_available_text_action(
     tmp_path: Path,
 ) -> None:
     from llm4ad.method.traceaad_v5 import TraceAADV5
@@ -494,7 +449,7 @@ def test_traceaad_v5_executes_the_valid_subset_of_structured_actions(
 
     checkpoint_dir = tmp_path / "checkpoints"
     result = TraceAADV5(
-        llm=PartiallyValidActionLLM(),
+        llm=SingleActionLLM(),
         evaluation=IncreasingEvaluation(),
         max_sample_nums=2,
         n_init=1,
@@ -509,6 +464,57 @@ def test_traceaad_v5_executes_the_valid_subset_of_structured_actions(
     payload = json.loads((checkpoint_dir / "latest.json").read_text(encoding="utf-8"))
     assert result.n_samples == 2
     assert result.n_edges == 1
-    assert payload["graph"]["edges"][0]["change"] == (
-        "Try one uncited but explicit hypothesis."
+    assert payload["graph"]["edges"][0]["action"] == (
+        "Try one explicit hypothesis even when only one action is returned."
+    )
+
+
+def test_traceaad_v5_executes_natural_language_actions_without_metadata_fields(
+    tmp_path: Path,
+) -> None:
+    from llm4ad.method.traceaad_v5 import TraceAADV5
+    from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
+
+    llm = NaturalLanguageActionLLM()
+    checkpoint_dir = tmp_path / "checkpoints"
+    result = TraceAADV5(
+        llm=llm,
+        evaluation=IncreasingEvaluation(),
+        max_sample_nums=3,
+        n_init=1,
+        actions_per_iteration=2,
+        max_active_trajectories=2,
+        operators=(TraceIdeateOp,),
+        global_reflection_interval=20,
+        max_stalled_iterations=1,
+        random_seed=0,
+        checkpoint_dir=checkpoint_dir,
+    ).run()
+
+    payload = json.loads((checkpoint_dir / "latest.json").read_text(encoding="utf-8"))
+    action_prompts = [
+        prompt for prompt in llm.prompts if "[Action Contract]" in prompt
+    ]
+    code_prompts = [
+        prompt for prompt in llm.prompts if "[Requested Modification]" in prompt
+    ]
+
+    assert result.n_samples == 3
+    assert result.n_edges == 2
+    assert len(action_prompts) == 1
+    assert "numbered list" in action_prompts[0]
+    assert "Return a JSON array" not in action_prompts[0]
+    assert [edge["action"] for edge in payload["graph"]["edges"]] == list(
+        NaturalLanguageActionLLM.ACTIONS
+    )
+    assert all(
+        edge["operator"] == "trace_ideate"
+        and edge["primary_trajectory_id"] == 0
+        and edge["root_lineage_id"] == 0
+        and edge["anchor_role"] == "endpoint_compact_best"
+        for edge in payload["graph"]["edges"]
+    )
+    assert all(
+        any(action in prompt for prompt in code_prompts)
+        for action in NaturalLanguageActionLLM.ACTIONS
     )

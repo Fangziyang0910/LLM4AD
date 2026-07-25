@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import json
 import math
 import random
 import re
@@ -47,12 +46,10 @@ from .operators import DEFAULT_OPERATORS, Operator, classify_outcome
 from .operators.semantic import TraceSynthesizeOp
 from .prompt import build_code_prompt, build_initial_prompt
 from .schema import (
-    ActionRelation,
     EvalResult,
     GlobalExperienceEntry,
     OperatorName,
     ProgramNode,
-    StructuredAction,
     Trajectory,
 )
 from .similarity import code_similarity
@@ -495,7 +492,7 @@ class TraceAADV5:
                 iteration=attempt_id,
                 seq=seq,
                 operator=operator.name,
-                action=action.change,
+                action=action,
             )
             if generated is None:
                 continue
@@ -573,8 +570,7 @@ class TraceAADV5:
                 trajectory=child_route,
                 parent_id=anchor_id,
                 edge_id=edge.id,
-                action=action.change,
-                relation=action.relation,
+                action=action,
                 delta_parent=delta_parent,
                 delta_route_best=delta_route,
                 delta_global_best=delta_global,
@@ -835,7 +831,7 @@ class TraceAADV5:
         *,
         operator: Operator,
         iteration: int,
-    ) -> list[StructuredAction]:
+    ) -> list[str]:
         start = time.time()
         try:
             response = self._llm.draw_sample(context.prompt)
@@ -853,18 +849,9 @@ class TraceAADV5:
                 iteration=iteration,
             )
             return []
-        allowed_primary = set(context.primary_edge_ids)
-        allowed_primary.update(
-            edge
-            for entry in self._global_experience_entries
-            for edge in entry.evidence_edge_ids
-        )
         actions, errors = _parse_actions(
             response,
             expected_count=self._actions_per_iteration,
-            operator=operator.name,
-            allowed_primary_edges=allowed_primary,
-            allowed_reference_edges=set(context.reference_edge_ids),
         )
         log_llm_call(
             self,
@@ -879,7 +866,7 @@ class TraceAADV5:
             prompt_tokens=context.token_count,
             response_tokens=self._count_tokens(response),
             token_count_mode=self._token_count_mode,
-            parsed_actions=[_action_dict(action) for action in actions],
+            parsed_actions=actions,
             parse_errors=errors,
             status="ok" if actions else "parse_failed",
         )
@@ -1293,91 +1280,27 @@ def _parse_actions(
     response: str,
     *,
     expected_count: int,
-    operator: OperatorName,
-    allowed_primary_edges: set[int],
-    allowed_reference_edges: set[int],
-) -> tuple[list[StructuredAction], list[str]]:
-    try:
-        payload = json.loads(response)
-    except (TypeError, json.JSONDecodeError) as exc:
-        return [], [f"invalid_json:{exc}"]
-    if not isinstance(payload, list):
-        return [], ["top_level_must_be_array"]
-    actions: list[StructuredAction] = []
-    errors: list[str] = []
-    for index, raw in enumerate(payload[:expected_count]):
-        if not isinstance(raw, dict):
-            errors.append(f"{index}:object_required")
-            continue
-        try:
-            relation = ActionRelation(str(raw["relation"]))
-            primary = tuple(_parse_edge_id(value) for value in raw["evidence_edges"])
-            reference = tuple(
-                _parse_edge_id(value) for value in raw["reference_evidence_edges"]
-            )
-            change = str(raw["change"]).strip()
-            novel = str(raw.get("novel_difference", "")).strip()
-        except (KeyError, TypeError, ValueError) as exc:
-            errors.append(f"{index}:invalid_fields:{exc}")
-            continue
-        if not change or len(change) > 400 or len(novel) > 200:
-            errors.append(f"{index}:text_length")
-            continue
-        if any(edge not in allowed_primary_edges for edge in primary):
-            errors.append(f"{index}:invalid_primary_evidence")
-            continue
-        if any(edge not in allowed_reference_edges for edge in reference):
-            errors.append(f"{index}:invalid_reference_evidence")
-            continue
-        if (
-            operator == OperatorName.SYNTHESIZE
-            and relation != ActionRelation.SYNTHESIZE
-        ):
-            errors.append(f"{index}:synthesize_relation_required")
-            continue
-        if operator == OperatorName.TRANSFER and relation != ActionRelation.TRANSFER:
-            errors.append(f"{index}:transfer_relation_required")
-            continue
-        if operator not in (
-            OperatorName.SYNTHESIZE,
-            OperatorName.TRANSFER,
-        ) and relation in (
-            ActionRelation.SYNTHESIZE,
-            ActionRelation.TRANSFER,
-        ):
-            errors.append(f"{index}:cross_relation_not_allowed")
-            continue
-        actions.append(
-            StructuredAction(
-                relation=relation,
-                evidence_edges=primary,
-                reference_evidence_edges=reference,
-                change=change,
-                novel_difference=novel,
-            )
+) -> tuple[list[str], list[str]]:
+    actions: list[str] = []
+    for line in str(response).strip().splitlines():
+        match = re.match(
+            r"^(?:[-*]\s*)?(?:\d+[\.\)]\s*)?"
+            r"(?:Action\s*\d*\s*:\s*)?(?P<action>.+)$",
+            line.strip(),
+            flags=re.IGNORECASE,
         )
-    if len(payload) != expected_count:
-        errors.append(f"expected_{expected_count}_objects_got_{len(payload)}")
+        if match is None:
+            continue
+        action = match.group("action").strip()
+        if action and not action.startswith(("#", "`", "{", "[")):
+            actions.append(action)
+    actions = actions[:expected_count]
+    errors = (
+        []
+        if len(actions) == expected_count
+        else [f"expected_{expected_count}_actions_got_{len(actions)}"]
+    )
     return actions, errors
-
-
-def _parse_edge_id(value) -> int:
-    if isinstance(value, int):
-        return value
-    text = str(value).strip().lower()
-    if text.startswith("e"):
-        text = text[1:]
-    return int(text)
-
-
-def _action_dict(action: StructuredAction) -> dict:
-    return {
-        "relation": action.relation.value,
-        "evidence_edges": list(action.evidence_edges),
-        "reference_evidence_edges": list(action.reference_evidence_edges),
-        "change": action.change,
-        "novel_difference": action.novel_difference,
-    }
 
 
 def _parse_program_response(

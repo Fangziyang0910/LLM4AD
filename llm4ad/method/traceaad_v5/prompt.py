@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 
 from ...base import Function
-from .schema import ProgramNode, StructuredAction
+from .schema import ProgramNode
 
 
 def format_fitness(fitness: float | None) -> str:
@@ -51,7 +51,7 @@ def build_initial_prompt(
 def build_code_prompt(
     *,
     current_node: ProgramNode,
-    action: StructuredAction,
+    action: str,
     task_description: str,
     template_function: Function,
     primary_history: str,
@@ -94,9 +94,7 @@ def build_code_prompt(
         [
             "",
             "[Requested Modification]",
-            f"relation={action.relation}",
-            f"change={action.change}",
-            f"novel_difference={action.novel_difference or 'none'}",
+            action.strip(),
             "",
             "[Operator Constraint]",
             operator_constraint,

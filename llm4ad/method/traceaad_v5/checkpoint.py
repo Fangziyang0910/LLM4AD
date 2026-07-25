@@ -12,7 +12,6 @@ from typing import Any, Mapping
 from ...base import TextFunctionProgramConverter
 from .derivation_graph import DerivationGraph
 from .schema import (
-    ActionRelation,
     ExperienceKind,
     GlobalExperienceEntry,
     ImprovementEdge,
@@ -24,7 +23,7 @@ from .schema import (
 )
 from .trajectory_memory import TrajectoryMemory
 
-CHECKPOINT_VERSION = 7
+CHECKPOINT_VERSION = 8
 
 
 def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
@@ -72,13 +71,7 @@ def _graph_from_dict(payload: Mapping[str, Any]) -> DerivationGraph:
             parent_id=int(item["parent_id"]),
             child_id=int(item["child_id"]),
             operator=OperatorName(item["operator"]),
-            relation=ActionRelation(item["relation"]),
-            evidence_edge_ids=tuple(int(x) for x in item["evidence_edge_ids"]),
-            reference_evidence_edge_ids=tuple(
-                int(x) for x in item["reference_evidence_edge_ids"]
-            ),
-            change=str(item["change"]),
-            novel_difference=str(item.get("novel_difference", "")),
+            action=str(item["action"]),
             anchor_role=str(item["anchor_role"]),
             primary_trajectory_id=int(item["primary_trajectory_id"]),
             root_lineage_id=int(item["root_lineage_id"]),

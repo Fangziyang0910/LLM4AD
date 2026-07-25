@@ -191,19 +191,22 @@ def _render_edge_experience(graph: DerivationGraph, edge_id: int) -> str:
     edge = graph.get_edge(edge_id)
     parent = graph.get_node(edge.parent_id)
     child = graph.get_node(edge.child_id)
-    cited = tuple(
-        dict.fromkeys((*edge.evidence_edge_ids, *edge.reference_evidence_edge_ids))
+    reference = (
+        "none"
+        if edge.reference_trajectory_id is None
+        else (
+            f"trajectory={edge.reference_trajectory_id},"
+            f"program={edge.reference_program_id}"
+        )
     )
-    citation = "none" if not cited else ",".join(f"e{item}" for item in cited)
     return (
-        f"- e{edge.id} | {edge.operator.value}/{edge.relation.value} | "
-        f"tried={_one_line(edge.change, 120)} | "
+        f"- e{edge.id} | operator={edge.operator.value}; reference={reference} | "
+        f"tried={_one_line(edge.action, 120)} | "
         f"result={edge.outcome}; parent={_score(parent.fitness)} "
         f"child={_score(child.fitness)}; "
         f"delta_parent={_score(edge.delta_parent)} "
         f"delta_route={_score(edge.delta_route_best)} "
-        f"delta_global={_score(edge.delta_global_best)} | "
-        f"builds_on={citation}"
+        f"delta_global={_score(edge.delta_global_best)}"
     )
 
 

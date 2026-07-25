@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from ...base import Function
 from .derivation_graph import DerivationGraph
 from .prompt import fitness_direction_hint, format_fitness
-from .schema import GlobalExperienceEntry, StructuredAction, Trajectory
+from .schema import GlobalExperienceEntry, Trajectory
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,9 +79,9 @@ def _render_edges(
             [
                 (
                     f"Edge e{edge.id}: p{parent.id} -> p{child.id} "
-                    f"[operator={edge.operator}, relation={edge.relation}]"
+                    f"[operator={edge.operator}]"
                 ),
-                f"  claimed change: {edge.change}",
+                f"  action: {edge.action}",
                 (
                     f"  fitness: {format_fitness(parent.fitness)} -> "
                     f"{format_fitness(child.fitness)} "
@@ -198,43 +198,30 @@ def build_action_prompt(
             str(target).rstrip(),
             "",
             "[Action Contract]",
-            f"Return a JSON array containing exactly {action_count} objects.",
             (
-                'Each object must contain: "relation", "evidence_edges", '
-                '"reference_evidence_edges", "change", "novel_difference".'
+                "Use the selected operator and all provided context to decide the next "
+                "algorithmic modification."
             ),
             (
-                "relation must be one of continue, repair, rollback, redirect, "
-                "consolidate, synthesize, transfer."
+                f"Propose exactly {action_count} concrete, self-contained action lines. "
+                "Each action must state what to change and how it differs from relevant "
+                "attempts already shown in the histories."
             ),
-            "Evidence ids must be visible e<number> ids; empty arrays are allowed.",
-            "change must be self-contained and at most 400 characters.",
-            "novel_difference must be at most 200 characters.",
-            "Return JSON only, without markdown or rationale.",
+            (
+                "For synthesize or transfer, state which reference principle to use and "
+                "how it should be adapted in the primary program."
+            ),
+            (
+                f"Return only a numbered list of exactly {action_count} single-line "
+                "actions, without JSON, code, evidence ids, or separate rationale."
+            ),
         ]
     )
     return "\n".join(sections).strip()
 
 
-def action_text(action: StructuredAction) -> str:
-    evidence = ", ".join(f"e{edge}" for edge in action.evidence_edges) or "none"
-    reference = (
-        ", ".join(f"e{edge}" for edge in action.reference_evidence_edges) or "none"
-    )
-    return "\n".join(
-        [
-            f"relation={action.relation}",
-            f"primary/global evidence={evidence}",
-            f"reference evidence={reference}",
-            f"change={action.change}",
-            f"novel_difference={action.novel_difference or 'none'}",
-        ]
-    )
-
-
 __all__ = [
     "RenderedHistory",
-    "action_text",
     "build_action_prompt",
     "render_global_experience",
     "trajectory_history",

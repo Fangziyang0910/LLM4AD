@@ -23,16 +23,6 @@ class OperatorName(StrEnum):
     TRANSFER = "trace_transfer"
 
 
-class ActionRelation(StrEnum):
-    CONTINUE = "continue"
-    REPAIR = "repair"
-    ROLLBACK = "rollback"
-    REDIRECT = "redirect"
-    CONSOLIDATE = "consolidate"
-    SYNTHESIZE = "synthesize"
-    TRANSFER = "transfer"
-
-
 class ExperienceKind(StrEnum):
     EFFECTIVE = "effective"
     PITFALL = "pitfall"
@@ -42,15 +32,6 @@ class ExperienceKind(StrEnum):
 @dataclass(frozen=True, slots=True)
 class EvalResult:
     fitness: float | None
-
-
-@dataclass(frozen=True, slots=True)
-class StructuredAction:
-    relation: ActionRelation
-    evidence_edges: tuple[EdgeId, ...]
-    reference_evidence_edges: tuple[EdgeId, ...]
-    change: str
-    novel_difference: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,11 +50,7 @@ class ImprovementEdge:
     parent_id: NodeId
     child_id: NodeId
     operator: OperatorName
-    relation: ActionRelation
-    evidence_edge_ids: tuple[EdgeId, ...]
-    reference_evidence_edge_ids: tuple[EdgeId, ...]
-    change: str
-    novel_difference: str
+    action: str
     anchor_role: str
     primary_trajectory_id: TrajectoryId
     root_lineage_id: int
@@ -88,11 +65,6 @@ class ImprovementEdge:
     iteration: int | None = None
     new_global_best: bool = False
     global_best_update_reason: str | None = None
-
-    @property
-    def action(self) -> str:
-        """Compatibility label for generic observability and similarity code."""
-        return self.change
 
     @property
     def delta(self) -> float | None:
@@ -131,7 +103,6 @@ class GlobalExperienceEntry:
 
 
 __all__ = [
-    "ActionRelation",
     "EdgeId",
     "EvalResult",
     "ExperienceKind",
@@ -140,7 +111,6 @@ __all__ = [
     "NodeId",
     "OperatorName",
     "ProgramNode",
-    "StructuredAction",
     "Trajectory",
     "TrajectoryId",
     "TrajectoryStatus",
