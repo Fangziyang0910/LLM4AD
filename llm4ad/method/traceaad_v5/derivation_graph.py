@@ -48,7 +48,6 @@ class DerivationGraph:
         operator,
         anchor_role: str,
         primary_trajectory_id: TrajectoryId,
-        root_lineage_id: int,
         **fields,
     ) -> ImprovementEdge:
         if parent_id not in self._nodes:
@@ -67,7 +66,6 @@ class DerivationGraph:
             action=action,
             anchor_role=anchor_role,
             primary_trajectory_id=primary_trajectory_id,
-            root_lineage_id=root_lineage_id,
             reference_trajectory_id=fields.get("reference_trajectory_id"),
             reference_program_id=fields.get("reference_program_id"),
             delta_parent=fields.get("delta_parent"),

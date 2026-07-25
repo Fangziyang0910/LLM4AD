@@ -23,12 +23,6 @@ class OperatorName(StrEnum):
     TRANSFER = "trace_transfer"
 
 
-class ExperienceKind(StrEnum):
-    EFFECTIVE = "effective"
-    PITFALL = "pitfall"
-    EXPLORE = "explore"
-
-
 @dataclass(frozen=True, slots=True)
 class EvalResult:
     fitness: float | None
@@ -53,7 +47,6 @@ class ImprovementEdge:
     action: str
     anchor_role: str
     primary_trajectory_id: TrajectoryId
-    root_lineage_id: int
     reference_trajectory_id: TrajectoryId | None = None
     reference_program_id: NodeId | None = None
     delta_parent: float | None = None
@@ -82,7 +75,6 @@ class ValueVec:
 @dataclass(frozen=True, slots=True)
 class Trajectory:
     id: TrajectoryId
-    root_lineage_id: int
     node_ids: tuple[NodeId, ...]
     edge_ids: tuple[EdgeId, ...]
     endpoint_id: NodeId
@@ -93,20 +85,9 @@ class Trajectory:
     value: ValueVec | None = None
     scalar_value: float | None = None
 
-
-@dataclass(frozen=True, slots=True)
-class GlobalExperienceEntry:
-    kind: ExperienceKind
-    statement: str
-    condition: str
-    evidence_edge_ids: tuple[EdgeId, ...]
-
-
 __all__ = [
     "EdgeId",
     "EvalResult",
-    "ExperienceKind",
-    "GlobalExperienceEntry",
     "ImprovementEdge",
     "NodeId",
     "OperatorName",

@@ -14,32 +14,34 @@ class SemanticOperator(Operator):
 class TraceIdeateOp(SemanticOperator):
     name = OperatorName.IDEATE
     prompt_constraint = (
-        "Propose one genuinely new algorithmic idea grounded in the full history. "
-        "Use later regressions and plateaus as tested boundaries."
+        "For each action, propose a genuinely new algorithmic idea grounded in the "
+        "full history. Use later regressions and plateaus as tested boundaries."
     )
 
 
 class TraceRefineOp(SemanticOperator):
     name = OperatorName.REFINE
     prompt_constraint = (
-        "Make one evidence-grounded refinement. You may deepen, repair, replace, "
-        "delete, merge, or simplify existing logic; do not default to adding branches."
+        "For each action, make an evidence-grounded refinement. You may deepen, "
+        "repair, replace, delete, merge, or simplify existing logic; do not default "
+        "to adding branches."
     )
 
 
 class TraceSynthesizeOp(SemanticOperator):
     name = OperatorName.SYNTHESIZE
     prompt_constraint = (
-        "Extract one supported principle from each trajectory and make them interact "
-        "functionally in the primary program. Do not concatenate two implementations."
+        "For each action, extract a supported principle from each trajectory and make "
+        "them interact functionally in the primary program. Do not concatenate two "
+        "implementations."
     )
 
 
 class TraceTransferOp(SemanticOperator):
     name = OperatorName.TRANSFER
     prompt_constraint = (
-        "Keep the primary program's core structure and adapt exactly one supported "
-        "idea from the reference trajectory."
+        "For each action, keep the primary program's core structure and adapt exactly "
+        "one supported idea from the reference trajectory."
     )
 
 

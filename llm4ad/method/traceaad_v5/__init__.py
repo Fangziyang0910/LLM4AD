@@ -1,6 +1,6 @@
 """Independent TraceAAD v5 public interface."""
 
-from ...tools.profiler import ProfilerBase as TraceAADProfiler
+from ...tools.profiler.profile import ProfilerBase as TraceAADProfiler
 from .traceaad import TraceAADRunResult, TraceAADV5
 from .value import ValueWeights
 

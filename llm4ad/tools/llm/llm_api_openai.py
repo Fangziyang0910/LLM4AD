@@ -23,6 +23,7 @@ from collections.abc import Sequence
 from typing import Any
 
 import openai
+import requests
 
 from llm4ad.base import LLM
 
@@ -57,6 +58,7 @@ class OpenAIAPI(LLM):
         self.stop = stop
         self.enable_thinking = enable_thinking
         self.extra_body = copy.deepcopy(extra_body) if extra_body else {}
+        self._tokenize_style: str | None = None
         self._client = openai.OpenAI(
             api_key=api_key,
             base_url=base_url,
@@ -89,6 +91,68 @@ class OpenAIAPI(LLM):
         request.update(kwargs)
         response = self._client.chat.completions.create(**request)
         return self._content_from_response(response)
+
+    def count_tokens(self, text: str) -> int:
+        """Count tokens with the tokenizer served alongside the model."""
+        if self._tokenize_style == "unavailable":
+            return len(text.encode("utf-8"))
+        base = self.base_url.rstrip("/")
+        tokenize_url = (
+            base[: -len("/v1")] + "/tokenize"
+            if base.endswith("/v1")
+            else base + "/tokenize"
+        )
+        headers = (
+            {}
+            if not self.api_key or self.api_key == "EMPTY"
+            else {"Authorization": f"Bearer {self.api_key}"}
+        )
+        styles = (
+            (self._tokenize_style,)
+            if self._tokenize_style is not None
+            else ("content", "prompt")
+        )
+        for style in styles:
+            payload = (
+                {"content": text}
+                if style == "content"
+                else {"model": self.model, "prompt": text}
+            )
+            try:
+                response = requests.post(
+                    tokenize_url,
+                    json=payload,
+                    headers=headers,
+                    timeout=min(float(self.timeout), 30.0),
+                )
+                response.raise_for_status()
+                count = self._token_count_from_payload(response.json())
+                if count == 0 and text:
+                    raise ValueError("tokenizer returned no tokens for non-empty text")
+                self._tokenize_style = style
+                return count
+            except Exception:
+                continue
+        self._tokenize_style = "unavailable"
+        return len(text.encode("utf-8"))
+
+    @property
+    def token_count_mode(self) -> str:
+        return (
+            "utf8_byte_upper_bound"
+            if self._tokenize_style == "unavailable"
+            else "llm_count_tokens"
+        )
+
+    @staticmethod
+    def _token_count_from_payload(payload: Any) -> int:
+        if isinstance(payload, dict):
+            if isinstance(payload.get("count"), int):
+                return int(payload["count"])
+            for key in ("tokens", "token_ids"):
+                if isinstance(payload.get(key), list):
+                    return len(payload[key])
+        raise ValueError("tokenizer response does not contain a token count")
 
     @staticmethod
     def _build_messages(prompt: str | Any, messages: Any | None) -> list[dict[str, Any]]:

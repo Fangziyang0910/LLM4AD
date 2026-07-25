@@ -7,6 +7,8 @@ import copy
 from ...base import Function
 from .schema import ProgramNode
 
+IDEA_MAX_CHARS = 300
+
 
 def format_fitness(fitness: float | None) -> str:
     return "unknown" if fitness is None else f"{fitness:.6g}"
@@ -39,7 +41,10 @@ def build_initial_prompt(
             "Keep the function name, arguments, return type, and contract unchanged.",
             "",
             "Output format:",
-            "Idea: <brief algorithm idea>",
+            (
+                "Idea: <one sentence describing the implemented algorithm, "
+                f"no more than {IDEA_MAX_CHARS} characters>"
+            ),
             "Code:",
             "```python",
             str(target).rstrip(),
@@ -54,60 +59,40 @@ def build_code_prompt(
     action: str,
     task_description: str,
     template_function: Function,
-    primary_history: str,
-    operator_constraint: str,
-    reference_node: ProgramNode | None = None,
-    reference_history: str = "",
 ) -> str:
     target = copy.deepcopy(template_function)
     target.body = ""
     sections = [
-        "[Task Description]",
+        "[Task]",
         task_description.strip(),
         "",
-        "[Primary Program: the only structural parent]",
-        f"Node p{current_node.id}",
-        f"Idea claim: {current_node.idea}",
+        "[Current Program]",
         "```python",
         current_node.code.rstrip(),
         "```",
-        "",
-        "[Primary Trajectory Context]",
-        primary_history.strip() or "No previous modification history.",
     ]
-    if reference_node is not None:
-        sections.extend(
-            [
-                "",
-                "[Reference Program: knowledge only, never a parent]",
-                f"Node p{reference_node.id}",
-                f"Idea claim: {reference_node.idea}",
-                "```python",
-                reference_node.code.rstrip(),
-                "```",
-                "",
-                "[Reference Trajectory Context]",
-                reference_history.strip() or "No displayed reference history.",
-            ]
-        )
     sections.extend(
         [
             "",
             "[Requested Modification]",
             action.strip(),
             "",
-            "[Operator Constraint]",
-            operator_constraint,
-            "",
-            "[Target Function Contract]",
+            "[Target Function]",
             str(target).rstrip(),
             "",
             "[Instruction]",
-            "Implement exactly the requested change in the primary program.",
-            "Do not merely cite an edge or global experience.",
-            "Return one complete implementation with the unchanged target contract.",
+            "Implement the requested modification in the primary program.",
+            (
+                "Realize the modification in code rather than reproduce the current "
+                "program unchanged."
+            ),
+            "Keep the target function signature and contract unchanged.",
+            "Return exactly one complete implementation.",
             "Output only:",
-            "Idea: <brief implementation claim>",
+            (
+                "Idea: <one sentence describing the implemented change, "
+                f"no more than {IDEA_MAX_CHARS} characters>"
+            ),
             "Code:",
             "```python",
             "<complete function implementation>",
@@ -118,6 +103,7 @@ def build_code_prompt(
 
 
 __all__ = [
+    "IDEA_MAX_CHARS",
     "build_code_prompt",
     "build_initial_prompt",
     "fitness_direction_hint",

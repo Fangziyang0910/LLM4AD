@@ -12,8 +12,6 @@ from typing import Any, Mapping
 from ...base import TextFunctionProgramConverter
 from .derivation_graph import DerivationGraph
 from .schema import (
-    ExperienceKind,
-    GlobalExperienceEntry,
     ImprovementEdge,
     OperatorName,
     ProgramNode,
@@ -23,7 +21,7 @@ from .schema import (
 )
 from .trajectory_memory import TrajectoryMemory
 
-CHECKPOINT_VERSION = 8
+CHECKPOINT_VERSION = 9
 
 
 def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
@@ -74,7 +72,6 @@ def _graph_from_dict(payload: Mapping[str, Any]) -> DerivationGraph:
             action=str(item["action"]),
             anchor_role=str(item["anchor_role"]),
             primary_trajectory_id=int(item["primary_trajectory_id"]),
-            root_lineage_id=int(item["root_lineage_id"]),
             reference_trajectory_id=item.get("reference_trajectory_id"),
             reference_program_id=item.get("reference_program_id"),
             delta_parent=item.get("delta_parent"),
@@ -113,7 +110,6 @@ def _memory_from_dict(payload: Mapping[str, Any]) -> TrajectoryMemory:
         value_payload = item.get("value")
         route = Trajectory(
             id=int(item["id"]),
-            root_lineage_id=int(item["root_lineage_id"]),
             node_ids=tuple(int(x) for x in item["node_ids"]),
             edge_ids=tuple(int(x) for x in item["edge_ids"]),
             endpoint_id=int(item["endpoint_id"]),
@@ -152,15 +148,10 @@ def dump_state(method) -> dict[str, Any]:
         "best_trajectory_id": method._best_trajectory_id,
         "graph": _graph_to_dict(method._graph),
         "memory": _memory_to_dict(method._memory),
-        "global_experience_entries": [
-            asdict(entry) for entry in method._global_experience_entries
-        ],
-        "recent_search_rounds": [
-            list(edge_ids) for edge_ids in method._recent_search_rounds
-        ],
+        "global_experience": method._global_experience,
+        "pending_reflection_edge_ids": list(method._pending_reflection_edge_ids),
         "experience_reflection_attempts": method._experience_reflection_attempts,
         "experience_update_index": method._experience_update_index,
-        "last_experience_validation": method._last_experience_validation,
         "rng_state": method._rng.getstate(),
     }
 
@@ -177,7 +168,7 @@ def _search_configuration(method) -> dict[str, Any]:
         "softmax_temperature": method._softmax_temperature,
         "value_weights": asdict(method._value_weights),
         "operators": [operator.name.value for operator in method._operators],
-        "global_reflection_interval": method._global_reflection_interval,
+        "global_reflection_code_batch": method._global_reflection_code_batch,
         "global_reflection_max_tokens": method._global_reflection_max_tokens,
         "max_context_tokens": method._max_context_tokens,
         "output_token_reserve": method._output_token_reserve,
@@ -210,24 +201,14 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     method._best_node = None if best_id is None else graph.get_node(int(best_id))
     best_route = payload.get("best_trajectory_id")
     method._best_trajectory_id = None if best_route is None else int(best_route)
-    method._global_experience_entries = tuple(
-        GlobalExperienceEntry(
-            kind=ExperienceKind(item["kind"]),
-            statement=str(item["statement"]),
-            condition=str(item["condition"]),
-            evidence_edge_ids=tuple(int(x) for x in item["evidence_edge_ids"]),
-        )
-        for item in payload.get("global_experience_entries", [])
-    )
-    method._recent_search_rounds = [
-        tuple(int(edge_id) for edge_id in edge_ids)
-        for edge_ids in payload.get("recent_search_rounds", [])
+    method._global_experience = str(payload.get("global_experience", ""))
+    method._pending_reflection_edge_ids = [
+        int(edge_id) for edge_id in payload.get("pending_reflection_edge_ids", [])
     ]
     method._experience_reflection_attempts = int(
         payload.get("experience_reflection_attempts", 0)
     )
     method._experience_update_index = int(payload.get("experience_update_index", 0))
-    method._last_experience_validation = payload.get("last_experience_validation")
     method._rng.setstate(_as_tuple(payload["rng_state"]))
     _restore_profiler(method)
 

@@ -37,17 +37,12 @@ from .complexity import code_change_ratio
 from .context import build_action_prompt, trajectory_history
 from .credit import directed_delta
 from .derivation_graph import DerivationGraph
-from .experience import (
-    build_reflection_prompt,
-    parse_global_experience,
-    support_edge_ids,
-)
+from .experience import build_reflection_prompt
 from .operators import DEFAULT_OPERATORS, Operator, classify_outcome
 from .operators.semantic import TraceSynthesizeOp
-from .prompt import build_code_prompt, build_initial_prompt
+from .prompt import IDEA_MAX_CHARS, build_code_prompt, build_initial_prompt
 from .schema import (
     EvalResult,
-    GlobalExperienceEntry,
     OperatorName,
     ProgramNode,
     Trajectory,
@@ -86,8 +81,6 @@ class _PromptContext:
     prompt: str
     window: int
     token_count: int
-    primary_history: str
-    reference_history: str
     primary_edge_ids: tuple[int, ...]
     reference_edge_ids: tuple[int, ...]
 
@@ -122,10 +115,10 @@ class TraceAADV5:
         maximize: bool = True,
         value_weights: ValueWeights | None = None,
         operators: tuple[type[Operator], ...] = DEFAULT_OPERATORS,
-        global_reflection_interval: int = 20,
+        global_reflection_code_batch: int = 40,
         global_reflection_max_tokens: int = 1024,
         max_context_tokens: int = 32768,
-        output_token_reserve: int = 16384,
+        output_token_reserve: int = 8192,
         random_seed: int | None = None,
         debug_mode: bool = False,
         max_consecutive_sample_failures: int = 20,
@@ -167,9 +160,9 @@ class TraceAADV5:
         self._softmax_temperature = float(softmax_temperature)
         self._maximize = bool(maximize)
         self._value_weights = value_weights or ValueWeights()
-        self._global_reflection_interval = int(global_reflection_interval)
-        if self._global_reflection_interval <= 0:
-            raise ValueError("global_reflection_interval must be positive")
+        self._global_reflection_code_batch = int(global_reflection_code_batch)
+        if self._global_reflection_code_batch <= 0:
+            raise ValueError("global_reflection_code_batch must be positive")
         self._global_reflection_max_tokens = int(global_reflection_max_tokens)
         if self._global_reflection_max_tokens <= 0:
             raise ValueError("global_reflection_max_tokens must be positive")
@@ -203,11 +196,10 @@ class TraceAADV5:
             raise ValueError("at least one TraceAAD v5 operator is required")
         self._best_node: ProgramNode | None = None
         self._best_trajectory_id: int | None = None
-        self._global_experience_entries: tuple[GlobalExperienceEntry, ...] = ()
-        self._recent_search_rounds: list[tuple[int, ...]] = []
+        self._global_experience = ""
+        self._pending_reflection_edge_ids: list[int] = []
         self._experience_reflection_attempts = 0
         self._experience_update_index = 0
-        self._last_experience_validation: str | None = None
         self._tot_sample_nums = 0
         self._next_attempt_id = 0
         self._initialization_complete = False
@@ -261,7 +253,7 @@ class TraceAADV5:
                         stop_for_stall = True
                 else:
                     stalled_attempts = 0
-                self._recent_search_rounds.append(round_edge_ids)
+                self._pending_reflection_edge_ids.extend(round_edge_ids)
                 self._maybe_update_global_experience(attempt_id)
                 self._maybe_manage_population()
                 attempt_id += 1
@@ -293,14 +285,16 @@ class TraceAADV5:
         stalled_draws = 0
         draw_seq = 0
         while (
-            self._tot_sample_nums < self._n_init
+            len(self._memory.trajectories()) < self._n_init
             and self._has_budget()
             and not is_search_aborted(self)
         ):
             prompt = build_initial_prompt(
                 task_description=self._task_description_str,
                 template_function=self._function_to_evolve,
-                diversity_hint=self._init_diversity_hint(self._tot_sample_nums),
+                diversity_hint=self._init_diversity_hint(
+                    len(self._memory.trajectories())
+                ),
             )
             generated = self._draw_program(
                 prompt,
@@ -336,7 +330,6 @@ class TraceAADV5:
                 stage="init",
                 node_id=node.id,
                 trajectory_id=route.id,
-                root_lineage_id=route.root_lineage_id,
                 program_loc=node.program_loc,
                 code_hash=node.code_hash,
             )
@@ -470,10 +463,6 @@ class TraceAADV5:
                 action=action,
                 task_description=self._task_description_str,
                 template_function=self._function_to_evolve,
-                primary_history=context.primary_history,
-                operator_constraint=operator.build_constraint(),
-                reference_node=reference_node,
-                reference_history=context.reference_history,
             )
             if not self._prompt_fits(code_prompt):
                 log_event(
@@ -532,7 +521,6 @@ class TraceAADV5:
                 operator=operator.name,
                 anchor_role=anchor_role,
                 primary_trajectory_id=selected.id,
-                root_lineage_id=selected.root_lineage_id,
                 reference_trajectory_id=(
                     None if reference_route is None else reference_route.id
                 ),
@@ -668,15 +656,12 @@ class TraceAADV5:
         primary: Trajectory,
         anchor_id: int,
     ) -> tuple[Trajectory, ...]:
-        anchor = self._graph.get_node(anchor_id)
         candidates: list[Trajectory] = []
         feasibility_operator = TraceSynthesizeOp()
         for route in self._memory.active():
             if route.id == primary.id:
                 continue
             node = self._graph.get_node(route.compact_best_id)
-            if node.code_hash == anchor.code_hash:
-                continue
             context = self._build_action_context(
                 selected=primary,
                 anchor_id=anchor_id,
@@ -729,15 +714,13 @@ class TraceAADV5:
                 graph=self._graph,
                 trajectory=selected,
                 base_node_id=anchor_id,
-                base_reason=anchor_role,
-                operator_name=operator.name,
                 operator_constraint=operator.build_constraint(),
                 task_description=self._task_description_str,
                 template_function=self._function_to_evolve,
                 action_count=self._actions_per_iteration,
                 maximize=self._maximize,
                 max_steps=window,
-                global_experience=self._global_experience_entries,
+                global_experience=self._global_experience,
                 reference_trajectory=reference_route,
                 reference_node_id=(
                     None if reference_node is None else reference_node.id
@@ -779,10 +762,6 @@ class TraceAADV5:
                     prompt=prompt,
                     window=window,
                     token_count=token_count,
-                    primary_history=primary_history.text,
-                    reference_history=(
-                        "" if reference_history is None else reference_history.text
-                    ),
                     primary_edge_ids=displayed_primary,
                     reference_edge_ids=displayed_reference,
                 )
@@ -809,6 +788,9 @@ class TraceAADV5:
 
     @property
     def _token_count_mode(self) -> str:
+        reported_mode = getattr(self._llm, "token_count_mode", None)
+        if isinstance(reported_mode, str):
+            return reported_mode
         return (
             "llm_count_tokens"
             if callable(getattr(self._llm, "count_tokens", None))
@@ -906,35 +888,34 @@ class TraceAADV5:
         return True, "tie_shorter"
 
     def _maybe_update_global_experience(self, iteration: int) -> None:
-        if len(self._recent_search_rounds) < self._global_reflection_interval:
+        if (
+            len(self._pending_reflection_edge_ids)
+            < self._global_reflection_code_batch
+        ):
             return
-        recent_rounds = tuple(
-            self._recent_search_rounds[: self._global_reflection_interval]
-        )
-        del self._recent_search_rounds[: self._global_reflection_interval]
         recent_edge_ids = tuple(
-            edge_id for round_edges in recent_rounds for edge_id in round_edges
+            self._pending_reflection_edge_ids[
+                : self._global_reflection_code_batch
+            ]
         )
-        support = support_edge_ids(self._global_experience_entries)
         prompt = build_reflection_prompt(
             task_description=self._task_description_str,
             maximize=self._maximize,
-            old_entries=self._global_experience_entries,
-            recent_round_edge_ids=recent_rounds,
+            old_experience=self._global_experience,
+            recent_edge_ids=recent_edge_ids,
             graph=self._graph,
         )
         self._experience_reflection_attempts += 1
         if not self._prompt_fits(
             prompt, output_token_reserve=self._global_reflection_max_tokens
         ):
-            self._last_experience_validation = "context_overflow"
             log_event(
                 self,
                 event="global_experience_update",
                 status="context_overflow",
                 iteration=iteration,
                 reflection_attempt=self._experience_reflection_attempts,
-                round_count=len(recent_rounds),
+                code_count=len(recent_edge_ids),
                 recent_edge_ids=list(recent_edge_ids),
             )
             save_checkpoint(self)
@@ -942,12 +923,13 @@ class TraceAADV5:
         start = time.time()
         try:
             response = self._llm.draw_sample(
-                prompt, max_tokens=self._global_reflection_max_tokens
+                prompt,
+                max_tokens=self._global_reflection_max_tokens,
+                temperature=0.2,
             )
             elapsed = time.time() - start
             reset_sample_failures(self)
         except Exception as exc:
-            self._last_experience_validation = "llm_failure"
             record_sample_failure(
                 self,
                 exc,
@@ -960,17 +942,11 @@ class TraceAADV5:
             )
             save_checkpoint(self)
             return
-        allowed = set((*support, *recent_edge_ids))
-        entries = parse_global_experience(
-            response,
-            graph=self._graph,
-            allowed_edge_ids=allowed,
-        )
-        status = "ok" if entries is not None else "validation_failed"
-        self._last_experience_validation = status
-        if entries is not None:
-            self._global_experience_entries = entries
-            self._experience_update_index += 1
+        self._global_experience = str(response).strip()
+        del self._pending_reflection_edge_ids[
+            : self._global_reflection_code_batch
+        ]
+        self._experience_update_index += 1
         log_llm_call(
             self,
             stage="global_experience",
@@ -986,11 +962,9 @@ class TraceAADV5:
             token_count_mode=self._token_count_mode,
             reflection_attempt=self._experience_reflection_attempts,
             successful_update_index=self._experience_update_index,
-            round_count=len(recent_rounds),
+            code_count=len(recent_edge_ids),
             recent_edge_ids=list(recent_edge_ids),
-            support_edge_ids=list(support),
-            validation=status,
-            status=status,
+            status="ok",
         )
         save_checkpoint(self)
 
@@ -1055,7 +1029,6 @@ class TraceAADV5:
             operator=operator.name,
             child_id=child.id,
             trajectory_id=trajectory.id,
-            root_lineage_id=trajectory.root_lineage_id,
             compact_best_id=trajectory.compact_best_id,
             score=child.fitness,
             **fields,
@@ -1284,23 +1257,22 @@ def _parse_actions(
     actions: list[str] = []
     for line in str(response).strip().splitlines():
         match = re.match(
-            r"^(?:[-*]\s*)?(?:\d+[\.\)]\s*)?"
-            r"(?:Action\s*\d*\s*:\s*)?(?P<action>.+)$",
+            r"^(?P<number>\d+)[\.\)]\s+(?P<action>\S.*)$",
             line.strip(),
-            flags=re.IGNORECASE,
         )
         if match is None:
             continue
+        if int(match.group("number")) != len(actions) + 1:
+            continue
         action = match.group("action").strip()
-        if action and not action.startswith(("#", "`", "{", "[")):
-            actions.append(action)
-    actions = actions[:expected_count]
+        actions.append(action)
+    parsed_count = len(actions)
     errors = (
         []
-        if len(actions) == expected_count
-        else [f"expected_{expected_count}_actions_got_{len(actions)}"]
+        if parsed_count == expected_count
+        else [f"expected_{expected_count}_actions_got_{parsed_count}"]
     )
-    return actions, errors
+    return actions[:expected_count], errors
 
 
 def _parse_program_response(
@@ -1311,21 +1283,36 @@ def _parse_program_response(
     idea = (
         _extract_idea(response) or _extract_boxed_text(response) or "Generated program"
     )
-    code = _extract_first_code_block(response) or response
+    idea = _short_idea(idea)
+    blocks = _extract_code_blocks(response)
+    candidates = reversed(blocks) if blocks else (response,)
+    program = next(
+        (
+            parsed
+            for code in candidates
+            if (parsed := _parse_program_candidate(code, template_program, function_name))
+            is not None
+        ),
+        None,
+    )
+    return None if program is None else _GeneratedProgram(idea=idea, program=program)
+
+
+def _parse_program_candidate(
+    code: str,
+    template_program: Program,
+    function_name: str,
+) -> Program | None:
     parsed = TextFunctionProgramConverter.text_to_program(code)
     if parsed is not None and len(parsed.functions) == 1:
         function = parsed.functions[0]
         if function.name == function_name:
-            program = parsed
-        else:
-            program = TextFunctionProgramConverter.function_to_program(
-                function, template_program
-            )
-            if program is None:
-                program = parsed
-    else:
-        program = SampleTrimmer.sample_to_program(code, template_program)
-    return None if program is None else _GeneratedProgram(idea=idea, program=program)
+            return parsed
+    trimmed = SampleTrimmer.sample_to_program(code, template_program)
+    if trimmed is None:
+        return None
+    function = TextFunctionProgramConverter.program_to_function(trimmed)
+    return trimmed if function is not None and function.name == function_name else None
 
 
 def _extract_idea(response: str) -> str | None:
@@ -1346,13 +1333,23 @@ def _extract_boxed_text(response: str) -> str | None:
     return None if match is None else match.group("idea").strip()
 
 
-def _extract_first_code_block(response: str) -> str | None:
-    match = re.search(
-        r"```(?:python|py)?\s*(?P<code>.*?)```",
-        response,
-        flags=re.IGNORECASE | re.DOTALL,
+def _short_idea(idea: str) -> str:
+    compact = " ".join(str(idea).split())
+    if len(compact) <= IDEA_MAX_CHARS:
+        return compact
+    return compact[: IDEA_MAX_CHARS - 1].rstrip() + "…"
+
+
+def _extract_code_blocks(response: str) -> tuple[str, ...]:
+    return tuple(
+        block.strip()
+        for block in re.findall(
+            r"```(?:python|py)?\s*(.*?)(?:```|\Z)",
+            response,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if block.strip()
     )
-    return None if match is None else match.group("code").strip()
 
 
 __all__ = ["TraceAADRunResult", "TraceAADV5"]

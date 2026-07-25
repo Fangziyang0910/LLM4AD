@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from ...base import Function
 from .derivation_graph import DerivationGraph
 from .prompt import fitness_direction_hint, format_fitness
-from .schema import GlobalExperienceEntry, Trajectory
+from .schema import Trajectory
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,7 +28,7 @@ def trajectory_history(
 ) -> RenderedHistory:
     if not trajectory.edge_ids:
         return RenderedHistory(
-            text="No previous modification exists; this is an initial program.",
+            text="This is an initial program with no previous changes.",
             edge_ids=(),
             formation_edge_ids=(),
             tested_after_edge_ids=(),
@@ -49,13 +49,13 @@ def trajectory_history(
         selected_after = ()
     sections: list[str] = []
     if selected_before:
-        sections.append("[Formation History]")
+        sections.append("[How This Program Was Reached]")
         sections.extend(_render_edges(graph, trajectory, selected_before))
     if selected_after:
-        sections.append("[Tested After Anchor: non-ancestor evidence]")
+        sections.append("[Later Attempts From This Program]")
         sections.extend(_render_edges(graph, trajectory, selected_after))
     if not sections:
-        sections.append("No displayed edge fits the current prompt window.")
+        sections.append("No earlier change is shown.")
     selected = (*selected_before, *selected_after)
     return RenderedHistory(
         text="\n".join(sections),
@@ -71,47 +71,26 @@ def _render_edges(
     edge_ids: tuple[int, ...],
 ) -> list[str]:
     lines: list[str] = []
-    for edge_id in edge_ids:
+    for position, edge_id in enumerate(edge_ids, start=1):
         edge = graph.get_edge(edge_id)
         parent = graph.get_node(edge.parent_id)
         child = graph.get_node(edge.child_id)
         lines.extend(
             [
                 (
-                    f"Edge e{edge.id}: p{parent.id} -> p{child.id} "
-                    f"[operator={edge.operator}]"
+                    f"Step {position}: {edge.outcome}; fitness "
+                    f"{format_fitness(parent.fitness)} -> "
+                    f"{format_fitness(child.fitness)}"
                 ),
-                f"  action: {edge.action}",
+                f"  Planned: {_one_line(edge.action, 300)}",
+                f"  Implemented: {_one_line(child.idea, 300)}",
                 (
-                    f"  fitness: {format_fitness(parent.fitness)} -> "
-                    f"{format_fitness(child.fitness)} "
-                    f"(delta_parent={edge.delta_parent!s}, outcome={edge.outcome})"
-                ),
-                (
-                    f"  LOC: {parent.program_loc} -> {child.program_loc} "
-                    f"(delta={edge.delta_loc:+d})"
+                    f"  Code change: {edge.code_change_ratio:.0%}; "
+                    f"LOC {parent.program_loc} -> {child.program_loc}"
                 ),
             ]
         )
     return lines
-
-
-def render_global_experience(entries: tuple[GlobalExperienceEntry, ...]) -> str:
-    if not entries:
-        return ""
-    labels = {
-        "effective": "Effective",
-        "pitfall": "Pitfall",
-        "explore": "Explore",
-    }
-    return "\n".join(
-        (
-            f"- [{labels[entry.kind.value]}] {entry.statement} "
-            f"Condition: {entry.condition or 'unspecified'}. "
-            f"Evidence: {', '.join(f'e{edge}' for edge in entry.evidence_edge_ids)}"
-        )
-        for entry in entries
-    )
 
 
 def build_action_prompt(
@@ -119,47 +98,44 @@ def build_action_prompt(
     graph: DerivationGraph,
     trajectory: Trajectory,
     base_node_id: int,
-    base_reason: str,
-    operator_name: str,
     operator_constraint: str,
     task_description: str,
     template_function: Function,
     action_count: int,
     maximize: bool,
     max_steps: int = 8,
-    global_experience: tuple[GlobalExperienceEntry, ...] = (),
+    global_experience: str = "",
     reference_trajectory: Trajectory | None = None,
     reference_node_id: int | None = None,
 ) -> str:
     base_node = graph.get_node(base_node_id)
     target = copy.deepcopy(template_function)
     target.body = ""
+    action_label = "action" if action_count == 1 else "actions"
     primary = trajectory_history(
         graph, trajectory, base_node_id=base_node_id, max_steps=max_steps
     )
     sections = [
-        "[Task Description]",
+        "[Task]",
         task_description.strip(),
         fitness_direction_hint(maximize),
     ]
-    rendered_global = render_global_experience(global_experience)
+    rendered_global = global_experience.strip()
     if rendered_global:
         sections.extend(
             [
                 "",
-                "[Global Experience: fallible task-level evidence]",
+                "[Global Experience]",
                 rendered_global,
             ]
         )
     sections.extend(
         [
             "",
-            "[Primary Trajectory]",
+            "[Current Program History]",
             primary.text,
             "",
-            "[Primary Anchor Program]",
-            f"Node p{base_node.id}; anchor_role={base_reason}",
-            f"Idea claim: {base_node.idea}",
+            "[Current Program]",
             "```python",
             base_node.code.rstrip(),
             "```",
@@ -176,12 +152,10 @@ def build_action_prompt(
         sections.extend(
             [
                 "",
-                "[Reference Trajectory: knowledge provenance, not a parent]",
+                "[Reference Program History]",
                 reference.text,
                 "",
                 "[Reference Program]",
-                f"Node p{reference_node.id}",
-                f"Idea claim: {reference_node.idea}",
                 "```python",
                 reference_node.code.rstrip(),
                 "```",
@@ -190,17 +164,16 @@ def build_action_prompt(
     sections.extend(
         [
             "",
-            "[Operator]",
-            f"name={operator_name}",
-            f"Constraint: {operator_constraint}",
+            "[Improvement Direction]",
+            operator_constraint,
             "",
-            "[Target Function Contract]",
+            "[Target Function]",
             str(target).rstrip(),
             "",
             "[Action Contract]",
             (
-                "Use the selected operator and all provided context to decide the next "
-                "algorithmic modification."
+                "Use the improvement direction and the provided search experience to "
+                "decide the next algorithmic modification."
             ),
             (
                 f"Propose exactly {action_count} concrete, self-contained action lines. "
@@ -208,21 +181,34 @@ def build_action_prompt(
                 "attempts already shown in the histories."
             ),
             (
-                "For synthesize or transfer, state which reference principle to use and "
-                "how it should be adapted in the primary program."
+                "Each change must be implementable inside the target function using "
+                "only its arguments and locally computed values. Do not assume hidden "
+                "state or change the function signature."
             ),
             (
-                f"Return only a numbered list of exactly {action_count} single-line "
-                "actions, without JSON, code, evidence ids, or separate rationale."
+                "Each action must require a substantive change to executable behavior "
+                "or algorithmic structure; do not restate the current program."
+            ),
+            (
+                "If a reference program is shown, each action must state which "
+                "reference principle it uses and how to adapt it."
+            ),
+            (
+                f"Return exactly {action_count} numbered single-line {action_label} and "
+                "nothing else."
             ),
         ]
     )
     return "\n".join(sections).strip()
 
 
+def _one_line(text: str, limit: int) -> str:
+    compact = " ".join(str(text).split())
+    return compact if len(compact) <= limit else compact[: limit - 1].rstrip() + "…"
+
+
 __all__ = [
     "RenderedHistory",
     "build_action_prompt",
-    "render_global_experience",
     "trajectory_history",
 ]

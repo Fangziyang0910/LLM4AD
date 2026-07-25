@@ -27,7 +27,6 @@ class TrajectoryMemory:
     def create_initial(self, *, node_id: NodeId) -> Trajectory:
         trajectory = Trajectory(
             id=self._next_id,
-            root_lineage_id=node_id,
             node_ids=(node_id,),
             edge_ids=(),
             endpoint_id=node_id,
@@ -58,7 +57,6 @@ class TrajectoryMemory:
             raise AssertionError("trajectory path is inconsistent")
         trajectory = Trajectory(
             id=self._next_id,
-            root_lineage_id=parent.root_lineage_id,
             node_ids=node_ids,
             edge_ids=edge_ids,
             endpoint_id=child_id,

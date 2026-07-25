@@ -149,3 +149,63 @@ def test_openai_api_close_delegates_to_client(monkeypatch):
     llm.close()
 
     assert clients[0].closed is True
+
+
+def test_openai_api_counts_tokens_with_the_model_server_tokenizer(monkeypatch):
+    install_fake_openai(monkeypatch, make_response())
+    calls = []
+
+    class FakeTokenResponse:
+        status_code = 200
+
+        @staticmethod
+        def raise_for_status():
+            return None
+
+        @staticmethod
+        def json():
+            return {"tokens": [10, 20, 30]}
+
+    def fake_post(url, **kwargs):
+        calls.append((url, kwargs))
+        return FakeTokenResponse()
+
+    monkeypatch.setattr(openai_api, "requests", SimpleNamespace(post=fake_post), raising=False)
+    llm = OpenAIAPI(
+        base_url="http://127.0.0.1:8001/v1",
+        api_key="EMPTY",
+        model="Qwen3.6-27B",
+    )
+
+    assert llm.count_tokens("hello world") == 3
+    assert calls[0][0] == "http://127.0.0.1:8001/tokenize"
+    assert calls[0][1]["json"] == {"content": "hello world"}
+    assert llm.token_count_mode == "llm_count_tokens"
+
+
+def test_openai_api_falls_back_when_model_server_has_no_tokenizer(monkeypatch):
+    install_fake_openai(monkeypatch, make_response())
+    calls = []
+
+    def unavailable_post(url, **kwargs):
+        calls.append((url, kwargs))
+        raise RuntimeError("404")
+
+    monkeypatch.setattr(
+        openai_api,
+        "requests",
+        SimpleNamespace(post=unavailable_post),
+        raising=False,
+    )
+    llm = OpenAIAPI(
+        base_url="https://example.test/v1",
+        api_key="secret",
+        model="example-model",
+    )
+
+    assert llm.count_tokens("你好") == len("你好".encode("utf-8"))
+    assert llm.token_count_mode == "utf8_byte_upper_bound"
+    assert len(calls) == 2
+
+    llm.count_tokens("second call")
+    assert len(calls) == 2

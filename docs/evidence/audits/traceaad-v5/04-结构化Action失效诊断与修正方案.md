@@ -22,7 +22,7 @@ evidence、`change` 和 `novel_difference` 五个字段，并服从 JSON、枚�
 
 V5.1 将 action 恢复为一条自包含自然语言修改建议。`change` 与
 `novel_difference` 的有效语义合并到同一段文本；算子、主轨迹、锚点、
-根谱系、参考轨迹和参考程序由系统自动记录。Action LLM 不再输出 JSON、
+主轨迹、参考轨迹和参考程序由系统自动记录。Action LLM 不再输出 JSON、
 关系枚举或 evidence id。
 
 ## 2. 原始设计与旧实现的偏差
@@ -184,7 +184,7 @@ Parser 只提取自然语言 action 行并最多保留配置数量。模型只�
 
 - 原始 action 文本；
 - operator；
-- 主轨迹、根谱系和 anchor role；
+- 主轨迹和 anchor role；
 - 可选参考轨迹与参考程序；
 - 父子、路线最好和全局最好变化；
 - LOC、代码哈希与机械代码变化。

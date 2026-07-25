@@ -24,4 +24,7 @@ def test_each_supported_task_builds_the_independent_v5_method(
         method = module.build_method(log_dir=tmp_path / module_name)
 
         assert isinstance(method, TraceAADV5)
+        assert method._llm.max_tokens == 8192
+        assert method._output_token_reserve == 8192
+        assert method._global_reflection_code_batch == 40
         assert callable(module.main)
