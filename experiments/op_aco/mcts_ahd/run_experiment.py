@@ -23,10 +23,14 @@ runner.TASK_KWARGS = {
     "n_workers": int(os.environ.get("OP_EVAL_WORKERS", "5")),
 }
 runner.TSPEvaluation = OPACOEvaluation
-runner.TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
+runner.TIMESTAMP = os.environ.get("RUN_TIMESTAMP") or datetime.now().strftime("%Y%m%d_%H%M%S")
 runner.RUN_DIR = Path(__file__).resolve().parent / runner.TIMESTAMP
 runner.LOG_DIR = runner.RUN_DIR / "logs"
 runner.TMUX_LOG = runner.RUN_DIR / "tmux_run.log"
+# LLM 源由环境变量覆盖（默认沿用 runner 的 server1）；RUN_TIMESTAMP 区分多 rep 目录
+runner.BASE_URL = os.environ.get("LLM_BASE_URL", runner.BASE_URL)
+runner.MODEL = os.environ.get("LLM_MODEL", runner.MODEL)
+runner.API_KEY = os.environ.get("LLM_API_KEY", runner.API_KEY)
 
 
 if __name__ == "__main__":

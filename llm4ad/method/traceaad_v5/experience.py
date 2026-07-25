@@ -1,4 +1,4 @@
-"""Bounded, evidence-linked global experience for TraceAAD v5."""
+"""Periodic global reflection over recent trajectory-search experience."""
 
 from __future__ import annotations
 
@@ -13,12 +13,9 @@ def build_reflection_prompt(
     task_description: str,
     maximize: bool,
     old_entries: tuple[GlobalExperienceEntry, ...],
-    support_edge_ids: tuple[int, ...],
-    new_edge_ids: tuple[int, ...],
+    recent_round_edge_ids: tuple[tuple[int, ...], ...],
     graph: DerivationGraph,
 ) -> str:
-    relevant = tuple(dict.fromkeys((*support_edge_ids, *new_edge_ids)))
-    facts = [_edge_fact(graph, edge_id) for edge_id in relevant]
     old = [
         {
             "kind": entry.kind.value,
@@ -35,16 +32,38 @@ def build_reflection_prompt(
             "Fitness direction: "
             + ("higher is better" if maximize else "lower is better"),
             "",
-            "[Old Global Experience]",
+            "[Previous Global Experience]",
             json.dumps(old, ensure_ascii=False),
             "",
-            "[Evidence Facts]",
-            json.dumps(facts, ensure_ascii=False),
+            "[Recent Search Rounds]",
+            _render_recent_rounds(graph, recent_round_edge_ids),
             "",
-            "[Instruction]",
-            "Rewrite the complete bounded global experience using only these facts.",
-            "Correlation is not causation. Action/change fields are model claims.",
-            "Return a JSON array with at most 6 entries and no markdown.",
+            "[Reflection Questions]",
+            "1. What major algorithmic directions were tried in this stage?",
+            (
+                "2. Which insights received repeated support across trajectories, "
+                "and under what conditions?"
+            ),
+            (
+                "3. Which directions repeatedly failed, stagnated, or appeared "
+                "saturated?"
+            ),
+            (
+                "4. Which conflicts or weak signals remain worth exploring in the "
+                "next stage?"
+            ),
+            "",
+            "[Output Contract]",
+            (
+                "Rewrite the complete global experience state. Retain, narrow, "
+                "revise, or delete previous insights according to the recent results."
+            ),
+            "Use only the experience shown above; do not infer unobserved results.",
+            (
+                "Scores and outcomes are observations. State and attempted-change "
+                "descriptions are recorded model claims, not verified causal facts."
+            ),
+            "Return a JSON array with at most 5 short entries and no markdown.",
             (
                 'Each entry: {"kind":"effective|pitfall|explore",'
                 '"statement":"...","condition":"...",'
@@ -52,9 +71,13 @@ def build_reflection_prompt(
             ),
             (
                 "effective and pitfall require at least two cited edges with distinct "
-                "root_lineage_id and distinct child_code_hash."
+                "trajectory lineages and distinct evaluated children."
             ),
-            "A single strict global-best event may only be kind=explore.",
+            (
+                "A single event or conflicting evidence may only be kind=explore. "
+                "Treat improve, regress, plateau, repair, continuation, and redirection "
+                "as useful search experience."
+            ),
         ]
     ).strip()
 
@@ -64,7 +87,7 @@ def parse_global_experience(
     *,
     graph: DerivationGraph,
     allowed_edge_ids: set[int],
-    max_entries: int = 6,
+    max_entries: int = 5,
     max_chars: int = 800,
 ) -> tuple[GlobalExperienceEntry, ...] | None:
     try:
@@ -139,44 +162,60 @@ def _parse_edge_id(value) -> int:
     return int(text)
 
 
-def _edge_fact(graph: DerivationGraph, edge_id: int) -> dict:
+def _render_recent_rounds(
+    graph: DerivationGraph,
+    recent_round_edge_ids: tuple[tuple[int, ...], ...],
+) -> str:
+    lines: list[str] = []
+    for position, edge_ids in enumerate(recent_round_edge_ids, start=1):
+        if not edge_ids:
+            lines.append(
+                f"Round {position} (search iteration no-evaluated-child):"
+            )
+            lines.append("- No valid child was evaluated in this round.")
+            continue
+        first_edge = graph.get_edge(edge_ids[0])
+        anchor = graph.get_node(first_edge.parent_id)
+        lines.append(
+            f"Round {position} (search iteration {first_edge.iteration}; "
+            f"lineage={first_edge.root_lineage_id}; "
+            f"trajectory={first_edge.primary_trajectory_id}; "
+            f"anchor_state={_one_line(anchor.idea, 100)}):"
+        )
+        for edge_id in edge_ids:
+            lines.append(_render_edge_experience(graph, edge_id))
+    return "\n".join(lines)
+
+
+def _render_edge_experience(graph: DerivationGraph, edge_id: int) -> str:
     edge = graph.get_edge(edge_id)
     parent = graph.get_node(edge.parent_id)
     child = graph.get_node(edge.child_id)
-    reference = (
-        None
-        if edge.reference_program_id is None
-        else graph.get_node(edge.reference_program_id)
+    cited = tuple(
+        dict.fromkeys((*edge.evidence_edge_ids, *edge.reference_evidence_edge_ids))
     )
-    return {
-        "edge_id": f"e{edge.id}",
-        "root_lineage_id": edge.root_lineage_id,
-        "primary_trajectory_id": edge.primary_trajectory_id,
-        "anchor_role": edge.anchor_role,
-        "reference_trajectory_id": edge.reference_trajectory_id,
-        "reference_program_id": edge.reference_program_id,
-        "reference_fitness": None if reference is None else reference.fitness,
-        "reference_code_hash": None if reference is None else reference.code_hash,
-        "evidence_edge_ids": [f"e{evidence}" for evidence in edge.evidence_edge_ids],
-        "reference_evidence_edge_ids": [
-            f"e{evidence}" for evidence in edge.reference_evidence_edge_ids
-        ],
-        "operator": edge.operator.value,
-        "relation": edge.relation.value,
-        "change_claim": edge.change,
-        "novel_difference": edge.novel_difference,
-        "parent_fitness": parent.fitness,
-        "child_fitness": child.fitness,
-        "delta_parent": edge.delta_parent,
-        "delta_route_best": edge.delta_route_best,
-        "delta_global_best": edge.delta_global_best,
-        "global_best_update_reason": edge.global_best_update_reason,
-        "parent_loc": parent.program_loc,
-        "child_loc": child.program_loc,
-        "parent_code_hash": parent.code_hash,
-        "child_code_hash": child.code_hash,
-        "outcome": edge.outcome,
-    }
+    citation = "none" if not cited else ",".join(f"e{item}" for item in cited)
+    return (
+        f"- e{edge.id} | {edge.operator.value}/{edge.relation.value} | "
+        f"tried={_one_line(edge.change, 120)} | "
+        f"result={edge.outcome}; parent={_score(parent.fitness)} "
+        f"child={_score(child.fitness)}; "
+        f"delta_parent={_score(edge.delta_parent)} "
+        f"delta_route={_score(edge.delta_route_best)} "
+        f"delta_global={_score(edge.delta_global_best)} | "
+        f"builds_on={citation}"
+    )
+
+
+def _one_line(text: str, limit: int) -> str:
+    compact = " ".join(str(text).split())
+    return compact if len(compact) <= limit else compact[: limit - 1].rstrip() + "…"
+
+
+def _score(value: float | None) -> str:
+    if value is None:
+        return "n/a"
+    return f"{float(value):.6g}"
 
 
 __all__ = [

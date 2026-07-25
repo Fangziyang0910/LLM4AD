@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-07-24T21:34:40",
+  "created_at": "2026-07-24T21:59:55",
   "method": "traceaad",
   "model": "/home/fzy/models/Qwen3.6-27B-NVFP4",
   "results_by_split": {
@@ -31,7 +31,7 @@
         {
           "best_operator": "trace_refine",
           "best_sample_order": 966,
-          "eval_seconds": 20.128228187561035,
+          "eval_seconds": 22.035394191741943,
           "instance_costs": [
             17.05132506837015,
             15.869759501793387,
@@ -106,7 +106,7 @@
         {
           "best_operator": "trace_ideate",
           "best_sample_order": 564,
-          "eval_seconds": 18.497957468032837,
+          "eval_seconds": 18.65263056755066,
           "instance_costs": [
             16.118696321004702,
             15.541180171327179,
@@ -213,7 +213,7 @@
         {
           "best_operator": "trace_refine",
           "best_sample_order": 966,
-          "eval_seconds": 12.041848182678223,
+          "eval_seconds": 11.102263689041138,
           "instance_costs": [
             9.135120245316408,
             9.649241475664168,
@@ -288,7 +288,7 @@
         {
           "best_operator": "trace_ideate",
           "best_sample_order": 564,
-          "eval_seconds": 11.346307039260864,
+          "eval_seconds": 11.351619482040405,
           "instance_costs": [
             8.807545775719879,
             9.594816628425463,

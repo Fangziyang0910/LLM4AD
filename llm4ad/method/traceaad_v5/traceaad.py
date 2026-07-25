@@ -125,8 +125,9 @@ class TraceAADV5:
         maximize: bool = True,
         value_weights: ValueWeights | None = None,
         operators: tuple[type[Operator], ...] = DEFAULT_OPERATORS,
-        experience_batch_size: int | None = None,
-        max_context_tokens: int = 131072,
+        global_reflection_interval: int = 20,
+        global_reflection_max_tokens: int = 1024,
+        max_context_tokens: int = 32768,
         output_token_reserve: int = 16384,
         random_seed: int | None = None,
         debug_mode: bool = False,
@@ -169,13 +170,14 @@ class TraceAADV5:
         self._softmax_temperature = float(softmax_temperature)
         self._maximize = bool(maximize)
         self._value_weights = value_weights or ValueWeights()
-        self._experience_batch_size = (
-            2 * self._max_active_trajectories
-            if experience_batch_size is None
-            else int(experience_batch_size)
-        )
-        if self._experience_batch_size <= 0:
-            raise ValueError("experience_batch_size must be positive")
+        self._global_reflection_interval = int(global_reflection_interval)
+        if self._global_reflection_interval <= 0:
+            raise ValueError("global_reflection_interval must be positive")
+        self._global_reflection_max_tokens = int(global_reflection_max_tokens)
+        if self._global_reflection_max_tokens <= 0:
+            raise ValueError("global_reflection_max_tokens must be positive")
+        if max_context_tokens <= self._global_reflection_max_tokens:
+            raise ValueError("context window must exceed reflection output tokens")
         self._max_context_tokens = int(max_context_tokens)
         self._output_token_reserve = int(output_token_reserve)
         self._debug_mode = debug_mode
@@ -205,7 +207,8 @@ class TraceAADV5:
         self._best_node: ProgramNode | None = None
         self._best_trajectory_id: int | None = None
         self._global_experience_entries: tuple[GlobalExperienceEntry, ...] = ()
-        self._pending_experience_edge_ids: list[int] = []
+        self._recent_search_rounds: list[tuple[int, ...]] = []
+        self._experience_reflection_attempts = 0
         self._experience_update_index = 0
         self._last_experience_validation: str | None = None
         self._tot_sample_nums = 0
@@ -243,7 +246,12 @@ class TraceAADV5:
                     )
                     break
                 before = self._tot_sample_nums
+                edge_count_before = len(self._graph.edges())
                 self._run_iteration(attempt_id)
+                round_edge_ids = tuple(
+                    edge.id for edge in self._graph.edges()[edge_count_before:]
+                )
+                stop_for_stall = False
                 if self._tot_sample_nums == before:
                     stalled_attempts += 1
                     if stalled_attempts >= self._max_stalled_iterations:
@@ -253,14 +261,17 @@ class TraceAADV5:
                             status="stalled_generation",
                             attempt_id=attempt_id,
                         )
-                        break
+                        stop_for_stall = True
                 else:
                     stalled_attempts = 0
+                self._recent_search_rounds.append(round_edge_ids)
                 self._maybe_update_global_experience(attempt_id)
                 self._maybe_manage_population()
                 attempt_id += 1
                 self._next_attempt_id = attempt_id
                 self._save_checkpoint_if_due()
+                if stop_for_stall:
+                    break
             self._maybe_manage_population()
             result = self._result()
             finish_profiler(
@@ -548,7 +559,6 @@ class TraceAADV5:
                 edge_id=edge.id,
                 compact_best_id=new_compact.id,
             )
-            self._pending_experience_edge_ids.append(edge.id)
             self._update_best(
                 child,
                 trajectory_id=child_route.id,
@@ -809,8 +819,15 @@ class TraceAADV5:
             else "utf8_byte_upper_bound"
         )
 
-    def _prompt_fits(self, prompt: str) -> bool:
-        return self._count_tokens(prompt) <= self._prompt_token_budget
+    def _prompt_fits(
+        self, prompt: str, *, output_token_reserve: int | None = None
+    ) -> bool:
+        reserve = (
+            self._output_token_reserve
+            if output_token_reserve is None
+            else int(output_token_reserve)
+        )
+        return self._count_tokens(prompt) <= self._max_context_tokens - reserve
 
     def _generate_actions(
         self,
@@ -902,35 +919,44 @@ class TraceAADV5:
         return True, "tie_shorter"
 
     def _maybe_update_global_experience(self, iteration: int) -> None:
-        if len(self._pending_experience_edge_ids) < self._experience_batch_size:
+        if len(self._recent_search_rounds) < self._global_reflection_interval:
             return
-        batch = tuple(self._pending_experience_edge_ids[: self._experience_batch_size])
-        del self._pending_experience_edge_ids[: self._experience_batch_size]
+        recent_rounds = tuple(
+            self._recent_search_rounds[: self._global_reflection_interval]
+        )
+        del self._recent_search_rounds[: self._global_reflection_interval]
+        recent_edge_ids = tuple(
+            edge_id for round_edges in recent_rounds for edge_id in round_edges
+        )
         support = support_edge_ids(self._global_experience_entries)
         prompt = build_reflection_prompt(
             task_description=self._task_description_str,
             maximize=self._maximize,
             old_entries=self._global_experience_entries,
-            support_edge_ids=support,
-            new_edge_ids=batch,
+            recent_round_edge_ids=recent_rounds,
             graph=self._graph,
         )
-        self._experience_update_index += 1
-        if not self._prompt_fits(prompt):
+        self._experience_reflection_attempts += 1
+        if not self._prompt_fits(
+            prompt, output_token_reserve=self._global_reflection_max_tokens
+        ):
             self._last_experience_validation = "context_overflow"
             log_event(
                 self,
                 event="global_experience_update",
                 status="context_overflow",
                 iteration=iteration,
-                update_index=self._experience_update_index,
-                batch_edge_ids=list(batch),
+                reflection_attempt=self._experience_reflection_attempts,
+                round_count=len(recent_rounds),
+                recent_edge_ids=list(recent_edge_ids),
             )
             save_checkpoint(self)
             return
         start = time.time()
         try:
-            response = self._llm.draw_sample(prompt)
+            response = self._llm.draw_sample(
+                prompt, max_tokens=self._global_reflection_max_tokens
+            )
             elapsed = time.time() - start
             reset_sample_failures(self)
         except Exception as exc:
@@ -947,7 +973,7 @@ class TraceAADV5:
             )
             save_checkpoint(self)
             return
-        allowed = set((*support, *batch))
+        allowed = set((*support, *recent_edge_ids))
         entries = parse_global_experience(
             response,
             graph=self._graph,
@@ -957,6 +983,7 @@ class TraceAADV5:
         self._last_experience_validation = status
         if entries is not None:
             self._global_experience_entries = entries
+            self._experience_update_index += 1
         log_llm_call(
             self,
             stage="global_experience",
@@ -970,7 +997,10 @@ class TraceAADV5:
             prompt_tokens=self._count_tokens(prompt),
             response_tokens=self._count_tokens(response),
             token_count_mode=self._token_count_mode,
-            batch_edge_ids=list(batch),
+            reflection_attempt=self._experience_reflection_attempts,
+            successful_update_index=self._experience_update_index,
+            round_count=len(recent_rounds),
+            recent_edge_ids=list(recent_edge_ids),
             support_edge_ids=list(support),
             validation=status,
             status=status,

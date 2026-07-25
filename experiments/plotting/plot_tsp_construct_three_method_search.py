@@ -54,15 +54,27 @@ METHODS = {
         "color": "#2A9D5B",
         "band": "#A8D5BA",
     },
-    "TraceAAD version4 (2 completed)": {
+    "TraceAAD version4": {
         "directory": "traceaad/version4",
         "runs": (
             "20260723_181743_tspc_v4_rep1",
+            "20260723_181743_tspc_v4_rep2",
             "20260723_181743_tspc_v4_rep3",
         ),
         "budget": 1000,
         "color": "#F4A261",
         "band": "#FAD7A0",
+    },
+    "TraceAAD version5": {
+        "directory": "traceaad_v5/version5",
+        "runs": (
+            "20260724_220827_tspc_v5_rep1",
+            "20260724_220827_tspc_v5_rep2",
+            "20260724_220827_tspc_v5_rep3",
+        ),
+        "budget": 1000,
+        "color": "#D55E00",
+        "band": "#F3B49F",
     },
 }
 

@@ -24,7 +24,7 @@ from .schema import (
 )
 from .trajectory_memory import TrajectoryMemory
 
-CHECKPOINT_VERSION = 6
+CHECKPOINT_VERSION = 7
 
 
 def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
@@ -162,7 +162,10 @@ def dump_state(method) -> dict[str, Any]:
         "global_experience_entries": [
             asdict(entry) for entry in method._global_experience_entries
         ],
-        "pending_experience_edge_ids": list(method._pending_experience_edge_ids),
+        "recent_search_rounds": [
+            list(edge_ids) for edge_ids in method._recent_search_rounds
+        ],
+        "experience_reflection_attempts": method._experience_reflection_attempts,
         "experience_update_index": method._experience_update_index,
         "last_experience_validation": method._last_experience_validation,
         "rng_state": method._rng.getstate(),
@@ -181,7 +184,8 @@ def _search_configuration(method) -> dict[str, Any]:
         "softmax_temperature": method._softmax_temperature,
         "value_weights": asdict(method._value_weights),
         "operators": [operator.name.value for operator in method._operators],
-        "experience_batch_size": method._experience_batch_size,
+        "global_reflection_interval": method._global_reflection_interval,
+        "global_reflection_max_tokens": method._global_reflection_max_tokens,
         "max_context_tokens": method._max_context_tokens,
         "output_token_reserve": method._output_token_reserve,
     }
@@ -222,8 +226,12 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
         )
         for item in payload.get("global_experience_entries", [])
     )
-    method._pending_experience_edge_ids = list(
-        int(x) for x in payload.get("pending_experience_edge_ids", [])
+    method._recent_search_rounds = [
+        tuple(int(edge_id) for edge_id in edge_ids)
+        for edge_ids in payload.get("recent_search_rounds", [])
+    ]
+    method._experience_reflection_attempts = int(
+        payload.get("experience_reflection_attempts", 0)
     )
     method._experience_update_index = int(payload.get("experience_update_index", 0))
     method._last_experience_validation = payload.get("last_experience_validation")

@@ -50,8 +50,9 @@ def build_method(log_dir: Path, resume_from: Path | None = None) -> TraceAADV5:
         elite_count=3,
         softmax_temperature=0.2,
         value_weights=ValueWeights(),
-        experience_batch_size=60,
-        max_context_tokens=int(os.environ.get("LLM_CONTEXT_TOKENS", "131072")),
+        global_reflection_interval=20,
+        global_reflection_max_tokens=1024,
+        max_context_tokens=int(os.environ.get("LLM_CONTEXT_TOKENS", "32768")),
         output_token_reserve=int(os.environ.get("LLM_OUTPUT_TOKEN_RESERVE", "16384")),
         random_seed=int(os.environ.get("TRACEAAD_RANDOM_SEED", "0")),
         max_consecutive_sample_failures=20,
@@ -72,7 +73,7 @@ def main() -> None:
         timestamp = os.environ.get("RUN_TIMESTAMP") or datetime.now().strftime(
             "%Y%m%d_%H%M%S"
         )
-        version = os.environ.get("EXPERIMENT_VERSION", "version5")
+        version = os.environ.get("EXPERIMENT_VERSION", "version5_1")
         run_dir = EXPERIMENT_ROOT / version / timestamp
         run_dir.mkdir(parents=True, exist_ok=False)
         _write_run_config(run_dir, timestamp)
@@ -96,7 +97,7 @@ def _write_run_config(run_dir: Path, timestamp: str) -> None:
         "run_dir": str(run_dir),
         "task": TASK,
         "method": "traceaad_v5",
-        "experiment_version": os.environ.get("EXPERIMENT_VERSION", "version5"),
+        "experiment_version": os.environ.get("EXPERIMENT_VERSION", "version5_1"),
         "timestamp": timestamp,
         "llm": {
             "base_url": os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL),
@@ -126,8 +127,9 @@ def _write_run_config(run_dir: Path, timestamp: str) -> None:
             "max_stalled_iterations": 20,
             "checkpoint_interval": 10,
             "value_weights": asdict(ValueWeights()),
-            "experience_batch_size": 60,
-            "max_context_tokens": int(os.environ.get("LLM_CONTEXT_TOKENS", "131072")),
+            "global_reflection_interval": 20,
+            "global_reflection_max_tokens": 1024,
+            "max_context_tokens": int(os.environ.get("LLM_CONTEXT_TOKENS", "32768")),
             "output_token_reserve": int(
                 os.environ.get("LLM_OUTPUT_TOKEN_RESERVE", "16384")
             ),

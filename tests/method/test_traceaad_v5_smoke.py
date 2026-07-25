@@ -67,7 +67,7 @@ class V5MechanismLLM(ScriptedV5LLM):
     def draw_sample(self, prompt, *args, **kwargs):
         self.calls += 1
         self.prompts.append(str(prompt))
-        if "[Old Global Experience]" in prompt:
+        if "[Recent Search Rounds]" in prompt:
             return json.dumps(
                 [
                     {
@@ -94,6 +94,58 @@ class V5MechanismLLM(ScriptedV5LLM):
                 }
             ]
         )
+
+
+class RecoveringReflectionLLM(V5MechanismLLM):
+    def __init__(self) -> None:
+        super().__init__()
+        self.reflection_calls = 0
+
+    def draw_sample(self, prompt, *args, **kwargs):
+        if "[Recent Search Rounds]" in prompt:
+            self.calls += 1
+            self.prompts.append(str(prompt))
+            self.reflection_calls += 1
+            if self.reflection_calls == 1:
+                raise RuntimeError("temporary reflection failure")
+            return json.dumps(
+                [
+                    {
+                        "kind": "explore",
+                        "statement": "The second stage supports revisiting offsets.",
+                        "condition": "under the current toy evaluator",
+                        "evidence_edges": ["e20"],
+                    }
+                ]
+            )
+        return super().draw_sample(prompt, *args, **kwargs)
+
+
+class TwoActionReflectionLLM(V5MechanismLLM):
+    def draw_sample(self, prompt, *args, **kwargs):
+        if "[Action Contract]" in prompt:
+            self.calls += 1
+            self.prompts.append(str(prompt))
+            long_change = "尝试调整当前算法状态中的一个局部决策规则，观察真实适应度反馈。" * 8
+            return json.dumps(
+                [
+                    {
+                        "relation": "continue",
+                        "evidence_edges": [],
+                        "reference_evidence_edges": [],
+                        "change": long_change,
+                        "novel_difference": "",
+                    },
+                    {
+                        "relation": "redirect",
+                        "evidence_edges": [],
+                        "reference_evidence_edges": [],
+                        "change": long_change,
+                        "novel_difference": "",
+                    },
+                ]
+            )
+        return super().draw_sample(prompt, *args, **kwargs)
 
 
 class ParsimonyLLM(LLM):
@@ -187,7 +239,7 @@ def test_traceaad_v5_runs_structured_actions_and_writes_v5_state(
     assert result.n_samples == 4
     assert result.n_edges == 2
     payload = json.loads((checkpoint_dir / "latest.json").read_text(encoding="utf-8"))
-    assert payload["format_version"] == 6
+    assert payload["format_version"] == 7
     assert all(
         {"program_loc", "code_hash"} <= set(node) for node in payload["graph"]["nodes"]
     )
@@ -214,7 +266,7 @@ def test_traceaad_v5_keeps_full_paths_beyond_the_prompt_window(
         max_trajectory_length=1,
         max_active_trajectories=1,
         operators=(TraceIdeateOp,),
-        experience_batch_size=20,
+        global_reflection_interval=20,
         random_seed=3,
         checkpoint_dir=checkpoint_dir,
     ).run()
@@ -244,7 +296,7 @@ def test_traceaad_v5_reference_is_provenance_not_a_second_parent(
         actions_per_iteration=1,
         max_active_trajectories=4,
         operators=(TraceTransferOp,),
-        experience_batch_size=20,
+        global_reflection_interval=20,
         random_seed=2,
         checkpoint_dir=checkpoint_dir,
     ).run()
@@ -278,12 +330,12 @@ def test_traceaad_v5_global_experience_updates_and_guides_later_actions(
     result = TraceAADV5(
         llm=llm,
         evaluation=IncreasingEvaluation(),
-        max_sample_nums=5,
+        max_sample_nums=23,
         n_init=2,
         actions_per_iteration=1,
         max_active_trajectories=4,
         operators=(TraceIdeateOp,),
-        experience_batch_size=2,
+        global_reflection_interval=20,
         random_seed=4,
         checkpoint_dir=checkpoint_dir,
     ).run()
@@ -291,11 +343,84 @@ def test_traceaad_v5_global_experience_updates_and_guides_later_actions(
     payload = json.loads((checkpoint_dir / "latest.json").read_text(encoding="utf-8"))
     assert result.n_experience_updates == 1
     assert payload["global_experience_entries"][0]["evidence_edge_ids"] == [0]
-    assert any(
-        "A deterministic offset has coincided with improvement." in prompt
-        and "[Action Contract]" in prompt
-        for prompt in llm.prompts
+    reflection_prompts = [
+        prompt for prompt in llm.prompts if "[Recent Search Rounds]" in prompt
+    ]
+    assert len(reflection_prompts) == 1
+    assert reflection_prompts[0].count("\nRound ") == 20
+    action_prompts = [
+        prompt for prompt in llm.prompts if "[Action Contract]" in prompt
+    ]
+    assert "A deterministic offset has coincided with improvement." not in action_prompts[19]
+    assert "A deterministic offset has coincided with improvement." in action_prompts[20]
+
+
+def test_traceaad_v5_reflection_failure_does_not_disable_the_next_stage(
+    tmp_path: Path,
+) -> None:
+    from llm4ad.method.traceaad_v5 import TraceAADV5
+    from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
+
+    llm = RecoveringReflectionLLM()
+    checkpoint_dir = tmp_path / "checkpoints"
+    result = TraceAADV5(
+        llm=llm,
+        evaluation=IncreasingEvaluation(),
+        max_sample_nums=42,
+        n_init=1,
+        actions_per_iteration=1,
+        max_active_trajectories=4,
+        operators=(TraceIdeateOp,),
+        global_reflection_interval=20,
+        random_seed=9,
+        checkpoint_dir=checkpoint_dir,
+    ).run()
+
+    payload = json.loads((checkpoint_dir / "latest.json").read_text(encoding="utf-8"))
+    reflection_prompts = [
+        prompt for prompt in llm.prompts if "[Recent Search Rounds]" in prompt
+    ]
+    action_prompts = [
+        prompt for prompt in llm.prompts if "[Action Contract]" in prompt
+    ]
+    assert llm.reflection_calls == 2
+    assert result.n_experience_updates == 1
+    assert payload["experience_reflection_attempts"] == 2
+    assert payload["last_experience_validation"] == "ok"
+    assert "The second stage supports revisiting offsets." in action_prompts[40]
+    assert all("def choose" not in prompt for prompt in reflection_prompts)
+    assert all("code_hash" not in prompt for prompt in reflection_prompts)
+
+
+def test_traceaad_v5_twenty_round_reflection_fits_the_real_32k_context(
+    tmp_path: Path,
+) -> None:
+    from llm4ad.method.traceaad_v5 import TraceAADV5
+    from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
+
+    llm = TwoActionReflectionLLM()
+    result = TraceAADV5(
+        llm=llm,
+        evaluation=IncreasingEvaluation(),
+        max_sample_nums=43,
+        n_init=2,
+        actions_per_iteration=2,
+        max_active_trajectories=4,
+        operators=(TraceIdeateOp,),
+        global_reflection_interval=20,
+        max_context_tokens=32768,
+        global_reflection_max_tokens=1024,
+        random_seed=11,
+        checkpoint_dir=tmp_path / "checkpoints",
+    ).run()
+
+    reflection_prompt = next(
+        prompt for prompt in llm.prompts if "[Recent Search Rounds]" in prompt
     )
+    assert result.n_experience_updates == 1
+    assert reflection_prompt.count("\nRound ") == 20
+    assert reflection_prompt.count("\n- e") == 40
+    assert len(reflection_prompt.encode("utf-8")) <= 32768 - 1024
 
 
 def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
@@ -311,7 +436,7 @@ def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
         actions_per_iteration=1,
         max_active_trajectories=4,
         operators=(TraceIdeateOp,),
-        experience_batch_size=20,
+        global_reflection_interval=20,
         random_seed=7,
         checkpoint_dir=checkpoint_dir,
     ).run()
@@ -323,7 +448,7 @@ def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
         actions_per_iteration=1,
         max_active_trajectories=4,
         operators=(TraceIdeateOp,),
-        experience_batch_size=20,
+        global_reflection_interval=20,
         random_seed=999,
         resume_from=checkpoint_dir,
     ).run()
@@ -348,7 +473,7 @@ def test_traceaad_v5_prefers_shorter_exact_ties_without_clone_churn(
         actions_per_iteration=1,
         max_active_trajectories=1,
         operators=(TraceRefineOp,),
-        experience_batch_size=20,
+        global_reflection_interval=20,
         random_seed=0,
         checkpoint_dir=checkpoint_dir,
     ).run()
@@ -376,7 +501,7 @@ def test_traceaad_v5_executes_the_valid_subset_of_structured_actions(
         actions_per_iteration=2,
         max_active_trajectories=2,
         operators=(TraceIdeateOp,),
-        experience_batch_size=20,
+        global_reflection_interval=20,
         random_seed=0,
         checkpoint_dir=checkpoint_dir,
     ).run()
