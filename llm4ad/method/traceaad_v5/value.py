@@ -16,6 +16,8 @@ from .trajectory_memory import TrajectoryMemory
 class ValueWeights:
     endpoint_quality: float = 0.7
     best_quality: float = 0.3
+    search_quality: float = 0.8
+    search_trend: float = 0.2
     ucb_c: float = 0.25
     discount: float = 0.8
     positive_threshold: float = 1e-12
@@ -25,6 +27,10 @@ class ValueWeights:
             raise ValueError("quality weights must be non-negative")
         if self.endpoint_quality + self.best_quality <= 0:
             raise ValueError("at least one quality weight must be positive")
+        if self.search_quality < 0 or self.search_trend < 0:
+            raise ValueError("search-value weights must be non-negative")
+        if self.search_quality + self.search_trend <= 0:
+            raise ValueError("at least one search-value weight must be positive")
         if self.ucb_c < 0:
             raise ValueError("ucb_c must be non-negative")
 
@@ -140,7 +146,11 @@ def score_active_trajectories(
                 threshold=w.positive_threshold,
             ),
         )
-        scored.append(memory.set_value(route.id, value, quality))
+        search_denominator = w.search_quality + w.search_trend
+        search_value = (
+            w.search_quality * value.quality + w.search_trend * value.trend
+        ) / search_denominator
+        scored.append(memory.set_value(route.id, value, search_value))
     return tuple(
         sorted(
             scored,
@@ -259,7 +269,10 @@ def reference_sampling_distribution(
 ) -> tuple[tuple[Trajectory, float], ...]:
     if not candidates:
         return ()
-    scores = [float(route.scalar_value or 0.0) for route in candidates]
+    scores = [
+        0.0 if route.value is None else float(route.value.quality)
+        for route in candidates
+    ]
     probabilities = _probabilities(_softmax_weights(scores, temperature))
     return tuple(zip(candidates, probabilities))
 

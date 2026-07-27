@@ -14,6 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from llm4ad.method.pathwise import PathWise, PathWiseProfiler
 from llm4ad.task.optimization.generated_data_config import get_generated_task_kwargs
 from llm4ad.task.optimization.online_bin_packing import OBPEvaluation
+from llm4ad.tools.env import resolve_llm_api_key
 from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
 
 
@@ -25,8 +26,8 @@ LOG_DIR = RUN_DIR / "logs"
 TMUX_LOG = RUN_DIR / "tmux_run.log"
 
 BASE_URL = os.environ.get("LLM_BASE_URL", "http://222.201.145.8:8080/v1")
-API_KEY = os.environ.get("LLM_API_KEY", "EMPTY")
 MODEL = os.environ.get("LLM_MODEL", "qwen3.6-27b-awq")
+API_KEY = os.environ.get("LLM_API_KEY") or resolve_llm_api_key(base_url=BASE_URL)
 LLM_TIMEOUT = 600
 MAX_TOKENS = 16384
 LLM_TEMPERATURE = 1.0

@@ -11,6 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from experiments.tsp_construct.pathwise import run_experiment as runner
 from llm4ad.task.optimization.op_aco import OPACOEvaluation
+from llm4ad.tools.env import resolve_llm_api_key
 
 runner.TASK = "op_aco"
 runner.TASK_SPLIT = "train"
@@ -27,6 +28,16 @@ runner.TIMESTAMP = os.environ.get("RUN_TIMESTAMP") or datetime.now().strftime("%
 runner.RUN_DIR = Path(__file__).resolve().parent / runner.TIMESTAMP
 runner.LOG_DIR = runner.RUN_DIR / "logs"
 runner.TMUX_LOG = runner.RUN_DIR / "tmux_run.log"
+
+NO_PROXY_HOSTS = os.environ.get(
+    "NO_PROXY",
+    "183.36.243.124,222.201.145.8,localhost,127.0.0.1,::1",
+)
+os.environ.setdefault("NO_PROXY", NO_PROXY_HOSTS)
+os.environ.setdefault("no_proxy", NO_PROXY_HOSTS)
+runner.BASE_URL = os.environ.get("LLM_BASE_URL", runner.BASE_URL)
+runner.MODEL = os.environ.get("LLM_MODEL", runner.MODEL)
+runner.API_KEY = os.environ.get("LLM_API_KEY") or resolve_llm_api_key(base_url=runner.BASE_URL)
 
 
 if __name__ == "__main__":

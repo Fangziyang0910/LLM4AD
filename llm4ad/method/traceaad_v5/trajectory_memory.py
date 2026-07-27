@@ -1,4 +1,4 @@
-"""Full trajectory state for TraceAAD v5; prompt windows never truncate state."""
+"""Store and branch bounded TraceAAD v5 trajectories."""
 
 from __future__ import annotations
 
@@ -15,12 +15,10 @@ from .schema import (
 
 
 class TrajectoryMemory:
-    def __init__(self, *, prompt_window: int = 8) -> None:
-        if prompt_window < 1:
-            raise ValueError("prompt_window must be positive")
-        self.prompt_window = int(prompt_window)
-        # Compatibility name used by generic parameter/profiler code.
-        self.max_trajectory_length = self.prompt_window
+    def __init__(self, *, max_trajectory_length: int = 8) -> None:
+        if max_trajectory_length < 1:
+            raise ValueError("max_trajectory_length must be positive")
+        self.max_trajectory_length = int(max_trajectory_length)
         self._next_id = 0
         self._trajectories: dict[TrajectoryId, Trajectory] = {}
 
@@ -53,8 +51,14 @@ class TrajectoryMemory:
         base_index = parent.node_ids.index(base_node_id)
         node_ids = (*parent.node_ids[: base_index + 1], child_id)
         edge_ids = (*parent.edge_ids[:base_index], edge_id)
+        overflow = len(node_ids) - self.max_trajectory_length
+        if overflow > 0:
+            node_ids = node_ids[overflow:]
+            edge_ids = edge_ids[overflow:]
         if len(node_ids) != len(edge_ids) + 1:
             raise AssertionError("trajectory path is inconsistent")
+        if compact_best_id not in node_ids:
+            raise ValueError("compact best must belong to the retained trajectory")
         trajectory = Trajectory(
             id=self._next_id,
             node_ids=node_ids,

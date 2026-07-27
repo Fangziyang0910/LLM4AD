@@ -1,4 +1,4 @@
-"""Bounded prompt views over full TraceAAD v5 trajectory state."""
+"""Render bounded TraceAAD v5 trajectories for model context."""
 
 from __future__ import annotations
 
@@ -39,7 +39,10 @@ def trajectory_history(
     base_index = trajectory.node_ids.index(base_id)
     before = trajectory.edge_ids[:base_index]
     after = trajectory.edge_ids[base_index:]
-    if after:
+    if len(trajectory.edge_ids) <= max_steps:
+        selected_before = before
+        selected_after = after
+    elif after:
         formation_limit = max_steps // 2
         tested_limit = max_steps - formation_limit
         selected_before = before[-formation_limit:] if formation_limit else ()
@@ -174,6 +177,10 @@ def build_action_prompt(
             (
                 "Use the improvement direction and the provided search experience to "
                 "decide the next algorithmic modification."
+            ),
+            (
+                "Favor algorithmic principles that remain meaningful as instance size "
+                "changes, using normalized relationships where appropriate."
             ),
             (
                 f"Propose exactly {action_count} concrete, self-contained action lines. "

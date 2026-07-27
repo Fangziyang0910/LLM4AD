@@ -79,8 +79,10 @@ class _CandidateObservation:
 @dataclass(frozen=True, slots=True)
 class _PromptContext:
     prompt: str
-    window: int
+    history_edge_count: int
     token_count: int
+    primary_history: str
+    reference_history: str
     primary_edge_ids: tuple[int, ...]
     reference_edge_ids: tuple[int, ...]
 
@@ -115,9 +117,10 @@ class TraceAADV5:
         maximize: bool = True,
         value_weights: ValueWeights | None = None,
         operators: tuple[type[Operator], ...] = DEFAULT_OPERATORS,
+        action_max_tokens: int = 1024,
         global_reflection_code_batch: int = 40,
         global_reflection_max_tokens: int = 1024,
-        max_context_tokens: int = 32768,
+        max_context_tokens: int | None = None,
         output_token_reserve: int = 8192,
         random_seed: int | None = None,
         debug_mode: bool = False,
@@ -139,7 +142,10 @@ class TraceAADV5:
             raise ValueError("softmax_temperature must be positive")
         if checkpoint_interval <= 0:
             raise ValueError("checkpoint_interval must be positive")
-        if max_context_tokens <= output_token_reserve:
+        if (
+            max_context_tokens is not None
+            and max_context_tokens <= output_token_reserve
+        ):
             raise ValueError("context window must exceed the output reserve")
 
         self._llm = llm
@@ -166,9 +172,14 @@ class TraceAADV5:
         self._global_reflection_max_tokens = int(global_reflection_max_tokens)
         if self._global_reflection_max_tokens <= 0:
             raise ValueError("global_reflection_max_tokens must be positive")
-        if max_context_tokens <= self._global_reflection_max_tokens:
+        if (
+            max_context_tokens is not None
+            and max_context_tokens <= self._global_reflection_max_tokens
+        ):
             raise ValueError("context window must exceed reflection output tokens")
-        self._max_context_tokens = int(max_context_tokens)
+        self._max_context_tokens = (
+            None if max_context_tokens is None else int(max_context_tokens)
+        )
         self._output_token_reserve = int(output_token_reserve)
         self._debug_mode = debug_mode
         self._max_stalled_iterations = max(1, int(max_stalled_iterations))
@@ -190,10 +201,13 @@ class TraceAADV5:
         self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode)
 
         self._graph = DerivationGraph()
-        self._memory = TrajectoryMemory(prompt_window=max_trajectory_length)
+        self._memory = TrajectoryMemory(max_trajectory_length=max_trajectory_length)
         self._operators = tuple(operator_type() for operator_type in operators)
         if not self._operators:
             raise ValueError("at least one TraceAAD v5 operator is required")
+        self._action_max_tokens = int(action_max_tokens)
+        if self._action_max_tokens <= 0:
+            raise ValueError("action_max_tokens must be positive")
         self._best_node: ProgramNode | None = None
         self._best_trajectory_id: int | None = None
         self._global_experience = ""
@@ -431,7 +445,9 @@ class TraceAADV5:
                 }
                 for route, probability in reference_distribution
             ],
-            selection_mode="uniform_available_operator_q_ucb_primary_q_reference",
+            selection_mode=(
+                "uniform_available_operator_q_trend_ucb_primary_q_reference"
+            ),
         )
         log_state(
             self,
@@ -463,6 +479,9 @@ class TraceAADV5:
                 action=action,
                 task_description=self._task_description_str,
                 template_function=self._function_to_evolve,
+                history=context.primary_history,
+                reference_node=reference_node,
+                reference_history=context.reference_history,
             )
             if not self._prompt_fits(code_prompt):
                 log_event(
@@ -638,7 +657,7 @@ class TraceAADV5:
                 for route, adjusted, probability in distribution
             ],
             selected_trajectory_id=selected.id,
-            selection_mode="q_plus_ucb_softmax",
+            selection_mode="q_trend_plus_ucb_softmax",
         )
         return selected
 
@@ -656,6 +675,10 @@ class TraceAADV5:
         primary: Trajectory,
         anchor_id: int,
     ) -> tuple[Trajectory, ...]:
+        if self._max_context_tokens is None:
+            return tuple(
+                route for route in self._memory.active() if route.id != primary.id
+            )
         candidates: list[Trajectory] = []
         feasibility_operator = TraceSynthesizeOp()
         for route in self._memory.active():
@@ -669,7 +692,7 @@ class TraceAADV5:
                 operator=feasibility_operator,
                 reference_route=route,
                 reference_node=node,
-                minimum_only=True,
+                log_result=False,
             )
             if context is not None:
                 candidates.append(route)
@@ -684,100 +707,78 @@ class TraceAADV5:
         operator: Operator,
         reference_route: Trajectory | None,
         reference_node: ProgramNode | None,
-        minimum_only: bool = False,
+        log_result: bool = True,
     ) -> _PromptContext | None:
-        minimum = max(
-            self._minimum_history_window(selected, anchor_id),
-            (1 if reference_route is not None and reference_route.edge_ids else 0),
-            1,
+        primary_history = trajectory_history(
+            self._graph,
+            selected,
+            base_node_id=anchor_id,
+            max_steps=self._memory.max_trajectory_length,
         )
-        start = minimum if minimum_only else self._memory.prompt_window
-        stop = minimum
-        for window in range(start, stop - 1, -1):
-            primary_history = trajectory_history(
+        reference_history = (
+            None
+            if reference_route is None or reference_node is None
+            else trajectory_history(
                 self._graph,
-                selected,
-                base_node_id=anchor_id,
-                max_steps=window,
+                reference_route,
+                base_node_id=reference_node.id,
+                max_steps=self._memory.max_trajectory_length,
             )
-            reference_history = (
-                None
-                if reference_route is None or reference_node is None
-                else trajectory_history(
-                    self._graph,
-                    reference_route,
-                    base_node_id=reference_node.id,
-                    max_steps=window,
-                )
-            )
-            prompt = build_action_prompt(
-                graph=self._graph,
-                trajectory=selected,
-                base_node_id=anchor_id,
-                operator_constraint=operator.build_constraint(),
-                task_description=self._task_description_str,
-                template_function=self._function_to_evolve,
-                action_count=self._actions_per_iteration,
-                maximize=self._maximize,
-                max_steps=window,
-                global_experience=self._global_experience,
-                reference_trajectory=reference_route,
-                reference_node_id=(
-                    None if reference_node is None else reference_node.id
+        )
+        prompt = build_action_prompt(
+            graph=self._graph,
+            trajectory=selected,
+            base_node_id=anchor_id,
+            operator_constraint=operator.build_constraint(),
+            task_description=self._task_description_str,
+            template_function=self._function_to_evolve,
+            action_count=self._actions_per_iteration,
+            maximize=self._maximize,
+            max_steps=self._memory.max_trajectory_length,
+            global_experience=self._global_experience,
+            reference_trajectory=reference_route,
+            reference_node_id=None if reference_node is None else reference_node.id,
+        )
+        token_count = self._count_tokens(prompt)
+        primary_edge_ids = primary_history.edge_ids
+        reference_edge_ids = (
+            () if reference_history is None else reference_history.edge_ids
+        )
+        fits = self._prompt_fits(
+            prompt,
+            output_token_reserve=self._action_max_tokens,
+        )
+        if log_result:
+            log_event(
+                self,
+                event="prompt_context",
+                status="ok" if fits else "overflow",
+                operator=operator.name,
+                history_edge_count=max(
+                    len(primary_edge_ids),
+                    len(reference_edge_ids),
                 ),
+                token_count=token_count,
+                token_count_mode=self._token_count_mode,
+                primary_edge_ids=list(primary_edge_ids),
+                reference_edge_ids=list(reference_edge_ids),
             )
-            token_count = self._count_tokens(prompt)
-            if token_count <= self._prompt_token_budget:
-                displayed_primary = primary_history.edge_ids
-                displayed_reference = (
-                    () if reference_history is None else reference_history.edge_ids
-                )
-                if not minimum_only:
-                    log_event(
-                        self,
-                        event="prompt_context",
-                        status="ok",
-                        operator=operator.name,
-                        prompt_window=window,
-                        token_count=token_count,
-                        token_count_mode=self._token_count_mode,
-                        primary_edge_ids=list(displayed_primary),
-                        reference_edge_ids=list(displayed_reference),
-                        pruned_primary_edge_ids=[
-                            edge
-                            for edge in selected.edge_ids
-                            if edge not in displayed_primary
-                        ],
-                        pruned_reference_edge_ids=(
-                            []
-                            if reference_route is None
-                            else [
-                                edge
-                                for edge in reference_route.edge_ids
-                                if edge not in displayed_reference
-                            ]
-                        ),
-                    )
-                return _PromptContext(
-                    prompt=prompt,
-                    window=window,
-                    token_count=token_count,
-                    primary_edge_ids=displayed_primary,
-                    reference_edge_ids=displayed_reference,
-                )
-        return None
-
-    def _minimum_history_window(self, trajectory: Trajectory, anchor_id: int) -> int:
-        if not trajectory.edge_ids:
-            return 1
-        index = trajectory.node_ids.index(anchor_id)
-        has_before = bool(trajectory.edge_ids[:index])
-        has_after = bool(trajectory.edge_ids[index:])
-        return 2 if has_before and has_after else 1
-
-    @property
-    def _prompt_token_budget(self) -> int:
-        return self._max_context_tokens - self._output_token_reserve
+        if not fits:
+            return None
+        return _PromptContext(
+            prompt=prompt,
+            history_edge_count=max(
+                len(primary_edge_ids),
+                len(reference_edge_ids),
+            ),
+            token_count=token_count,
+            primary_history=primary_history.text,
+            reference_history=(
+                "" if reference_history is None else reference_history.text
+            ),
+            primary_edge_ids=primary_edge_ids,
+            reference_edge_ids=reference_edge_ids,
+        )
 
     def _count_tokens(self, prompt: str) -> int:
         counter = getattr(self._llm, "count_tokens", None)
@@ -800,6 +801,8 @@ class TraceAADV5:
     def _prompt_fits(
         self, prompt: str, *, output_token_reserve: int | None = None
     ) -> bool:
+        if self._max_context_tokens is None:
+            return True
         reserve = (
             self._output_token_reserve
             if output_token_reserve is None
@@ -816,7 +819,10 @@ class TraceAADV5:
     ) -> list[str]:
         start = time.time()
         try:
-            response = self._llm.draw_sample(context.prompt)
+            response = self._llm.draw_sample(
+                context.prompt,
+                max_tokens=self._action_max_tokens,
+            )
             sample_time = time.time() - start
             reset_sample_failures(self)
         except Exception as exc:
@@ -867,6 +873,7 @@ class TraceAADV5:
             for node_id in selected.node_ids[: anchor_index + 1]
         ]
         candidates.append(child)
+        candidates = candidates[-self._memory.max_trajectory_length :]
         best = candidates[0]
         for candidate in candidates[1:]:
             if is_program_better(candidate, best, self._maximize):
@@ -888,15 +895,10 @@ class TraceAADV5:
         return True, "tie_shorter"
 
     def _maybe_update_global_experience(self, iteration: int) -> None:
-        if (
-            len(self._pending_reflection_edge_ids)
-            < self._global_reflection_code_batch
-        ):
+        if len(self._pending_reflection_edge_ids) < self._global_reflection_code_batch:
             return
         recent_edge_ids = tuple(
-            self._pending_reflection_edge_ids[
-                : self._global_reflection_code_batch
-            ]
+            self._pending_reflection_edge_ids[: self._global_reflection_code_batch]
         )
         prompt = build_reflection_prompt(
             task_description=self._task_description_str,
@@ -943,9 +945,7 @@ class TraceAADV5:
             save_checkpoint(self)
             return
         self._global_experience = str(response).strip()
-        del self._pending_reflection_edge_ids[
-            : self._global_reflection_code_batch
-        ]
+        del self._pending_reflection_edge_ids[: self._global_reflection_code_batch]
         self._experience_update_index += 1
         log_llm_call(
             self,
@@ -1114,7 +1114,7 @@ class TraceAADV5:
             before=len(ranked),
             after=len(self._memory.active()),
             decisions=decisions,
-            selection_mode="quality_elite_diversity_q_softmax",
+            selection_mode="quality_elite_diversity_q_trend_softmax",
         )
         save_checkpoint(self)
 
@@ -1196,8 +1196,8 @@ class TraceAADV5:
     def _evaluate(self, program: Program, *, idea: str, operator) -> EvalResult | None:
         if not self._has_budget():
             return None
-        outcome, eval_time = (
-            self._evaluator.evaluate_program_record_time_with_details(program)
+        outcome, eval_time = self._evaluator.evaluate_program_record_time_with_details(
+            program
         )
         self._tot_sample_nums += 1
         result = outcome.result
@@ -1308,7 +1308,11 @@ def _parse_program_response(
         (
             parsed
             for code in candidates
-            if (parsed := _parse_program_candidate(code, template_program, function_name))
+            if (
+                parsed := _parse_program_candidate(
+                    code, template_program, function_name
+                )
+            )
             is not None
         ),
         None,

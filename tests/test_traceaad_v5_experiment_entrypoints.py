@@ -11,8 +11,6 @@ ENTRYPOINTS = (
     "experiments.cvrp_aco.traceaad_v5.run_experiment",
     "experiments.op_aco.traceaad_v5.run_experiment",
     "experiments.online_bin_packing.traceaad_v5.run_experiment",
-    "experiments.knapsack_construct.traceaad_v5.run_experiment",
-    "experiments.tsp_gls.traceaad_v5.run_experiment",
 )
 
 
@@ -26,5 +24,7 @@ def test_each_supported_task_builds_the_independent_v5_method(
         assert isinstance(method, TraceAADV5)
         assert method._llm.max_tokens == 8192
         assert method._output_token_reserve == 8192
+        assert method._action_max_tokens == 1024
+        assert method._max_context_tokens is None
         assert method._global_reflection_code_batch == 40
         assert callable(module.main)

@@ -66,7 +66,7 @@ class ImprovementEdge:
 
 @dataclass(frozen=True, slots=True)
 class ValueVec:
-    """Search quality; trend is retained only as an analysis field."""
+    """Search quality and bounded-path trend."""
 
     quality: float = 0.0
     trend: float = 0.5
@@ -84,6 +84,7 @@ class Trajectory:
     status: TrajectoryStatus = TrajectoryStatus.ACTIVE
     value: ValueVec | None = None
     scalar_value: float | None = None
+
 
 __all__ = [
     "EdgeId",

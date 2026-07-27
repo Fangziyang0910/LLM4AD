@@ -63,6 +63,9 @@ def build_code_prompt(
     action: str,
     task_description: str,
     template_function: Function,
+    history: str,
+    reference_node: ProgramNode | None = None,
+    reference_history: str = "",
 ) -> str:
     target = copy.deepcopy(template_function)
     target.body = ""
@@ -70,11 +73,27 @@ def build_code_prompt(
         "[Task]",
         task_description.strip(),
         "",
+        "[Current Program History]",
+        history.strip(),
+        "",
         "[Current Program]",
         "```python",
         current_node.code.rstrip(),
         "```",
     ]
+    if reference_node is not None:
+        sections.extend(
+            [
+                "",
+                "[Reference Program History]",
+                reference_history.strip(),
+                "",
+                "[Reference Program]",
+                "```python",
+                reference_node.code.rstrip(),
+                "```",
+            ]
+        )
     sections.extend(
         [
             "",

@@ -1,4 +1,4 @@
-"""Plot TraceAAD v4/v5 OP-ACO training curves."""
+"""Plot OP-ACO search curves for MCTS-AHD, PathWise, TraceAAD v4 and v5.1."""
 
 from __future__ import annotations
 
@@ -16,8 +16,29 @@ from matplotlib.patches import Patch
 ROOT = Path(__file__).resolve().parents[2]
 EXPERIMENTS_DIR = ROOT / "experiments" / "op_aco"
 RESULTS_DIR = ROOT / "docs" / "results" / "op_aco"
-BUDGET = 1000
 METHODS = {
+    "MCTS-AHD": {
+        "directory": "mcts_ahd",
+        "runs": (
+            "20260725_104402_opaco_mctsahd_rep1",
+            "20260725_104402_opaco_mctsahd_rep2",
+            "20260725_104402_opaco_mctsahd_rep3",
+        ),
+        "budget": 1000,
+        "color": "#247BA0",
+        "band": "#A9D6E5",
+    },
+    "PathWise": {
+        "directory": "pathwise",
+        "runs": (
+            "20260727_122417_opaco_pw_rep1",
+            "20260727_122417_opaco_pw_rep2",
+            "20260727_122417_opaco_pw_rep3",
+        ),
+        "budget": 500,
+        "color": "#E76F51",
+        "band": "#FFB4A2",
+    },
     "TraceAAD v4": {
         "directory": "traceaad/version4",
         "runs": (
@@ -25,37 +46,41 @@ METHODS = {
             "20260723_204526_opaco_v4_rep2",
             "20260723_204526_opaco_v4_rep3",
         ),
+        "budget": 1000,
         "color": "#F4A261",
         "band": "#FAD7A0",
     },
-    "TraceAAD v5": {
-        "directory": "traceaad_v5/version5",
+    "TraceAAD v5.1": {
+        "directory": "traceaad_v5/version5_1",
         "runs": (
-            "20260724_220827_opaco_v5_rep1",
-            "20260724_220827_opaco_v5_rep2",
-            "20260724_220827_opaco_v5_rep3",
+            "20260725_234854_opaco_v51_rep1",
+            "20260725_234854_opaco_v51_rep2",
+            "20260725_234854_opaco_v51_rep3",
         ),
-        "color": "#D55E00",
-        "band": "#F3B49F",
+        "budget": 1000,
+        "color": "#0072B2",
+        "band": "#9EC9E2",
     },
 }
 
 
-def _load_curve(directory: str, run_name: str) -> np.ndarray:
+def _load_curve(directory: str, run_name: str, budget: int) -> np.ndarray:
     run_dir = EXPERIMENTS_DIR / directory / run_name
     summary = json.loads((run_dir / "logs" / "run_summary.json").read_text(encoding="utf-8"))
     if summary.get("status") != "finished" or summary.get("search_aborted"):
         raise RuntimeError(f"Run is not complete: {run_name}")
 
-    scores = np.full(BUDGET, -np.inf)
+    scores = np.full(budget, -np.inf)
     for path in (run_dir / "logs" / "samples").glob("samples_*.json"):
         if path.name == "samples_best.json":
             continue
         for sample in json.loads(path.read_text(encoding="utf-8")):
             order, score = sample.get("sample_order"), sample.get("score")
-            if isinstance(order, int) and isinstance(score, (int, float)):
+            if isinstance(order, int) and isinstance(score, (int, float)) and 1 <= order <= budget:
                 scores[order - 1] = max(scores[order - 1], float(score))
-    return np.maximum.accumulate(scores)
+    curve = np.maximum.accumulate(scores)
+    curve[~np.isfinite(curve)] = np.nan
+    return curve
 
 
 def main() -> None:
@@ -71,15 +96,19 @@ def main() -> None:
 
     fig, ax = plt.subplots(figsize=(6.75, 3.6))
     handles = []
-    x = np.arange(1, BUDGET + 1)
+    all_values = []
+    max_budget = max(config["budget"] for config in METHODS.values())
     for name, config in METHODS.items():
+        budget = config["budget"]
         curves = np.vstack(
-            [_load_curve(config["directory"], run) for run in config["runs"]]
+            [_load_curve(config["directory"], run, budget) for run in config["runs"]]
         )
+        x = np.arange(1, budget + 1)
+        all_values.append(curves[np.isfinite(curves)])
         ax.fill_between(
             x,
-            curves.min(axis=0),
-            curves.max(axis=0),
+            np.nanmin(curves, axis=0),
+            np.nanmax(curves, axis=0),
             step="post",
             color=config["band"],
             alpha=0.3,
@@ -87,11 +116,11 @@ def main() -> None:
         )
         (line,) = ax.plot(
             x,
-            curves.mean(axis=0),
+            np.nanmean(curves, axis=0),
             drawstyle="steps-post",
             color=config["color"],
             linewidth=2.2,
-            label=f"{name} mean",
+            label=f"{name} mean ({budget:,})",
         )
         handles.append(line)
 
@@ -103,7 +132,15 @@ def main() -> None:
             label="Min–max range across three runs",
         )
     )
-    ax.set(xlim=(0, BUDGET), xlabel="Evaluations", ylabel="Best-so-far score (higher is better)")
+    values = np.concatenate(all_values)
+    y_min = float(np.percentile(values, 5))
+    padding = max((float(values.max()) - y_min) * 0.08, 0.2)
+    ax.set(
+        xlim=(0, max_budget),
+        ylim=(y_min - padding * 0.2, float(values.max()) + padding),
+        xlabel="Evaluations",
+        ylabel="Best-so-far score (higher is better)",
+    )
     ax.grid(alpha=0.2)
     ax.legend(handles=handles, frameon=False, loc="lower right")
     fig.tight_layout()

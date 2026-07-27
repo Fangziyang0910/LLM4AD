@@ -21,7 +21,7 @@ from .schema import (
 )
 from .trajectory_memory import TrajectoryMemory
 
-CHECKPOINT_VERSION = 9
+CHECKPOINT_VERSION = 10
 
 
 def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
@@ -97,14 +97,16 @@ def _graph_from_dict(payload: Mapping[str, Any]) -> DerivationGraph:
 
 def _memory_to_dict(memory: TrajectoryMemory) -> dict[str, Any]:
     return {
-        "prompt_window": memory.prompt_window,
+        "max_trajectory_length": memory.max_trajectory_length,
         "next_id": memory._next_id,
         "trajectories": [asdict(route) for route in memory.trajectories()],
     }
 
 
 def _memory_from_dict(payload: Mapping[str, Any]) -> TrajectoryMemory:
-    memory = TrajectoryMemory(prompt_window=int(payload["prompt_window"]))
+    memory = TrajectoryMemory(
+        max_trajectory_length=int(payload["max_trajectory_length"])
+    )
     memory._next_id = int(payload["next_id"])
     for item in payload["trajectories"]:
         value_payload = item.get("value")
@@ -129,6 +131,10 @@ def _memory_from_dict(payload: Mapping[str, Any]) -> TrajectoryMemory:
         )
         if len(route.node_ids) != len(route.edge_ids) + 1:
             raise ValueError(f"inconsistent trajectory path: {route.id}")
+        if len(route.node_ids) > memory.max_trajectory_length:
+            raise ValueError(f"trajectory exceeds configured length: {route.id}")
+        if route.compact_best_id not in route.node_ids:
+            raise ValueError(f"compact best is outside trajectory: {route.id}")
         memory._trajectories[route.id] = route
     return memory
 
@@ -160,7 +166,7 @@ def _search_configuration(method) -> dict[str, Any]:
     return {
         "n_init": method._n_init,
         "actions_per_iteration": method._actions_per_iteration,
-        "prompt_window": method._memory.prompt_window,
+        "max_trajectory_length": method._memory.max_trajectory_length,
         "max_active_trajectories": method._max_active_trajectories,
         "management_threshold": method._management_threshold,
         "elite_count": method._elite_count,
@@ -168,6 +174,7 @@ def _search_configuration(method) -> dict[str, Any]:
         "softmax_temperature": method._softmax_temperature,
         "value_weights": asdict(method._value_weights),
         "operators": [operator.name.value for operator in method._operators],
+        "action_max_tokens": method._action_max_tokens,
         "global_reflection_code_batch": method._global_reflection_code_batch,
         "global_reflection_max_tokens": method._global_reflection_max_tokens,
         "max_context_tokens": method._max_context_tokens,

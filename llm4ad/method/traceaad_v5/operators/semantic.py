@@ -22,9 +22,8 @@ class TraceIdeateOp(SemanticOperator):
 class TraceRefineOp(SemanticOperator):
     name = OperatorName.REFINE
     prompt_constraint = (
-        "For each action, make an evidence-grounded refinement. You may deepen, "
-        "repair, replace, delete, merge, or simplify existing logic; do not default "
-        "to adding branches."
+        "For each action, make one focused, evidence-grounded refinement to a "
+        "mechanism that has shown value or to a weakness exposed by the history."
     )
 
 
