@@ -1,4 +1,4 @@
-"""Plot CVRP-ACO search curves for MCTS-AHD, PathWise, TraceAAD v4 and v5.1."""
+"""Plot CVRP-ACO search curves for MCTS-AHD, PathWise, TraceAAD v4 / v5.1 / v5.2."""
 
 from __future__ import annotations
 
@@ -52,6 +52,17 @@ METHODS = {
         "budget": 1000,
         "color": "#0072B2",
         "band": "#9EC9E2",
+    },
+    "TraceAAD v5.2": {
+        "directory": "traceaad_v5/version5_2",
+        "runs": (
+            "20260727_210010_cvrp_v52_rep1",
+            "20260727_210010_cvrp_v52_rep2",
+            "20260727_210010_cvrp_v52_rep3",
+        ),
+        "budget": 1000,
+        "color": "#009E73",
+        "band": "#7DCEA0",
     },
 }
 
