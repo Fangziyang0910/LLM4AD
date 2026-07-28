@@ -1,4 +1,4 @@
-"""Atomic V5-only checkpoint save and restore."""
+"""Save and restore the current TraceAAD V5 search state."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Mapping
 
-from ...base import TextFunctionProgramConverter
 from .derivation_graph import DerivationGraph
 from .schema import (
     ImprovementEdge,
@@ -20,8 +19,6 @@ from .schema import (
     ValueVec,
 )
 from .trajectory_memory import TrajectoryMemory
-
-CHECKPOINT_VERSION = 10
 
 
 def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
@@ -72,17 +69,17 @@ def _graph_from_dict(payload: Mapping[str, Any]) -> DerivationGraph:
             action=str(item["action"]),
             anchor_role=str(item["anchor_role"]),
             primary_trajectory_id=int(item["primary_trajectory_id"]),
-            reference_trajectory_id=item.get("reference_trajectory_id"),
-            reference_program_id=item.get("reference_program_id"),
-            delta_parent=item.get("delta_parent"),
-            delta_route_best=item.get("delta_route_best"),
-            delta_global_best=item.get("delta_global_best"),
-            delta_loc=int(item.get("delta_loc", 0)),
-            code_change_ratio=float(item.get("code_change_ratio", 0.0)),
-            outcome=str(item.get("outcome", "unknown")),
-            iteration=item.get("iteration"),
-            new_global_best=bool(item.get("new_global_best", False)),
-            global_best_update_reason=item.get("global_best_update_reason"),
+            reference_trajectory_id=item["reference_trajectory_id"],
+            reference_program_id=item["reference_program_id"],
+            delta_parent=item["delta_parent"],
+            delta_route_best=item["delta_route_best"],
+            delta_global_best=item["delta_global_best"],
+            delta_loc=int(item["delta_loc"]),
+            code_change_ratio=float(item["code_change_ratio"]),
+            outcome=str(item["outcome"]),
+            iteration=item["iteration"],
+            new_global_best=bool(item["new_global_best"]),
+            global_best_update_reason=item["global_best_update_reason"],
         )
         if edge.child_id in graph._incoming_edge_by_child:
             raise ValueError(
@@ -109,15 +106,15 @@ def _memory_from_dict(payload: Mapping[str, Any]) -> TrajectoryMemory:
     )
     memory._next_id = int(payload["next_id"])
     for item in payload["trajectories"]:
-        value_payload = item.get("value")
+        value_payload = item["value"]
         route = Trajectory(
             id=int(item["id"]),
             node_ids=tuple(int(x) for x in item["node_ids"]),
             edge_ids=tuple(int(x) for x in item["edge_ids"]),
             endpoint_id=int(item["endpoint_id"]),
             compact_best_id=int(item["compact_best_id"]),
-            visit_count=int(item.get("visit_count", 0)),
-            reference_use_count=int(item.get("reference_use_count", 0)),
+            visit_count=int(item["visit_count"]),
+            reference_use_count=int(item["reference_use_count"]),
             status=TrajectoryStatus(item["status"]),
             value=(
                 None
@@ -127,7 +124,7 @@ def _memory_from_dict(payload: Mapping[str, Any]) -> TrajectoryMemory:
                     trend=float(value_payload["trend"]),
                 )
             ),
-            scalar_value=item.get("scalar_value"),
+            scalar_value=item["scalar_value"],
         )
         if len(route.node_ids) != len(route.edge_ids) + 1:
             raise ValueError(f"inconsistent trajectory path: {route.id}")
@@ -141,16 +138,11 @@ def _memory_from_dict(payload: Mapping[str, Any]) -> TrajectoryMemory:
 
 def dump_state(method) -> dict[str, Any]:
     return {
-        "format_version": CHECKPOINT_VERSION,
-        "task_description": method._task_description_str,
-        "template_program": method._evaluation.template_program,
-        "function_name": method._function_to_evolve.name,
-        "maximize": method._maximize,
-        "search_configuration": _search_configuration(method),
         "initialization_complete": method._initialization_complete,
         "total_samples": method._tot_sample_nums,
         "next_attempt_id": method._next_attempt_id,
         "best_node_id": None if method._best_node is None else method._best_node.id,
+        "best_node_sample_order": method._best_node_sample_order,
         "best_trajectory_id": method._best_trajectory_id,
         "graph": _graph_to_dict(method._graph),
         "memory": _memory_to_dict(method._memory),
@@ -159,65 +151,52 @@ def dump_state(method) -> dict[str, Any]:
         "experience_reflection_attempts": method._experience_reflection_attempts,
         "experience_update_index": method._experience_update_index,
         "rng_state": method._rng.getstate(),
+        "profiler": _dump_profiler(method),
     }
 
 
-def _search_configuration(method) -> dict[str, Any]:
+def _dump_profiler(method) -> dict[str, Any] | None:
+    profiler = method._profiler
+    if profiler is None:
+        return None
     return {
-        "n_init": method._n_init,
-        "actions_per_iteration": method._actions_per_iteration,
-        "max_trajectory_length": method._memory.max_trajectory_length,
-        "max_active_trajectories": method._max_active_trajectories,
-        "management_threshold": method._management_threshold,
-        "elite_count": method._elite_count,
-        "diversity_count": method._diversity_count,
-        "softmax_temperature": method._softmax_temperature,
-        "value_weights": asdict(method._value_weights),
-        "operators": [operator.name.value for operator in method._operators],
-        "action_max_tokens": method._action_max_tokens,
-        "global_reflection_code_batch": method._global_reflection_code_batch,
-        "global_reflection_max_tokens": method._global_reflection_max_tokens,
-        "max_context_tokens": method._max_context_tokens,
-        "output_token_reserve": method._output_token_reserve,
+        "started_at": profiler._process_start_time.isoformat(),
+        "evaluate_success_program_num": profiler._evaluate_success_program_num,
+        "evaluate_failed_program_num": profiler._evaluate_failed_program_num,
+        "total_sample_time": profiler._tot_sample_time,
+        "total_evaluate_time": profiler._tot_evaluate_time,
+        "error_count": profiler._error_count,
+        "llm_call_count": profiler._llm_call_count,
+        "method_event_count": profiler._method_event_count,
+        "logging_degraded": profiler._logging_degraded,
     }
 
 
 def load_state(method, payload: Mapping[str, Any]) -> None:
-    if int(payload.get("format_version", 0)) != CHECKPOINT_VERSION:
-        raise ValueError(
-            "unsupported TraceAAD v5 checkpoint format: "
-            f"{payload.get('format_version')}"
-        )
-    if payload.get("task_description") != method._task_description_str:
-        raise ValueError("checkpoint task description does not match the evaluation")
-    if payload.get("template_program") != method._evaluation.template_program:
-        raise ValueError("checkpoint template does not match the evaluation")
-    if payload.get("function_name") != method._function_to_evolve.name:
-        raise ValueError("checkpoint function does not match the evaluation template")
-    if bool(payload.get("maximize")) != method._maximize:
-        raise ValueError("checkpoint fitness direction does not match TraceAAD v5")
-    if payload.get("search_configuration") != _search_configuration(method):
-        raise ValueError("checkpoint search configuration does not match TraceAAD v5")
     graph = _graph_from_dict(payload["graph"])
     method._graph = graph
     method._memory = _memory_from_dict(payload["memory"])
     method._tot_sample_nums = int(payload["total_samples"])
-    method._next_attempt_id = int(payload.get("next_attempt_id", 0))
+    method._next_attempt_id = int(payload["next_attempt_id"])
     method._initialization_complete = bool(payload["initialization_complete"])
-    best_id = payload.get("best_node_id")
+    best_id = payload["best_node_id"]
     method._best_node = None if best_id is None else graph.get_node(int(best_id))
-    best_route = payload.get("best_trajectory_id")
+    best_sample_order = payload["best_node_sample_order"]
+    method._best_node_sample_order = (
+        None if best_sample_order is None else int(best_sample_order)
+    )
+    best_route = payload["best_trajectory_id"]
     method._best_trajectory_id = None if best_route is None else int(best_route)
-    method._global_experience = str(payload.get("global_experience", ""))
+    method._global_experience = str(payload["global_experience"])
     method._pending_reflection_edge_ids = [
-        int(edge_id) for edge_id in payload.get("pending_reflection_edge_ids", [])
+        int(edge_id) for edge_id in payload["pending_reflection_edge_ids"]
     ]
     method._experience_reflection_attempts = int(
-        payload.get("experience_reflection_attempts", 0)
+        payload["experience_reflection_attempts"]
     )
-    method._experience_update_index = int(payload.get("experience_update_index", 0))
+    method._experience_update_index = int(payload["experience_update_index"])
     method._rng.setstate(_as_tuple(payload["rng_state"]))
-    _restore_profiler(method)
+    _restore_profiler(method, payload["profiler"])
 
 
 def _as_tuple(value):
@@ -226,41 +205,29 @@ def _as_tuple(value):
     return value
 
 
-def _restore_profiler(method) -> None:
+def _restore_profiler(method, payload: Mapping[str, Any] | None) -> None:
     profiler = method._profiler
-    if profiler is None:
+    if profiler is None or payload is None:
         return
     profiler._num_samples = method._tot_sample_nums
+    profiler._process_start_time = profiler._process_start_time.fromisoformat(
+        payload["started_at"]
+    )
+    profiler._evaluate_success_program_num = int(
+        payload["evaluate_success_program_num"]
+    )
+    profiler._evaluate_failed_program_num = int(payload["evaluate_failed_program_num"])
+    profiler._tot_sample_time = float(payload["total_sample_time"])
+    profiler._tot_evaluate_time = float(payload["total_evaluate_time"])
+    profiler._error_count = int(payload["error_count"])
+    profiler._llm_call_count = int(payload["llm_call_count"])
+    profiler._method_event_count = int(payload["method_event_count"])
+    profiler._logging_degraded = bool(payload["logging_degraded"])
     best = method._best_node
-    if best is None or best.fitness is None or getattr(profiler, "_num_objs", 1) >= 2:
+    if best is None or best.fitness is None:
         return
-    program = TextFunctionProgramConverter.text_to_program(best.code)
-    function = None
-    if program is not None:
-        try:
-            function = program.get_function(method._function_to_evolve.name)
-        except ValueError:
-            pass
-    if function is not None:
-        function.score = best.fitness
-        function.algorithm = best.idea
-        profiler._cur_best_function = function
     profiler._cur_best_program_score = best.fitness
-    profiler._cur_best_program_sample_order = method._tot_sample_nums
-
-
-def find_latest_checkpoint(path: str | Path) -> Path:
-    source = Path(path)
-    if source.is_file():
-        return source
-    for candidate in (
-        source / "latest.json",
-        source / "checkpoints" / "latest.json",
-        source / "logs" / "checkpoints" / "latest.json",
-    ):
-        if candidate.is_file():
-            return candidate
-    raise FileNotFoundError(f"no TraceAAD v5 checkpoint found under {source}")
+    profiler._cur_best_program_sample_order = method._best_node_sample_order
 
 
 def save_checkpoint(method, directory: str | Path | None = None) -> Path | None:
@@ -274,16 +241,14 @@ def save_checkpoint(method, directory: str | Path | None = None) -> Path | None:
 
 
 def load_checkpoint(method, path: str | Path) -> Path:
-    checkpoint = find_latest_checkpoint(path)
+    checkpoint = Path(path)
     load_state(method, json.loads(checkpoint.read_text(encoding="utf-8")))
     method._last_checkpoint_sample = method._tot_sample_nums
     return checkpoint
 
 
 __all__ = [
-    "CHECKPOINT_VERSION",
     "dump_state",
-    "find_latest_checkpoint",
     "load_checkpoint",
     "load_state",
     "save_checkpoint",

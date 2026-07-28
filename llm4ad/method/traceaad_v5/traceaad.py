@@ -28,7 +28,6 @@ from .._observability import (
     is_search_aborted,
     log_event,
     log_llm_call,
-    log_state,
     record_sample_failure,
     reset_sample_failures,
 )
@@ -55,7 +54,6 @@ from .value import (
     is_program_better,
     reference_sampling_distribution,
     sample_reference_trajectory,
-    sample_trajectory,
     score_active_trajectories,
     select_diverse_trajectories,
     trajectory_sampling_distribution,
@@ -66,14 +64,7 @@ from .value import (
 class _GeneratedProgram:
     idea: str
     program: Program
-
-
-@dataclass(frozen=True, slots=True)
-class _CandidateObservation:
-    node_id: int
-    score: float
-    reference_score: float
-    outcome: str
+    sample_time: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -210,6 +201,7 @@ class TraceAADV5:
             raise ValueError("action_max_tokens must be positive")
         self._best_node: ProgramNode | None = None
         self._best_trajectory_id: int | None = None
+        self._best_node_sample_order: int | None = None
         self._global_experience = ""
         self._pending_reflection_edge_ids: list[int] = []
         self._experience_reflection_attempts = 0
@@ -237,10 +229,16 @@ class TraceAADV5:
     def run(self) -> TraceAADRunResult:
         stalled_attempts = 0
         attempt_id = self._next_attempt_id
+        status = "error"
+        error: dict[str, str] = {}
+        result: TraceAADRunResult | None = None
         try:
             if not self._initialization_complete:
                 self._initialize()
-                self._initialization_complete = True
+                # Only mark init done when the target population exists.
+                # Abort/timeout during init must keep this False so resume can retry.
+                if len(self._memory.trajectories()) >= self._n_init:
+                    self._initialization_complete = True
                 save_checkpoint(self)
             while self._has_budget() and not is_search_aborted(self):
                 if not self._memory.active():
@@ -277,22 +275,35 @@ class TraceAADV5:
                     break
             self._maybe_manage_population()
             result = self._result()
+            status = "aborted" if is_search_aborted(self) else "finished"
+            return result
+        except Exception as exc:
+            error = {
+                "error_type": type(exc).__name__,
+                "error": str(exc)[:1000],
+            }
+            raise
+        finally:
+            if result is None:
+                result = self._result()
+            save_checkpoint(self)
             finish_profiler(
                 self,
-                status="aborted" if is_search_aborted(self) else "finished",
-                best_node_id=None if result.best_node is None else result.best_node.id,
+                status=status,
+                best_node_id=(
+                    None if result.best_node is None else result.best_node.id
+                ),
                 best_score=(
                     None if result.best_node is None else result.best_node.fitness
                 ),
+                best_sample_order=self._best_node_sample_order,
                 n_total_nodes=result.n_total_nodes,
                 n_valid_nodes=result.n_valid_nodes,
                 n_edges=result.n_edges,
                 n_trajectories=result.n_trajectories,
                 n_experience_updates=result.n_experience_updates,
+                **error,
             )
-            return result
-        finally:
-            save_checkpoint(self)
             close_llm(self._llm)
 
     def _initialize(self) -> None:
@@ -324,7 +335,10 @@ class TraceAADV5:
                     break
                 continue
             evaluated = self._evaluate(
-                generated.program, idea=generated.idea, operator="init"
+                generated.program,
+                idea=generated.idea,
+                operator="init",
+                sample_time=generated.sample_time,
             )
             if evaluated is None or evaluated.fitness is None:
                 continue
@@ -432,33 +446,33 @@ class TraceAADV5:
                 )
             ),
             eligible=[candidate.name for candidate in eligible],
-            operator_probabilities={
-                candidate.name.value: 1.0 / len(eligible) for candidate in eligible
-            },
-            reference_candidate_ids=[route.id for route in reference_candidates],
-            reference_candidates=[
-                {
-                    "trajectory_id": route.id,
-                    "quality": (None if route.value is None else route.value.quality),
-                    "probability": probability,
-                    "code_hash": self._graph.get_node(route.compact_best_id).code_hash,
-                }
-                for route, probability in reference_distribution
-            ],
-            selection_mode=(
-                "uniform_available_operator_q_trend_ucb_primary_q_reference"
+            reference_candidate_count=len(reference_candidates),
+            selected_reference_probability=(
+                None
+                if reference_route is None or not reference_distribution
+                else next(
+                    (
+                        p
+                        for r, p in reference_distribution
+                        if r.id == reference_route.id
+                    ),
+                    None,
+                )
             ),
-        )
-        log_state(
-            self,
-            phase="iteration_start",
-            iteration=attempt_id,
-            selected_trajectory_id=selected.id,
-            selected_endpoint_id=selected.endpoint_id,
-            operator=operator.name,
-            base_node_id=anchor_id,
-            anchor_role=anchor_role,
-            selected_value=selected.scalar_value,
+            reference_max_probability=(
+                None
+                if not reference_distribution
+                else max(probability for _, probability in reference_distribution)
+            ),
+            reference_effective_candidate_count=(
+                None
+                if not reference_distribution
+                else 1.0
+                / sum(
+                    probability * probability
+                    for _, probability in reference_distribution
+                )
+            ),
         )
         if context is None:
             self._memory.record_visit(selected.id)
@@ -468,7 +482,7 @@ class TraceAADV5:
             operator=operator,
             iteration=attempt_id,
         )
-        observations: list[_CandidateObservation] = []
+        accepted_count = 0
         base_node = self._graph.get_node(anchor_id)
         route_best_before = compact_best_node(selected, self._graph, self._maximize)
         for seq, action in enumerate(actions):
@@ -509,6 +523,7 @@ class TraceAADV5:
                 generated.program,
                 idea=generated.idea,
                 operator=operator.name,
+                sample_time=generated.sample_time,
             )
             if evaluated is None or evaluated.fitness is None:
                 continue
@@ -594,30 +609,15 @@ class TraceAADV5:
                 code_hash=child.code_hash,
                 global_best_update_reason=best_reason,
             )
-            observations.append(
-                _CandidateObservation(
-                    node_id=child.id,
-                    score=float(child.fitness),
-                    reference_score=float(base_node.fitness),
-                    outcome=outcome,
-                )
-            )
+            accepted_count += 1
         visited = self._memory.record_visit(selected.id)
         log_event(
             self,
             event="operator_batch",
-            status="ok" if observations else "empty",
+            status="ok" if accepted_count else "empty",
             attempt_id=attempt_id,
             operator=operator.name,
-            candidates=[
-                {
-                    "node_id": item.node_id,
-                    "score": item.score,
-                    "reference_score": item.reference_score,
-                    "outcome": item.outcome,
-                }
-                for item in observations
-            ],
+            candidate_count=accepted_count,
             active_trajectories=len(self._memory.active()),
             parent_visit_count=visited.visit_count,
         )
@@ -630,34 +630,42 @@ class TraceAADV5:
             w=self._value_weights,
             temperature=self._softmax_temperature,
         )
-        selected = sample_trajectory(
-            memory=self._memory,
-            graph=self._graph,
-            maximize=self._maximize,
-            w=self._value_weights,
-            temperature=self._softmax_temperature,
-            rng=self._rng,
+        # Sample directly from the pre-computed distribution instead of calling
+        # sample_trajectory(), which would recompute the same distribution.
+        routes = [item[0] for item in distribution]
+        probs = [item[2] for item in distribution]
+        needle = self._rng.random()
+        cumulative = 0.0
+        selected = routes[-1]
+        for route, prob in zip(routes, probs):
+            cumulative += prob
+            if needle <= cumulative:
+                selected = route
+                break
+        selected_adjusted, selected_prob = next(
+            (adjusted, probability)
+            for route, adjusted, probability in distribution
+            if route.id == selected.id
         )
+        sorted_probs = sorted(probs, reverse=True)
         log_event(
             self,
             event="trajectory_selection",
             status="ok",
             attempt_id=attempt_id,
-            candidates=[
-                {
-                    "trajectory_id": route.id,
-                    "quality": (None if route.value is None else route.value.quality),
-                    "analysis_trend": (
-                        None if route.value is None else route.value.trend
-                    ),
-                    "visit_count": route.visit_count,
-                    "adjusted_score": adjusted,
-                    "probability": probability,
-                }
-                for route, adjusted, probability in distribution
-            ],
             selected_trajectory_id=selected.id,
-            selection_mode="q_trend_plus_ucb_softmax",
+            active_count=len(routes),
+            selected_probability=selected_prob,
+            selected_scalar_value=selected.scalar_value,
+            selected_adjusted_score=selected_adjusted,
+            selected_quality=(
+                None if selected.value is None else selected.value.quality
+            ),
+            selected_trend=(None if selected.value is None else selected.value.trend),
+            selected_visit_count=selected.visit_count,
+            max_probability=sorted_probs[0],
+            top5_probability_mass=sum(sorted_probs[:5]),
+            effective_candidate_count=1.0 / sum(prob * prob for prob in probs),
         )
         return selected
 
@@ -748,11 +756,11 @@ class TraceAADV5:
             prompt,
             output_token_reserve=self._action_max_tokens,
         )
-        if log_result:
+        if log_result and not fits:
             log_event(
                 self,
                 event="prompt_context",
-                status="ok" if fits else "overflow",
+                status="overflow",
                 operator=operator.name,
                 history_edge_count=max(
                     len(primary_edge_ids),
@@ -856,6 +864,8 @@ class TraceAADV5:
             token_count_mode=self._token_count_mode,
             parsed_actions=actions,
             parse_errors=errors,
+            primary_edge_ids=list(context.primary_edge_ids),
+            reference_edge_ids=list(context.reference_edge_ids),
             status="ok" if actions else "parse_failed",
         )
         return actions
@@ -990,6 +1000,7 @@ class TraceAADV5:
             return
         previous = self._best_node
         self._best_node = node
+        self._best_node_sample_order = self._tot_sample_nums
         if trajectory_id is not None:
             self._best_trajectory_id = trajectory_id
         log_event(
@@ -1173,27 +1184,33 @@ class TraceAADV5:
         generated = _parse_program_response(
             response, self._template_program, self._function_to_evolve.name
         )
-        log_llm_call(
-            self,
-            stage=stage,
-            operator=operator,
-            sample_order=sample_order,
-            iteration=iteration,
-            seq=seq,
-            action=action,
-            prompt=prompt,
-            response=response,
-            sample_time=elapsed,
-            prompt_tokens=self._count_tokens(prompt),
-            response_tokens=self._count_tokens(response),
-            token_count_mode=self._token_count_mode,
-            parsed_idea=None if generated is None else generated.idea,
-            program_parse_success=generated is not None,
-            status="ok" if generated is not None else "parse_failed",
-        )
+        call_record = {
+            "stage": stage,
+            "operator": operator,
+            "sample_order": sample_order,
+            "iteration": iteration,
+            "seq": seq,
+            "sample_time": elapsed,
+            "prompt_tokens": self._count_tokens(prompt),
+            "response_tokens": self._count_tokens(response),
+            "token_count_mode": self._token_count_mode,
+            "program_parse_success": generated is not None,
+            "status": "ok" if generated is not None else "parse_failed",
+        }
+        if generated is None:
+            call_record.update(prompt=prompt, response=response, action=action)
+        log_llm_call(self, **call_record)
+        if generated is not None:
+            generated = _GeneratedProgram(
+                idea=generated.idea,
+                program=generated.program,
+                sample_time=elapsed,
+            )
         return generated
 
-    def _evaluate(self, program: Program, *, idea: str, operator) -> EvalResult | None:
+    def _evaluate(
+        self, program: Program, *, idea: str, operator, sample_time: float = 0.0
+    ) -> EvalResult | None:
         if not self._has_budget():
             return None
         outcome, eval_time = self._evaluator.evaluate_program_record_time_with_details(
@@ -1211,6 +1228,7 @@ class TraceAADV5:
         if function is not None:
             function.algorithm = idea
             function.score = score
+            function.sample_time = sample_time
             function.evaluate_time = eval_time
             function.operator = str(operator)
             if self._profiler is not None:

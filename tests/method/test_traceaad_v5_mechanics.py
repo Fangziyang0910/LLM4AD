@@ -346,7 +346,7 @@ def test_traceaad_v5_runs_text_actions_and_writes_v5_state(
     assert result.n_samples == 4
     assert result.n_edges == 2
     payload = json.loads((checkpoint_dir / "latest.json").read_text(encoding="utf-8"))
-    assert payload["format_version"] == 10
+    assert "format_version" not in payload
     assert all(
         {"program_loc", "code_hash"} <= set(node) for node in payload["graph"]["nodes"]
     )
@@ -592,13 +592,17 @@ def test_traceaad_v5_forty_code_reflection_fits_the_real_32k_context(
 
 
 def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
-    from llm4ad.method.traceaad_v5 import TraceAADV5
+    from llm4ad.method.traceaad_v5 import TraceAADProfiler, TraceAADV5
     from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
 
     checkpoint_dir = tmp_path / "checkpoints"
+    log_dir = tmp_path / "logs"
     first = TraceAADV5(
         llm=V5MechanismLLM(),
         evaluation=IncreasingEvaluation(),
+        profiler=TraceAADProfiler(
+            log_dir=str(log_dir), log_style="simple", create_random_path=False
+        ),
         max_sample_nums=3,
         n_init=2,
         actions_per_iteration=1,
@@ -611,6 +615,9 @@ def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
     resumed = TraceAADV5(
         llm=V5MechanismLLM(),
         evaluation=IncreasingEvaluation(),
+        profiler=TraceAADProfiler(
+            log_dir=str(log_dir), log_style="simple", create_random_path=False
+        ),
         max_sample_nums=5,
         n_init=2,
         actions_per_iteration=1,
@@ -618,12 +625,109 @@ def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
         operators=(TraceIdeateOp,),
         global_reflection_code_batch=40,
         random_seed=999,
-        resume_from=checkpoint_dir,
+        resume_from=checkpoint_dir / "latest.json",
     ).run()
 
     assert first.n_samples == 3
     assert resumed.n_samples == 5
     assert resumed.n_total_nodes == first.n_total_nodes + 2
+    summary = json.loads((log_dir / "run_summary.json").read_text())
+    assert summary["num_samples"] == 5
+    assert summary["evaluate_success_program_num"] == 5
+    assert summary["total_sample_time"] > 0
+    assert summary["llm_call_count"] == len(
+        (log_dir / "llm_calls.jsonl").read_text().splitlines()
+    )
+    assert summary["method_event_count"] == len(
+        (log_dir / "method_events.jsonl").read_text().splitlines()
+    )
+
+
+def test_traceaad_v5_writes_partial_summary_and_checkpoint_on_exception(
+    tmp_path: Path,
+) -> None:
+    from llm4ad.method.traceaad_v5 import TraceAADProfiler, TraceAADV5
+
+    class BrokenLLM(LLM):
+        def draw_sample(self, prompt, *args, **kwargs):
+            raise RuntimeError("generation broke")
+
+    log_dir = tmp_path / "logs"
+    checkpoint = log_dir / "checkpoints" / "latest.json"
+    method = TraceAADV5(
+        llm=BrokenLLM(),
+        evaluation=IncreasingEvaluation(),
+        profiler=TraceAADProfiler(
+            log_dir=str(log_dir), log_style="simple", create_random_path=False
+        ),
+        max_sample_nums=2,
+        n_init=1,
+        debug_mode=True,
+        checkpoint_dir=checkpoint.parent,
+    )
+
+    try:
+        method.run()
+    except RuntimeError as exc:
+        assert str(exc) == "generation broke"
+    else:
+        raise AssertionError("expected generation failure")
+
+    summary = json.loads((log_dir / "run_summary.json").read_text())
+    assert summary["status"] == "error"
+    assert summary["error_type"] == "RuntimeError"
+    assert summary["error"] == "generation broke"
+    assert summary["num_samples"] == 0
+    assert checkpoint.is_file()
+
+
+def test_traceaad_v5_abort_during_init_keeps_initialization_incomplete(
+    tmp_path: Path,
+) -> None:
+    """Init LLM failures must not freeze an empty search as initialization_complete."""
+
+    class AlwaysFailLLM(LLM):
+        def draw_sample(self, prompt, *args, **kwargs):
+            raise RuntimeError("llm unavailable")
+
+    from llm4ad.method.traceaad_v5 import TraceAADV5
+    from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
+
+    checkpoint_dir = tmp_path / "checkpoints"
+    aborted = TraceAADV5(
+        llm=AlwaysFailLLM(),
+        evaluation=IncreasingEvaluation(),
+        max_sample_nums=20,
+        n_init=3,
+        actions_per_iteration=1,
+        max_active_trajectories=4,
+        operators=(TraceIdeateOp,),
+        global_reflection_code_batch=40,
+        max_consecutive_sample_failures=3,
+        random_seed=0,
+        checkpoint_dir=checkpoint_dir,
+    ).run()
+    payload = json.loads((checkpoint_dir / "latest.json").read_text(encoding="utf-8"))
+
+    assert aborted.n_samples == 0
+    assert payload["initialization_complete"] is False
+    assert payload["total_samples"] == 0
+    assert payload["memory"]["trajectories"] == []
+
+    resumed = TraceAADV5(
+        llm=V5MechanismLLM(),
+        evaluation=IncreasingEvaluation(),
+        max_sample_nums=4,
+        n_init=3,
+        actions_per_iteration=1,
+        max_active_trajectories=4,
+        operators=(TraceIdeateOp,),
+        global_reflection_code_batch=40,
+        random_seed=1,
+        resume_from=checkpoint_dir / "latest.json",
+    ).run()
+    assert resumed.n_samples == 4
+    assert resumed.n_trajectories >= 3
 
 
 def test_traceaad_v5_prefers_shorter_programs_on_exact_fitness_ties(

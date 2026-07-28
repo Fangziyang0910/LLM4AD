@@ -39,7 +39,7 @@ def build_method(log_dir: Path, resume_from: Path | None = None) -> TraceAADV5:
         evaluation=TSPEvaluation(**TASK_KWARGS),
         profiler=TraceAADProfiler(
             log_dir=str(log_dir),
-            log_style="complex",
+            log_style="simple",
             create_random_path=False,
         ),
         max_sample_nums=1000,
@@ -92,7 +92,9 @@ def main() -> None:
             print(f"run_dir={run_dir}", flush=True)
             build_method(
                 log_dir,
-                None if resume_from is None else run_dir,
+                None
+                if resume_from is None
+                else run_dir / "logs" / "checkpoints" / "latest.json",
             ).run()
 
 
@@ -102,7 +104,7 @@ def _write_run_config(run_dir: Path, timestamp: str) -> None:
         "run_dir": str(run_dir),
         "task": TASK,
         "method": "traceaad_v5",
-        "experiment_version": os.environ.get("EXPERIMENT_VERSION", "version5_1"),
+        "experiment_version": os.environ.get("EXPERIMENT_VERSION", "version5_2"),
         "timestamp": timestamp,
         "llm": {
             "base_url": os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL),

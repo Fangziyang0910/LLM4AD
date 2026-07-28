@@ -6,7 +6,9 @@ from typing import Any
 
 def init_observability(target: Any, max_consecutive_sample_failures: int = 20) -> None:
     target._consecutive_sample_failures = 0
-    target._max_consecutive_sample_failures = max(1, int(max_consecutive_sample_failures))
+    target._max_consecutive_sample_failures = max(
+        1, int(max_consecutive_sample_failures)
+    )
     target._search_aborted = False
 
 
@@ -25,58 +27,50 @@ def _profiler(target: Any):
 def log_llm_call(target: Any, **payload) -> None:
     logger = getattr(_profiler(target), "log_llm_call", None)
     if callable(logger):
-        try:
-            logger(**payload)
-        except Exception:
-            pass
+        logger(**payload)
 
 
 def log_event(target: Any, event: str | None = None, **payload) -> None:
     logger = getattr(_profiler(target), "log_method_event", None)
     if callable(logger):
-        try:
-            logger(event=event, **payload)
-        except Exception:
-            pass
+        logger(event=event, **payload)
 
 
 def log_state(target: Any, phase: str | None = None, **payload) -> None:
     logger = getattr(_profiler(target), "log_method_state", None)
     if callable(logger):
-        try:
-            logger(phase=phase, **payload)
-        except Exception:
-            pass
+        logger(phase=phase, **payload)
 
 
-def log_error(target: Any, stage_name: str, exc: Exception | None = None, **payload) -> None:
+def log_error(
+    target: Any, stage_name: str, exc: Exception | None = None, **payload
+) -> None:
     logger = getattr(_profiler(target), "log_error", None)
     if callable(logger):
-        try:
-            stage = payload.pop("stage", stage_name) or stage_name
-            logger(stage, exc, **payload)
-        except Exception:
-            pass
+        stage = payload.pop("stage", stage_name) or stage_name
+        logger(stage, exc, **payload)
 
 
 def record_sample_failure(
-        method: Any,
-        exc: Exception,
-        *,
-        stage: str = "sample",
-        operator: str | None = None,
-        sample_order: int | None = None,
-        prompt: Any = None,
-        messages: Any = None,
-        counts_budget: bool = False,
-        **payload,
+    method: Any,
+    exc: Exception,
+    *,
+    stage: str = "sample",
+    operator: str | None = None,
+    sample_order: int | None = None,
+    prompt: Any = None,
+    messages: Any = None,
+    counts_budget: bool = False,
+    **payload,
 ) -> bool:
     if getattr(method, "_debug_mode", False):
         raise exc
 
     if sample_order is None:
         sample_order = getattr(method, "_tot_sample_nums", 0) + 1
-    method._consecutive_sample_failures = getattr(method, "_consecutive_sample_failures", 0) + 1
+    method._consecutive_sample_failures = (
+        getattr(method, "_consecutive_sample_failures", 0) + 1
+    )
     max_failures = getattr(method, "_max_consecutive_sample_failures", 20)
     error_message = str(exc)
     if len(error_message) > 1000:
@@ -93,16 +87,16 @@ def record_sample_failure(
         "max_consecutive_failures": max_failures,
     }
     common.update(payload)
+    event_payload = dict(common)
     if prompt is not None:
         common["prompt"] = prompt
     if messages is not None:
         common["messages"] = messages
 
-    log_llm_call(method, **common)
     error_payload = dict(common)
     error_payload.pop("stage", None)
     log_error(method, stage, exc, **error_payload)
-    log_event(method, event=f"{stage}_error", status="error", **common)
+    log_event(method, event=f"{stage}_error", status="error", **event_payload)
 
     if method._consecutive_sample_failures >= max_failures:
         method._search_aborted = True
@@ -123,7 +117,9 @@ def call_sampler_get_thought_and_function(sampler: Any, prompt: Any, **kwargs):
         parameters = inspect.signature(method).parameters
     except (TypeError, ValueError):
         return method(prompt)
-    accepts_kwargs = any(param.kind == inspect.Parameter.VAR_KEYWORD for param in parameters.values())
+    accepts_kwargs = any(
+        param.kind == inspect.Parameter.VAR_KEYWORD for param in parameters.values()
+    )
     usable_kwargs = {
         key: value
         for key, value in kwargs.items()
@@ -163,19 +159,15 @@ def finish_profiler(method: Any, *, status: str = "finished", **payload) -> None
     profiler = _profiler(method)
     writer = getattr(profiler, "write_run_summary", None)
     if callable(writer):
-        try:
-            writer(
-                status=status,
-                method_sample_count=getattr(method, "_tot_sample_nums", None),
-                search_aborted=getattr(method, "_search_aborted", False),
-                consecutive_sample_failures=getattr(method, "_consecutive_sample_failures", None),
-                **payload,
-            )
-        except Exception:
-            pass
+        writer(
+            status=status,
+            method_sample_count=getattr(method, "_tot_sample_nums", None),
+            search_aborted=getattr(method, "_search_aborted", False),
+            consecutive_sample_failures=getattr(
+                method, "_consecutive_sample_failures", None
+            ),
+            **payload,
+        )
     finish = getattr(profiler, "finish", None)
     if callable(finish):
-        try:
-            finish()
-        except Exception:
-            pass
+        finish()
