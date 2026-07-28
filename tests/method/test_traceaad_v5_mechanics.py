@@ -1,4 +1,4 @@
-"""Public mechanism tests for the current TraceAAD V5.1 contract."""
+"""Public mechanism tests for the current TraceAAD V5.3 contract."""
 
 from __future__ import annotations
 
@@ -59,62 +59,11 @@ class V5MechanismLLM(ScriptedV5LLM):
     def draw_sample(self, prompt, *args, **kwargs):
         self.calls += 1
         self.prompts.append(str(prompt))
-        if "[Recent Code Changes]" in prompt:
-            return (
-                "- A deterministic offset has coincided with improvement.\n"
-                "- Continue testing nearby offsets."
-            )
         if "Generate a complete implementation" in prompt:
             return self._program(self.calls)
         if "[Requested Modification]" in prompt:
             return self._program(self.calls)
         return "1. Adapt one deterministic offset without adding branches."
-
-
-class PlainReflectionLLM(ScriptedV5LLM):
-    REFLECTION = (
-        "- Small deterministic adjustments have improved the current algorithm.\n"
-        "- Continue exploring nearby changes while avoiding unnecessary branches."
-    )
-
-    def draw_sample(self, prompt, *args, **kwargs):
-        self.calls += 1
-        self.prompts.append(str(prompt))
-        if "[Recent Code Changes]" in prompt:
-            return self.REFLECTION
-        if "Generate a complete implementation" in prompt:
-            return self._program(self.calls)
-        if "[Requested Modification]" in prompt:
-            return self._program(self.calls)
-        return "1. Adapt one deterministic offset without adding branches."
-
-
-class RecoveringReflectionLLM(V5MechanismLLM):
-    def __init__(self) -> None:
-        super().__init__()
-        self.reflection_calls = 0
-
-    def draw_sample(self, prompt, *args, **kwargs):
-        if "[Recent Code Changes]" in prompt:
-            self.calls += 1
-            self.prompts.append(str(prompt))
-            self.reflection_calls += 1
-            if self.reflection_calls == 1:
-                raise RuntimeError("temporary reflection failure")
-            return "- The second stage supports revisiting offsets."
-        return super().draw_sample(prompt, *args, **kwargs)
-
-
-class TwoActionReflectionLLM(V5MechanismLLM):
-    def draw_sample(self, prompt, *args, **kwargs):
-        if "[Action Contract]" in prompt:
-            self.calls += 1
-            self.prompts.append(str(prompt))
-            long_change = (
-                "尝试调整当前算法状态中的一个局部决策规则，观察真实适应度反馈。" * 8
-            )
-            return f"1. {long_change}\n2. {long_change}"
-        return super().draw_sample(prompt, *args, **kwargs)
 
 
 class ParsimonyLLM(LLM):
@@ -373,7 +322,6 @@ def test_traceaad_v5_truncates_trajectories_to_the_configured_length(
         max_trajectory_length=2,
         max_active_trajectories=1,
         operators=(TraceIdeateOp,),
-        global_reflection_code_batch=40,
         random_seed=3,
         checkpoint_dir=checkpoint_dir,
     ).run()
@@ -470,7 +418,6 @@ def test_traceaad_v5_reference_is_provenance_not_a_second_parent(
         actions_per_iteration=1,
         max_active_trajectories=4,
         operators=(TraceTransferOp,),
-        global_reflection_code_batch=40,
         random_seed=2,
         checkpoint_dir=checkpoint_dir,
     ).run()
@@ -490,13 +437,11 @@ def test_traceaad_v5_reference_is_provenance_not_a_second_parent(
     assert any("[Reference Program]" in prompt for prompt in llm.prompts)
 
 
-def test_traceaad_v5_reflects_after_a_fixed_number_of_evaluated_codes(
-    tmp_path: Path,
-) -> None:
+def test_traceaad_v53_has_no_online_global_experience(tmp_path: Path) -> None:
     from llm4ad.method.traceaad_v5 import TraceAADV5
     from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
 
-    llm = PlainReflectionLLM()
+    llm = V5MechanismLLM()
     checkpoint_dir = tmp_path / "checkpoints"
     result = TraceAADV5(
         llm=llm,
@@ -506,89 +451,23 @@ def test_traceaad_v5_reflects_after_a_fixed_number_of_evaluated_codes(
         actions_per_iteration=1,
         max_active_trajectories=4,
         operators=(TraceIdeateOp,),
-        global_reflection_code_batch=2,
         random_seed=4,
         checkpoint_dir=checkpoint_dir,
     ).run()
 
     payload = json.loads((checkpoint_dir / "latest.json").read_text(encoding="utf-8"))
-    reflection_prompt = next(
-        prompt for prompt in llm.prompts if "[Recent Code Changes]" in prompt
-    )
-    action_prompts = [prompt for prompt in llm.prompts if "[Action Contract]" in prompt]
+    removed_state = {
+        "global_experience",
+        "pending_reflection_edge_ids",
+        "experience_reflection_attempts",
+        "experience_update_index",
+    }
 
-    assert result.n_experience_updates == 1
-    assert reflection_prompt.count("\nChange ") == 2
-    assert "[Action]" in reflection_prompt
-    assert "[Implementation Idea]" in reflection_prompt
-    assert "[Fitness Result]" in reflection_prompt
-    assert payload["global_experience"] == PlainReflectionLLM.REFLECTION
-    assert PlainReflectionLLM.REFLECTION not in action_prompts[1]
-    assert PlainReflectionLLM.REFLECTION in action_prompts[2]
-
-
-def test_traceaad_v5_reflection_failure_does_not_disable_the_next_stage(
-    tmp_path: Path,
-) -> None:
-    from llm4ad.method.traceaad_v5 import TraceAADV5
-    from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
-
-    llm = RecoveringReflectionLLM()
-    checkpoint_dir = tmp_path / "checkpoints"
-    result = TraceAADV5(
-        llm=llm,
-        evaluation=IncreasingEvaluation(),
-        max_sample_nums=23,
-        n_init=1,
-        actions_per_iteration=1,
-        max_active_trajectories=4,
-        operators=(TraceIdeateOp,),
-        global_reflection_code_batch=20,
-        random_seed=9,
-        checkpoint_dir=checkpoint_dir,
-    ).run()
-
-    payload = json.loads((checkpoint_dir / "latest.json").read_text(encoding="utf-8"))
-    reflection_prompts = [
-        prompt for prompt in llm.prompts if "[Recent Code Changes]" in prompt
-    ]
-    action_prompts = [prompt for prompt in llm.prompts if "[Action Contract]" in prompt]
-    assert llm.reflection_calls == 2
-    assert result.n_experience_updates == 1
-    assert payload["experience_reflection_attempts"] == 2
-    assert "The second stage supports revisiting offsets." in action_prompts[21]
-    assert all("def choose" not in prompt for prompt in reflection_prompts)
-
-
-def test_traceaad_v5_forty_code_reflection_fits_the_real_32k_context(
-    tmp_path: Path,
-) -> None:
-    from llm4ad.method.traceaad_v5 import TraceAADV5
-    from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
-
-    llm = TwoActionReflectionLLM()
-    result = TraceAADV5(
-        llm=llm,
-        evaluation=IncreasingEvaluation(),
-        max_sample_nums=43,
-        n_init=2,
-        actions_per_iteration=2,
-        max_active_trajectories=4,
-        operators=(TraceIdeateOp,),
-        global_reflection_code_batch=40,
-        max_context_tokens=32768,
-        global_reflection_max_tokens=1024,
-        random_seed=11,
-        checkpoint_dir=tmp_path / "checkpoints",
-    ).run()
-
-    reflection_prompt = next(
-        prompt for prompt in llm.prompts if "[Recent Code Changes]" in prompt
-    )
-    assert result.n_experience_updates == 1
-    assert reflection_prompt.count("\nChange ") == 40
-    assert reflection_prompt.count("\n[Fitness Result]") == 40
-    assert len(reflection_prompt.encode("utf-8")) <= 32768 - 1024
+    assert result.n_samples == 4
+    assert removed_state.isdisjoint(payload)
+    assert not hasattr(result, "n_experience_updates")
+    assert all("[Global Experience]" not in prompt for prompt in llm.prompts)
+    assert all("[Recent Code Changes]" not in prompt for prompt in llm.prompts)
 
 
 def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
@@ -608,7 +487,6 @@ def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
         actions_per_iteration=1,
         max_active_trajectories=4,
         operators=(TraceIdeateOp,),
-        global_reflection_code_batch=40,
         random_seed=7,
         checkpoint_dir=checkpoint_dir,
     ).run()
@@ -623,7 +501,6 @@ def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
         actions_per_iteration=1,
         max_active_trajectories=4,
         operators=(TraceIdeateOp,),
-        global_reflection_code_batch=40,
         random_seed=999,
         resume_from=checkpoint_dir / "latest.json",
     ).run()
@@ -702,7 +579,6 @@ def test_traceaad_v5_abort_during_init_keeps_initialization_incomplete(
         actions_per_iteration=1,
         max_active_trajectories=4,
         operators=(TraceIdeateOp,),
-        global_reflection_code_batch=40,
         max_consecutive_sample_failures=3,
         random_seed=0,
         checkpoint_dir=checkpoint_dir,
@@ -722,7 +598,6 @@ def test_traceaad_v5_abort_during_init_keeps_initialization_incomplete(
         actions_per_iteration=1,
         max_active_trajectories=4,
         operators=(TraceIdeateOp,),
-        global_reflection_code_batch=40,
         random_seed=1,
         resume_from=checkpoint_dir / "latest.json",
     ).run()
@@ -745,7 +620,6 @@ def test_traceaad_v5_prefers_shorter_programs_on_exact_fitness_ties(
         actions_per_iteration=1,
         max_active_trajectories=1,
         operators=(TraceRefineOp,),
-        global_reflection_code_batch=40,
         random_seed=0,
         checkpoint_dir=checkpoint_dir,
     ).run()
@@ -773,7 +647,6 @@ def test_traceaad_v5_executes_an_available_text_action(
         actions_per_iteration=2,
         max_active_trajectories=2,
         operators=(TraceIdeateOp,),
-        global_reflection_code_batch=40,
         random_seed=0,
         checkpoint_dir=checkpoint_dir,
     ).run()
@@ -802,7 +675,6 @@ def test_traceaad_v5_executes_natural_language_actions_without_metadata_fields(
         actions_per_iteration=2,
         max_active_trajectories=2,
         operators=(TraceIdeateOp,),
-        global_reflection_code_batch=40,
         max_stalled_iterations=1,
         random_seed=0,
         checkpoint_dir=checkpoint_dir,
@@ -849,7 +721,6 @@ def test_traceaad_v5_extracts_only_numbered_actions_and_requests_feasible_change
         actions_per_iteration=2,
         max_active_trajectories=2,
         operators=(TraceIdeateOp,),
-        global_reflection_code_batch=40,
         random_seed=0,
         checkpoint_dir=checkpoint_dir,
     ).run()
@@ -885,7 +756,6 @@ def test_traceaad_v5_code_stage_only_implements_action_and_uses_final_program(
         actions_per_iteration=1,
         max_active_trajectories=2,
         operators=(TraceIdeateOp,),
-        global_reflection_code_batch=40,
         random_seed=0,
         checkpoint_dir=checkpoint_dir,
     ).run()
@@ -919,7 +789,6 @@ def test_traceaad_v5_prompt_stages_only_receive_decision_relevant_context(
         actions_per_iteration=1,
         max_active_trajectories=4,
         operators=(TraceTransferOp,),
-        global_reflection_code_batch=40,
         random_seed=2,
         checkpoint_dir=tmp_path / "checkpoints",
     ).run()
@@ -934,6 +803,7 @@ def test_traceaad_v5_prompt_stages_only_receive_decision_relevant_context(
     assert "[Current Program]" in action_prompt
     assert "[Reference Program]" in action_prompt
     assert "[Improvement Direction]" in action_prompt
+    assert "[Global Experience]" not in action_prompt
     assert all(
         internal not in action_prompt
         for internal in ("Node p", "anchor_role=", "knowledge provenance", "operator=")
@@ -944,6 +814,7 @@ def test_traceaad_v5_prompt_stages_only_receive_decision_relevant_context(
     assert "[Reference Program]" in code_prompt
     assert "[Improvement Direction]" not in code_prompt
     assert "[Global Experience]" not in code_prompt
+    assert "use it only in the way specified" in code_prompt
     assert "anchor_role" not in code_prompt
     assert "provenance" not in code_prompt
     assert "history is only used for faithful implementation" not in code_prompt.lower()
@@ -964,7 +835,6 @@ def test_traceaad_v5_history_distinguishes_planned_and_implemented_changes(
         actions_per_iteration=1,
         max_active_trajectories=1,
         operators=(TraceIdeateOp,),
-        global_reflection_code_batch=40,
         random_seed=3,
         checkpoint_dir=tmp_path / "checkpoints",
     ).run()
@@ -1073,7 +943,7 @@ def test_traceaad_v5_internal_anchor_receives_the_whole_retained_trajectory() ->
     assert rendered.tested_after_edge_ids == (edges[-1].id,)
 
 
-def test_traceaad_v5_uses_focused_refine_and_scale_aware_action_guidance() -> None:
+def test_traceaad_v5_uses_focused_refine_and_task_grounded_action_guidance() -> None:
     from llm4ad.method.traceaad_v5 import TraceAADV5
     from llm4ad.method.traceaad_v5.operators import TraceRefineOp
 
@@ -1093,13 +963,12 @@ def test_traceaad_v5_uses_focused_refine_and_scale_aware_action_guidance() -> No
         actions_per_iteration=1,
         max_active_trajectories=1,
         operators=(TraceRefineOp,),
-        global_reflection_code_batch=40,
         random_seed=0,
     ).run()
     action_prompt = next(
         prompt for prompt in llm.prompts if "[Action Contract]" in prompt
     )
-    assert "remain meaningful as instance size changes" in action_prompt
+    assert "avoid constants justified only by the observed training size" in action_prompt
 
 
 def test_traceaad_v5_search_value_blends_quality_and_trend() -> None:
@@ -1173,7 +1042,6 @@ def test_traceaad_v5_keeps_idea_as_a_short_implementation_claim(
         actions_per_iteration=1,
         max_active_trajectories=2,
         operators=(TraceIdeateOp,),
-        global_reflection_code_batch=40,
         random_seed=0,
         checkpoint_dir=checkpoint_dir,
     ).run()
@@ -1202,7 +1070,6 @@ def test_traceaad_v5_retries_failed_evaluations_until_n_init_is_reached(
         n_init=2,
         actions_per_iteration=1,
         max_active_trajectories=2,
-        global_reflection_code_batch=40,
         random_seed=0,
         checkpoint_dir=tmp_path / "checkpoints",
     ).run()
@@ -1292,7 +1159,6 @@ def test_traceaad_v5_never_lets_parsimony_override_a_better_long_program(
         actions_per_iteration=1,
         max_active_trajectories=1,
         operators=(TraceIdeateOp,),
-        global_reflection_code_batch=40,
         random_seed=0,
         checkpoint_dir=tmp_path / "checkpoints",
     )
@@ -1334,7 +1200,6 @@ def test_traceaad_v5_each_operator_applies_its_direction_to_every_action(
             actions_per_iteration=2,
             max_active_trajectories=4,
             operators=(operator,),
-            global_reflection_code_batch=40,
             random_seed=2,
             checkpoint_dir=tmp_path / operator.__name__,
         ).run()

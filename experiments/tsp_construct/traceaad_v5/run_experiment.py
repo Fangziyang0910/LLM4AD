@@ -51,8 +51,6 @@ def build_method(log_dir: Path, resume_from: Path | None = None) -> TraceAADV5:
         softmax_temperature=0.2,
         value_weights=ValueWeights(),
         action_max_tokens=int(os.environ.get("LLM_ACTION_MAX_TOKENS", "1024")),
-        global_reflection_code_batch=40,
-        global_reflection_max_tokens=1024,
         max_context_tokens=(
             int(os.environ["LLM_CONTEXT_TOKENS"])
             if os.environ.get("LLM_CONTEXT_TOKENS", "").strip()
@@ -78,7 +76,7 @@ def main() -> None:
         timestamp = os.environ.get("RUN_TIMESTAMP") or datetime.now().strftime(
             "%Y%m%d_%H%M%S"
         )
-        version = os.environ.get("EXPERIMENT_VERSION", "version5_2")
+        version = os.environ.get("EXPERIMENT_VERSION", "version5_3")
         run_dir = EXPERIMENT_ROOT / version / timestamp
         run_dir.mkdir(parents=True, exist_ok=False)
         _write_run_config(run_dir, timestamp)
@@ -104,7 +102,7 @@ def _write_run_config(run_dir: Path, timestamp: str) -> None:
         "run_dir": str(run_dir),
         "task": TASK,
         "method": "traceaad_v5",
-        "experiment_version": os.environ.get("EXPERIMENT_VERSION", "version5_2"),
+        "experiment_version": os.environ.get("EXPERIMENT_VERSION", "version5_3"),
         "timestamp": timestamp,
         "llm": {
             "base_url": os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL),
@@ -135,8 +133,6 @@ def _write_run_config(run_dir: Path, timestamp: str) -> None:
             "checkpoint_interval": 10,
             "value_weights": asdict(ValueWeights()),
             "action_max_tokens": int(os.environ.get("LLM_ACTION_MAX_TOKENS", "1024")),
-            "global_reflection_code_batch": 40,
-            "global_reflection_max_tokens": 1024,
             "max_context_tokens": (
                 int(os.environ["LLM_CONTEXT_TOKENS"])
                 if os.environ.get("LLM_CONTEXT_TOKENS", "").strip()

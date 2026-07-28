@@ -26,5 +26,6 @@ def test_each_supported_task_builds_the_independent_v5_method(
         assert method._output_token_reserve == 8192
         assert method._action_max_tokens == 1024
         assert method._max_context_tokens is None
-        assert method._global_reflection_code_batch == 40
+        assert not hasattr(method, "_global_experience")
+        assert not hasattr(method, "_global_reflection_code_batch")
         assert callable(module.main)

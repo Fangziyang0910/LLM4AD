@@ -73,8 +73,6 @@ _METHOD_SAFE_FIELDS = frozenset(
         "_diversity_count",
         "_softmax_temperature",
         "_maximize",
-        "_global_reflection_code_batch",
-        "_global_reflection_max_tokens",
         "_max_context_tokens",
         "_output_token_reserve",
         "_action_max_tokens",

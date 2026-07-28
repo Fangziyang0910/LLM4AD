@@ -107,7 +107,6 @@ def build_action_prompt(
     action_count: int,
     maximize: bool,
     max_steps: int = 8,
-    global_experience: str = "",
     reference_trajectory: Trajectory | None = None,
     reference_node_id: int | None = None,
 ) -> str:
@@ -123,15 +122,6 @@ def build_action_prompt(
         task_description.strip(),
         fitness_direction_hint(maximize),
     ]
-    rendered_global = global_experience.strip()
-    if rendered_global:
-        sections.extend(
-            [
-                "",
-                "[Global Experience]",
-                rendered_global,
-            ]
-        )
     sections.extend(
         [
             "",
@@ -175,12 +165,12 @@ def build_action_prompt(
             "",
             "[Action Contract]",
             (
-                "Use the improvement direction and the provided search experience to "
-                "decide the next algorithmic modification."
+                "Use the improvement direction and the provided trajectory histories "
+                "to decide the next algorithmic modification."
             ),
             (
-                "Favor algorithmic principles that remain meaningful as instance size "
-                "changes, using normalized relationships where appropriate."
+                "Ground each proposal in the task structure and avoid constants "
+                "justified only by the observed training size."
             ),
             (
                 f"Propose exactly {action_count} concrete, self-contained action lines. "
@@ -197,8 +187,10 @@ def build_action_prompt(
                 "or algorithmic structure; do not restate the current program."
             ),
             (
-                "If a reference program is shown, each action must state which "
-                "reference principle it uses and how to adapt it."
+                "If a reference program is shown, each action must state what is "
+                "learned from it and how that knowledge is adapted to or made to "
+                "interact with the primary program, according to the improvement "
+                "direction."
             ),
             (
                 f"Return exactly {action_count} numbered single-line {action_label} and "

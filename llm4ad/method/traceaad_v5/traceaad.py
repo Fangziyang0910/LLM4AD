@@ -36,7 +36,6 @@ from .complexity import code_change_ratio
 from .context import build_action_prompt, trajectory_history
 from .credit import directed_delta
 from .derivation_graph import DerivationGraph
-from .experience import build_reflection_prompt
 from .operators import DEFAULT_OPERATORS, Operator, classify_outcome
 from .operators.semantic import TraceSynthesizeOp
 from .prompt import IDEA_MAX_CHARS, build_code_prompt, build_initial_prompt
@@ -86,11 +85,10 @@ class TraceAADRunResult:
     n_trajectories: int
     n_edges: int
     n_samples: int
-    n_experience_updates: int
 
 
 class TraceAADV5:
-    """Trajectory search with local history, references, and global experience."""
+    """Trajectory search with local histories and direct trajectory references."""
 
     def __init__(
         self,
@@ -109,8 +107,6 @@ class TraceAADV5:
         value_weights: ValueWeights | None = None,
         operators: tuple[type[Operator], ...] = DEFAULT_OPERATORS,
         action_max_tokens: int = 1024,
-        global_reflection_code_batch: int = 40,
-        global_reflection_max_tokens: int = 1024,
         max_context_tokens: int | None = None,
         output_token_reserve: int = 8192,
         random_seed: int | None = None,
@@ -157,17 +153,6 @@ class TraceAADV5:
         self._softmax_temperature = float(softmax_temperature)
         self._maximize = bool(maximize)
         self._value_weights = value_weights or ValueWeights()
-        self._global_reflection_code_batch = int(global_reflection_code_batch)
-        if self._global_reflection_code_batch <= 0:
-            raise ValueError("global_reflection_code_batch must be positive")
-        self._global_reflection_max_tokens = int(global_reflection_max_tokens)
-        if self._global_reflection_max_tokens <= 0:
-            raise ValueError("global_reflection_max_tokens must be positive")
-        if (
-            max_context_tokens is not None
-            and max_context_tokens <= self._global_reflection_max_tokens
-        ):
-            raise ValueError("context window must exceed reflection output tokens")
         self._max_context_tokens = (
             None if max_context_tokens is None else int(max_context_tokens)
         )
@@ -202,10 +187,6 @@ class TraceAADV5:
         self._best_node: ProgramNode | None = None
         self._best_trajectory_id: int | None = None
         self._best_node_sample_order: int | None = None
-        self._global_experience = ""
-        self._pending_reflection_edge_ids: list[int] = []
-        self._experience_reflection_attempts = 0
-        self._experience_update_index = 0
         self._tot_sample_nums = 0
         self._next_attempt_id = 0
         self._initialization_complete = False
@@ -247,11 +228,7 @@ class TraceAADV5:
                     )
                     break
                 before = self._tot_sample_nums
-                edge_count_before = len(self._graph.edges())
                 self._run_iteration(attempt_id)
-                round_edge_ids = tuple(
-                    edge.id for edge in self._graph.edges()[edge_count_before:]
-                )
                 stop_for_stall = False
                 if self._tot_sample_nums == before:
                     stalled_attempts += 1
@@ -265,8 +242,6 @@ class TraceAADV5:
                         stop_for_stall = True
                 else:
                     stalled_attempts = 0
-                self._pending_reflection_edge_ids.extend(round_edge_ids)
-                self._maybe_update_global_experience(attempt_id)
                 self._maybe_manage_population()
                 attempt_id += 1
                 self._next_attempt_id = attempt_id
@@ -301,7 +276,6 @@ class TraceAADV5:
                 n_valid_nodes=result.n_valid_nodes,
                 n_edges=result.n_edges,
                 n_trajectories=result.n_trajectories,
-                n_experience_updates=result.n_experience_updates,
                 **error,
             )
             close_llm(self._llm)
@@ -743,7 +717,6 @@ class TraceAADV5:
             action_count=self._actions_per_iteration,
             maximize=self._maximize,
             max_steps=self._memory.max_trajectory_length,
-            global_experience=self._global_experience,
             reference_trajectory=reference_route,
             reference_node_id=None if reference_node is None else reference_node.id,
         )
@@ -903,80 +876,6 @@ class TraceAADV5:
         ):
             return True, "strict_fitness"
         return True, "tie_shorter"
-
-    def _maybe_update_global_experience(self, iteration: int) -> None:
-        if len(self._pending_reflection_edge_ids) < self._global_reflection_code_batch:
-            return
-        recent_edge_ids = tuple(
-            self._pending_reflection_edge_ids[: self._global_reflection_code_batch]
-        )
-        prompt = build_reflection_prompt(
-            task_description=self._task_description_str,
-            maximize=self._maximize,
-            old_experience=self._global_experience,
-            recent_edge_ids=recent_edge_ids,
-            graph=self._graph,
-        )
-        self._experience_reflection_attempts += 1
-        if not self._prompt_fits(
-            prompt, output_token_reserve=self._global_reflection_max_tokens
-        ):
-            log_event(
-                self,
-                event="global_experience_update",
-                status="context_overflow",
-                iteration=iteration,
-                reflection_attempt=self._experience_reflection_attempts,
-                code_count=len(recent_edge_ids),
-                recent_edge_ids=list(recent_edge_ids),
-            )
-            save_checkpoint(self)
-            return
-        start = time.time()
-        try:
-            response = self._llm.draw_sample(
-                prompt,
-                max_tokens=self._global_reflection_max_tokens,
-                temperature=0.2,
-            )
-            elapsed = time.time() - start
-            reset_sample_failures(self)
-        except Exception as exc:
-            record_sample_failure(
-                self,
-                exc,
-                stage="global_experience",
-                operator="reflection",
-                sample_order=self._tot_sample_nums,
-                prompt=prompt,
-                counts_budget=False,
-                iteration=iteration,
-            )
-            save_checkpoint(self)
-            return
-        self._global_experience = str(response).strip()
-        del self._pending_reflection_edge_ids[: self._global_reflection_code_batch]
-        self._experience_update_index += 1
-        log_llm_call(
-            self,
-            stage="global_experience",
-            operator="reflection",
-            sample_order=self._tot_sample_nums,
-            iteration=iteration,
-            seq=0,
-            prompt=prompt,
-            response=response,
-            sample_time=elapsed,
-            prompt_tokens=self._count_tokens(prompt),
-            response_tokens=self._count_tokens(response),
-            token_count_mode=self._token_count_mode,
-            reflection_attempt=self._experience_reflection_attempts,
-            successful_update_index=self._experience_update_index,
-            code_count=len(recent_edge_ids),
-            recent_edge_ids=list(recent_edge_ids),
-            status="ok",
-        )
-        save_checkpoint(self)
 
     def _add_node(
         self, generated: _GeneratedProgram, evaluated: EvalResult
@@ -1281,7 +1180,6 @@ class TraceAADV5:
             n_trajectories=len(self._memory.trajectories()),
             n_edges=len(self._graph.edges()),
             n_samples=self._tot_sample_nums,
-            n_experience_updates=self._experience_update_index,
         )
 
 

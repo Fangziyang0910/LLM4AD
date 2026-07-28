@@ -146,10 +146,6 @@ def dump_state(method) -> dict[str, Any]:
         "best_trajectory_id": method._best_trajectory_id,
         "graph": _graph_to_dict(method._graph),
         "memory": _memory_to_dict(method._memory),
-        "global_experience": method._global_experience,
-        "pending_reflection_edge_ids": list(method._pending_reflection_edge_ids),
-        "experience_reflection_attempts": method._experience_reflection_attempts,
-        "experience_update_index": method._experience_update_index,
         "rng_state": method._rng.getstate(),
         "profiler": _dump_profiler(method),
     }
@@ -187,14 +183,6 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     )
     best_route = payload["best_trajectory_id"]
     method._best_trajectory_id = None if best_route is None else int(best_route)
-    method._global_experience = str(payload["global_experience"])
-    method._pending_reflection_edge_ids = [
-        int(edge_id) for edge_id in payload["pending_reflection_edge_ids"]
-    ]
-    method._experience_reflection_attempts = int(
-        payload["experience_reflection_attempts"]
-    )
-    method._experience_update_index = int(payload["experience_update_index"])
     method._rng.setstate(_as_tuple(payload["rng_state"]))
     _restore_profiler(method, payload["profiler"])
 

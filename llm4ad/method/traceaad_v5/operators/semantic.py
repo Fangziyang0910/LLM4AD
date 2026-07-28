@@ -15,7 +15,8 @@ class TraceIdeateOp(SemanticOperator):
     name = OperatorName.IDEATE
     prompt_constraint = (
         "For each action, propose a genuinely new algorithmic idea grounded in the "
-        "full history. Use later regressions and plateaus as tested boundaries."
+        "retained trajectory history. Use later regressions and plateaus as tested "
+        "boundaries while changing the primary program along a new direction."
     )
 
 
@@ -30,9 +31,9 @@ class TraceRefineOp(SemanticOperator):
 class TraceSynthesizeOp(SemanticOperator):
     name = OperatorName.SYNTHESIZE
     prompt_constraint = (
-        "For each action, extract a supported principle from each trajectory and make "
-        "them interact functionally in the primary program. Do not concatenate two "
-        "implementations."
+        "For each action, identify a supported principle in both the primary and "
+        "reference trajectories, then make the two principles interact functionally "
+        "in the primary program. Do not concatenate or copy whole implementations."
     )
 
 
@@ -40,7 +41,8 @@ class TraceTransferOp(SemanticOperator):
     name = OperatorName.TRANSFER
     prompt_constraint = (
         "For each action, keep the primary program's core structure and adapt exactly "
-        "one supported idea from the reference trajectory."
+        "one supported idea from the reference trajectory to the primary trajectory's "
+        "task logic and tested history."
     )
 
 

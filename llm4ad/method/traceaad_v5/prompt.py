@@ -104,7 +104,14 @@ def build_code_prompt(
             str(target).rstrip(),
             "",
             "[Instruction]",
-            "Implement the requested modification in the primary program.",
+            (
+                "Use the histories as evidence about tested directions, then implement "
+                "the requested modification from the primary program."
+            ),
+            (
+                "When a reference program is present, use it only in the way specified "
+                "by the requested modification."
+            ),
             (
                 "Realize the modification in code rather than reproduce the current "
                 "program unchanged."
