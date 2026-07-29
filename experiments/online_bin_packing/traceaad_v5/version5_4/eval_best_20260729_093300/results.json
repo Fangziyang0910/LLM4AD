@@ -1,0 +1,437 @@
+{
+  "created_at": "2026-07-29T22:14:22",
+  "eval_results_by_scale": {
+    "10k_100": {
+      "capacity": 100,
+      "eval_config": {
+        "dataset_specs": [
+          {
+            "capacities": [
+              100
+            ],
+            "n_instances": 5,
+            "n_items": 10000
+          }
+        ],
+        "seed": 2025,
+        "timeout_seconds": null
+      },
+      "n_items": 10000,
+      "results": [
+        {
+          "best_operator": "init",
+          "best_sample_order": 1,
+          "bins_used_mean": 4166.8,
+          "eval_score": -4166.8,
+          "eval_seconds": 2.4212536811828613,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep1_sample_1_program.py",
+          "run_name": "20260729_093300_obp_v54_rep1"
+        },
+        {
+          "best_operator": "init",
+          "best_sample_order": 1,
+          "bins_used_mean": 4166.8,
+          "eval_score": -4166.8,
+          "eval_seconds": 3.8606176376342773,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep2_sample_1_program.py",
+          "run_name": "20260729_093300_obp_v54_rep2"
+        },
+        {
+          "best_operator": "trace_ideate",
+          "best_sample_order": 977,
+          "bins_used_mean": 4030.4,
+          "eval_score": -4030.4,
+          "eval_seconds": 28.617613315582275,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep3_sample_977_program.py",
+          "run_name": "20260729_093300_obp_v54_rep3"
+        }
+      ],
+      "summary": {
+        "mean_bins_used": 4121.333333333333,
+        "mean_eval_score": -4121.333333333333,
+        "num_runs": 3,
+        "num_successful_eval_runs": 3,
+        "sample_std_bins_used": 78.75057671746501,
+        "sample_std_eval_score": 78.75057671746501
+      }
+    },
+    "10k_500": {
+      "capacity": 500,
+      "eval_config": {
+        "dataset_specs": [
+          {
+            "capacities": [
+              500
+            ],
+            "n_instances": 5,
+            "n_items": 10000
+          }
+        ],
+        "seed": 2025,
+        "timeout_seconds": null
+      },
+      "n_items": 10000,
+      "results": [
+        {
+          "best_operator": "init",
+          "best_sample_order": 1,
+          "bins_used_mean": 805.8,
+          "eval_score": -805.8,
+          "eval_seconds": 2.1579651832580566,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep1_sample_1_program.py",
+          "run_name": "20260729_093300_obp_v54_rep1"
+        },
+        {
+          "best_operator": "init",
+          "best_sample_order": 1,
+          "bins_used_mean": 805.8,
+          "eval_score": -805.8,
+          "eval_seconds": 1.299682378768921,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep2_sample_1_program.py",
+          "run_name": "20260729_093300_obp_v54_rep2"
+        },
+        {
+          "best_operator": "trace_ideate",
+          "best_sample_order": 977,
+          "bins_used_mean": 803.6,
+          "eval_score": -803.6,
+          "eval_seconds": 32.49101114273071,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep3_sample_977_program.py",
+          "run_name": "20260729_093300_obp_v54_rep3"
+        }
+      ],
+      "summary": {
+        "mean_bins_used": 805.0666666666666,
+        "mean_eval_score": -805.0666666666666,
+        "num_runs": 3,
+        "num_successful_eval_runs": 3,
+        "sample_std_bins_used": 1.2701705922171374,
+        "sample_std_eval_score": 1.2701705922171374
+      }
+    },
+    "1k_100": {
+      "capacity": 100,
+      "eval_config": {
+        "dataset_specs": [
+          {
+            "capacities": [
+              100
+            ],
+            "n_instances": 5,
+            "n_items": 1000
+          }
+        ],
+        "seed": 2025,
+        "timeout_seconds": null
+      },
+      "n_items": 1000,
+      "results": [
+        {
+          "best_operator": "init",
+          "best_sample_order": 1,
+          "bins_used_mean": 419.8,
+          "eval_score": -419.8,
+          "eval_seconds": 0.05407285690307617,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep1_sample_1_program.py",
+          "run_name": "20260729_093300_obp_v54_rep1"
+        },
+        {
+          "best_operator": "init",
+          "best_sample_order": 1,
+          "bins_used_mean": 419.8,
+          "eval_score": -419.8,
+          "eval_seconds": 0.11766719818115234,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep2_sample_1_program.py",
+          "run_name": "20260729_093300_obp_v54_rep2"
+        },
+        {
+          "best_operator": "trace_ideate",
+          "best_sample_order": 977,
+          "bins_used_mean": 413.2,
+          "eval_score": -413.2,
+          "eval_seconds": 0.8606204986572266,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep3_sample_977_program.py",
+          "run_name": "20260729_093300_obp_v54_rep3"
+        }
+      ],
+      "summary": {
+        "mean_bins_used": 417.59999999999997,
+        "mean_eval_score": -417.59999999999997,
+        "num_runs": 3,
+        "num_successful_eval_runs": 3,
+        "sample_std_bins_used": 3.810511776651543,
+        "sample_std_eval_score": 3.810511776651543
+      }
+    },
+    "1k_500": {
+      "capacity": 500,
+      "eval_config": {
+        "dataset_specs": [
+          {
+            "capacities": [
+              500
+            ],
+            "n_instances": 5,
+            "n_items": 1000
+          }
+        ],
+        "seed": 2025,
+        "timeout_seconds": null
+      },
+      "n_items": 1000,
+      "results": [
+        {
+          "best_operator": "init",
+          "best_sample_order": 1,
+          "bins_used_mean": 80.8,
+          "eval_score": -80.8,
+          "eval_seconds": 0.043265342712402344,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep1_sample_1_program.py",
+          "run_name": "20260729_093300_obp_v54_rep1"
+        },
+        {
+          "best_operator": "init",
+          "best_sample_order": 1,
+          "bins_used_mean": 80.8,
+          "eval_score": -80.8,
+          "eval_seconds": 0.08851194381713867,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep2_sample_1_program.py",
+          "run_name": "20260729_093300_obp_v54_rep2"
+        },
+        {
+          "best_operator": "trace_ideate",
+          "best_sample_order": 977,
+          "bins_used_mean": 81.2,
+          "eval_score": -81.2,
+          "eval_seconds": 0.9424548149108887,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep3_sample_977_program.py",
+          "run_name": "20260729_093300_obp_v54_rep3"
+        }
+      ],
+      "summary": {
+        "mean_bins_used": 80.93333333333334,
+        "mean_eval_score": -80.93333333333334,
+        "num_runs": 3,
+        "num_successful_eval_runs": 3,
+        "sample_std_bins_used": 0.2309401076758536,
+        "sample_std_eval_score": 0.2309401076758536
+      }
+    },
+    "5k_100": {
+      "capacity": 100,
+      "eval_config": {
+        "dataset_specs": [
+          {
+            "capacities": [
+              100
+            ],
+            "n_instances": 5,
+            "n_items": 5000
+          }
+        ],
+        "seed": 2025,
+        "timeout_seconds": null
+      },
+      "n_items": 5000,
+      "results": [
+        {
+          "best_operator": "init",
+          "best_sample_order": 1,
+          "bins_used_mean": 2089.6,
+          "eval_score": -2089.6,
+          "eval_seconds": 0.7303211688995361,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep1_sample_1_program.py",
+          "run_name": "20260729_093300_obp_v54_rep1"
+        },
+        {
+          "best_operator": "init",
+          "best_sample_order": 1,
+          "bins_used_mean": 2089.6,
+          "eval_score": -2089.6,
+          "eval_seconds": 0.5879917144775391,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep2_sample_1_program.py",
+          "run_name": "20260729_093300_obp_v54_rep2"
+        },
+        {
+          "best_operator": "trace_ideate",
+          "best_sample_order": 977,
+          "bins_used_mean": 2021.4,
+          "eval_score": -2021.4,
+          "eval_seconds": 6.431662082672119,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep3_sample_977_program.py",
+          "run_name": "20260729_093300_obp_v54_rep3"
+        }
+      ],
+      "summary": {
+        "mean_bins_used": 2066.866666666667,
+        "mean_eval_score": -2066.866666666667,
+        "num_runs": 3,
+        "num_successful_eval_runs": 3,
+        "sample_std_bins_used": 39.37528835873237,
+        "sample_std_eval_score": 39.37528835873237
+      }
+    },
+    "5k_500": {
+      "capacity": 500,
+      "eval_config": {
+        "dataset_specs": [
+          {
+            "capacities": [
+              500
+            ],
+            "n_instances": 5,
+            "n_items": 5000
+          }
+        ],
+        "seed": 2025,
+        "timeout_seconds": null
+      },
+      "n_items": 5000,
+      "results": [
+        {
+          "best_operator": "init",
+          "best_sample_order": 1,
+          "bins_used_mean": 403.2,
+          "eval_score": -403.2,
+          "eval_seconds": 0.5064997673034668,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep1_sample_1_program.py",
+          "run_name": "20260729_093300_obp_v54_rep1"
+        },
+        {
+          "best_operator": "init",
+          "best_sample_order": 1,
+          "bins_used_mean": 403.2,
+          "eval_score": -403.2,
+          "eval_seconds": 0.5888063907623291,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep2_sample_1_program.py",
+          "run_name": "20260729_093300_obp_v54_rep2"
+        },
+        {
+          "best_operator": "trace_ideate",
+          "best_sample_order": 977,
+          "bins_used_mean": 401.8,
+          "eval_score": -401.8,
+          "eval_seconds": 8.071797609329224,
+          "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep3_sample_977_program.py",
+          "run_name": "20260729_093300_obp_v54_rep3"
+        }
+      ],
+      "summary": {
+        "mean_bins_used": 402.73333333333335,
+        "mean_eval_score": -402.73333333333335,
+        "num_runs": 3,
+        "num_successful_eval_runs": 3,
+        "sample_std_bins_used": 0.8082903768654629,
+        "sample_std_eval_score": 0.8082903768654629
+      }
+    }
+  },
+  "eval_timeout_seconds": null,
+  "method": "traceaad_v5",
+  "model": "/home/fzy/models/Qwen3.6-27B-NVFP4",
+  "run_records": [
+    {
+      "best_operator": "init",
+      "best_sample_order": 1,
+      "num_valid_samples": 1000,
+      "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep1_sample_1_program.py",
+      "run_dir": "experiments/online_bin_packing/traceaad_v5/version5_4/20260729_093300_obp_v54_rep1",
+      "run_name": "20260729_093300_obp_v54_rep1",
+      "train_artifact_score": -744.5,
+      "train_eval_seconds": 0.3373293876647949,
+      "train_recomputed_score": -744.5
+    },
+    {
+      "best_operator": "init",
+      "best_sample_order": 1,
+      "num_valid_samples": 998,
+      "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep2_sample_1_program.py",
+      "run_dir": "experiments/online_bin_packing/traceaad_v5/version5_4/20260729_093300_obp_v54_rep2",
+      "run_name": "20260729_093300_obp_v54_rep2",
+      "train_artifact_score": -744.5,
+      "train_eval_seconds": 0.24985885620117188,
+      "train_recomputed_score": -744.5
+    },
+    {
+      "best_operator": "trace_ideate",
+      "best_sample_order": 977,
+      "num_valid_samples": 995,
+      "program_path": "experiments/online_bin_packing/traceaad_v5/version5_4/eval_best_20260729_093300/20260729_093300_obp_v54_rep3_sample_977_program.py",
+      "run_dir": "experiments/online_bin_packing/traceaad_v5/version5_4/20260729_093300_obp_v54_rep3",
+      "run_name": "20260729_093300_obp_v54_rep3",
+      "train_artifact_score": -725.25,
+      "train_eval_seconds": 4.313733339309692,
+      "train_recomputed_score": -725.25
+    }
+  ],
+  "score_semantics": "OBPEvaluation returns negative mean bins used across instances; higher score is better. bins_used_mean = -score.",
+  "source": "3 completed traceaad_v5 online_bin_packing repeat(s)",
+  "split_configs": {
+    "eval_base": {
+      "dataset_specs": [
+        {
+          "capacities": [
+            100,
+            500
+          ],
+          "n_instances": 5,
+          "n_items": 1000
+        },
+        {
+          "capacities": [
+            100,
+            500
+          ],
+          "n_instances": 5,
+          "n_items": 5000
+        },
+        {
+          "capacities": [
+            100,
+            500
+          ],
+          "n_instances": 5,
+          "n_items": 10000
+        }
+      ],
+      "seed": 2025,
+      "timeout_seconds": null
+    },
+    "train": {
+      "dataset_specs": [
+        {
+          "capacities": [
+            100,
+            500
+          ],
+          "n_instances": 1,
+          "n_items": 1000
+        },
+        {
+          "capacities": [
+            100,
+            500
+          ],
+          "n_instances": 1,
+          "n_items": 5000
+        }
+      ],
+      "seed": 2024,
+      "timeout_seconds": null
+    }
+  },
+  "summary": {
+    "mean_train_recomputed_score": -738.0833333333334,
+    "num_runs": 3,
+    "sample_std_train_recomputed_score": 11.113992681900296
+  },
+  "task": "online_bin_packing",
+  "test_scales": [
+    "1k_100",
+    "5k_100",
+    "10k_100",
+    "1k_500",
+    "5k_500",
+    "10k_500"
+  ]
+}

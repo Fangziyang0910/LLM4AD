@@ -1,0 +1,50 @@
+{
+  "created_at": "2026-07-29T09:31:25",
+  "experiment_version": "version5_4",
+  "llm": {
+    "api_key_configured": false,
+    "base_url": "http://222.201.145.8:8080/v1",
+    "enable_thinking": false,
+    "max_tokens": 8192,
+    "model": "qwen3.6-27b-awq",
+    "no_proxy": "183.36.243.124,222.201.145.8,localhost,127.0.0.1,::1",
+    "temperature": 1.0,
+    "timeout": 600
+  },
+  "method": "traceaad_v5",
+  "method_params": {
+    "action_max_tokens": 1024,
+    "actions_per_iteration": 2,
+    "checkpoint_interval": 10,
+    "elite_count": 3,
+    "max_active_trajectories": 30,
+    "max_consecutive_sample_failures": 20,
+    "max_context_tokens": null,
+    "max_sample_nums": 1000,
+    "max_stalled_iterations": 20,
+    "max_trajectory_length": 8,
+    "n_init": 30,
+    "output_token_reserve": 8192,
+    "random_seed": 3,
+    "softmax_temperature": 0.2,
+    "value_weights": {
+      "best_quality": 0.3,
+      "discount": 0.8,
+      "endpoint_quality": 0.7,
+      "positive_threshold": 1e-06,
+      "search_quality": 0.6,
+      "search_trend": 0.4,
+      "ucb_c": 0.25
+    }
+  },
+  "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/tsp_construct/traceaad_v5/version5_4/20260729_093300_tspc_v54_rep3",
+  "task": "tsp_construct",
+  "task_eval": {
+    "n_instance": 16,
+    "problem_size": 50,
+    "seed": 2024,
+    "split": "train",
+    "timeout_seconds": 20
+  },
+  "timestamp": "20260729_093300_tspc_v54_rep3"
+}

@@ -1,0 +1,7 @@
+{
+  "sample_order": 205,
+  "train_score": 14.65,
+  "operator": "trace_refine",
+  "unique_checked": 307,
+  "note": "train-best 246 non-finite on held-out; next all-split finite candidate"
+}

@@ -1,4 +1,4 @@
-"""Plot TSP Construct search curves for MCTS-AHD, PathWise, TraceAAD v4 / v5.1 / v5.2."""
+"""Plot TSP Construct search curves for MCTS-AHD, PathWise, TraceAAD v4 / v5.1 / v5.2 / v5.3."""
 
 from __future__ import annotations
 
@@ -63,6 +63,28 @@ METHODS = {
         "budget": 1000,
         "color": "#009E73",
         "band": "#7DCEA0",
+    },
+    "TraceAAD v5.3": {
+        "directory": "traceaad_v5/version5_3",
+        "runs": (
+            "20260728_151736_tspc_v53_rep1",
+            "20260728_151736_tspc_v53_rep2",
+            "20260728_151736_tspc_v53_rep3",
+        ),
+        "budget": 1000,
+        "color": "#CC79A7",
+        "band": "#E6B8D0",
+    },
+    "TraceAAD v5.4": {
+        "directory": "traceaad_v5/version5_4",
+        "runs": (
+            "20260729_093300_tspc_v54_rep1",
+            "20260729_093300_tspc_v54_rep2",
+            "20260729_093300_tspc_v54_rep3",
+        ),
+        "budget": 1000,
+        "color": "#E69F00",
+        "band": "#F6D58A",
     },
 }
 

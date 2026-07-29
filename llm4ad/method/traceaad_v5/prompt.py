@@ -116,6 +116,12 @@ def build_code_prompt(
                 "Realize the modification in code rather than reproduce the current "
                 "program unchanged."
             ),
+            (
+                "Preserve working structure already supported by the history. Replace "
+                "superseded logic rather than layering parallel rules, and add code only "
+                "when the requested algorithmic behavior requires it. Do not simplify at "
+                "the expense of task behavior."
+            ),
             "Keep the target function signature and contract unchanged.",
             "Return exactly one complete implementation.",
             (
