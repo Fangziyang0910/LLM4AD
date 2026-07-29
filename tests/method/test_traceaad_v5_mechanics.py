@@ -1,4 +1,4 @@
-"""Public mechanism tests for the current TraceAAD V5.4 contract."""
+"""Public mechanism tests for the current TraceAAD V5 contract."""
 
 from __future__ import annotations
 
@@ -268,10 +268,10 @@ class VerboseIdeaLLM(ScriptedV5LLM):
 
 
 def test_traceaad_v5_has_an_independent_public_method_class() -> None:
-    from llm4ad.method.traceaad import TraceAAD
+    from llm4ad.method.traceaad_v4 import TraceAADV4
     from llm4ad.method.traceaad_v5 import TraceAADV5
 
-    assert TraceAADV5 is not TraceAAD
+    assert TraceAADV5 is not TraceAADV4
     assert TraceAADV5.__module__.startswith("llm4ad.method.traceaad_v5")
 
 
@@ -437,7 +437,7 @@ def test_traceaad_v5_reference_is_provenance_not_a_second_parent(
     assert any("[Reference Program]" in prompt for prompt in llm.prompts)
 
 
-def test_traceaad_v53_has_no_online_global_experience(tmp_path: Path) -> None:
+def test_traceaad_v5_has_no_online_global_experience(tmp_path: Path) -> None:
     from llm4ad.method.traceaad_v5 import TraceAADV5
     from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
 
@@ -943,17 +943,16 @@ def test_traceaad_v5_internal_anchor_receives_the_whole_retained_trajectory() ->
     assert rendered.tested_after_edge_ids == (edges[-1].id,)
 
 
-def test_traceaad_v5_uses_v4_aligned_single_route_guidance_and_light_anti_bloat() -> None:
+def test_traceaad_v5_uses_focused_refine_and_task_grounded_action_guidance() -> None:
     from llm4ad.method.traceaad_v5 import TraceAADV5
-    from llm4ad.method.traceaad_v5.operators import TraceIdeateOp, TraceRefineOp
+    from llm4ad.method.traceaad_v5.operators import TraceRefineOp
 
-    ideate = TraceIdeateOp().build_constraint()
     refine = TraceRefineOp().build_constraint()
-    assert "one genuinely new algorithmic idea" in ideate
-    assert "one main idea" in ideate
-    assert "preserve one valuable idea already present" in refine
-    assert "one focused mechanism or parameter refinement" in refine
-    assert "single observable behavior" in refine
+    assert "focused, evidence-grounded refinement" in refine
+    assert all(
+        operation not in refine
+        for operation in ("replace", "delete", "merge", "simplify")
+    )
 
     llm = V5MechanismLLM()
     TraceAADV5(
@@ -969,15 +968,10 @@ def test_traceaad_v5_uses_v4_aligned_single_route_guidance_and_light_anti_bloat(
     action_prompt = next(
         prompt for prompt in llm.prompts if "[Action Contract]" in prompt
     )
-    code_prompt = next(
-        prompt for prompt in llm.prompts if "[Requested Modification]" in prompt
-    )
     assert "avoid constants justified only by the observed training size" in action_prompt
-    assert "Replace superseded logic rather than layering parallel rules" in code_prompt
-    assert "Do not simplify at the expense of task behavior" in code_prompt
 
 
-def test_traceaad_v5_search_value_restores_v4_quality_and_trend_weights() -> None:
+def test_traceaad_v5_search_value_blends_quality_and_trend() -> None:
     from llm4ad.method.traceaad_v5.derivation_graph import DerivationGraph
     from llm4ad.method.traceaad_v5.trajectory_memory import TrajectoryMemory
     from llm4ad.method.traceaad_v5.value import (
@@ -1018,51 +1012,18 @@ def test_traceaad_v5_search_value_restores_v4_quality_and_trend_weights() -> Non
         w=weights,
     )
 
-    assert weights.search_quality == 0.6
-    assert weights.search_trend == 0.4
-    assert weights.positive_threshold == 1e-6
+    assert weights.search_quality == 0.8
+    assert weights.search_trend == 0.2
     assert all(route.value is not None for route in scored)
     assert all(
         abs(
             float(route.scalar_value)
-            - (0.6 * route.value.quality + 0.4 * route.value.trend)
+            - (0.8 * route.value.quality + 0.2 * route.value.trend)
         )
         < 1e-12
         for route in scored
         if route.value is not None and route.scalar_value is not None
     )
-
-
-def test_traceaad_v5_diversity_reserve_starts_from_best_remaining_route() -> None:
-    from llm4ad.method.traceaad_v5.derivation_graph import DerivationGraph
-    from llm4ad.method.traceaad_v5.schema import ValueVec
-    from llm4ad.method.traceaad_v5.trajectory_memory import TrajectoryMemory
-    from llm4ad.method.traceaad_v5.value import select_diverse_trajectories
-
-    graph = DerivationGraph()
-    memory = TrajectoryMemory(max_trajectory_length=8)
-    low_node = graph.add_node(
-        code="def f():\n    return 'novel low quality'\n",
-        idea="low",
-        fitness=1.0,
-    )
-    high_node = graph.add_node(
-        code="def f():\n    return 'high quality'\n",
-        idea="high",
-        fitness=2.0,
-    )
-    low = memory.create_initial(node_id=low_node.id)
-    high = memory.create_initial(node_id=high_node.id)
-    low = memory.set_value(low.id, ValueVec(quality=0.1), 0.1)
-    high = memory.set_value(high.id, ValueVec(quality=0.9), 0.9)
-
-    selected = select_diverse_trajectories(
-        candidates=(low, high),
-        graph=graph,
-        count=1,
-    )
-
-    assert selected == (high,)
 
 
 def test_traceaad_v5_keeps_idea_as_a_short_implementation_claim(

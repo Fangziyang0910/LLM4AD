@@ -1,7 +1,0 @@
-{
-  "train_artifact_best_sample_order": 246,
-  "train_artifact_best_score": 14.858,
-  "evaluated_sample_order": 205,
-  "evaluated_train_score": 14.65,
-  "reason": "train-best sample 246 (and many near-best) non-finite on held-out OP50/100/200; used next all-split finite candidate"
-}

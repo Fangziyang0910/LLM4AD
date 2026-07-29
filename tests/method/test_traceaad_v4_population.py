@@ -5,11 +5,11 @@ import random
 import pytest
 
 from llm4ad.base import Evaluation, LLM
-from llm4ad.method.traceaad import TraceAAD
-from llm4ad.method.traceaad.derivation_graph import DerivationGraph
-from llm4ad.method.traceaad.similarity import trajectory_similarity
-from llm4ad.method.traceaad.trajectory_memory import TrajectoryMemory
-from llm4ad.method.traceaad.value import (
+from llm4ad.method.traceaad_v4 import TraceAADV4
+from llm4ad.method.traceaad_v4.derivation_graph import DerivationGraph
+from llm4ad.method.traceaad_v4.similarity import trajectory_similarity
+from llm4ad.method.traceaad_v4.trajectory_memory import TrajectoryMemory
+from llm4ad.method.traceaad_v4.value import (
     ValueWeights,
     compute_value_vec,
     score_active_trajectories,
@@ -63,8 +63,8 @@ class _V4Evaluation(Evaluation):
         return float(self.calls)
 
 
-def _method(*, budget: int, population: int = 3, n_init: int = 3) -> TraceAAD:
-    return TraceAAD(
+def _method(*, budget: int, population: int = 3, n_init: int = 3) -> TraceAADV4:
+    return TraceAADV4(
         llm=_V4LLM(),
         evaluation=_V4Evaluation(),
         max_sample_nums=budget,

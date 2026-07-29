@@ -14,18 +14,17 @@ class SemanticOperator(Operator):
 class TraceIdeateOp(SemanticOperator):
     name = OperatorName.IDEATE
     prompt_constraint = (
-        "For each action, propose one genuinely new algorithmic idea grounded in the "
-        "full retained trajectory history. Use later regressions and plateaus as tested "
-        "boundaries, and keep the action centered on that one main idea."
+        "For each action, propose a genuinely new algorithmic idea grounded in the "
+        "retained trajectory history. Use later regressions and plateaus as tested "
+        "boundaries while changing the primary program along a new direction."
     )
 
 
 class TraceRefineOp(SemanticOperator):
     name = OperatorName.REFINE
     prompt_constraint = (
-        "For each action, preserve one valuable idea already present in the history "
-        "and make one focused mechanism or parameter refinement. State the single "
-        "observable behavior that the refinement is intended to change."
+        "For each action, make one focused, evidence-grounded refinement to a "
+        "mechanism that has shown value or to a weakness exposed by the history."
     )
 
 

@@ -1,4 +1,4 @@
-"""V4-aligned quality-and-trend trajectory scheduling for TraceAAD v5."""
+"""Fitness-first trajectory scheduling for TraceAAD v5."""
 
 from __future__ import annotations
 
@@ -16,11 +16,11 @@ from .trajectory_memory import TrajectoryMemory
 class ValueWeights:
     endpoint_quality: float = 0.7
     best_quality: float = 0.3
-    search_quality: float = 0.6
-    search_trend: float = 0.4
+    search_quality: float = 0.8
+    search_trend: float = 0.2
     ucb_c: float = 0.25
     discount: float = 0.8
-    positive_threshold: float = 1e-6
+    positive_threshold: float = 1e-12
 
     def __post_init__(self) -> None:
         if self.endpoint_quality < 0 or self.best_quality < 0:
@@ -287,12 +287,7 @@ def select_diverse_trajectories(
     if count <= 0 or not candidates:
         return ()
     remaining = list(candidates)
-    first = max(
-        remaining,
-        key=lambda route: (float(route.scalar_value or 0.0), -route.id),
-    )
-    selected: list[Trajectory] = [first]
-    remaining.remove(first)
+    selected: list[Trajectory] = []
     while remaining and len(selected) < count:
 
         def score(route: Trajectory) -> tuple[float, float, int]:

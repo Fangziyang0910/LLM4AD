@@ -24,7 +24,7 @@ uv run python experiments/op_aco/mcts_ahd/run_experiment.py
 uv run python experiments/op_aco/pathwise/run_experiment.py
 
 # TraceAAD
-uv run python experiments/op_aco/traceaad/run_experiment.py
+uv run python -m experiments.traceaad.run --task op_aco --version v4 --backend local
 
 # 测试评估（默认 test_50/100/200）
 uv run python experiments/op_aco/evaluate_best_on_test.py <run_dirs...> \

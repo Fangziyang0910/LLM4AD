@@ -1,30 +1,61 @@
-# Experiments Layout
+# Experiments
 
-Experiments are organized as:
+实验入口按 task 和 method 组织，运行工件仍写入对应方法目录：
 
 ```text
-experiments/<task>/<method>/
-  run_experiment.py
-  <timestamp>/
-    run_config.json
-    tmux_run.log
-    logs/
+experiments/<task>/<method>/<version>/<run_name>/
+  run_config.json
+  tmux_run.log
+  logs/
 ```
 
-Each task/method pair has a small script with parameters written directly in Python. For example:
+`run_config.json` 是每个 run 自动生成的参数快照，不需要手写。三个重复必须拥有
+独立目录，才能分别恢复、检查和测试。
+
+这些运行目录只保存在实验机器本地，不进入 Git。Git 只跟踪本目录中的实验入口、
+评估脚本和绘图脚本；完成实验后，将三次重复的聚合结果和必要曲线整理到
+`docs/results/<task>/`。不要单独提交 `run_config.json`、`results.json`、日志、
+checkpoint 或生成程序。
+
+## TraceAAD
+
+TraceAAD V4/V5 共用参数化入口，不再为每个 task 和版本复制
+`run_experiment.py`。
+
+单次运行：
 
 ```bash
-uv run python experiments/tsp_construct/traceaad/run_experiment.py
+uv run python -m experiments.traceaad.run \
+  --task online_bin_packing \
+  --version v4 \
+  --backend local \
+  --run-name 20260729_obp_v4_rep1 \
+  --repeat 1
 ```
 
-For long runs, launch from the nested `LLM4AD/` repo with tmux:
+三重复 tmux 批量启动：
 
 ```bash
-TS=$(date +%Y%m%d_%H%M%S)
-tmux new -d -s traceaad_tsp_construct_$TS \
-  "cd /home/fang/code/LLM4AD/LLM4AD && \
-   NO_PROXY=222.201.145.8,localhost,127.0.0.1,::1 \
-   uv run python experiments/tsp_construct/traceaad/run_experiment.py"
+uv run python -m experiments.traceaad.launch \
+  --task online_bin_packing \
+  --version v4 \
+  --backend local \
+  --repeats 3
 ```
 
-Migrated timestamp folders keep their historical launch settings in `run_config.json`. Future launches should use the `run_experiment.py` under the matching task/method directory.
+支持的 backend 为 `local`、`server1` 和 `zhong`。可以用 `--base-url`、
+`--model`、`--no-proxy` 覆盖 profile；API key 只从环境或仓库 `.env`
+读取，不作为命令行参数。
+
+恢复单个运行：
+
+```bash
+uv run python -m experiments.traceaad.run \
+  --task online_bin_packing \
+  --version v4 \
+  --backend local \
+  --resume-from experiments/online_bin_packing/traceaad_v4/version4/<run_name>
+```
+
+其它方法目前仍使用各 task/method 目录中的原生入口。历史 timestamp 目录及其中
+的配置和结果继续保留在本地，不因入口收口而改写，也不进入 Git。

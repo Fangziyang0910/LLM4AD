@@ -25,7 +25,7 @@ TraceAAD 的核心假设是：算法改进历史包含当前程序本身没有�
 
 ## 3. 数据范围与分析单位
 
-当前主分析范围是 `experiments/*/traceaad/version4/` 下保存 `method_events.jsonl` 的 15 个 run，覆盖 TSP Construct、CVRP-ACO、Knapsack Construct、Online Bin Packing 和 OP-ACO，每个 task 三个重复。先逐 run 核对预算、终止原因、样本完整性和配置；未完成 run 只进入其实际覆盖区间，不与完整 run 直接比较最终结果。
+当前主分析范围是 `experiments/*/traceaad_v4/version4/` 下保存 `method_events.jsonl` 的 15 个 run，覆盖 TSP Construct、CVRP-ACO、Knapsack Construct、Online Bin Packing 和 OP-ACO，每个 task 三个重复。先逐 run 核对预算、终止原因、样本完整性和配置；未完成 run 只进入其实际覆盖区间，不与完整 run 直接比较最终结果。
 
 分析使用四种单位：
 

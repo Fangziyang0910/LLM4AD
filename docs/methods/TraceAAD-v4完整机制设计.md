@@ -1,6 +1,8 @@
-# TraceAAD v4：以算法改进轨迹为 MDP 状态历史的单父代搜索
+# TraceAAD V4：以算法改进轨迹为 MDP 状态历史的单父代搜索
 
-> 状态：当前实现的权威方法规范。v3 的多来源写回、DAG、独立完整档案和旧算子不再属于 v4。
+> 状态：正式 V4 的权威方法规范。实现位于
+> `llm4ad/method/traceaad_v4/`，实验统一由
+> `python -m experiments.traceaad.run --version v4` 启动。
 
 ## 1. 科学主张
 
@@ -154,7 +156,7 @@ $$
 
 ## 9. 运行状态与检查点
 
-检查点保存树节点、单父代修改边、轨迹路径和 active/archived 状态、访问次数、global-best 节点与 best-anchor 路线、评估计数和随机搜索配置。检查点只保障恢复，不改变搜索机制。v4 检查点版本独立于旧 v3，旧版本不自动兼容。
+检查点保存树节点、单父代修改边、轨迹路径和 active/archived 状态、访问次数、global-best 节点与 best-anchor 路线、评估计数和随机搜索配置。检查点只保障恢复，不改变搜索机制。
 
 过程日志至少记录：父代轨迹及其 `V_search/UCB/visit_count`、锚点原因、算子、action、子代结果、种群管理前后规模、精英/reserve/best-anchor 保留、全局最好更新。
 
@@ -187,8 +189,8 @@ $$
 
 ## 12. 已知问题与证据
 
-本文件只定义 v4 方法，不在这里维护实验快照、文献综述或下一版本方案。当前已知问题和过程证据分别见：
+本文件只定义 V4 方法，不在这里维护实验快照、文献综述或下一版本方案。当前已知问题和过程证据分别见：
 
 - [程序膨胀研究](../studies/程序膨胀.md)；
-- [TraceAAD v4 机制审计](../evidence/audits/traceaad-v4/README.md)；
-- [TraceAAD v5 方法设计](TraceAAD-v5完整机制设计.md)。
+- [TraceAAD V4 机制审计](../evidence/audits/traceaad-v4/README.md)；
+- [TraceAAD V5 方法设计](TraceAAD-v5完整机制设计.md)。

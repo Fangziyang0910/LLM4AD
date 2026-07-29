@@ -26,6 +26,7 @@ uv run python experiments/online_bin_packing/evaluate_best_on_test.py <run_dirs.
 MPLCONFIGDIR=/tmp/matplotlib uv run python experiments/plotting/plot_online_bin_packing_three_method_search.py
 ```
 
-新的单次搜索直接使用各方法目录中的 `run_experiment.py`。批次启动时应按
-`docs/实验配置.md` 显式记录当前训练协议，不复用旧批次的固定服务地址脚本。
-实验覆盖与完成状态统一维护在 `docs/实验覆盖.md`。
+TraceAAD 新搜索统一使用 `experiments.traceaad.run`，三重复使用
+`experiments.traceaad.launch`，通过 `--task online_bin_packing` 与
+`--version v4|v5` 选择实验。入口会为每个 run 自动保存真实配置，不再创建
+批次专用脚本。实验覆盖与完成状态统一维护在 `docs/实验覆盖.md`。
