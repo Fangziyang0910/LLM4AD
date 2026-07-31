@@ -5,18 +5,15 @@ from __future__ import annotations
 import copy
 import math
 import random
-import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from ...base import (
     Evaluation,
     Function,
     LLM,
     Program,
-    SampleTrimmer,
     SecureEvaluator,
     TextFunctionProgramConverter,
 )
@@ -34,28 +31,31 @@ from .._observability import (
 from .checkpoint import load_checkpoint, save_checkpoint
 from .complexity import code_change_ratio
 from .context import build_action_prompt, trajectory_history
-from .credit import directed_delta
 from .derivation_graph import DerivationGraph
-from .operators import DEFAULT_OPERATORS, Operator, classify_outcome
-from .operators.semantic import TraceSynthesizeOp
-from .prompt import IDEA_MAX_CHARS, build_code_prompt, build_initial_prompt
-from .schema import (
-    EvalResult,
-    OperatorName,
-    ProgramNode,
-    Trajectory,
+from .operators import (
+    DEFAULT_OPERATORS,
+    Operator,
+    classify_outcome,
 )
+from .prompt import (
+    build_code_prompt,
+    build_initial_prompt,
+    parse_actions,
+    parse_program_response,
+)
+from .schema import OperatorName, ProgramNode, Trajectory
 from .similarity import code_similarity
 from .trajectory_memory import TrajectoryMemory
 from .value import (
     ValueWeights,
     compact_best_node,
+    directed_delta,
     is_program_better,
     reference_sampling_distribution,
-    sample_reference_trajectory,
     score_active_trajectories,
     select_diverse_trajectories,
     trajectory_sampling_distribution,
+    weighted_choice,
 )
 
 
@@ -63,13 +63,12 @@ from .value import (
 class _GeneratedProgram:
     idea: str
     program: Program
-    sample_time: float = 0.0
+    sample_time: float
 
 
 @dataclass(frozen=True, slots=True)
 class _PromptContext:
     prompt: str
-    history_edge_count: int
     token_count: int
     primary_history: str
     reference_history: str
@@ -95,7 +94,7 @@ class TraceAADV5:
         llm: LLM,
         evaluation: Evaluation,
         profiler: ProfilerBase = None,
-        max_sample_nums: Optional[int] = 100,
+        max_sample_nums: int | None = 100,
         *,
         n_init: int = 30,
         actions_per_iteration: int = 2,
@@ -107,8 +106,6 @@ class TraceAADV5:
         value_weights: ValueWeights | None = None,
         operators: tuple[type[Operator], ...] = DEFAULT_OPERATORS,
         action_max_tokens: int = 1024,
-        max_context_tokens: int | None = None,
-        output_token_reserve: int = 8192,
         random_seed: int | None = None,
         debug_mode: bool = False,
         max_consecutive_sample_failures: int = 20,
@@ -129,12 +126,6 @@ class TraceAADV5:
             raise ValueError("softmax_temperature must be positive")
         if checkpoint_interval <= 0:
             raise ValueError("checkpoint_interval must be positive")
-        if (
-            max_context_tokens is not None
-            and max_context_tokens <= output_token_reserve
-        ):
-            raise ValueError("context window must exceed the output reserve")
-
         self._llm = llm
         self._evaluation = evaluation
         self._profiler = profiler
@@ -153,10 +144,6 @@ class TraceAADV5:
         self._softmax_temperature = float(softmax_temperature)
         self._maximize = bool(maximize)
         self._value_weights = value_weights or ValueWeights()
-        self._max_context_tokens = (
-            None if max_context_tokens is None else int(max_context_tokens)
-        )
-        self._output_token_reserve = int(output_token_reserve)
         self._debug_mode = debug_mode
         self._max_stalled_iterations = max(1, int(max_stalled_iterations))
         self._checkpoint_dir = None if checkpoint_dir is None else Path(checkpoint_dir)
@@ -242,13 +229,15 @@ class TraceAADV5:
                         stop_for_stall = True
                 else:
                     stalled_attempts = 0
-                self._maybe_manage_population()
+                if len(self._memory.active()) >= self._management_threshold:
+                    self._manage_population()
                 attempt_id += 1
                 self._next_attempt_id = attempt_id
                 self._save_checkpoint_if_due()
                 if stop_for_stall:
                     break
-            self._maybe_manage_population()
+            if len(self._memory.active()) >= self._management_threshold:
+                self._manage_population()
             result = self._result()
             status = "aborted" if is_search_aborted(self) else "finished"
             return result
@@ -314,10 +303,14 @@ class TraceAADV5:
                 operator="init",
                 sample_time=generated.sample_time,
             )
-            if evaluated is None or evaluated.fitness is None:
+            if evaluated is None:
                 continue
             stalled_draws = 0
-            node = self._add_node(generated, evaluated)
+            node = self._graph.add_node(
+                code=str(generated.program),
+                idea=generated.idea,
+                fitness=evaluated,
+            )
             route = self._memory.create_initial(node_id=node.id)
             self._update_best(
                 node,
@@ -336,7 +329,12 @@ class TraceAADV5:
                 code_hash=node.code_hash,
             )
         if self._memory.active():
-            self._score_active_pool()
+            score_active_trajectories(
+                memory=self._memory,
+                graph=self._graph,
+                maximize=self._maximize,
+                w=self._value_weights,
+            )
 
     def _init_diversity_hint(self, slot: int) -> str:
         if slot == 0:
@@ -355,7 +353,9 @@ class TraceAADV5:
     def _run_iteration(self, attempt_id: int) -> None:
         selected = self._select_trajectory(attempt_id)
         anchor_id, anchor_role = self._select_anchor(selected)
-        reference_candidates = self._reference_candidates(selected, anchor_id)
+        reference_candidates = tuple(
+            route for route in self._memory.active() if route.id != selected.id
+        )
         eligible = [
             operator
             for operator in self._operators
@@ -381,17 +381,15 @@ class TraceAADV5:
                 candidates=reference_candidates,
                 temperature=self._softmax_temperature,
             )
-            reference_route = sample_reference_trajectory(
-                candidates=reference_candidates,
-                temperature=self._softmax_temperature,
-                rng=self._rng,
+            reference_route = weighted_choice(
+                [route for route, _ in reference_distribution],
+                [probability for _, probability in reference_distribution],
+                self._rng,
             )
             reference_node = self._graph.get_node(reference_route.compact_best_id)
-            self._memory.record_reference_use(reference_route.id)
         context = self._build_action_context(
             selected=selected,
             anchor_id=anchor_id,
-            anchor_role=anchor_role,
             operator=operator,
             reference_route=reference_route,
             reference_node=reference_node,
@@ -399,7 +397,7 @@ class TraceAADV5:
         log_event(
             self,
             event="operator_selection",
-            status="ok" if context is not None else "context_overflow",
+            status="ok",
             attempt_id=attempt_id,
             selected_operator=operator.name,
             selected_trajectory_id=selected.id,
@@ -448,9 +446,6 @@ class TraceAADV5:
                 )
             ),
         )
-        if context is None:
-            self._memory.record_visit(selected.id)
-            return
         actions = self._generate_actions(
             context,
             operator=operator,
@@ -471,17 +466,6 @@ class TraceAADV5:
                 reference_node=reference_node,
                 reference_history=context.reference_history,
             )
-            if not self._prompt_fits(code_prompt):
-                log_event(
-                    self,
-                    event="context_overflow",
-                    status="code_prompt",
-                    iteration=attempt_id,
-                    seq=seq,
-                    operator=operator.name,
-                    token_count=self._count_tokens(code_prompt),
-                )
-                continue
             generated = self._draw_program(
                 code_prompt,
                 stage="code",
@@ -499,9 +483,13 @@ class TraceAADV5:
                 operator=operator.name,
                 sample_time=generated.sample_time,
             )
-            if evaluated is None or evaluated.fitness is None:
+            if evaluated is None:
                 continue
-            child = self._add_node(generated, evaluated)
+            child = self._graph.add_node(
+                code=str(generated.program),
+                idea=generated.idea,
+                fitness=evaluated,
+            )
             delta_parent = directed_delta(
                 base_node.fitness, child.fitness, self._maximize
             )
@@ -558,12 +546,17 @@ class TraceAADV5:
                 iteration=attempt_id,
                 operator=operator.name,
             )
-            self._log_child(
+            log_event(
+                self,
+                event="child_accepted",
+                status="ok",
                 iteration=attempt_id,
                 seq=seq,
-                operator=operator,
-                child=child,
-                trajectory=child_route,
+                operator=operator.name,
+                child_id=child.id,
+                trajectory_id=child_route.id,
+                compact_best_id=child_route.compact_best_id,
+                score=child.fitness,
                 parent_id=anchor_id,
                 edge_id=edge.id,
                 action=action,
@@ -604,18 +597,9 @@ class TraceAADV5:
             w=self._value_weights,
             temperature=self._softmax_temperature,
         )
-        # Sample directly from the pre-computed distribution instead of calling
-        # sample_trajectory(), which would recompute the same distribution.
         routes = [item[0] for item in distribution]
         probs = [item[2] for item in distribution]
-        needle = self._rng.random()
-        cumulative = 0.0
-        selected = routes[-1]
-        for route, prob in zip(routes, probs):
-            cumulative += prob
-            if needle <= cumulative:
-                selected = route
-                break
+        selected = weighted_choice(routes, probs, self._rng)
         selected_adjusted, selected_prob = next(
             (adjusted, probability)
             for route, adjusted, probability in distribution
@@ -652,45 +636,15 @@ class TraceAADV5:
             return endpoint, "endpoint"
         return compact, "compact_best"
 
-    def _reference_candidates(
-        self,
-        primary: Trajectory,
-        anchor_id: int,
-    ) -> tuple[Trajectory, ...]:
-        if self._max_context_tokens is None:
-            return tuple(
-                route for route in self._memory.active() if route.id != primary.id
-            )
-        candidates: list[Trajectory] = []
-        feasibility_operator = TraceSynthesizeOp()
-        for route in self._memory.active():
-            if route.id == primary.id:
-                continue
-            node = self._graph.get_node(route.compact_best_id)
-            context = self._build_action_context(
-                selected=primary,
-                anchor_id=anchor_id,
-                anchor_role="candidate_check",
-                operator=feasibility_operator,
-                reference_route=route,
-                reference_node=node,
-                log_result=False,
-            )
-            if context is not None:
-                candidates.append(route)
-        return tuple(candidates)
-
     def _build_action_context(
         self,
         *,
         selected: Trajectory,
         anchor_id: int,
-        anchor_role: str,
         operator: Operator,
         reference_route: Trajectory | None,
         reference_node: ProgramNode | None,
-        log_result: bool = True,
-    ) -> _PromptContext | None:
+    ) -> _PromptContext:
         primary_history = trajectory_history(
             self._graph,
             selected,
@@ -708,51 +662,23 @@ class TraceAADV5:
             )
         )
         prompt = build_action_prompt(
-            graph=self._graph,
-            trajectory=selected,
-            base_node_id=anchor_id,
-            operator_constraint=operator.build_constraint(),
+            base_node=self._graph.get_node(anchor_id),
+            primary_history=primary_history,
+            operator_constraint=operator.prompt_constraint,
             task_description=self._task_description_str,
             template_function=self._function_to_evolve,
             action_count=self._actions_per_iteration,
             maximize=self._maximize,
-            max_steps=self._memory.max_trajectory_length,
-            reference_trajectory=reference_route,
-            reference_node_id=None if reference_node is None else reference_node.id,
+            reference_node=reference_node,
+            reference_history=reference_history,
         )
-        token_count = self._count_tokens(prompt)
         primary_edge_ids = primary_history.edge_ids
         reference_edge_ids = (
             () if reference_history is None else reference_history.edge_ids
         )
-        fits = self._prompt_fits(
-            prompt,
-            output_token_reserve=self._action_max_tokens,
-        )
-        if log_result and not fits:
-            log_event(
-                self,
-                event="prompt_context",
-                status="overflow",
-                operator=operator.name,
-                history_edge_count=max(
-                    len(primary_edge_ids),
-                    len(reference_edge_ids),
-                ),
-                token_count=token_count,
-                token_count_mode=self._token_count_mode,
-                primary_edge_ids=list(primary_edge_ids),
-                reference_edge_ids=list(reference_edge_ids),
-            )
-        if not fits:
-            return None
         return _PromptContext(
             prompt=prompt,
-            history_edge_count=max(
-                len(primary_edge_ids),
-                len(reference_edge_ids),
-            ),
-            token_count=token_count,
+            token_count=self._count_tokens(prompt),
             primary_history=primary_history.text,
             reference_history=(
                 "" if reference_history is None else reference_history.text
@@ -778,18 +704,6 @@ class TraceAADV5:
             if callable(getattr(self._llm, "count_tokens", None))
             else "utf8_byte_upper_bound"
         )
-
-    def _prompt_fits(
-        self, prompt: str, *, output_token_reserve: int | None = None
-    ) -> bool:
-        if self._max_context_tokens is None:
-            return True
-        reserve = (
-            self._output_token_reserve
-            if output_token_reserve is None
-            else int(output_token_reserve)
-        )
-        return self._count_tokens(prompt) <= self._max_context_tokens - reserve
 
     def _generate_actions(
         self,
@@ -818,7 +732,7 @@ class TraceAADV5:
                 iteration=iteration,
             )
             return []
-        actions, errors = _parse_actions(
+        actions, errors = parse_actions(
             response,
             expected_count=self._actions_per_iteration,
         )
@@ -877,22 +791,13 @@ class TraceAADV5:
             return True, "strict_fitness"
         return True, "tie_shorter"
 
-    def _add_node(
-        self, generated: _GeneratedProgram, evaluated: EvalResult
-    ) -> ProgramNode:
-        return self._graph.add_node(
-            code=str(generated.program),
-            idea=generated.idea,
-            fitness=evaluated.fitness,
-        )
-
     def _update_best(
         self,
         node: ProgramNode,
         *,
         trajectory_id: int | None,
         iteration: int | None,
-        operator,
+        operator: str | OperatorName,
     ) -> None:
         update, reason = self._best_update_decision(node, self._best_node)
         if not update:
@@ -920,44 +825,15 @@ class TraceAADV5:
             program_loc=node.program_loc,
         )
 
-    def _log_child(
-        self,
-        *,
-        iteration: int,
-        seq: int,
-        operator: Operator,
-        child: ProgramNode,
-        trajectory: Trajectory,
-        **fields,
-    ) -> None:
-        log_event(
-            self,
-            event="child_accepted",
-            status="ok",
-            iteration=iteration,
-            seq=seq,
-            operator=operator.name,
-            child_id=child.id,
-            trajectory_id=trajectory.id,
-            compact_best_id=trajectory.compact_best_id,
-            score=child.fitness,
-            **fields,
-        )
-
-    def _score_active_pool(self) -> tuple[Trajectory, ...]:
-        return score_active_trajectories(
-            memory=self._memory,
-            graph=self._graph,
-            maximize=self._maximize,
-            w=self._value_weights,
-        )
-
-    def _maybe_manage_population(self) -> None:
-        if len(self._memory.active()) >= self._management_threshold:
-            self._manage_population()
-
     def _manage_population(self) -> None:
-        ranked = list(self._score_active_pool())
+        ranked = list(
+            score_active_trajectories(
+                memory=self._memory,
+                graph=self._graph,
+                maximize=self._maximize,
+                w=self._value_weights,
+            )
+        )
         if len(ranked) < self._management_threshold:
             return
         elite_count = min(self._elite_count, self._max_active_trajectories, len(ranked))
@@ -1040,14 +916,9 @@ class TraceAADV5:
                 math.exp((score - maximum) / self._softmax_temperature)
                 for score in scores
             ]
-            total = sum(weights)
-            needle = self._rng.random() * total if total > 0 else 0.0
-            index = 0
-            for index, weight in enumerate(weights):
-                needle -= weight
-                if needle <= 0:
-                    break
-            selected.append(remaining.pop(index))
+            choice = weighted_choice(remaining, weights, self._rng)
+            remaining.remove(choice)
+            selected.append(choice)
         return tuple(selected)
 
     def _draw_program(
@@ -1057,7 +928,7 @@ class TraceAADV5:
         stage: str,
         iteration: int | None,
         seq: int,
-        operator,
+        operator: str | OperatorName,
         action: str | None = None,
     ) -> _GeneratedProgram | None:
         sample_order = self._tot_sample_nums + 1
@@ -1080,7 +951,7 @@ class TraceAADV5:
                 action=action,
             )
             return None
-        generated = _parse_program_response(
+        generated = parse_program_response(
             response, self._template_program, self._function_to_evolve.name
         )
         call_record = {
@@ -1108,8 +979,13 @@ class TraceAADV5:
         return generated
 
     def _evaluate(
-        self, program: Program, *, idea: str, operator, sample_time: float = 0.0
-    ) -> EvalResult | None:
+        self,
+        program: Program,
+        *,
+        idea: str,
+        operator: str | OperatorName,
+        sample_time: float,
+    ) -> float | None:
         if not self._has_budget():
             return None
         outcome, eval_time = self._evaluator.evaluate_program_record_time_with_details(
@@ -1117,21 +993,15 @@ class TraceAADV5:
         )
         self._tot_sample_nums += 1
         result = outcome.result
-        score = result.fitness if isinstance(result, EvalResult) else result
-        try:
-            function = copy.deepcopy(
-                program.get_function(self._function_to_evolve.name)
-            )
-        except ValueError:
-            function = None
-        if function is not None:
-            function.algorithm = idea
-            function.score = score
-            function.sample_time = sample_time
-            function.evaluate_time = eval_time
-            function.operator = str(operator)
-            if self._profiler is not None:
-                self._profiler.register_function(function, program=str(program))
+        score = getattr(result, "fitness", result)
+        function = copy.deepcopy(program.get_function(self._function_to_evolve.name))
+        function.algorithm = idea
+        function.score = score
+        function.sample_time = sample_time
+        function.evaluate_time = eval_time
+        function.operator = str(operator)
+        if self._profiler is not None:
+            self._profiler.register_function(function, program=str(program))
         failure = (
             {}
             if score is not None
@@ -1152,7 +1022,7 @@ class TraceAADV5:
             counts_budget=True,
             **failure,
         )
-        return None if score is None else EvalResult(fitness=float(score))
+        return None if score is None else float(score)
 
     def _save_checkpoint_if_due(self) -> None:
         if (
@@ -1181,144 +1051,6 @@ class TraceAADV5:
             n_edges=len(self._graph.edges()),
             n_samples=self._tot_sample_nums,
         )
-
-
-def _parse_actions(
-    response: str,
-    *,
-    expected_count: int,
-) -> tuple[list[str], list[str]]:
-    actions: list[str] = []
-    for line in str(response).strip().splitlines():
-        match = re.match(
-            r"^(?P<number>\d+)[\.\)]\s+(?P<action>\S.*)$",
-            line.strip(),
-        )
-        if match is None:
-            continue
-        if int(match.group("number")) != len(actions) + 1:
-            continue
-        action = match.group("action").strip()
-        actions.append(action)
-    parsed_count = len(actions)
-    errors = (
-        []
-        if parsed_count == expected_count
-        else [f"expected_{expected_count}_actions_got_{parsed_count}"]
-    )
-    return actions[:expected_count], errors
-
-
-def _parse_program_response(
-    response: str,
-    template_program: Program,
-    function_name: str,
-) -> _GeneratedProgram | None:
-    idea = (
-        _extract_idea(response) or _extract_boxed_text(response) or "Generated program"
-    )
-    idea = _short_idea(idea)
-    blocks = _extract_code_blocks(response)
-    candidates = reversed(blocks) if blocks else (response,)
-    program = next(
-        (
-            parsed
-            for code in candidates
-            if (
-                parsed := _parse_program_candidate(
-                    code, template_program, function_name
-                )
-            )
-            is not None
-        ),
-        None,
-    )
-    return None if program is None else _GeneratedProgram(idea=idea, program=program)
-
-
-def _parse_program_candidate(
-    code: str,
-    template_program: Program,
-    function_name: str,
-) -> Program | None:
-    parsed = TextFunctionProgramConverter.text_to_program(code)
-    if parsed is not None:
-        completed = _complete_program(parsed, template_program, function_name)
-        if completed is not None:
-            return completed
-    trimmed = SampleTrimmer.sample_to_program(code, template_program)
-    if trimmed is None:
-        return None
-    return _complete_program(trimmed, template_program, function_name)
-
-
-def _complete_program(
-    parsed: Program,
-    template_program: Program,
-    function_name: str,
-) -> Program | None:
-    try:
-        parsed.get_function(function_name)
-    except ValueError:
-        return None
-    return Program(
-        preface=_merge_prefaces(template_program.preface, parsed.preface),
-        functions=parsed.functions,
-    )
-
-
-def _merge_prefaces(template_preface: str, generated_preface: str) -> str:
-    future: list[str] = []
-    ordinary: list[str] = []
-    for source in (template_preface, generated_preface):
-        kept: list[str] = []
-        for line in source.splitlines():
-            if line.lstrip().startswith("from __future__"):
-                if line not in future:
-                    future.append(line)
-            else:
-                kept.append(line)
-        block = "\n".join(kept).strip()
-        if block and block not in ordinary:
-            ordinary.append(block)
-    return "\n".join(future + ordinary)
-
-
-def _extract_idea(response: str) -> str | None:
-    match = re.search(
-        r"^\s*Idea\s*:\s*(?P<idea>.+?)\s*$",
-        response,
-        flags=re.IGNORECASE | re.MULTILINE,
-    )
-    return None if match is None else match.group("idea").strip()
-
-
-def _extract_boxed_text(response: str) -> str | None:
-    match = re.search(
-        r"(?:\\)?boxed\s*\{(?P<idea>[^{}]+)\}",
-        response,
-        flags=re.IGNORECASE,
-    )
-    return None if match is None else match.group("idea").strip()
-
-
-def _short_idea(idea: str) -> str:
-    compact = " ".join(str(idea).split())
-    if len(compact) <= IDEA_MAX_CHARS:
-        return compact
-    return compact[: IDEA_MAX_CHARS - 1].rstrip() + "…"
-
-
-def _extract_code_blocks(response: str) -> tuple[str, ...]:
-    return tuple(
-        block.strip()
-        for block in re.findall(
-            r"```(?:python|py)?\s*(.*?)(?:```|\Z)",
-            response,
-            flags=re.IGNORECASE | re.DOTALL,
-        )
-        if block.strip()
-    )
 
 
 __all__ = ["TraceAADRunResult", "TraceAADV5"]

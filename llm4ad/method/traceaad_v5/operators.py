@@ -1,17 +1,26 @@
-"""Four independent semantic operators used by TraceAAD v5."""
+"""The four semantic operators used by TraceAAD V5."""
 
 from __future__ import annotations
 
-from ..schema import OperatorName
-from .base import Operator
+from .schema import OperatorName
 
 
-class SemanticOperator(Operator):
-    def build_constraint(self) -> str:
-        return self.prompt_constraint
+def classify_outcome(delta: float | None, positive_threshold: float = 1e-6) -> str:
+    if delta is None:
+        return "unknown"
+    if delta > positive_threshold:
+        return "improve"
+    if delta < -positive_threshold:
+        return "regress"
+    return "plateau"
 
 
-class TraceIdeateOp(SemanticOperator):
+class Operator:
+    name: OperatorName
+    prompt_constraint: str
+
+
+class TraceIdeateOp(Operator):
     name = OperatorName.IDEATE
     prompt_constraint = (
         "For each action, propose a genuinely new algorithmic idea grounded in the "
@@ -20,7 +29,7 @@ class TraceIdeateOp(SemanticOperator):
     )
 
 
-class TraceRefineOp(SemanticOperator):
+class TraceRefineOp(Operator):
     name = OperatorName.REFINE
     prompt_constraint = (
         "For each action, make one focused, evidence-grounded refinement to a "
@@ -28,7 +37,7 @@ class TraceRefineOp(SemanticOperator):
     )
 
 
-class TraceSynthesizeOp(SemanticOperator):
+class TraceSynthesizeOp(Operator):
     name = OperatorName.SYNTHESIZE
     prompt_constraint = (
         "For each action, identify a supported principle in both the primary and "
@@ -37,7 +46,7 @@ class TraceSynthesizeOp(SemanticOperator):
     )
 
 
-class TraceTransferOp(SemanticOperator):
+class TraceTransferOp(Operator):
     name = OperatorName.TRANSFER
     prompt_constraint = (
         "For each action, keep the primary program's core structure and adapt exactly "
@@ -46,7 +55,7 @@ class TraceTransferOp(SemanticOperator):
     )
 
 
-DEFAULT_SEMANTIC_OPERATORS: tuple[type[SemanticOperator], ...] = (
+DEFAULT_OPERATORS: tuple[type[Operator], ...] = (
     TraceIdeateOp,
     TraceRefineOp,
     TraceSynthesizeOp,
@@ -55,10 +64,11 @@ DEFAULT_SEMANTIC_OPERATORS: tuple[type[SemanticOperator], ...] = (
 
 
 __all__ = [
-    "SemanticOperator",
+    "DEFAULT_OPERATORS",
+    "Operator",
     "TraceIdeateOp",
     "TraceRefineOp",
     "TraceSynthesizeOp",
     "TraceTransferOp",
-    "DEFAULT_SEMANTIC_OPERATORS",
+    "classify_outcome",
 ]

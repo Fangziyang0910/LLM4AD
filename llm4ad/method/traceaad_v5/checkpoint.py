@@ -114,7 +114,6 @@ def _memory_from_dict(payload: Mapping[str, Any]) -> TrajectoryMemory:
             endpoint_id=int(item["endpoint_id"]),
             compact_best_id=int(item["compact_best_id"]),
             visit_count=int(item["visit_count"]),
-            reference_use_count=int(item["reference_use_count"]),
             status=TrajectoryStatus(item["status"]),
             value=(
                 None

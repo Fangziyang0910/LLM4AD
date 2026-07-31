@@ -67,7 +67,6 @@ def build_launch_plan(args: argparse.Namespace) -> tuple[LaunchItem, ...]:
         _append_optional(command, "--eval-workers", args.eval_workers)
         _append_optional(command, "--output-tokens", args.output_tokens)
         _append_optional(command, "--action-max-tokens", args.action_max_tokens)
-        _append_optional(command, "--context-tokens", args.context_tokens)
         _append_optional(command, "--base-url", args.base_url)
         _append_optional(command, "--model", args.model)
         _append_optional(command, "--no-proxy", args.no_proxy)
@@ -141,7 +140,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--eval-workers", type=int)
     parser.add_argument("--output-tokens", type=int)
     parser.add_argument("--action-max-tokens", type=int)
-    parser.add_argument("--context-tokens", type=int)
     parser.add_argument("--base-url")
     parser.add_argument("--model")
     parser.add_argument("--no-proxy")
@@ -158,7 +156,6 @@ def main(argv: list[str] | None = None) -> None:
         "eval_workers",
         "output_tokens",
         "action_max_tokens",
-        "context_tokens",
     ):
         value = getattr(args, name)
         if value is not None and value <= 0:

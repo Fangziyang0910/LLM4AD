@@ -31,11 +31,11 @@ METHODS = {
     "PathWise": {
         "directory": "pathwise",
         "runs": (
-            "20260727_122417_opaco_pw_rep1",
-            "20260727_122417_opaco_pw_rep2",
-            "20260727_122417_opaco_pw_rep3",
+            "fair1000_20260730_1755_op_pw_rep1",
+            "fair1000_20260730_1755_op_pw_rep2",
+            "fair1000_20260730_1755_op_pw_rep3",
         ),
-        "budget": 500,
+        "budget": 1000,
         "color": "#E76F51",
         "band": "#FFB4A2",
     },
@@ -60,6 +60,28 @@ METHODS = {
         "budget": 1000,
         "color": "#009E73",
         "band": "#7DCEA0",
+    },
+    "EoH": {
+        "directory": "eoh",
+        "runs": (
+            "eoh_paper_20260729_2350_op_eoh_rep1",
+            "eoh_paper_20260729_2350_op_eoh_rep2",
+            "eoh_paper_20260729_2350_op_eoh_rep3",
+        ),
+        "budget": 1000,
+        "color": "#CC79A7",
+        "band": "#E8B9D5",
+    },
+    "ReEvo": {
+        "directory": "reevo",
+        "runs": (
+            "fair1000_20260730_1755_op_reevo_rep1",
+            "fair1000_20260730_1755_op_reevo_rep2",
+            "fair1000_20260730_1755_op_reevo_rep3_retry4",
+        ),
+        "budget": 1000,
+        "color": "#56B4E9",
+        "band": "#A8D8F0",
     },
 }
 
@@ -94,7 +116,7 @@ def main() -> None:
         }
     )
 
-    fig, ax = plt.subplots(figsize=(6.75, 3.6))
+    fig, ax = plt.subplots(figsize=(6.75, 3.95))
     handles = []
     all_values = []
     max_budget = max(config["budget"] for config in METHODS.values())
@@ -142,12 +164,24 @@ def main() -> None:
         ylabel="Best-so-far score (higher is better)",
     )
     ax.grid(alpha=0.2)
-    ax.legend(handles=handles, frameon=False, loc="lower right")
-    fig.tight_layout()
+    fig.subplots_adjust(left=0.12, right=0.99, top=0.97, bottom=0.24)
+    fig.legend(
+        handles=handles,
+        frameon=False,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.015),
+        ncol=4,
+        fontsize=8.0,
+        handlelength=2.6,
+        handletextpad=0.6,
+        columnspacing=1.3,
+        labelspacing=0.45,
+    )
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     output = RESULTS_DIR / "搜索曲线.png"
     fig.savefig(output, dpi=300, bbox_inches="tight")
+    fig.savefig(RESULTS_DIR / "搜索曲线.pdf", bbox_inches="tight")
     plt.close(fig)
     print(f"Wrote {output}")
 

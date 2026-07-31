@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from ...base import Function
 from .derivation_graph import DerivationGraph
 from .prompt import fitness_direction_hint, format_fitness
-from .schema import Trajectory
+from .schema import ProgramNode, Trajectory
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,25 +98,19 @@ def _render_edges(
 
 def build_action_prompt(
     *,
-    graph: DerivationGraph,
-    trajectory: Trajectory,
-    base_node_id: int,
+    base_node: ProgramNode,
+    primary_history: RenderedHistory,
     operator_constraint: str,
     task_description: str,
     template_function: Function,
     action_count: int,
     maximize: bool,
-    max_steps: int = 8,
-    reference_trajectory: Trajectory | None = None,
-    reference_node_id: int | None = None,
+    reference_node: ProgramNode | None = None,
+    reference_history: RenderedHistory | None = None,
 ) -> str:
-    base_node = graph.get_node(base_node_id)
     target = copy.deepcopy(template_function)
     target.body = ""
     action_label = "action" if action_count == 1 else "actions"
-    primary = trajectory_history(
-        graph, trajectory, base_node_id=base_node_id, max_steps=max_steps
-    )
     sections = [
         "[Task]",
         task_description.strip(),
@@ -126,7 +120,7 @@ def build_action_prompt(
         [
             "",
             "[Current Program History]",
-            primary.text,
+            primary_history.text,
             "",
             "[Current Program]",
             "```python",
@@ -134,19 +128,12 @@ def build_action_prompt(
             "```",
         ]
     )
-    if reference_trajectory is not None and reference_node_id is not None:
-        reference_node = graph.get_node(reference_node_id)
-        reference = trajectory_history(
-            graph,
-            reference_trajectory,
-            base_node_id=reference_node_id,
-            max_steps=max_steps,
-        )
+    if reference_node is not None and reference_history is not None:
         sections.extend(
             [
                 "",
                 "[Reference Program History]",
-                reference.text,
+                reference_history.text,
                 "",
                 "[Reference Program]",
                 "```python",

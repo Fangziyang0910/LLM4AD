@@ -39,6 +39,16 @@ def directed_fitness(fitness: float, maximize: bool) -> float:
     return fitness if maximize else -fitness
 
 
+def directed_delta(
+    parent_fitness: float | None, child_fitness: float | None, maximize: bool
+) -> float | None:
+    if parent_fitness is None or child_fitness is None:
+        return None
+    return (
+        child_fitness - parent_fitness if maximize else parent_fitness - child_fitness
+    )
+
+
 def program_quality_key(node: ProgramNode, maximize: bool) -> tuple[float, int]:
     if node.fitness is None:
         return (-math.inf, -node.program_loc)
@@ -173,7 +183,7 @@ def _probabilities(weights: list[float]) -> list[float]:
     return [weight / total for weight in weights]
 
 
-def _weighted_choice(
+def weighted_choice(
     items: list[Trajectory],
     weights: list[float],
     rng: random.Random,
@@ -187,32 +197,6 @@ def _weighted_choice(
         if needle <= 0:
             return item
     return items[-1]
-
-
-def sample_trajectory(
-    *,
-    memory: TrajectoryMemory,
-    graph: DerivationGraph,
-    maximize: bool,
-    w: ValueWeights,
-    temperature: float = 0.2,
-    rng: random.Random | None = None,
-) -> Trajectory:
-    distribution = trajectory_sampling_distribution(
-        memory=memory,
-        graph=graph,
-        maximize=maximize,
-        w=w,
-        temperature=temperature,
-    )
-    scored = [item[0] for item in distribution]
-    if not scored:
-        raise ValueError("no eligible active trajectories available for sampling")
-    return _weighted_choice(
-        scored,
-        [item[2] for item in distribution],
-        rng or random.Random(),
-    )
 
 
 def trajectory_sampling_distribution(
@@ -242,24 +226,6 @@ def trajectory_sampling_distribution(
     ]
     probabilities = _probabilities(_softmax_weights(adjusted, temperature))
     return tuple(zip(scored, adjusted, probabilities))
-
-
-def sample_reference_trajectory(
-    *,
-    candidates: tuple[Trajectory, ...],
-    temperature: float,
-    rng: random.Random,
-) -> Trajectory:
-    if not candidates:
-        raise ValueError("reference candidates must not be empty")
-    distribution = reference_sampling_distribution(
-        candidates=candidates, temperature=temperature
-    )
-    return _weighted_choice(
-        [item[0] for item in distribution],
-        [item[1] for item in distribution],
-        rng,
-    )
 
 
 def reference_sampling_distribution(
@@ -314,13 +280,13 @@ def select_diverse_trajectories(
 __all__ = [
     "ValueWeights",
     "compact_best_node",
+    "directed_delta",
     "directed_fitness",
     "is_program_better",
     "program_quality_key",
     "reference_sampling_distribution",
-    "sample_reference_trajectory",
-    "sample_trajectory",
     "score_active_trajectories",
     "select_diverse_trajectories",
     "trajectory_sampling_distribution",
+    "weighted_choice",
 ]

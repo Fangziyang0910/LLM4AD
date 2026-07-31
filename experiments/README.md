@@ -57,5 +57,62 @@ uv run python -m experiments.traceaad.run \
   --resume-from experiments/online_bin_packing/traceaad_v4/version4/<run_name>
 ```
 
-其它方法目前仍使用各 task/method 目录中的原生入口。历史 timestamp 目录及其中
-的配置和结果继续保留在本地，不因入口收口而改写，也不进入 Git。
+其它方法目前仍使用各 task/method 目录中的原生入口。原始运行工件仅保留在本地，
+不进入 Git。
+
+## EoH
+
+EoH 使用统一参数化入口。默认运行 20 代、评估预算 1000；OBP 使用种群 20，
+其余三个 task 使用种群 10。算子保留原始
+发布代码实际启用的 `e1/e2/m1/m2`，不启用 `m3`。
+
+单次运行：
+
+```bash
+uv run python -m experiments.eoh.run \
+  --task tsp_construct \
+  --backend zhong \
+  --repeat 1 \
+  --seed 0
+```
+
+四任务各重复三次，并在 Zhong/server1 各分配六路：
+
+```bash
+uv run python -m experiments.eoh.launch
+```
+
+## ReEvo
+
+ReEvo 默认使用公平比较预算 `max_sample_nums=1000`，其余 `pop_size=10`、`init_pop_size=30`、
+`mutation_rate=0.5`、`temperature=1`（初始化 `+0.3`）。
+
+单次运行：
+
+```bash
+uv run python -m experiments.reevo.run \
+  --task tsp_construct \
+  --backend zhong \
+  --repeat 1 \
+  --seed 0
+```
+
+## ShinkaEvolve
+
+ShinkaEvolve 机制参数沿用 Circle Packing 主表；默认预算
+`max_sample_nums=num_generations=1000`。novelty 关闭；
+meta LLM 复用同一 Qwen 端点。
+
+## PathWise
+
+PathWise 默认预算 `max_sample_nums=1000`，`pop_size=6`、
+4 evaluators。
+
+## 公平预算统一调度（推荐）
+
+PathWise + ReEvo + ShinkaEvolve 共 36 路（4 task × 3 rep × 3 method），
+预算均为 1000，按空闲槽位自动补位：
+
+```bash
+uv run python -m experiments.fair1000.launch --watch
+```

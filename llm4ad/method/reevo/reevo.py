@@ -38,6 +38,7 @@ from .._observability import (
     finish_profiler,
     init_observability,
     is_search_aborted,
+    log_error,
     log_event,
     log_llm_call,
     log_state,
@@ -293,8 +294,21 @@ class ReEvo:
         pool = self._selection_pool()
         if len(pool) < 2:
             raise RuntimeError('ReEvo selection failed: fewer than two valid functions are available.')
-        if len({float(func.score) for func in pool}) < 2:
-            raise RuntimeError('ReEvo selection failed: valid functions do not contain two distinct scores.')
+
+        require_distinct = len({float(func.score) for func in pool}) >= 2
+        if not require_distinct:
+            # OBP-like flat landscapes can collapse the population onto one score.
+            # Original ReEvo also fails selection in that case; for long budgets we
+            # fall back to random pairs so search can keep spending remaining FE.
+            log_event(
+                self,
+                event='selection_tie_fallback',
+                method='reevo',
+                generation=self._population.generation,
+                population_size=len(pool),
+                unique_scores=1,
+                sample_order=self._tot_sample_nums,
+            )
 
         selected_pairs = []
         trial = 0
@@ -303,7 +317,7 @@ class ReEvo:
             parent_1, parent_2 = np.random.choice(pool, size=2, replace=False)
             if parent_1 is parent_2:
                 continue
-            if parent_1.score == parent_2.score:
+            if require_distinct and parent_1.score == parent_2.score:
                 continue
             selected_pairs.append([parent_1, parent_2])
             if trial > 1000:
@@ -447,6 +461,8 @@ class ReEvo:
         )
 
     def run(self):
+        run_status = 'finished'
+        run_error: BaseException | None = None
         try:
             if not self._resume_mode:
                 if self._has_budget():
@@ -456,10 +472,28 @@ class ReEvo:
 
             while self._has_budget():
                 self._run_evolution_generation()
+        except KeyboardInterrupt as exc:
+            run_status = 'interrupted'
+            run_error = exc
+            raise
+        except Exception as exc:
+            run_status = 'error'
+            run_error = exc
+            log_error(self, 'run', exc, method='reevo', counts_budget=False)
+            raise
         finally:
+            if is_search_aborted(self):
+                run_status = 'aborted'
+            summary_payload = {}
+            if run_error is not None:
+                summary_payload.update(
+                    error_type=type(run_error).__name__,
+                    error=str(run_error),
+                )
             shutdown_executor(self._evaluation_executor)
             finish_profiler(
                 self,
-                status='aborted' if is_search_aborted(self) else 'finished',
+                status=run_status,
+                **summary_payload,
             )
             close_sampler_llm(self._sampler)

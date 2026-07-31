@@ -117,7 +117,10 @@ def _load_summary(run_dir: Path) -> dict[str, Any]:
     return summary
 
 
-def _load_best_sample(run_dir: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def _load_best_sample(
+    run_dir: Path,
+    max_sample_order: int | None = None,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     _load_summary(run_dir)
     samples_dir = run_dir / "logs" / "samples"
     records: list[dict[str, Any]] = []
@@ -130,7 +133,15 @@ def _load_best_sample(run_dir: Path) -> tuple[dict[str, Any], list[dict[str, Any
         records.extend(
             record
             for record in data
-            if isinstance(record, dict) and isinstance(record.get("score"), (int, float))
+            if (
+                isinstance(record, dict)
+                and isinstance(record.get("score"), (int, float))
+                and isinstance(record.get("sample_order"), int)
+                and (
+                    max_sample_order is None
+                    or record["sample_order"] <= max_sample_order
+                )
+            )
         )
     if not records:
         raise RuntimeError(f"no valid samples found under {samples_dir}")
@@ -175,10 +186,18 @@ def main() -> None:
         default=None,
         help="per-program timeout; default None disables timeout",
     )
+    parser.add_argument(
+        "--max-sample-order",
+        type=int,
+        default=None,
+        help="only consider candidates up to this search evaluation",
+    )
     args = parser.parse_args()
     scales = _parse_scales(args.scales)
     if not scales:
         raise ValueError("--scales must contain at least one scale")
+    if args.max_sample_order is not None and args.max_sample_order <= 0:
+        raise ValueError("--max-sample-order must be positive")
 
     run_dirs = [run_dir.resolve() for run_dir in args.run_dirs]
     methods = {_resolve_method(run_dir) for run_dir in run_dirs}
@@ -202,7 +221,10 @@ def main() -> None:
     run_records: list[dict[str, Any]] = []
     model = "unknown"
     for run_dir in run_dirs:
-        best, all_samples = _load_best_sample(run_dir)
+        best, all_samples = _load_best_sample(
+            run_dir,
+            max_sample_order=args.max_sample_order,
+        )
         program = str(best["program"])
         sample_order = int(best["sample_order"])
         program_path = output_dir / f"{run_dir.name}_sample_{sample_order}_program.py"
@@ -225,6 +247,7 @@ def main() -> None:
                 "run_dir": relative_run_dir,
                 "run_name": run_dir.name,
                 "num_valid_samples": len(all_samples),
+                "max_sample_order": args.max_sample_order,
                 "best_sample_order": sample_order,
                 "best_operator": best.get("operator"),
                 "train_artifact_score": float(best["score"]),
@@ -279,6 +302,7 @@ def main() -> None:
         "source": f"{len(run_records)} completed {method} online_bin_packing repeat(s)",
         "test_scales": [_scale_key(n, c) for n, c in scales],
         "eval_timeout_seconds": args.timeout_seconds,
+        "max_sample_order": args.max_sample_order,
         "split_configs": {"train": train_kwargs, "eval_base": eval_base_kwargs},
         "score_semantics": (
             "OBPEvaluation returns negative mean bins used across instances; "

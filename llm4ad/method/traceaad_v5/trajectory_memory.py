@@ -76,14 +76,6 @@ class TrajectoryMemory:
             visit_count=self.get_trajectory(trajectory_id).visit_count + 1,
         )
 
-    def record_reference_use(self, trajectory_id: TrajectoryId) -> Trajectory:
-        return self._replace(
-            trajectory_id,
-            reference_use_count=(
-                self.get_trajectory(trajectory_id).reference_use_count + 1
-            ),
-        )
-
     def set_value(
         self, trajectory_id: TrajectoryId, value: ValueVec, scalar: float
     ) -> Trajectory:

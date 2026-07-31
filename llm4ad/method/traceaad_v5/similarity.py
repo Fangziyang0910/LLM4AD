@@ -12,7 +12,6 @@ _CODE_TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 def normalize_code(code: str) -> str:
     code = re.sub(r"#.*", "", code)
-    code = re.sub(r"```python|```", "", code)
     return re.sub(r"\s+", " ", code).strip()
 
 
@@ -55,19 +54,11 @@ def trajectory_similarity(
     graph: DerivationGraph,
     left: Trajectory,
     right: Trajectory,
-    weights: tuple[float, float, float] = (0.5, 0.3, 0.2),
 ) -> float:
     """Return a lightweight code, idea and route similarity for diversity sampling."""
     if left.id == right.id:
         return 1.0
-    if len(weights) == 2:
-        w_code, w_traj = weights
-        w_idea = 0.0
-    else:
-        w_code, w_idea, w_traj = weights
-    total = w_code + w_idea + w_traj
-    if total <= 0:
-        return 0.0
+    w_code, w_idea, w_traj = (0.5, 0.3, 0.2)
     code = code_similarity(
         graph.get_node(left.endpoint_id).code,
         graph.get_node(right.endpoint_id).code,
@@ -80,7 +71,7 @@ def trajectory_similarity(
         trajectory_pattern(graph, left),
         trajectory_pattern(graph, right),
     )
-    return (w_code * code + w_idea * idea + w_traj * pattern) / total
+    return w_code * code + w_idea * idea + w_traj * pattern
 
 
 def trajectory_idea_tokens(

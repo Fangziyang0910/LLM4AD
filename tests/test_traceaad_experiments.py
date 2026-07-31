@@ -33,9 +33,7 @@ def test_unified_runner_builds_each_task_and_version(
         assert method._llm.max_tokens == 16384
     else:
         assert method._llm.max_tokens == 8192
-        assert method._output_token_reserve == 8192
         assert method._action_max_tokens == 1024
-        assert method._max_context_tokens is None
         assert not hasattr(method, "_global_experience")
 
 

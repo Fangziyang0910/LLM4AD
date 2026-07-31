@@ -303,6 +303,10 @@ def test_traceaad_v5_runs_text_actions_and_writes_v5_state(
         len(route["node_ids"]) == len(route["edge_ids"]) + 1
         for route in payload["memory"]["trajectories"]
     )
+    assert all(
+        "reference_use_count" not in route
+        for route in payload["memory"]["trajectories"]
+    )
     assert payload["graph"]["edges"][0]["action"].startswith("Add one")
 
 
@@ -377,8 +381,6 @@ def test_traceaad_v5_selects_an_anchor_inside_the_selected_trajectory() -> None:
     )
     method._graph = graph
 
-    assert method._max_context_tokens is None
-    assert method._prompt_fits("long prompt " * 100_000)
     selected_anchors = {method._select_anchor(route) for _ in range(20)}
     assert selected_anchors == {
         (endpoint.id, "endpoint"),
@@ -391,11 +393,9 @@ def test_traceaad_v5_selects_an_anchor_inside_the_selected_trajectory() -> None:
         context = method._build_action_context(
             selected=route,
             anchor_id=anchor_id,
-            anchor_role="test",
             operator=TraceRefineOp(),
             reference_route=None,
             reference_node=None,
-            log_result=False,
         )
         assert context is not None
         current_program = context.prompt.split("[Current Program]", maxsplit=1)[1]
@@ -947,7 +947,7 @@ def test_traceaad_v5_uses_focused_refine_and_task_grounded_action_guidance() -> 
     from llm4ad.method.traceaad_v5 import TraceAADV5
     from llm4ad.method.traceaad_v5.operators import TraceRefineOp
 
-    refine = TraceRefineOp().build_constraint()
+    refine = TraceRefineOp().prompt_constraint
     assert "focused, evidence-grounded refinement" in refine
     assert all(
         operation not in refine
@@ -968,7 +968,9 @@ def test_traceaad_v5_uses_focused_refine_and_task_grounded_action_guidance() -> 
     action_prompt = next(
         prompt for prompt in llm.prompts if "[Action Contract]" in prompt
     )
-    assert "avoid constants justified only by the observed training size" in action_prompt
+    assert (
+        "avoid constants justified only by the observed training size" in action_prompt
+    )
 
 
 def test_traceaad_v5_search_value_blends_quality_and_trend() -> None:

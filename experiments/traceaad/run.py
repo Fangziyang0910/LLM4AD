@@ -91,7 +91,6 @@ class RunSpec:
     eval_workers: int | None = None
     output_tokens: int | None = None
     action_max_tokens: int = 1024
-    context_tokens: int | None = None
     seed: int = 0
     repeat: int | None = None
     run_name: str | None = None
@@ -130,7 +129,6 @@ def make_run_spec(
     eval_workers: int | None = None,
     output_tokens: int | None = None,
     action_max_tokens: int = 1024,
-    context_tokens: int | None = None,
     seed: int = 0,
     repeat: int | None = None,
     run_name: str | None = None,
@@ -150,7 +148,6 @@ def make_run_spec(
         eval_workers=eval_workers,
         output_tokens=output_tokens,
         action_max_tokens=action_max_tokens,
-        context_tokens=context_tokens,
         seed=seed,
         repeat=repeat,
         run_name=run_name,
@@ -172,8 +169,6 @@ def _validate_spec(spec: RunSpec) -> None:
         raise ValueError("output_tokens must be positive")
     if spec.action_max_tokens <= 0:
         raise ValueError("action_max_tokens must be positive")
-    if spec.context_tokens is not None and spec.context_tokens <= 0:
-        raise ValueError("context_tokens must be positive")
     if spec.resume_from is not None and spec.run_name is not None:
         raise ValueError("run_name cannot be combined with resume_from")
 
@@ -258,8 +253,6 @@ def build_method(
         ),
         value_weights=V5ValueWeights(),
         action_max_tokens=spec.action_max_tokens,
-        max_context_tokens=spec.context_tokens,
-        output_token_reserve=spec.llm_output_tokens,
         random_seed=spec.seed,
         **common,
     )
@@ -318,8 +311,6 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         method_params.update(
             {
                 "action_max_tokens": spec.action_max_tokens,
-                "max_context_tokens": spec.context_tokens,
-                "output_token_reserve": spec.llm_output_tokens,
                 "random_seed": spec.seed,
             }
         )
@@ -385,7 +376,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--eval-workers", type=int)
     parser.add_argument("--output-tokens", type=int)
     parser.add_argument("--action-max-tokens", type=int, default=1024)
-    parser.add_argument("--context-tokens", type=int)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--repeat", type=int)
     parser.add_argument("--run-name")
@@ -406,7 +396,6 @@ def spec_from_args(args: argparse.Namespace) -> RunSpec:
         eval_workers=args.eval_workers,
         output_tokens=args.output_tokens,
         action_max_tokens=args.action_max_tokens,
-        context_tokens=args.context_tokens,
         seed=args.seed,
         repeat=args.repeat,
         run_name=args.run_name,

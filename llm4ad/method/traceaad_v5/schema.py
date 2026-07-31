@@ -24,11 +24,6 @@ class OperatorName(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
-class EvalResult:
-    fitness: float | None
-
-
-@dataclass(frozen=True, slots=True)
 class ProgramNode:
     id: NodeId
     code: str
@@ -59,10 +54,6 @@ class ImprovementEdge:
     new_global_best: bool = False
     global_best_update_reason: str | None = None
 
-    @property
-    def delta(self) -> float | None:
-        return self.delta_parent
-
 
 @dataclass(frozen=True, slots=True)
 class ValueVec:
@@ -80,7 +71,6 @@ class Trajectory:
     endpoint_id: NodeId
     compact_best_id: NodeId
     visit_count: int = 0
-    reference_use_count: int = 0
     status: TrajectoryStatus = TrajectoryStatus.ACTIVE
     value: ValueVec | None = None
     scalar_value: float | None = None
@@ -88,7 +78,6 @@ class Trajectory:
 
 __all__ = [
     "EdgeId",
-    "EvalResult",
     "ImprovementEdge",
     "NodeId",
     "OperatorName",

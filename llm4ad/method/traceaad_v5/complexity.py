@@ -3,18 +3,10 @@
 from __future__ import annotations
 
 import hashlib
-import re
 
 
 def normalized_source(code: str) -> str:
     text = code.replace("\r\n", "\n").replace("\r", "\n").strip()
-    fenced = re.fullmatch(
-        r"```(?:python|py)?\s*(?P<code>.*?)```",
-        text,
-        flags=re.IGNORECASE | re.DOTALL,
-    )
-    if fenced is not None:
-        text = fenced.group("code").strip()
     return "\n".join(line.rstrip() for line in text.splitlines()).strip()
 
 

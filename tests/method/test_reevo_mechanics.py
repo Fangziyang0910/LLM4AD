@@ -148,6 +148,24 @@ class ReEvoMechanicsTest(unittest.TestCase):
         self.assertEqual(choice.call_args_list[0].kwargs["size"], 2)
         self.assertFalse(choice.call_args_list[0].kwargs["replace"])
 
+    def test_parent_selection_falls_back_when_all_scores_tied(self):
+        method, _, _ = make_method(pop_size=2)
+        parent_a = make_function(1, score=1.0)
+        parent_b = make_function(2, score=1.0)
+        parent_c = make_function(3, score=1.0)
+        method._population.set_population([parent_a, parent_b, parent_c], increment_generation=False)
+        method._elite_function = None
+
+        with patch("llm4ad.method.reevo.reevo.np.random.choice") as choice:
+            choice.side_effect = [
+                [parent_a, parent_b],
+                [parent_b, parent_c],
+            ]
+            pairs = method._select_parent_pairs()
+
+        self.assertEqual(pairs, [[parent_a, parent_b], [parent_b, parent_c]])
+        self.assertEqual(choice.call_count, 2)
+
     def test_short_reflection_orders_worse_then_better_by_high_score(self):
         worse = make_function(1, score=1.0)
         better = make_function(2, score=2.0)

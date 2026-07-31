@@ -1,6 +1,9 @@
+import json
+
 import numpy as np
 
 from experiments.online_bin_packing.evaluate_best_on_test import (
+    _load_best_sample,
     task_kwargs_for_scale,
 )
 from llm4ad.task.optimization.generated_data_config import (
@@ -87,3 +90,27 @@ def test_obp_scale_selection_preserves_the_canonical_fixed_instances():
         train["1k_100_instance_0"]["items"],
         full["1k_100_instance_0"]["items"],
     )
+
+
+def test_obp_best_sample_can_be_truncated_at_the_formal_budget(tmp_path):
+    run_dir = tmp_path / "eoh_run"
+    samples_dir = run_dir / "logs" / "samples"
+    samples_dir.mkdir(parents=True)
+    (run_dir / "logs" / "run_summary.json").write_text(
+        json.dumps({"status": "finished", "search_aborted": False}),
+        encoding="utf-8",
+    )
+    (samples_dir / "samples_1.json").write_text(
+        json.dumps(
+            [
+                {"sample_order": 1, "score": -10.0, "program": "p1"},
+                {"sample_order": 1001, "score": -1.0, "program": "p1001"},
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    best, records = _load_best_sample(run_dir, max_sample_order=1000)
+
+    assert len(records) == 1
+    assert best["sample_order"] == 1
