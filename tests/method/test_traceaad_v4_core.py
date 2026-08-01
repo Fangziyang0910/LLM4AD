@@ -6,6 +6,7 @@ import llm4ad.method.traceaad_v4 as traceaad_package
 from llm4ad.method.traceaad_v4 import TraceAADV4, ValueWeights
 from llm4ad.method.traceaad_v4.context import build_action_prompt
 from llm4ad.method.traceaad_v4.derivation_graph import DerivationGraph
+from llm4ad.method.traceaad_v4.operators import DEFAULT_OPERATORS
 from llm4ad.method.traceaad_v4.trajectory_memory import TrajectoryMemory
 
 
@@ -38,6 +39,7 @@ def _history_fixture():
 def test_public_configuration_exposes_only_search_mechanism_controls():
     parameters = inspect.signature(TraceAADV4).parameters
     assert "resume_mode" not in parameters
+    assert "elite_count" not in parameters
     assert "num_evaluators" not in parameters
     assert "multi_thread_or_process_eval" not in parameters
     assert "n_islands" not in parameters
@@ -95,9 +97,7 @@ def test_action_prompt_uses_single_trajectory_history_only():
 
 
 def test_v4_uses_two_uniform_single_parent_semantic_operators():
-    from llm4ad.method.traceaad_v4.operators import DEFAULT_OPERATORS
-
-    assert {operator().name for operator in DEFAULT_OPERATORS} == {
+    assert {operator.name for operator in DEFAULT_OPERATORS} == {
         "trace_ideate",
         "trace_refine",
     }

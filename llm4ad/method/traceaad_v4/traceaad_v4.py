@@ -1,4 +1,4 @@
-"""TraceAADV4 v4：以完整算法改进轨迹驱动语义搜索。"""
+"""TraceAADV4：以完整算法改进轨迹驱动的单父代语义搜索。"""
 
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ from ...base import (
     Function,
     LLM,
     Program,
-    SampleTrimmer,
     SecureEvaluator,
     TextFunctionProgramConverter,
 )
@@ -28,15 +27,13 @@ from .._observability import (
     is_search_aborted,
     log_event,
     log_llm_call,
-    log_state,
     record_sample_failure,
     reset_sample_failures,
 )
 from .checkpoint import load_checkpoint, save_checkpoint
 from .context import build_action_prompt, trajectory_history
-from .credit import directed_delta
 from .derivation_graph import DerivationGraph
-from .operators import DEFAULT_OPERATORS, Operator, classify_outcome
+from .operators import DEFAULT_OPERATORS, Operator, classify_outcome, directed_delta
 from .prompt import build_code_prompt, build_initial_prompt
 from .schema import EvalResult, ProgramNode, Trajectory
 from .trajectory_memory import TrajectoryMemory
@@ -45,6 +42,8 @@ from .value import (
     sample_trajectory,
     score_active_trajectories,
     select_diverse_trajectories,
+    softmax_scores,
+    weighted_sample_without_replacement,
 )
 
 
@@ -52,15 +51,6 @@ from .value import (
 class _GeneratedProgram:
     idea: str
     program: Program
-
-
-@dataclass(frozen=True, slots=True)
-class _CandidateObservation:
-    node_id: int
-    score: float
-    reference_score: float
-    accepted: bool
-    outcome: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,11 +64,11 @@ class TraceAADRunResult:
 
 
 class TraceAADV4:
-    """TraceAAD V4 implementation.
+    """TraceAAD V4: trajectory-as-history single-parent search.
 
     ``max_active_trajectories`` is the post-management population size ``M``.
-    During an expansion epoch all valid child trajectories remain active and can
-    be selected; management runs once the active pool reaches ``2 * M``.
+    New children stay active until the pool reaches ``2 * M``, then survival
+    management contracts back to ``M``.
     """
 
     def __init__(
@@ -92,11 +82,10 @@ class TraceAADV4:
         actions_per_iteration: int = 2,
         max_trajectory_length: int = 8,
         max_active_trajectories: int = 30,
-        elite_count: int | None = None,
         softmax_temperature: float = 0.2,
         maximize: bool = True,
         value_weights: ValueWeights | None = None,
-        operators: tuple[type[Operator], ...] = DEFAULT_OPERATORS,
+        operators: tuple[Operator, ...] = DEFAULT_OPERATORS,
         debug_mode: bool = False,
         max_consecutive_sample_failures: int = 20,
         max_stalled_iterations: int = 20,
@@ -114,6 +103,8 @@ class TraceAADV4:
             raise ValueError("softmax_temperature must be positive")
         if checkpoint_interval <= 0:
             raise ValueError("checkpoint_interval must be positive")
+        if not operators:
+            raise ValueError("at least one operator is required")
 
         self._llm = llm
         self._evaluation = evaluation
@@ -124,15 +115,12 @@ class TraceAADV4:
         self._actions_per_iteration = actions_per_iteration
         self._max_active_trajectories = int(max_active_trajectories)
         self._management_threshold = 2 * self._max_active_trajectories
-        self._elite_count = (
-            max(2, math.ceil(0.1 * self._max_active_trajectories))
-            if elite_count is None
-            else max(1, int(elite_count))
-        )
+        self._elite_count = max(2, math.ceil(0.1 * self._max_active_trajectories))
         self._diversity_count = max(2, math.ceil(0.1 * self._max_active_trajectories))
         self._softmax_temperature = float(softmax_temperature)
         self._maximize = maximize
         self._value_weights = value_weights or ValueWeights()
+        self._operators = operators
         self._debug_mode = debug_mode
         self._max_stalled_iterations = max(1, int(max_stalled_iterations))
         self._checkpoint_dir = None if checkpoint_dir is None else Path(checkpoint_dir)
@@ -153,9 +141,6 @@ class TraceAADV4:
 
         self._graph = DerivationGraph()
         self._memory = TrajectoryMemory(max_trajectory_length=max_trajectory_length)
-        self._operators = tuple(operator_type() for operator_type in operators)
-        if not self._operators:
-            raise ValueError("at least one TraceAADV4 operator is required")
         self._best_node: ProgramNode | None = None
         self._best_trajectory_id: int | None = None
         self._tot_sample_nums = 0
@@ -174,7 +159,6 @@ class TraceAADV4:
                 status="ok",
                 checkpoint=str(checkpoint),
                 sample_order=self._tot_sample_nums,
-                next_attempt_id=self._next_attempt_id,
             )
 
     def run(self) -> TraceAADRunResult:
@@ -210,9 +194,7 @@ class TraceAADV4:
                 self._next_attempt_id = attempt_id
                 self._save_checkpoint_if_due()
 
-            # A run may end during an expansion epoch. Preserve that temporary
-            # pool; survival management is triggered only at the 2M threshold.
-            self._maybe_manage_population()
+            # Do not force-contract a mid-expansion pool when the run ends.
             result = self._result()
             finish_profiler(
                 self,
@@ -247,11 +229,10 @@ class TraceAADV4:
             and self._has_budget()
             and not is_search_aborted(self)
         ):
-            slot = self._tot_sample_nums
             prompt = build_initial_prompt(
                 task_description=self._task_description_str,
                 template_function=self._function_to_evolve,
-                diversity_hint=self._init_diversity_hint(slot),
+                diversity_hint=self._init_diversity_hint(self._tot_sample_nums),
             )
             generated = self._draw_program(
                 prompt, stage="init", iteration=None, seq=draw_seq, operator="init"
@@ -296,10 +277,15 @@ class TraceAADV4:
         return f"Use a clearly different algorithmic idea from: {listed}."
 
     def _run_iteration(self, attempt_id: int) -> None:
-        selected = self._select_trajectory()
+        selected = sample_trajectory(
+            memory=self._memory,
+            graph=self._graph,
+            maximize=self._maximize,
+            w=self._value_weights,
+            temperature=self._softmax_temperature,
+        )
         operator = random.choice(self._operators)
-        primary_anchor = self._select_anchor(selected)
-        constraint = operator.build_constraint()
+        anchor_id = self._select_anchor(selected)
         log_event(
             self,
             event="operator_selection",
@@ -307,27 +293,16 @@ class TraceAADV4:
             attempt_id=attempt_id,
             selected_operator=operator.name,
             selected_trajectory_id=selected.id,
-            base_node_id=primary_anchor,
-            eligible=[candidate.name for candidate in self._operators],
-            selection_mode="uniform_operator_softmax_ucb_trajectory",
-        )
-        log_state(
-            self,
-            phase="iteration_start",
-            iteration=attempt_id,
-            selected_trajectory_id=selected.id,
-            selected_endpoint_id=selected.endpoint_id,
-            operator=operator.name,
-            base_node_id=primary_anchor,
+            base_node_id=anchor_id,
             selected_value=selected.scalar_value,
         )
         prompt = build_action_prompt(
             graph=self._graph,
             trajectory=selected,
-            base_node_id=primary_anchor,
+            base_node_id=anchor_id,
             base_reason="endpoint_or_best",
             operator_name=operator.name,
-            operator_constraint=constraint,
+            operator_constraint=operator.constraint,
             task_description=self._task_description_str,
             template_function=self._function_to_evolve,
             action_count=self._actions_per_iteration,
@@ -335,11 +310,11 @@ class TraceAADV4:
             max_steps=self._memory.max_trajectory_length,
         )
         actions = self._generate_actions(prompt, attempt_id)
-        observations: list[_CandidateObservation] = []
+        accepted = 0
         for seq, action in enumerate(actions):
             if not self._has_budget() or is_search_aborted(self):
                 break
-            base_node = self._graph.get_node(primary_anchor)
+            base_node = self._graph.get_node(anchor_id)
             code_prompt = build_code_prompt(
                 current_node=base_node,
                 action=action,
@@ -348,10 +323,10 @@ class TraceAADV4:
                 history=trajectory_history(
                     self._graph,
                     selected,
-                    base_node_id=primary_anchor,
+                    base_node_id=anchor_id,
                     max_steps=self._memory.max_trajectory_length,
                 ),
-                operator_constraint=constraint,
+                operator_constraint=operator.constraint,
             )
             generated = self._draw_program(
                 code_prompt,
@@ -369,39 +344,38 @@ class TraceAADV4:
             if evaluated is None or evaluated.fitness is None:
                 continue
             child = self._add_node(generated, evaluated)
-            primary_delta = directed_delta(
-                base_node.fitness, child.fitness, self._maximize
-            )
-            primary_outcome = classify_outcome(
-                primary_delta, self._value_weights.positive_threshold
-            )
-            primary_edge = self._graph.add_edge(
-                parent_id=primary_anchor,
+            delta = directed_delta(base_node.fitness, child.fitness, self._maximize)
+            outcome = classify_outcome(delta, self._value_weights.positive_threshold)
+            edge = self._graph.add_edge(
+                parent_id=anchor_id,
                 child_id=child.id,
                 action=action,
                 operator=operator.name,
-                delta=primary_delta,
-                outcome=primary_outcome,
+                delta=delta,
+                outcome=outcome,
                 iteration=attempt_id,
             )
             child_trajectory = self._memory.branch_from(
                 trajectory_id=selected.id,
-                base_node_id=primary_anchor,
+                base_node_id=anchor_id,
                 child_id=child.id,
-                edge_id=primary_edge.id,
+                edge_id=edge.id,
             )
-            self._log_child(
+            log_event(
+                self,
+                event="child_accepted",
+                status="ok",
                 iteration=attempt_id,
                 seq=seq,
-                operator=operator,
-                child=child,
-                trajectory=child_trajectory,
-                accepted=True,
-                parent_id=primary_anchor,
-                edge_id=primary_edge.id,
+                operator=operator.name,
+                child_id=child.id,
+                trajectory_id=child_trajectory.id,
+                score=child.fitness,
+                parent_id=anchor_id,
+                edge_id=edge.id,
                 action=action,
-                delta=primary_delta,
-                outcome=primary_outcome,
+                delta=delta,
+                outcome=outcome,
             )
             self._update_best(
                 child,
@@ -409,43 +383,17 @@ class TraceAADV4:
                 iteration=attempt_id,
                 operator=operator.name,
             )
-            observations.append(
-                _CandidateObservation(
-                    node_id=child.id,
-                    score=float(child.fitness),
-                    reference_score=float(base_node.fitness),
-                    accepted=True,
-                    outcome=primary_outcome,
-                )
-            )
+            accepted += 1
         self._memory.record_visit(selected.id)
         log_event(
             self,
             event="operator_batch",
-            status="ok" if observations else "empty",
+            status="ok" if accepted else "empty",
             attempt_id=attempt_id,
             operator=operator.name,
-            candidates=[
-                {
-                    "node_id": observation.node_id,
-                    "score": observation.score,
-                    "reference_score": observation.reference_score,
-                    "accepted": observation.accepted,
-                    "outcome": observation.outcome,
-                }
-                for observation in observations
-            ],
+            accepted=accepted,
             active_trajectories=len(self._memory.active()),
             parent_visit_count=self._memory.get_trajectory(selected.id).visit_count,
-        )
-
-    def _select_trajectory(self) -> Trajectory:
-        return sample_trajectory(
-            memory=self._memory,
-            graph=self._graph,
-            maximize=self._maximize,
-            w=self._value_weights,
-            temperature=self._softmax_temperature,
         )
 
     def _select_anchor(self, trajectory: Trajectory) -> int:
@@ -469,30 +417,6 @@ class TraceAADV4:
             code=str(generated.program), idea=generated.idea, fitness=evaluated.fitness
         )
 
-    def _log_child(
-        self,
-        *,
-        iteration: int,
-        seq: int,
-        operator: Operator,
-        child: ProgramNode,
-        trajectory: Trajectory,
-        accepted: bool,
-        **fields,
-    ) -> None:
-        log_event(
-            self,
-            event="child_accepted",
-            status="ok" if accepted else "rejected",
-            iteration=iteration,
-            seq=seq,
-            operator=operator.name,
-            child_id=child.id,
-            trajectory_id=trajectory.id,
-            score=child.fitness,
-            **fields,
-        )
-
     def _score_active_pool(self) -> tuple[Trajectory, ...]:
         return score_active_trajectories(
             memory=self._memory,
@@ -503,24 +427,17 @@ class TraceAADV4:
 
     def _maybe_manage_population(self) -> None:
         if len(self._memory.active()) >= self._management_threshold:
-            self._manage_population(force=False)
+            self._manage_population()
 
-    def _manage_population(self, *, force: bool) -> None:
+    def _manage_population(self) -> None:
         active = self._memory.active()
-        if not active:
-            return
-        if not force and len(active) < self._management_threshold:
-            return
-        if force and len(active) <= self._max_active_trajectories:
-            self._score_active_pool()
+        if len(active) < self._management_threshold:
             return
         ranked = list(self._score_active_pool())
         if len(ranked) <= self._max_active_trajectories:
             return
         elite_count = min(self._elite_count, self._max_active_trajectories, len(ranked))
         elites = ranked[:elite_count]
-        # The best program is a result and a reusable anchor. Keep its route
-        # active even when its endpoint later regresses.
         if self._best_trajectory_id is not None:
             best_route = next(
                 (
@@ -555,7 +472,12 @@ class TraceAADV4:
             and trajectory.id not in diverse_ids
         ]
         sample_count = self._max_active_trajectories - len(elites) - diversity_count
-        sampled = self._weighted_survivor_sample(remaining, sample_count)
+        scores = [float(trajectory.scalar_value or 0.0) for trajectory in remaining]
+        sampled = weighted_sample_without_replacement(
+            remaining,
+            softmax_scores(scores, self._softmax_temperature),
+            sample_count,
+        )
         keep_ids = {
             trajectory.id for trajectory in elites + list(diverse) + list(sampled)
         }
@@ -574,32 +496,7 @@ class TraceAADV4:
             elite_count=elite_count,
             diversity_count=diversity_count,
             archived=archived,
-            selection_mode="elite_plus_diversity_plus_softmax_without_replacement",
         )
-
-    def _weighted_survivor_sample(
-        self, candidates: list[Trajectory], count: int
-    ) -> tuple[Trajectory, ...]:
-        if count <= 0 or not candidates:
-            return ()
-        remaining = list(candidates)
-        selected: list[Trajectory] = []
-        while remaining and len(selected) < count:
-            scores = [float(trajectory.scalar_value or 0.0) for trajectory in remaining]
-            maximum = max(scores)
-            weights = [
-                math.exp((score - maximum) / self._softmax_temperature)
-                for score in scores
-            ]
-            total = sum(weights)
-            needle = random.random() * total if total > 0 else 0.0
-            index = 0
-            for index, weight in enumerate(weights):
-                needle -= weight
-                if needle <= 0:
-                    break
-            selected.append(remaining.pop(index))
-        return tuple(selected)
 
     def _generate_actions(self, prompt: str, iteration: int) -> list[str]:
         start = time.time()
@@ -666,7 +563,7 @@ class TraceAADV4:
             )
             return None
         generated = _parse_program_response(
-            response, self._template_program, self._function_to_evolve.name
+            response, self._function_to_evolve.name
         )
         log_llm_call(
             self,
@@ -773,26 +670,18 @@ def _is_better(candidate: float, incumbent: float, maximize: bool) -> bool:
 
 
 def _parse_program_response(
-    response: str, template_program: Program, function_name: str
+    response: str, function_name: str
 ) -> _GeneratedProgram | None:
-    idea = (
-        _extract_idea(response) or _extract_boxed_text(response) or "Generated program"
-    )
-    code = _extract_first_code_block(response) or response
+    idea = _extract_idea(response)
+    code = _extract_first_code_block(response)
+    if idea is None or code is None:
+        return None
     parsed = TextFunctionProgramConverter.text_to_program(code)
-    if parsed is not None and len(parsed.functions) == 1:
-        function = parsed.functions[0]
-        if function.name == function_name:
-            program = parsed
-        else:
-            program = TextFunctionProgramConverter.function_to_program(
-                function, template_program
-            )
-            if program is None:
-                program = parsed
-    else:
-        program = SampleTrimmer.sample_to_program(code, template_program)
-    return None if program is None else _GeneratedProgram(idea=idea, program=program)
+    if parsed is None or len(parsed.functions) != 1:
+        return None
+    if parsed.functions[0].name != function_name:
+        return None
+    return _GeneratedProgram(idea=idea, program=parsed)
 
 
 def _parse_actions(response: str, *, expected_count: int) -> list[str]:
@@ -816,13 +705,6 @@ def _extract_idea(response: str) -> str | None:
         r"^\s*Idea\s*:\s*(?P<idea>.+?)\s*$",
         response,
         flags=re.IGNORECASE | re.MULTILINE,
-    )
-    return None if match is None else match.group("idea").strip()
-
-
-def _extract_boxed_text(response: str) -> str | None:
-    match = re.search(
-        r"(?:\\)?boxed\s*\{(?P<idea>[^{}]+)\}", response, flags=re.IGNORECASE
     )
     return None if match is None else match.group("idea").strip()
 

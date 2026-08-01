@@ -11,7 +11,6 @@ from llm4ad.method.traceaad_v4.similarity import trajectory_similarity
 from llm4ad.method.traceaad_v4.trajectory_memory import TrajectoryMemory
 from llm4ad.method.traceaad_v4.value import (
     ValueWeights,
-    compute_value_vec,
     score_active_trajectories,
     select_diverse_trajectories,
     sample_trajectory,
@@ -171,24 +170,6 @@ def test_trajectory_quality_keeps_a_small_credit_for_best_historical_node():
     assert scored[route.id].scalar_value > scored[bad_route.id].scalar_value
 
 
-def test_absolute_quality_normalization_respects_minimization_direction():
-    graph = DerivationGraph()
-    node = graph.add_node(code="candidate", idea="candidate", fitness=2.0)
-    memory = TrajectoryMemory()
-    trajectory = memory.create_initial(node_id=node.id)
-
-    value = compute_value_vec(
-        trajectory=trajectory,
-        graph=graph,
-        fmin=1.0,
-        fmax=5.0,
-        maximize=False,
-        w=ValueWeights(),
-    )
-
-    assert value.quality == pytest.approx(0.75)
-
-
 def test_similarity_supports_idea_only_weighting():
     graph = DerivationGraph()
     memory = TrajectoryMemory()
@@ -287,7 +268,7 @@ def test_global_best_route_is_kept_as_an_active_anchor():
     method._best_node = root
     method._best_trajectory_id = best_route.id
 
-    method._manage_population(force=False)
+    method._manage_population()
 
     assert best_route.id in {
         trajectory.id for trajectory in method.active_trajectories()

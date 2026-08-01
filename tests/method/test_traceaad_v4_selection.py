@@ -4,7 +4,7 @@ from llm4ad.method.traceaad_v4.derivation_graph import DerivationGraph
 from llm4ad.method.traceaad_v4.trajectory_memory import TrajectoryMemory
 from llm4ad.method.traceaad_v4.value import (
     ValueWeights,
-    compute_value_vec,
+    path_trend,
     score_active_trajectories,
 )
 
@@ -62,24 +62,20 @@ def test_path_trend_distinguishes_improving_from_regressing_history() -> None:
     )
     weights = ValueWeights()
 
-    improve_value = compute_value_vec(
+    improve_trend = path_trend(
         trajectory=improving,
         graph=graph,
-        fmin=0.0,
-        fmax=3.0,
-        maximize=True,
-        w=weights,
+        discount=weights.discount,
+        positive_threshold=weights.positive_threshold,
     )
-    regress_value = compute_value_vec(
+    regress_trend = path_trend(
         trajectory=regressing,
         graph=graph,
-        fmin=0.0,
-        fmax=3.0,
-        maximize=True,
-        w=weights,
+        discount=weights.discount,
+        positive_threshold=weights.positive_threshold,
     )
 
-    assert improve_value.trend > regress_value.trend
+    assert improve_trend > regress_trend
 
 
 def test_minimization_direction_is_respected() -> None:

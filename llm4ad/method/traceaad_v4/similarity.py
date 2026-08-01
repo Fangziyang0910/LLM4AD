@@ -8,46 +8,50 @@ from .derivation_graph import DerivationGraph
 from .schema import Trajectory
 
 _CODE_TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_IDEA_TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]+")
 
 
-def normalize_code(code: str) -> str:
+def _jaccard(a: frozenset[str], b: frozenset[str]) -> float:
+    if not a and not b:
+        return 1.0
+    if not a or not b:
+        return 0.0
+    return len(a & b) / len(a | b)
+
+
+def _normalize_code(code: str) -> str:
     code = re.sub(r"#.*", "", code)
     code = re.sub(r"```python|```", "", code)
     return re.sub(r"\s+", " ", code).strip()
 
 
-def code_tokens(code: str) -> frozenset[str]:
-    return frozenset(_CODE_TOKEN_RE.findall(normalize_code(code)))
-
-
 def code_similarity(code_a: str, code_b: str) -> float:
-    ta, tb = code_tokens(code_a), code_tokens(code_b)
-    if not ta and not tb:
-        return 1.0
-    if not ta or not tb:
-        return 0.0
-    return len(ta & tb) / len(ta | tb)
+    ta = frozenset(_CODE_TOKEN_RE.findall(_normalize_code(code_a)))
+    tb = frozenset(_CODE_TOKEN_RE.findall(_normalize_code(code_b)))
+    return _jaccard(ta, tb)
 
 
 def trajectory_pattern(
     graph: DerivationGraph, trajectory: Trajectory
 ) -> frozenset[str]:
-    """(operator, outcome) 对的集合，刻画轨迹的搜索行为指纹。"""
-    pairs: set[str] = set()
-    for eid in trajectory.edge_ids:
-        edge = graph.get_edge(eid)
-        pairs.add(f"{edge.operator}|{edge.outcome}")
-    return frozenset(pairs)
+    """(operator, outcome) pairs as a lightweight search-behavior fingerprint."""
+    return frozenset(
+        f"{graph.get_edge(eid).operator}|{graph.get_edge(eid).outcome}"
+        for eid in trajectory.edge_ids
+    )
 
 
-def trajectory_pattern_similarity(
-    pat_a: frozenset[str], pat_b: frozenset[str]
-) -> float:
-    if not pat_a and not pat_b:
-        return 1.0
-    if not pat_a or not pat_b:
-        return 0.0
-    return len(pat_a & pat_b) / len(pat_a | pat_b)
+def trajectory_idea_tokens(
+    graph: DerivationGraph,
+    trajectory: Trajectory,
+) -> frozenset[str]:
+    texts = [graph.get_node(node_id).idea for node_id in trajectory.node_ids]
+    texts.extend(graph.get_edge(edge_id).action for edge_id in trajectory.edge_ids)
+    return frozenset(
+        token.lower()
+        for text in texts
+        for token in _IDEA_TOKEN_RE.findall(text or "")
+    )
 
 
 def trajectory_similarity(
@@ -57,14 +61,10 @@ def trajectory_similarity(
     right: Trajectory,
     weights: tuple[float, float, float] = (0.5, 0.3, 0.2),
 ) -> float:
-    """Return a lightweight code, idea and route similarity for diversity sampling."""
+    """Code / idea / route-pattern similarity for diversity reserve."""
     if left.id == right.id:
         return 1.0
-    if len(weights) == 2:
-        w_code, w_traj = weights
-        w_idea = 0.0
-    else:
-        w_code, w_idea, w_traj = weights
+    w_code, w_idea, w_traj = weights
     total = w_code + w_idea + w_traj
     if total <= 0:
         return 0.0
@@ -76,30 +76,8 @@ def trajectory_similarity(
         trajectory_idea_tokens(graph, left),
         trajectory_idea_tokens(graph, right),
     )
-    pattern = trajectory_pattern_similarity(
+    pattern = _jaccard(
         trajectory_pattern(graph, left),
         trajectory_pattern(graph, right),
     )
     return (w_code * code + w_idea * idea + w_traj * pattern) / total
-
-
-def trajectory_idea_tokens(
-    graph: DerivationGraph,
-    trajectory: Trajectory,
-) -> frozenset[str]:
-    """Return a cheap lexical signature of the ideas and actions on a route."""
-    texts = [graph.get_node(node_id).idea for node_id in trajectory.node_ids]
-    texts.extend(graph.get_edge(edge_id).action for edge_id in trajectory.edge_ids)
-    return frozenset(
-        token.lower()
-        for text in texts
-        for token in re.findall(r"[A-Za-z_][A-Za-z0-9_]+", text or "")
-    )
-
-
-def _jaccard(a: frozenset[str], b: frozenset[str]) -> float:
-    if not a and not b:
-        return 1.0
-    if not a or not b:
-        return 0.0
-    return len(a & b) / len(a | b)

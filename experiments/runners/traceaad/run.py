@@ -227,7 +227,6 @@ def build_method(
         "actions_per_iteration": 2,
         "max_trajectory_length": 8,
         "max_active_trajectories": 30,
-        "elite_count": 3,
         "softmax_temperature": 0.2,
         "max_consecutive_sample_failures": 20,
         "max_stalled_iterations": 20,
@@ -252,6 +251,7 @@ def build_method(
             create_random_path=False,
         ),
         value_weights=V5ValueWeights(),
+        elite_count=3,
         action_max_tokens=spec.action_max_tokens,
         random_seed=spec.seed,
         **common,
@@ -300,7 +300,6 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         "actions_per_iteration": 2,
         "max_trajectory_length": 8,
         "max_active_trajectories": 30,
-        "elite_count": 3,
         "softmax_temperature": 0.2,
         "max_consecutive_sample_failures": 20,
         "max_stalled_iterations": 20,
@@ -310,6 +309,7 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     if spec.version == "v5":
         method_params.update(
             {
+                "elite_count": 3,
                 "action_max_tokens": spec.action_max_tokens,
                 "random_seed": spec.seed,
             }

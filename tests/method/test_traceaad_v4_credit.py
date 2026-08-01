@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from llm4ad.method.traceaad_v4.credit import directed_delta
+from llm4ad.method.traceaad_v4.operators import directed_delta
 
 
 def test_directed_delta_uses_task_direction() -> None:

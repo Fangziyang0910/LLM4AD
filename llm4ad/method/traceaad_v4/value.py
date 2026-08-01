@@ -14,13 +14,12 @@ from .trajectory_memory import TrajectoryMemory
 
 @dataclass(frozen=True)
 class ValueWeights:
-    """Weights for search value and the separate parent-expansion UCB bonus."""
+    """Search value weights and the separate parent-expansion UCB bonus."""
 
     w_quality: float = 0.6
     w_trend: float = 0.4
     discount: float = 0.8
     positive_threshold: float = 1e-6
-    # UCB is an expansion-scheduling bonus, not part of route quality.
     ucb_c: float = 0.25
 
 
@@ -28,62 +27,27 @@ def _directed_fitness(fitness: float, maximize: bool) -> float:
     return fitness if maximize else -fitness
 
 
-def active_fitness_bounds(
-    *,
-    trajectories: tuple[Trajectory, ...],
-    graph: DerivationGraph,
-) -> tuple[float | None, float | None]:
-    values = [
-        graph.get_node(t.endpoint_id).fitness
-        for t in trajectories
-        if graph.get_node(t.endpoint_id).fitness is not None
-    ]
-    if not values:
-        return None, None
-    return min(values), max(values)
-
-
-def _path_trend(
+def path_trend(
     *,
     trajectory: Trajectory,
     graph: DerivationGraph,
     discount: float,
     positive_threshold: float,
-    maximize: bool,
 ) -> float:
+    """Discounted sign trend over directed edge deltas; empty path is neutral."""
     if not trajectory.edge_ids:
         return 0.5
     signals: list[float] = []
     for edge_id in trajectory.edge_ids:
-        edge = graph.get_edge(edge_id)
-        delta = edge.delta
+        delta = graph.get_edge(edge_id).delta
         if delta is None:
-            parent = graph.get_node(edge.parent_id)
-            child = graph.get_node(edge.child_id)
-            if parent.fitness is None or child.fitness is None:
-                signal = 0.0
-            else:
-                raw = (
-                    (child.fitness - parent.fitness)
-                    if maximize
-                    else (parent.fitness - child.fitness)
-                )
-                signal = (
-                    1.0
-                    if raw > positive_threshold
-                    else -1.0
-                    if raw < -positive_threshold
-                    else 0.0
-                )
+            signal = 0.0
+        elif delta > positive_threshold:
+            signal = 1.0
+        elif delta < -positive_threshold:
+            signal = -1.0
         else:
-            # Edges store the already directed delta in v4.
-            signal = (
-                1.0
-                if delta > positive_threshold
-                else -1.0
-                if delta < -positive_threshold
-                else 0.0
-            )
+            signal = 0.0
         signals.append(signal)
     denominator = sum(discount**index for index in range(len(signals)))
     weighted = sum(
@@ -106,67 +70,6 @@ def _trajectory_best_fitness(
     if not values:
         return None
     return max(values) if maximize else min(values)
-
-
-def _normalize_fitness(
-    fitness: float | None,
-    *,
-    fmin: float | None,
-    fmax: float | None,
-    maximize: bool,
-) -> float:
-    if fitness is None or fmin is None or fmax is None or fmax == fmin:
-        return 0.5
-    directed = _directed_fitness(fitness, maximize)
-    directed_bounds = (
-        _directed_fitness(fmin, maximize),
-        _directed_fitness(fmax, maximize),
-    )
-    low = min(directed_bounds)
-    high = max(directed_bounds)
-    return (directed - low) / (high - low) if high > low else 0.5
-
-
-def compute_value_vec(
-    *,
-    trajectory: Trajectory,
-    graph: DerivationGraph,
-    fmin: float | None,
-    fmax: float | None,
-    maximize: bool,
-    w: ValueWeights,
-) -> ValueVec:
-    """Compute route quality and recent trend.
-
-    Route quality gives 70% weight to the current endpoint and 30% credit to the
-    best program observed anywhere in the retained trajectory. The population
-    scorer replaces both absolute values with percentile ranks.
-    """
-    endpoint = graph.get_node(trajectory.endpoint_id)
-    if endpoint.fitness is None:
-        return ValueVec()
-    endpoint_quality = _normalize_fitness(
-        endpoint.fitness,
-        fmin=fmin,
-        fmax=fmax,
-        maximize=maximize,
-    )
-    best_quality = _normalize_fitness(
-        _trajectory_best_fitness(trajectory, graph, maximize),
-        fmin=fmin,
-        fmax=fmax,
-        maximize=maximize,
-    )
-    return ValueVec(
-        quality=0.7 * endpoint_quality + 0.3 * best_quality,
-        trend=_path_trend(
-            trajectory=trajectory,
-            graph=graph,
-            discount=w.discount,
-            positive_threshold=w.positive_threshold,
-            maximize=maximize,
-        ),
-    )
 
 
 def scalarize(value: ValueVec, w: ValueWeights) -> float:
@@ -199,23 +102,42 @@ def _percentile_quality(
         for t in trajectories
         if graph.get_node(t.endpoint_id).fitness is not None
     ]
-    endpoint = graph.get_node(trajectory.endpoint_id).fitness
     best_values = [
         best
         for candidate in trajectories
         if (best := _trajectory_best_fitness(candidate, graph, maximize)) is not None
     ]
-    endpoint_percentile = _percentile_fitness(
-        endpoint,
+    return 0.7 * _percentile_fitness(
+        graph.get_node(trajectory.endpoint_id).fitness,
         endpoint_values,
         maximize,
-    )
-    best_percentile = _percentile_fitness(
+    ) + 0.3 * _percentile_fitness(
         _trajectory_best_fitness(trajectory, graph, maximize),
         best_values,
         maximize,
     )
-    return 0.7 * endpoint_percentile + 0.3 * best_percentile
+
+
+def compute_value_vec(
+    *,
+    trajectory: Trajectory,
+    trajectories: tuple[Trajectory, ...],
+    graph: DerivationGraph,
+    maximize: bool,
+    w: ValueWeights,
+) -> ValueVec:
+    """Percentile quality within ``trajectories`` plus discounted path trend."""
+    if graph.get_node(trajectory.endpoint_id).fitness is None:
+        return ValueVec()
+    return ValueVec(
+        quality=_percentile_quality(trajectory, trajectories, graph, maximize),
+        trend=path_trend(
+            trajectory=trajectory,
+            graph=graph,
+            discount=w.discount,
+            positive_threshold=w.positive_threshold,
+        ),
+    )
 
 
 def score_active_trajectories(
@@ -229,20 +151,14 @@ def score_active_trajectories(
     candidates = tuple(memory.active() if trajectories is None else trajectories)
     if not candidates:
         return ()
-    fmin, fmax = active_fitness_bounds(trajectories=candidates, graph=graph)
     scored: list[Trajectory] = []
     for trajectory in candidates:
         value = compute_value_vec(
             trajectory=trajectory,
+            trajectories=candidates,
             graph=graph,
-            fmin=fmin,
-            fmax=fmax,
             maximize=maximize,
             w=w,
-        )
-        value = ValueVec(
-            quality=_percentile_quality(trajectory, candidates, graph, maximize),
-            trend=value.trend,
         )
         scored.append(memory.set_value(trajectory.id, value, scalarize(value, w)))
     return tuple(sorted(scored, key=lambda t: (-(t.scalar_value or 0.0), t.id)))
@@ -255,11 +171,7 @@ def select_diverse_trajectories(
     count: int,
     reference: tuple[Trajectory, ...] = (),
 ) -> tuple[Trajectory, ...]:
-    """Select a small quality-aware max-min route-diversity reserve.
-
-    This is deliberately a survivor reserve rather than a hard novelty gate: all
-    candidates remain eligible for the ordinary softmax survivor draw.
-    """
+    """Quality-aware max-min diversity reserve for population survival."""
     if count <= 0 or not candidates:
         return ()
     remaining = list(candidates)
@@ -287,7 +199,7 @@ def select_diverse_trajectories(
     return tuple(selected)
 
 
-def _weighted_sample_without_replacement(
+def weighted_sample_without_replacement(
     items: list[Trajectory], weights: list[float], count: int
 ) -> list[Trajectory]:
     selected: list[Trajectory] = []
@@ -307,7 +219,7 @@ def _weighted_sample_without_replacement(
     return selected
 
 
-def _softmax_scores(scores: list[float], temperature: float) -> list[float]:
+def softmax_scores(scores: list[float], temperature: float) -> list[float]:
     if not scores:
         return []
     temperature = max(float(temperature), 1e-8)
@@ -335,17 +247,19 @@ def sample_trajectory(
         * math.sqrt(math.log1p(total_visits) / (1.0 + max(0, trajectory.visit_count)))
         for trajectory in scored
     ]
-    return _weighted_sample_without_replacement(
-        scored, _softmax_scores(adjusted_scores, temperature), 1
+    return weighted_sample_without_replacement(
+        scored, softmax_scores(adjusted_scores, temperature), 1
     )[0]
 
 
 __all__ = [
     "ValueWeights",
-    "active_fitness_bounds",
     "compute_value_vec",
+    "path_trend",
     "scalarize",
     "score_active_trajectories",
     "select_diverse_trajectories",
     "sample_trajectory",
+    "softmax_scores",
+    "weighted_sample_without_replacement",
 ]
