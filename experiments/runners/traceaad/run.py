@@ -27,6 +27,15 @@ from llm4ad.method.traceaad_v5 import (
 from llm4ad.method.traceaad_v5 import (
     ValueWeights as V5ValueWeights,
 )
+from llm4ad.method.traceaad_v6 import (
+    TraceAADProfiler as TraceAADV6Profiler,
+)
+from llm4ad.method.traceaad_v6 import (
+    TraceAADV6,
+)
+from llm4ad.method.traceaad_v6 import (
+    ValueWeights as V6ValueWeights,
+)
 from llm4ad.task.optimization.cvrp_aco import CVRPACOEvaluation
 from llm4ad.task.optimization.generated_data_config import (
     get_generated_task_kwargs,
@@ -38,7 +47,7 @@ from llm4ad.tools.env import resolve_llm_api_key
 from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
 
 TaskName = Literal["tsp_construct", "cvrp_aco", "op_aco", "online_bin_packing"]
-VersionName = Literal["v4", "v5"]
+VersionName = Literal["v4", "v5", "v6"]
 BackendName = Literal["local", "server1", "zhong"]
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -49,7 +58,7 @@ TASKS: tuple[TaskName, ...] = (
     "op_aco",
     "online_bin_packing",
 )
-VERSIONS: tuple[VersionName, ...] = ("v4", "v5")
+VERSIONS: tuple[VersionName, ...] = ("v4", "v5", "v6")
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +100,7 @@ class RunSpec:
     eval_workers: int | None = None
     output_tokens: int | None = None
     action_max_tokens: int = 1024
+    context_token_limit: int = 24576
     seed: int = 0
     repeat: int | None = None
     run_name: str | None = None
@@ -129,6 +139,7 @@ def make_run_spec(
     eval_workers: int | None = None,
     output_tokens: int | None = None,
     action_max_tokens: int = 1024,
+    context_token_limit: int = 24576,
     seed: int = 0,
     repeat: int | None = None,
     run_name: str | None = None,
@@ -148,6 +159,7 @@ def make_run_spec(
         eval_workers=eval_workers,
         output_tokens=output_tokens,
         action_max_tokens=action_max_tokens,
+        context_token_limit=context_token_limit,
         seed=seed,
         repeat=repeat,
         run_name=run_name,
@@ -169,6 +181,8 @@ def _validate_spec(spec: RunSpec) -> None:
         raise ValueError("output_tokens must be positive")
     if spec.action_max_tokens <= 0:
         raise ValueError("action_max_tokens must be positive")
+    if spec.context_token_limit <= 0:
+        raise ValueError("context_token_limit must be positive")
     if spec.resume_from is not None and spec.run_name is not None:
         raise ValueError("run_name cannot be combined with resume_from")
 
@@ -206,7 +220,7 @@ def build_method(
     spec: RunSpec,
     log_dir: Path,
     resume_from: Path | None = None,
-) -> TraceAADV4 | TraceAADV5:
+) -> TraceAADV4 | TraceAADV5 | TraceAADV6:
     os.environ["NO_PROXY"] = spec.no_proxy
     os.environ["no_proxy"] = spec.no_proxy
     evaluation, _ = build_task(spec)
@@ -244,15 +258,29 @@ def build_method(
             value_weights=V4ValueWeights(),
             **common,
         )
-    return TraceAADV5(
-        profiler=TraceAADV5Profiler(
+    if spec.version == "v5":
+        return TraceAADV5(
+            profiler=TraceAADV5Profiler(
+                log_dir=str(log_dir),
+                log_style="simple",
+                create_random_path=False,
+            ),
+            value_weights=V5ValueWeights(),
+            elite_count=3,
+            action_max_tokens=spec.action_max_tokens,
+            random_seed=spec.seed,
+            **common,
+        )
+    return TraceAADV6(
+        profiler=TraceAADV6Profiler(
             log_dir=str(log_dir),
             log_style="simple",
             create_random_path=False,
         ),
-        value_weights=V5ValueWeights(),
-        elite_count=3,
+        value_weights=V6ValueWeights(),
         action_max_tokens=spec.action_max_tokens,
+        code_max_tokens=spec.llm_output_tokens,
+        context_token_limit=spec.context_token_limit,
         random_seed=spec.seed,
         **common,
     )
@@ -283,6 +311,45 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         raise ValueError(
             f"resume config mismatch: expected {expected}, found {actual}"
         )
+    if spec.version != "v6":
+        return
+    _, task_kwargs = build_task(spec)
+    normalized_task_kwargs = json.loads(json.dumps(task_kwargs, sort_keys=True))
+    expected_v6 = {
+        "backend": spec.backend,
+        "task_eval": normalized_task_kwargs,
+        "llm": {
+            "base_url": spec.base_url,
+            "model": spec.model,
+            "max_tokens": spec.llm_output_tokens,
+            "no_proxy": spec.no_proxy,
+        },
+        "method_params": {
+            "max_sample_nums": spec.budget,
+            "n_init": spec.n_init,
+            "action_max_tokens": spec.action_max_tokens,
+            "code_max_tokens": spec.llm_output_tokens,
+            "context_token_limit": spec.context_token_limit,
+            "random_seed": spec.seed,
+        },
+    }
+    actual_v6 = {
+        "backend": payload.get("backend"),
+        "task_eval": payload.get("task_eval"),
+        "llm": {
+            key: payload.get("llm", {}).get(key)
+            for key in expected_v6["llm"]
+        },
+        "method_params": {
+            key: payload.get("method_params", {}).get(key)
+            for key in expected_v6["method_params"]
+        },
+    }
+    if actual_v6 != expected_v6:
+        raise ValueError(
+            "resume config mismatch for TraceAAD V6; use the original model, "
+            "evaluation, budget, seed, and context settings"
+        )
 
 
 def checkpoint_source(spec: RunSpec, run_dir: Path) -> Path:
@@ -293,7 +360,12 @@ def checkpoint_source(spec: RunSpec, run_dir: Path) -> Path:
 
 def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     _, task_kwargs = build_task(spec)
-    weights = V4ValueWeights() if spec.version == "v4" else V5ValueWeights()
+    if spec.version == "v4":
+        weights = V4ValueWeights()
+    elif spec.version == "v5":
+        weights = V5ValueWeights()
+    else:
+        weights = V6ValueWeights()
     method_params: dict[str, Any] = {
         "max_sample_nums": spec.budget,
         "n_init": spec.n_init,
@@ -312,6 +384,16 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
                 "elite_count": 3,
                 "action_max_tokens": spec.action_max_tokens,
                 "random_seed": spec.seed,
+            }
+        )
+    if spec.version == "v6":
+        method_params.update(
+            {
+                "action_max_tokens": spec.action_max_tokens,
+                "code_max_tokens": spec.llm_output_tokens,
+                "context_token_limit": spec.context_token_limit,
+                "random_seed": spec.seed,
+                "dual_probability": 0.25,
             }
         )
     payload = {
@@ -376,6 +458,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--eval-workers", type=int)
     parser.add_argument("--output-tokens", type=int)
     parser.add_argument("--action-max-tokens", type=int, default=1024)
+    parser.add_argument("--context-token-limit", type=int, default=24576)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--repeat", type=int)
     parser.add_argument("--run-name")
@@ -396,6 +479,7 @@ def spec_from_args(args: argparse.Namespace) -> RunSpec:
         eval_workers=args.eval_workers,
         output_tokens=args.output_tokens,
         action_max_tokens=args.action_max_tokens,
+        context_token_limit=args.context_token_limit,
         seed=args.seed,
         repeat=args.repeat,
         run_name=args.run_name,

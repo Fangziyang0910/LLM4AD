@@ -8,6 +8,7 @@ import pytest
 from experiments.runners.traceaad import launch, run
 from llm4ad.method.traceaad_v4 import TraceAADV4
 from llm4ad.method.traceaad_v5 import TraceAADV5
+from llm4ad.method.traceaad_v6 import TraceAADV6
 
 
 @pytest.mark.parametrize("task", run.TASKS)
@@ -24,7 +25,11 @@ def test_unified_runner_builds_each_task_and_version(
     )
     method = run.build_method(spec, tmp_path / "logs")
 
-    expected_type = TraceAADV4 if version == "v4" else TraceAADV5
+    expected_type = {
+        "v4": TraceAADV4,
+        "v5": TraceAADV5,
+        "v6": TraceAADV6,
+    }[version]
     assert isinstance(method, expected_type)
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
     assert spec.experiment_version == f"version{version.removeprefix('v')}"
@@ -35,6 +40,8 @@ def test_unified_runner_builds_each_task_and_version(
         assert method._llm.max_tokens == 8192
         assert method._action_max_tokens == 1024
         assert not hasattr(method, "_global_experience")
+        if version == "v6":
+            assert method._context_token_limit == 24576
 
 
 def test_runner_writes_one_reproducible_config_per_run(tmp_path: Path) -> None:
@@ -66,13 +73,14 @@ def test_runner_writes_one_reproducible_config_per_run(tmp_path: Path) -> None:
 
 def test_resume_uses_version_specific_checkpoint_source(tmp_path: Path) -> None:
     for version in run.VERSIONS:
-        method = f"traceaad_{version}"
         run_dir = tmp_path / version
         run_dir.mkdir()
-        (run_dir / "run_config.json").write_text(
-            json.dumps({"task": "tsp_construct", "method": method}),
-            encoding="utf-8",
+        original_spec = run.make_run_spec(
+            task="tsp_construct",
+            version=version,
+            experiments_root=tmp_path,
         )
+        run.write_run_config(original_spec, run_dir, run_dir.name)
         spec = run.make_run_spec(
             task="tsp_construct",
             version=version,
@@ -89,6 +97,29 @@ def test_resume_uses_version_specific_checkpoint_source(tmp_path: Path) -> None:
             else run_dir / "logs" / "checkpoints" / "latest.json"
         )
         assert run.checkpoint_source(spec, resolved) == expected
+
+
+def test_v6_resume_rejects_changed_experiment_configuration(tmp_path: Path) -> None:
+    run_dir = tmp_path / "v6"
+    run_dir.mkdir()
+    original = run.make_run_spec(
+        task="tsp_construct",
+        version="v6",
+        budget=100,
+        seed=3,
+        experiments_root=tmp_path,
+    )
+    run.write_run_config(original, run_dir, run_dir.name)
+    changed = run.make_run_spec(
+        task="tsp_construct",
+        version="v6",
+        budget=101,
+        seed=3,
+        resume_from=run_dir,
+        experiments_root=tmp_path,
+    )
+    with pytest.raises(ValueError, match="resume config mismatch"):
+        run.resolve_run_dir(changed)
 
 
 def test_batch_launcher_builds_independent_repeat_commands() -> None:
