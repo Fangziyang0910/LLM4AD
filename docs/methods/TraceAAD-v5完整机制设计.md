@@ -9,7 +9,7 @@
 > V4 由 [TraceAAD v4](TraceAAD-v4完整机制设计.md) 与
 > `llm4ad/method/traceaad_v4/` 独立维护。V5 仍使用
 > `llm4ad/method/traceaad_v5/`。实验统一由
-> `python -m experiments.traceaad.run --version v5` 启动，工件写入
+> `python -m experiments.runners.traceaad.run --version v5` 启动，工件写入
 > `traceaad_v5/version5/`。
 
 ## 1. 科学主张
@@ -244,25 +244,15 @@ Action 与 Code 的 token、耗时、解析状态分别记录。
 | 在线全局经验 | 无 |
 | 默认实验目录 | `version5` |
 
-## 11. 当前实验结论与边界
+## 11. 研究边界
 
-正式 V5 已完成 TSP Construct、CVRP-ACO、OP-ACO 和 Online Bin Packing
-四个任务的三次独立运行与 held-out 评估。结果表明，双轨迹直接参考能够产生
-有效的迁移与重组，去掉不可靠的共享全局经验后搜索过程更健康；但 V5 尚未在
-所有任务上稳定超过 V4 或 MCTS-AHD。
+V5 是“轨迹种群 + 四个语义算子”的完整机制。现有结果不能证明任一组件普遍有效，也不支持继续增加共享记忆。正式结果见[实验总汇](../results/实验总汇.md)。
 
-因此，V5 的科学价值是给出一套可运行、可审计的“轨迹种群 + 四个语义算子”
-机制。现有实验不支持把任一组件单独写成普遍有效，也不支持继续增加更复杂的
-共享记忆。下一步优先研究父代信用、优质局部解内的参考选择和随搜索状态变化的
-算子调度。
+相关研究：
 
-开发期间的失败尝试与机制认识统一记录在
-[TraceAAD V5 开发复盘](../studies/TraceAAD-V5开发复盘.md)，不进入正式版本
-定义和结果汇总。
+- [程序膨胀](../research/RQ-001-程序膨胀.md)
+- [跨轨迹全局经验](../research/RQ-002-跨轨迹全局经验.md)
+- [轨迹上下文与搜索评分](../research/RQ-003-轨迹上下文与搜索评分.md)
+- [算子调度](../research/RQ-004-算子调度.md)
 
-相关研究与冻结证据：
-
-- [轨迹上下文与搜索评分](../studies/轨迹上下文与搜索评分.md)
-- [跨轨迹全局经验](../studies/跨轨迹全局经验.md)
-- [程序膨胀](../studies/程序膨胀.md)
-- [TraceAAD V5 开发复盘](../studies/TraceAAD-V5开发复盘.md)
+开发过程见 [TraceAAD V5 复盘](../archive/development/TraceAAD-V5开发复盘.md)。

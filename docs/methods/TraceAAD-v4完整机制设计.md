@@ -2,7 +2,7 @@
 
 > 状态：正式 V4 的权威方法规范。实现位于
 > `llm4ad/method/traceaad_v4/`，实验统一由
-> `python -m experiments.traceaad.run --version v4` 启动。
+> `python -m experiments.runners.traceaad.run --version v4` 启动。
 
 ## 1. 科学主张
 
@@ -183,14 +183,10 @@ $$
 
 ## 11. 机制检查与可证伪假设
 
-首要实验检查完整 TraceAAD 机制能否在公平协议下达到领先的训练、held-out 和 anytime search 表现，并在不同 task 与重复运行中保持稳定。随后通过过程指标理解多步改进链怎样形成、高价值路线怎样推进前沿、内部锚点怎样支持回退，以及算子和种群怎样分配预算；组件消融用于解释 `Q/P`、UCB、`2M` 延迟、best-anchor 和路线 reserve 的具体贡献与边界。
+完整机制以训练、held-out、anytime search 和重复稳定性评价。`Q/P`、UCB、`2M` 延迟、best-anchor 和路线 reserve 的贡献需要单变量消融；过程指标至少包括父代访问、锚点类型、路线推进、管理周期和达到目标质量所需预算。
 
-核心过程指标包括父代访问分布、UCB bonus 与搜索价值分布、锚点类型、改进/停滞/退步比例、轨迹管理周期、global-best route 是否持续 active、路线行为指纹覆盖和达到目标质量所需评估次数。最终分数不能单独证明轨迹机制有效。
+## 12. 相关研究
 
-## 12. 已知问题与证据
-
-本文件只定义 V4 方法，不在这里维护实验快照、文献综述或下一版本方案。当前已知问题和过程证据分别见：
-
-- [程序膨胀研究](../studies/程序膨胀.md)；
-- [TraceAAD V4 机制审计](../evidence/audits/traceaad-v4/README.md)；
+- [程序膨胀](../research/RQ-001-程序膨胀.md)；
+- [TraceAAD V4 机制审计](../archive/audits/TraceAAD-v4机制审计.md)；
 - [TraceAAD V5 方法设计](TraceAAD-v5完整机制设计.md)。

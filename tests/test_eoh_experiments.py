@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from experiments.eoh import launch, run
+from experiments.runners.eoh import launch, run
 from llm4ad.method.eoh import EoH
 
 

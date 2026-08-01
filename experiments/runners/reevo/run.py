@@ -12,7 +12,7 @@ from typing import Any, Literal
 
 import numpy as np
 
-from llm4ad.method.pathwise import PathWise, PathWiseProfiler
+from llm4ad.method.reevo import ReEvo, ReEvoProfiler
 from llm4ad.task.optimization.cvrp_aco import CVRPACOEvaluation
 from llm4ad.task.optimization.generated_data_config import (
     get_generated_task_kwargs,
@@ -26,7 +26,7 @@ from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
 TaskName = Literal["tsp_construct", "cvrp_aco", "op_aco", "online_bin_packing"]
 BackendName = Literal["local", "server1", "zhong"]
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 EXPERIMENTS_ROOT = REPO_ROOT / "experiments"
 TASKS: tuple[TaskName, ...] = (
     "tsp_construct",
@@ -35,14 +35,13 @@ TASKS: tuple[TaskName, ...] = (
     "online_bin_packing",
 )
 
-# PathWise paper/example used 500; fair comparison uses unified budget 1000.
-PAPER_MAX_SAMPLE_NUMS = 500
+# Paper table / original cfg/config.yaml used max_fe=100 for sample-efficiency
+# claims. Fair comparison across methods in this repo uses a unified budget.
+PAPER_MAX_SAMPLE_NUMS = 100
 FAIR_MAX_SAMPLE_NUMS = 1000
-PAPER_POP_SIZE = 6
-PAPER_NUM_ACTIONS = 2
-PAPER_NUM_ROLLOUTS = 2
-PAPER_MAX_INNER_STEPS = 3
-PAPER_NUM_EVALUATORS = 4
+PAPER_POP_SIZE = 10
+PAPER_INIT_POP_SIZE = 30
+PAPER_MUTATION_RATE = 0.5
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,11 +79,8 @@ class RunSpec:
     no_proxy: str
     max_sample_nums: int = FAIR_MAX_SAMPLE_NUMS
     pop_size: int = PAPER_POP_SIZE
-    init_pop_size: int | None = None
-    num_actions: int = PAPER_NUM_ACTIONS
-    num_rollouts: int = PAPER_NUM_ROLLOUTS
-    max_inner_steps: int = PAPER_MAX_INNER_STEPS
-    num_evaluators: int = PAPER_NUM_EVALUATORS
+    init_pop_size: int = PAPER_INIT_POP_SIZE
+    mutation_rate: float = PAPER_MUTATION_RATE
     eval_workers: int | None = None
     output_tokens: int = 16384
     seed: int = 0
@@ -94,7 +90,7 @@ class RunSpec:
 
     @property
     def experiment_root(self) -> Path:
-        return self.experiments_root / self.task / "pathwise"
+        return self.experiments_root / self.task / "reevo"
 
 
 def make_run_spec(
@@ -106,11 +102,8 @@ def make_run_spec(
     no_proxy: str | None = None,
     max_sample_nums: int = FAIR_MAX_SAMPLE_NUMS,
     pop_size: int = PAPER_POP_SIZE,
-    init_pop_size: int | None = None,
-    num_actions: int = PAPER_NUM_ACTIONS,
-    num_rollouts: int = PAPER_NUM_ROLLOUTS,
-    max_inner_steps: int = PAPER_MAX_INNER_STEPS,
-    num_evaluators: int = PAPER_NUM_EVALUATORS,
+    init_pop_size: int = PAPER_INIT_POP_SIZE,
+    mutation_rate: float = PAPER_MUTATION_RATE,
     eval_workers: int | None = None,
     output_tokens: int = 16384,
     seed: int = 0,
@@ -128,10 +121,7 @@ def make_run_spec(
         max_sample_nums=max_sample_nums,
         pop_size=pop_size,
         init_pop_size=init_pop_size,
-        num_actions=num_actions,
-        num_rollouts=num_rollouts,
-        max_inner_steps=max_inner_steps,
-        num_evaluators=num_evaluators,
+        mutation_rate=mutation_rate,
         eval_workers=eval_workers,
         output_tokens=output_tokens,
         seed=seed,
@@ -148,8 +138,10 @@ def _validate_spec(spec: RunSpec) -> None:
         raise ValueError("max_sample_nums must be positive")
     if spec.pop_size <= 0:
         raise ValueError("pop_size must be positive")
-    if spec.num_evaluators <= 0:
-        raise ValueError("num_evaluators must be positive")
+    if spec.init_pop_size <= 0:
+        raise ValueError("init_pop_size must be positive")
+    if not 0.0 < spec.mutation_rate <= 1.0:
+        raise ValueError("mutation_rate must be in (0, 1]")
     if spec.eval_workers is not None and spec.eval_workers <= 0:
         raise ValueError("eval_workers must be positive")
     if spec.output_tokens <= 0:
@@ -173,6 +165,7 @@ def build_task(spec: RunSpec) -> tuple[Any, dict[str, Any]]:
             "n_workers": spec.eval_workers or 10,
         }
         return CVRPACOEvaluation(**kwargs), kwargs
+
     kwargs = {
         "split": "train",
         "timeout_seconds": 60,
@@ -184,7 +177,7 @@ def build_task(spec: RunSpec) -> tuple[Any, dict[str, Any]]:
     return OPACOEvaluation(**kwargs), kwargs
 
 
-def build_method(spec: RunSpec, log_dir: Path) -> PathWise:
+def build_method(spec: RunSpec, log_dir: Path) -> ReEvo:
     os.environ["NO_PROXY"] = spec.no_proxy
     os.environ["no_proxy"] = spec.no_proxy
     random.seed(spec.seed)
@@ -200,10 +193,10 @@ def build_method(spec: RunSpec, log_dir: Path) -> PathWise:
         temperature=1.0,
         enable_thinking=False,
     )
-    return PathWise(
+    return ReEvo(
         llm=llm,
         evaluation=evaluation,
-        profiler=PathWiseProfiler(
+        profiler=ReEvoProfiler(
             log_dir=str(log_dir),
             log_style="complex",
             create_random_path=False,
@@ -211,15 +204,11 @@ def build_method(spec: RunSpec, log_dir: Path) -> PathWise:
         max_sample_nums=spec.max_sample_nums,
         pop_size=spec.pop_size,
         init_pop_size=spec.init_pop_size,
-        num_actions=spec.num_actions,
-        num_rollouts=spec.num_rollouts,
-        max_inner_steps=spec.max_inner_steps,
-        num_evaluators=spec.num_evaluators,
-        policy_perturbation_prob=0.5,
-        policy_perturbation_final_prob=0.25,
-        world_model_perturbation_prob=0.5,
-        world_model_perturbation_final_prob=0.25,
+        mutation_rate=spec.mutation_rate,
+        num_samplers=1,
+        num_evaluators=1,
         max_consecutive_sample_failures=20,
+        multi_thread_or_process_eval="thread",
         debug_mode=False,
     )
 
@@ -238,7 +227,7 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         "run_dir": str(run_dir),
         "run_name": run_name,
         "task": spec.task,
-        "method": "pathwise",
+        "method": "reevo",
         "repeat": spec.repeat,
         "backend": spec.backend,
         "seed": spec.seed,
@@ -255,18 +244,18 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         "task_eval": task_config,
         "method_params": {
             "max_sample_nums": spec.max_sample_nums,
-            "pop_size": spec.pop_size,
+            "population_size": spec.pop_size,
             "init_pop_size": spec.init_pop_size,
-            "num_actions": spec.num_actions,
-            "num_rollouts": spec.num_rollouts,
-            "max_inner_steps": spec.max_inner_steps,
-            "num_evaluators": spec.num_evaluators,
+            "mutation_rate": spec.mutation_rate,
+            "num_samplers": 1,
+            "num_evaluators": 1,
+            "init_temperature_offset": 0.3,
             "budget_basis": (
-                "Fair comparison budget max_sample_nums=1000 "
-                f"(PathWise paper/example default was {PAPER_MAX_SAMPLE_NUMS}); "
-                "other hyperparams follow method paras: pop_size=6, "
-                "num_actions=2, num_rollouts=2, max_inner_steps=3, "
-                "num_evaluators=4"
+                "Fair comparison budget max_sample_nums=1000 (paper default "
+                "max_fe=100 preserved as PAPER_MAX_SAMPLE_NUMS); other "
+                "hyperparams follow paper/original cfg: pop_size=10, "
+                "init_pop_size=30, mutation_rate=0.5, temperature=1; "
+                "initialization uses temperature+0.3"
             ),
         },
     }
@@ -288,8 +277,9 @@ def run_experiment(spec: RunSpec) -> Path:
             print(f"log_dir={log_dir}", flush=True)
             print(f"llm={spec.model} @ {spec.base_url}", flush=True)
             print(
-                f"pathwise=pop={spec.pop_size}, budget={spec.max_sample_nums}, "
-                f"evaluators={spec.num_evaluators}",
+                "reevo="
+                f"pop={spec.pop_size}, init={spec.init_pop_size}, "
+                f"budget={spec.max_sample_nums}, mutation_rate={spec.mutation_rate}",
                 flush=True,
             )
             build_method(spec, log_dir).run()
@@ -297,15 +287,16 @@ def run_experiment(spec: RunSpec) -> Path:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Run one fair-budget PathWise experiment."
-    )
+    parser = argparse.ArgumentParser(description="Run one paper-aligned ReEvo experiment.")
     parser.add_argument("--task", choices=TASKS, required=True)
     parser.add_argument("--backend", choices=tuple(BACKENDS), default="local")
     parser.add_argument("--base-url")
     parser.add_argument("--model")
     parser.add_argument("--no-proxy")
     parser.add_argument("--max-sample-nums", type=int, default=FAIR_MAX_SAMPLE_NUMS)
+    parser.add_argument("--pop-size", type=int, default=PAPER_POP_SIZE)
+    parser.add_argument("--init-pop-size", type=int, default=PAPER_INIT_POP_SIZE)
+    parser.add_argument("--mutation-rate", type=float, default=PAPER_MUTATION_RATE)
     parser.add_argument("--eval-workers", type=int)
     parser.add_argument("--output-tokens", type=int, default=16384)
     parser.add_argument("--seed", type=int, default=0)
@@ -323,6 +314,9 @@ def main() -> None:
         model=args.model,
         no_proxy=args.no_proxy,
         max_sample_nums=args.max_sample_nums,
+        pop_size=args.pop_size,
+        init_pop_size=args.init_pop_size,
+        mutation_rate=args.mutation_rate,
         eval_workers=args.eval_workers,
         output_tokens=args.output_tokens,
         seed=args.seed,

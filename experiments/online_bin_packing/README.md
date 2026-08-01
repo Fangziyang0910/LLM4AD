@@ -1,6 +1,6 @@
 # Online Bin Packing 实验
 
-权威数据配置见 `docs/实验配置.md`：训练使用四个固定实例
+权威数据配置见 `docs/experiments/配置.md`：训练使用四个固定实例
 `1k/5k × C∈{100,500}`；测试使用不同的固定实例
 `1k/5k/10k × C∈{100,500}`，其中只有 10k 为 OOD。
 
@@ -26,7 +26,7 @@ uv run python experiments/online_bin_packing/evaluate_best_on_test.py <run_dirs.
 MPLCONFIGDIR=/tmp/matplotlib uv run python experiments/plotting/plot_online_bin_packing_three_method_search.py
 ```
 
-TraceAAD 新搜索统一使用 `experiments.traceaad.run`，三重复使用
-`experiments.traceaad.launch`，通过 `--task online_bin_packing` 与
+TraceAAD 新搜索统一使用 `experiments.runners.traceaad.run`，三重复使用
+`experiments.runners.traceaad.launch`，通过 `--task online_bin_packing` 与
 `--version v4|v5` 选择实验。入口会为每个 run 自动保存真实配置，不再创建
-批次专用脚本。实验覆盖与完成状态统一维护在 `docs/实验覆盖.md`。
+批次专用脚本。实验覆盖与完成状态统一维护在 `docs/experiments/覆盖.md`。

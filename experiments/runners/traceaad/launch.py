@@ -46,7 +46,7 @@ def build_launch_plan(args: argparse.Namespace) -> tuple[LaunchItem, ...]:
         command = [
             sys.executable,
             "-m",
-            "experiments.traceaad.run",
+            "experiments.runners.traceaad.run",
             "--task",
             args.task,
             "--version",

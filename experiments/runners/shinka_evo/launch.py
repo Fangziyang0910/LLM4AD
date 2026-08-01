@@ -12,7 +12,7 @@ from pathlib import Path
 
 from . import run
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 TASK_SHORT = {
     "tsp_construct": "tsp",
     "cvrp_aco": "cvrp",
@@ -60,7 +60,7 @@ class LaunchItem:
         return (
             sys.executable,
             "-m",
-            "experiments.shinka_evo.run",
+            "experiments.runners.shinka_evo.run",
             "--task",
             self.task,
             "--backend",

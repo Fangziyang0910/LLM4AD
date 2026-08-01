@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from experiments.reevo import launch, run
+from experiments.runners.reevo import launch, run
 from llm4ad.method.reevo import ReEvo
 
 

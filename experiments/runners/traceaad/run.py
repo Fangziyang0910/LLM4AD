@@ -41,7 +41,7 @@ TaskName = Literal["tsp_construct", "cvrp_aco", "op_aco", "online_bin_packing"]
 VersionName = Literal["v4", "v5"]
 BackendName = Literal["local", "server1", "zhong"]
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 EXPERIMENTS_ROOT = REPO_ROOT / "experiments"
 TASKS: tuple[TaskName, ...] = (
     "tsp_construct",

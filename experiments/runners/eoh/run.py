@@ -26,7 +26,7 @@ from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
 TaskName = Literal["tsp_construct", "cvrp_aco", "op_aco", "online_bin_packing"]
 BackendName = Literal["local", "server1", "zhong"]
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 EXPERIMENTS_ROOT = REPO_ROOT / "experiments"
 TASKS: tuple[TaskName, ...] = (
     "tsp_construct",

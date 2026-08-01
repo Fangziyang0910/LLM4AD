@@ -1,6 +1,6 @@
 # OP-ACO 实验
 
-与 ReEvo / HSEvo / PathWise / CALM 的 Orienteering ACO 协议对齐。权威配置见 `docs/实验配置.md`。
+与 ReEvo / HSEvo / PathWise / CALM 的 Orienteering ACO 协议对齐。权威配置见 `docs/experiments/配置.md`。
 
 ## 数据与 ACO
 
@@ -20,11 +20,9 @@
 # MCTS-AHD
 uv run python experiments/op_aco/mcts_ahd/run_experiment.py
 
-# PathWise
-uv run python experiments/op_aco/pathwise/run_experiment.py
-
-# TraceAAD
-uv run python -m experiments.traceaad.run --task op_aco --version v4 --backend local
+# PathWise / TraceAAD（统一入口）
+uv run python -m experiments.runners.pathwise.run --task op_aco --backend local --repeat 1
+uv run python -m experiments.runners.traceaad.run --task op_aco --version v4 --backend local
 
 # 测试评估（默认 test_50/100/200）
 uv run python experiments/op_aco/evaluate_best_on_test.py <run_dirs...> \
@@ -32,4 +30,4 @@ uv run python experiments/op_aco/evaluate_best_on_test.py <run_dirs...> \
 ```
 
 TraceAAD 入口默认写入 `version4/`。实验覆盖与完成状态统一维护在
-`docs/实验覆盖.md`。
+`docs/experiments/覆盖.md`。

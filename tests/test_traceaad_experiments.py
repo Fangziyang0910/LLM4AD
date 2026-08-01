@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from experiments.traceaad import launch, run
+from experiments.runners.traceaad import launch, run
 from llm4ad.method.traceaad_v4 import TraceAADV4
 from llm4ad.method.traceaad_v5 import TraceAADV5
 

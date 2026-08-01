@@ -1,3 +1,9 @@
+"""Unified fair-budget launcher for PathWise / ReEvo / ShinkaEvolve.
+
+Fills free LLM backend slots from a combined 36-run queue
+(3 methods × 4 tasks × 3 repeats), each with max_sample_nums=1000.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -9,40 +15,68 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Literal
 
-from . import run
+REPO_ROOT = Path(__file__).resolve().parents[3]
+TaskName = Literal["tsp_construct", "cvrp_aco", "op_aco", "online_bin_packing"]
+BackendName = Literal["local", "server1", "zhong"]
+MethodName = Literal["pathwise", "reevo", "shinka_evo"]
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+TASKS: tuple[TaskName, ...] = (
+    "tsp_construct",
+    "cvrp_aco",
+    "op_aco",
+    "online_bin_packing",
+)
+METHODS: tuple[MethodName, ...] = ("pathwise", "reevo", "shinka_evo")
 TASK_SHORT = {
     "tsp_construct": "tsp",
     "cvrp_aco": "cvrp",
     "op_aco": "op",
     "online_bin_packing": "obp",
 }
-BACKEND_CAPACITY: dict[run.BackendName, int] = {
+METHOD_SHORT = {
+    "pathwise": "pw",
+    "reevo": "reevo",
+    "shinka_evo": "shinka",
+}
+METHOD_MODULE = {
+    "pathwise": "experiments.runners.pathwise.run",
+    "reevo": "experiments.runners.reevo.run",
+    "shinka_evo": "experiments.runners.shinka_evo.run",
+}
+METHOD_DIR = {
+    "pathwise": "pathwise",
+    "reevo": "reevo",
+    "shinka_evo": "shinka_evo",
+}
+BACKEND_CAPACITY: dict[BackendName, int] = {
     "zhong": 6,
     "server1": 6,
     "local": 3,
 }
-BACKEND_MARKERS: dict[run.BackendName, tuple[str, ...]] = {
+BACKEND_MARKERS: dict[BackendName, tuple[str, ...]] = {
     "zhong": ("--backend zhong", "183.36.243.124"),
     "server1": ("--backend server1", "222.201.145.8"),
     "local": ("--backend local", "127.0.0.1:8001"),
 }
+MAX_RETRIES = 12
 
 
 @dataclass(frozen=True, slots=True)
 class LaunchItem:
-    task: run.TaskName
+    method: MethodName
+    task: TaskName
     repeat: int
-    backend: run.BackendName | None
+    backend: BackendName | None
     session: str
     run_name: str
     run_dir: Path
     seed: int
 
-    def with_backend(self, backend: run.BackendName) -> LaunchItem:
+    def with_backend(self, backend: BackendName) -> LaunchItem:
         return LaunchItem(
+            method=self.method,
             task=self.task,
             repeat=self.repeat,
             backend=backend,
@@ -58,7 +92,7 @@ class LaunchItem:
         return (
             sys.executable,
             "-m",
-            "experiments.reevo.run",
+            METHOD_MODULE[self.method],
             "--task",
             self.task,
             "--backend",
@@ -69,28 +103,39 @@ class LaunchItem:
             str(self.seed),
             "--run-name",
             self.run_name,
+            "--max-sample-nums",
+            "1000",
         )
 
 
 def build_launch_plan(args: argparse.Namespace) -> list[LaunchItem]:
-    plan = []
-    for repeat in range(1, args.repeats + 1):
-        for task in run.TASKS:
-            short = TASK_SHORT[task]
-            run_name = f"{args.batch}_{short}_reevo_rep{repeat}"
-            session = f"{args.session_prefix}_{short}_r{repeat}"
-            run_dir = REPO_ROOT / "experiments" / task / "reevo" / run_name
-            plan.append(
-                LaunchItem(
-                    task=task,
-                    repeat=repeat,
-                    backend=None,
-                    session=session,
-                    run_name=run_name,
-                    run_dir=run_dir,
-                    seed=repeat - 1,
+    plan: list[LaunchItem] = []
+    for method in METHODS:
+        for repeat in range(1, args.repeats + 1):
+            for task in TASKS:
+                short = TASK_SHORT[task]
+                mshort = METHOD_SHORT[method]
+                run_name = f"{args.batch}_{short}_{mshort}_rep{repeat}"
+                session = f"f1k_{mshort}_{short}_r{repeat}"
+                run_dir = (
+                    REPO_ROOT
+                    / "experiments"
+                    / task
+                    / METHOD_DIR[method]
+                    / run_name
                 )
-            )
+                plan.append(
+                    LaunchItem(
+                        method=method,
+                        task=task,
+                        repeat=repeat,
+                        backend=None,
+                        session=session,
+                        run_name=run_name,
+                        run_dir=run_dir,
+                        seed=repeat - 1,
+                    )
+                )
     return plan
 
 
@@ -104,12 +149,7 @@ def _process_cmdlines() -> list[str]:
     lines = []
     for line in result.stdout.splitlines():
         text = line.strip()
-        if not text:
-            continue
-        # Count worker processes, not uv wrappers.
-        if "uv run" in text:
-            continue
-        if "python" not in text:
+        if not text or "uv run" in text or "python" not in text:
             continue
         if "experiments." not in text and "run_experiment" not in text:
             continue
@@ -117,10 +157,10 @@ def _process_cmdlines() -> list[str]:
     return lines
 
 
-def count_backend_usage() -> dict[run.BackendName, int]:
-    counts: dict[run.BackendName, int] = {name: 0 for name in BACKEND_CAPACITY}
+def count_backend_usage() -> dict[BackendName, int]:
+    counts: dict[BackendName, int] = {name: 0 for name in BACKEND_CAPACITY}
     for cmdline in _process_cmdlines():
-        matched: run.BackendName | None = None
+        matched: BackendName | None = None
         for backend, markers in BACKEND_MARKERS.items():
             if any(marker in cmdline for marker in markers):
                 matched = backend
@@ -132,7 +172,7 @@ def count_backend_usage() -> dict[run.BackendName, int]:
     return counts
 
 
-def free_slots() -> dict[run.BackendName, int]:
+def free_slots() -> dict[BackendName, int]:
     usage = count_backend_usage()
     return {
         backend: max(0, BACKEND_CAPACITY[backend] - usage[backend])
@@ -162,7 +202,7 @@ def item_is_failed(item: LaunchItem) -> bool:
 
 def item_is_running(item: LaunchItem) -> bool:
     result = subprocess.run(
-        ["tmux", "has-session", "-t", item.session],
+        ["tmux", "has-session", "-t", f"={item.session}"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         check=False,
@@ -170,15 +210,77 @@ def item_is_running(item: LaunchItem) -> bool:
     return result.returncode == 0
 
 
+def _retry_candidate(item: LaunchItem, retry: int) -> LaunchItem:
+    return LaunchItem(
+        method=item.method,
+        task=item.task,
+        repeat=item.repeat,
+        backend=None,
+        session=f"{item.session}_retry{retry}",
+        run_name=f"{item.run_name}_retry{retry}",
+        run_dir=item.run_dir.parent / f"{item.run_name}_retry{retry}",
+        seed=item.seed,
+    )
+
+
+def item_active_attempt(item: LaunchItem) -> LaunchItem | None:
+    if item_is_running(item):
+        return item
+    for retry in range(2, MAX_RETRIES + 1):
+        candidate = _retry_candidate(item, retry)
+        if item_is_running(candidate):
+            return candidate
+    return None
+
+
+def item_has_successful_result(item: LaunchItem) -> bool:
+    if item_is_done(item):
+        return True
+    for retry in range(2, MAX_RETRIES + 1):
+        if item_is_done(_retry_candidate(item, retry)):
+            return True
+    return False
+
+
+def pending_items(plan: list[LaunchItem]) -> list[LaunchItem]:
+    pending = []
+    for item in plan:
+        if item_has_successful_result(item):
+            continue
+        if item_active_attempt(item) is not None:
+            continue
+        attempts = [item] + [
+            _retry_candidate(item, retry) for retry in range(2, MAX_RETRIES + 1)
+        ]
+        for candidate in attempts:
+            if item_is_done(candidate):
+                break
+            if item_is_running(candidate):
+                break
+            if candidate.run_dir.exists() and not item_is_failed(candidate):
+                print(f"skip incomplete run_dir={candidate.run_dir}", flush=True)
+                break
+            if item_is_failed(candidate):
+                continue
+            pending.append(candidate)
+            break
+        else:
+            print(
+                f"skip {item.run_name}: exceeded MAX_RETRIES={MAX_RETRIES}",
+                flush=True,
+            )
+    return pending
+
+
 def assign_backends(
     pending: list[LaunchItem],
     *,
-    preferred: tuple[run.BackendName, ...] = ("zhong", "server1", "local"),
+    preferred: tuple[BackendName, ...] = ("zhong", "server1", "local"),
 ) -> list[LaunchItem]:
     remaining = dict(free_slots())
     assigned: list[LaunchItem] = []
     for item in pending:
-        chosen: run.BackendName | None = None
+        chosen: BackendName | None = None
         for backend in preferred:
             if remaining.get(backend, 0) > 0:
                 chosen = backend
@@ -209,8 +311,8 @@ def launch_items(items: list[LaunchItem], *, dry_run: bool) -> None:
     for item in items:
         printable = shlex.join(item.command())
         print(
-            f"{item.backend:7s} {item.task:20s} rep={item.repeat} "
-            f"session={item.session} command={printable}",
+            f"{item.backend:7s} {item.method:10s} {item.task:20s} "
+            f"rep={item.repeat} session={item.session} command={printable}",
             flush=True,
         )
         if dry_run:
@@ -228,75 +330,6 @@ def launch_items(items: list[LaunchItem], *, dry_run: bool) -> None:
             ],
             check=True,
         )
-
-
-def item_has_successful_result(item: LaunchItem) -> bool:
-    if item_is_done(item):
-        return True
-    if not item_is_failed(item):
-        return False
-    retry = 2
-    while True:
-        candidate = LaunchItem(
-            task=item.task,
-            repeat=item.repeat,
-            backend=None,
-            session=f"{item.session}_retry{retry}",
-            run_name=f"{item.run_name}_retry{retry}",
-            run_dir=item.run_dir.parent / f"{item.run_name}_retry{retry}",
-            seed=item.seed,
-        )
-        if item_is_done(candidate):
-            return True
-        if item_is_failed(candidate):
-            retry += 1
-            continue
-        return False
-
-
-def pending_items(plan: list[LaunchItem]) -> list[LaunchItem]:
-    pending = []
-    for item in plan:
-        if item_has_successful_result(item):
-            continue
-        if item_is_running(item):
-            continue
-        if item.run_dir.exists() and not item_is_failed(item):
-            # Incomplete leftover without a terminal failure: do not auto-reuse.
-            print(f"skip incomplete run_dir={item.run_dir}", flush=True)
-            continue
-        if item_is_failed(item):
-            # Keep the failed artifact; relaunch under a new run directory.
-            retry = 2
-            while True:
-                run_name = f"{item.run_name}_retry{retry}"
-                run_dir = item.run_dir.parent / run_name
-                session = f"{item.session}_retry{retry}"
-                candidate = LaunchItem(
-                    task=item.task,
-                    repeat=item.repeat,
-                    backend=None,
-                    session=session,
-                    run_name=run_name,
-                    run_dir=run_dir,
-                    seed=item.seed,
-                )
-                if item_is_done(candidate):
-                    retry += 1
-                    continue
-                if item_is_running(candidate):
-                    break
-                if candidate.run_dir.exists() and not item_is_failed(candidate):
-                    print(f"skip incomplete run_dir={candidate.run_dir}", flush=True)
-                    break
-                if item_is_failed(candidate):
-                    retry += 1
-                    continue
-                pending.append(candidate)
-                break
-            continue
-        pending.append(item)
-    return pending
 
 
 def fill_once(plan: list[LaunchItem], *, dry_run: bool) -> list[LaunchItem]:
@@ -322,13 +355,13 @@ def watch_and_fill(
     dry_run: bool,
 ) -> None:
     print(
-        f"watching ReEvo batch; interval={interval_sec}s; "
-        f"capacity={BACKEND_CAPACITY}",
+        f"watching fair-1000 batch; interval={interval_sec}s; "
+        f"capacity={BACKEND_CAPACITY}; total={len(plan)}",
         flush=True,
     )
     while True:
         remaining = pending_items(plan)
-        running = sum(1 for item in plan if item_is_running(item))
+        running = sum(1 for item in plan if item_active_attempt(item) is not None)
         done = sum(1 for item in plan if item_has_successful_result(item))
         print(
             f"[{datetime.now().isoformat(timespec='seconds')}] "
@@ -337,7 +370,7 @@ def watch_and_fill(
             flush=True,
         )
         if done == len(plan):
-            print("all ReEvo runs finished", flush=True)
+            print("all fair-1000 runs finished", flush=True)
             return
         fill_once(plan, dry_run=dry_run)
         if dry_run:
@@ -348,19 +381,17 @@ def watch_and_fill(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Launch four-task, three-repeat ReEvo experiments into free "
-            "LLM backend slots."
+            "Launch PathWise+ReEvo+ShinkaEvolve fair-budget (1000) experiments "
+            "into free LLM backend slots."
         )
     )
     parser.add_argument("--repeats", type=int, default=3)
-    parser.add_argument("--batch", default=datetime.now().strftime("%Y%m%d_%H%M%S"))
-    parser.add_argument("--session-prefix", default="reevo")
-    parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
-        "--watch",
-        action="store_true",
-        help="keep filling free slots until the whole batch finishes",
+        "--batch",
+        default=datetime.now().strftime("fair1000_%Y%m%d_%H%M%S"),
     )
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--watch", action="store_true")
     parser.add_argument("--watch-interval", type=int, default=60)
     return parser
 
@@ -368,7 +399,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = build_parser().parse_args()
     if args.repeats != 3:
-        raise ValueError("paper-aligned batch uses exactly 3 repeats")
+        raise ValueError("fair comparison batch uses exactly 3 repeats")
     plan = build_launch_plan(args)
     print(f"batch={args.batch} total={len(plan)} free={free_slots()}", flush=True)
     if args.watch:

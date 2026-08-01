@@ -10,7 +10,7 @@ from pathlib import Path
 
 from . import run
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 TASK_SHORT = {
     "tsp_construct": "tsp",
     "cvrp_aco": "cvrp",
@@ -58,7 +58,7 @@ def build_launch_plan(args: argparse.Namespace) -> list[LaunchItem]:
             command = (
                 sys.executable,
                 "-m",
-                "experiments.eoh.run",
+                "experiments.runners.eoh.run",
                 "--task",
                 task,
                 "--backend",

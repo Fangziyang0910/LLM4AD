@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from experiments.shinka_evo import launch, run
+from experiments.runners.shinka_evo import launch, run
 from llm4ad.method.shinka_evo import ShinkaEvo
 
 

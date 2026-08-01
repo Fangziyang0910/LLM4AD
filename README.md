@@ -8,9 +8,10 @@
 
 ```
 LLM4AD/
-├── experiments/      # 各 task × method 的实验入口；运行工件仅保存在本地
-│   ├── traceaad/                  # TraceAAD V4/V5 统一参数化入口
-│   └── <task>/<method>/           # task 评估入口与本地运行目录
+├── experiments/      # runners/ 可复用入口；<task>/<method>/ 本地结果
+│   ├── runners/                   # TraceAAD / EoH / PathWise / ReEvo / ...
+│   ├── plotting/                  # 正式搜索曲线
+│   └── <task>/<method>/           # 评估脚本与本地运行工件
 ├── llm4ad/           # 平台核心
 │   ├── method/       # mcts_ahd / pathwise / traceaad / eoh / reevo / meoh ...
 │   ├── task/         # tsp / cvrp / orienteering / knapsack / bp / jssp ...
@@ -26,23 +27,23 @@ LLM4AD/
 TraceAAD 使用统一参数化入口：
 
 ```bash
-uv run python -m experiments.traceaad.run \
+uv run python -m experiments.runners.traceaad.run \
   --task tsp_construct --version v5 --backend local
 
-uv run python -m experiments.traceaad.launch \
+uv run python -m experiments.runners.traceaad.launch \
   --task tsp_construct --version v5 --backend local --repeats 3
 ```
 
 `launch` 自动建立独立 tmux 与 run 名称。每次运行仍在对应
 `experiments/<task>/traceaad_<version>/<version>/` 下保存 `run_config.json`、
 `tmux_run.log` 和 `logs/`，不需要手写配置或批次脚本。这些原始工件只保存在
-实验机器本地，不进入 Git。其它方法保留各自的原生入口。完整参数见
-`python -m experiments.traceaad.run --help`，布局细则见
+实验机器本地，不进入 Git。其它方法入口见 `experiments/runners/`。完整参数见
+`python -m experiments.runners.traceaad.run --help`，布局细则见
 `experiments/README.md`。
 
 ## 当前实验矩阵
 
-当前覆盖统一见 `docs/实验覆盖.md`。定稿结果见
+当前覆盖统一见 `docs/experiments/覆盖.md`。定稿结果见
 `docs/results/<task>/结果汇总.md`，运行过程和研究记录见当周
 `docs/worklog/YYYY-Www.md`。
 
