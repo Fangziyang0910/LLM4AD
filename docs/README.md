@@ -1,61 +1,31 @@
-# 研究文档导航
+# 研究笔记
 
-文档按科研职责组织。每类文档只回答一种问题，方法决定、研究推理、证据材料、实验配置和过程记录不在同一文件重复维护。
+本目录记录从问题提出到形成结论的完整科研过程。研究问题是主线，方法规范、实验协议和结果是研究成熟后的独立产物。
 
-## 快速入口
+## 当前入口
 
-| 想回答的问题 | 入口 |
+| 内容 | 入口 |
 | --- | --- |
-| TraceAAD v4 怎样运行？ | [`TraceAAD-v4完整机制设计.md`](methods/TraceAAD-v4完整机制设计.md) |
-| TraceAAD v5 怎样设计与运行？ | [`TraceAAD-v5完整机制设计.md`](methods/TraceAAD-v5完整机制设计.md) |
-| 当前形成了哪些长期研究认识？ | [`研究认识.md`](研究认识.md) |
-| 某个具体研究问题研究到了哪里？ | [`studies/`](studies/README.md) |
-| 某项判断由哪些运行或论文证据支持？ | [`evidence/`](evidence/) |
-| task 的训练、测试与 ID/OOD 怎样定义？ | [`实验配置.md`](实验配置.md) |
-| 已完成实验的权威结果是什么？ | [`results/`](results/README.md) |
-| 最近做了什么？ | [`worklog/`](worklog/) |
+| 临时想法与待澄清问题 | [inbox.md](inbox.md) |
+| 活跃研究问题 | [research/](research/README.md) |
+| LLM 自动算法设计研究认识 | [knowledge/LLM自动算法设计.md](knowledge/LLM自动算法设计.md) |
+| TraceAAD 研究认识 | [knowledge/研究认识.md](knowledge/研究认识.md) |
+| TraceAAD 方法规范 | [methods/](methods/) |
+| 实验配置与覆盖 | [experiments/](experiments/) |
+| 相关工作调研 | [references/](references/) |
+| 正式实验结果 | [results/](results/README.md) |
+| 周度研究索引 | [worklog/](worklog/) |
+| 历史审计与开发复盘 | [archive/](archive/) |
 
-## 文档职责
+## 信息流
 
-### `研究认识.md`
+```text
+inbox → research → knowledge / methods / experiments / results
+                       ↘ archive
+```
 
-保存跨具体版本仍可复用的科学认识和底层逻辑，采用连贯主题文章组织。它不保存完整机制参数、单次实验快照或工作过程。
-
-### `methods/`
-
-保存方法规范，回答方法的科学主张、状态、机制、完整流程、默认配置和可证伪假设。TraceAAD 正式版本直接放在 `methods/`：
-
-- `TraceAAD-v4完整机制设计.md`：V4 实现规范；
-- `TraceAAD-v5完整机制设计.md`：V5 实现规范。
-
-方法文档可以简要说明设计动机和已知问题，但不嵌入大段文献综述、运行统计或审计案例；这些内容通过链接引用。
-定稿前的代码、实验与审计统一放入 `archive/`，不作为当前方法入口。
-
-### `studies/`
-
-一个文档维护一个边界清楚、与具体版本解耦的研究问题。主文给出研究问题、状态、当前判断、证据推理和对方法设计的影响。目录入口见 [`studies/README.md`](studies/README.md)。
-
-### `evidence/`
-
-保存不会随当前方法决定被反复改写的支持材料：
-
-- `audits/`：特定版本、日期和工件范围内的冻结过程证据；
-- `surveys/`：跨论文、原始代码或方法的相关工作综述。
-
-审计可以记录当时的解释和建议，但必须标明快照范围；当前方法取舍始终以 `methods/` 为准。
-
-### `实验配置.md` 与 `实验覆盖.md`
-
-`实验配置.md` 按 task 保存训练与测试数据、ID/OOD 定义、必要的论文协议依据和搜索配置；`实验覆盖.md` 只记录 method × task 的完成状态，不保存权威分数。
-
-### `worklog/` 与 `results/`
-
-`worklog/YYYY-Www.md` 是唯一过程记录入口，按 ISO 周记录实验、改动、问题和阶段判断。`results/<task>/结果汇总.md` 只保存重复实验和测试评估完成后的权威结果与图表。
-
-## 新内容怎样进入
-
-1. 新出现但尚未形成关系的研究灵感，先在讨论中澄清；形成可复用认识后融入 `研究认识.md`。
-2. 一个可以独立提问、积累证据和形成判断的问题，在 `studies/` 建立或更新一个主题文档。
-3. 大量运行表格、案例和冻结快照进入 `evidence/audits/`；跨方法文献核对进入 `evidence/surveys/`。
-4. 当研究判断转化为具体机制时，只在对应 `methods/` 文档维护完整方案，并链接研究与证据，不复制其全文。
-5. 实验过程进入当周 `worklog/`，最终结果进入 `results/`。不单独创建 `docs/experiments/`。
+- 新想法先进入 `inbox.md`；形成明确问题后转入 `research/`。
+- 一个研究问题在同一篇笔记中维护假设、设计、观察、分析和决定。
+- 稳定认识进入 `knowledge/`，采用的机制进入 `methods/`，固定协议进入 `experiments/`，完成结果进入 `results/`。
+- `worklog/` 只记录时间和链接；冻结材料进入 `archive/`。
+- 各处链接结论，不复制论证。

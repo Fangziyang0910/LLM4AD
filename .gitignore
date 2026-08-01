@@ -49,9 +49,8 @@ experiments/**/tmux_run.log
 experiments/**/logs/
 experiments/**/logs_*/
 
-# Historical experiment artifacts are retained locally; archive notes remain
-# trackable.
-archive/**/experiments/
+# Historical experiment artifacts are local-only.
+archive/
 
 # Local task datasets and downloaded model/data caches
 llm4ad/task/optimization/*/data/
