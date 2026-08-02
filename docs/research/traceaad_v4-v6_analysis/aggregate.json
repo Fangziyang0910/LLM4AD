@@ -1,0 +1,951 @@
+{
+  "by_version_task": {
+    "version4|cvrp_aco": {
+      "best_score": {
+        "mean": -8.665,
+        "std": 0.0643
+      },
+      "breakthrough_count": {
+        "mean": 22.3333,
+        "std": 2.8868
+      },
+      "breakthrough_rate_w10": {
+        "mean": 0.1833,
+        "std": 0.0153
+      },
+      "strict_fitness_event_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "tie_shorter_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "unclassified_best_update_count": {
+        "mean": 22.3333,
+        "std": 2.8868
+      },
+      "lrr": {
+        "mean": 0.1363,
+        "std": 0.0123
+      },
+      "mean_delta": {
+        "mean": -0.486,
+        "std": 0.1205
+      },
+      "mean_pcd": {
+        "mean": 0.0713,
+        "std": 0.0024
+      },
+      "mean_code_change_ratio": {
+        "mean": null,
+        "std": null
+      },
+      "avg_novelty": {
+        "mean": 0.0721,
+        "std": 0.0021
+      },
+      "init_novelty": {
+        "mean": 0.3216,
+        "std": 0.0135
+      },
+      "mean_h_spatial": {
+        "mean": 2.2277,
+        "std": 0.0182
+      },
+      "mean_h_fitness": {
+        "mean": 2.2273,
+        "std": 0.0183
+      },
+      "llm_calls": {
+        "mean": 152.0,
+        "std": 97.55
+      },
+      "n_reps": 3
+    },
+    "version4|online_bin_packing": {
+      "best_score": {
+        "mean": -725.0,
+        "std": 1.7321
+      },
+      "breakthrough_count": {
+        "mean": 12.0,
+        "std": 3.6056
+      },
+      "breakthrough_rate_w10": {
+        "mean": 0.1133,
+        "std": 0.0351
+      },
+      "strict_fitness_event_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "tie_shorter_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "unclassified_best_update_count": {
+        "mean": 12.0,
+        "std": 3.6056
+      },
+      "lrr": {
+        "mean": 0.0825,
+        "std": 0.0181
+      },
+      "mean_delta": {
+        "mean": -50.1069,
+        "std": 33.6233
+      },
+      "mean_pcd": {
+        "mean": 0.0852,
+        "std": 0.0142
+      },
+      "mean_code_change_ratio": {
+        "mean": null,
+        "std": null
+      },
+      "avg_novelty": {
+        "mean": 0.0748,
+        "std": 0.0105
+      },
+      "init_novelty": {
+        "mean": 0.2568,
+        "std": 0.0099
+      },
+      "mean_h_spatial": {
+        "mean": 2.2252,
+        "std": 0.0533
+      },
+      "mean_h_fitness": {
+        "mean": 2.2244,
+        "std": 0.0536
+      },
+      "llm_calls": {
+        "mean": 1498.3333,
+        "std": 16.1967
+      },
+      "n_reps": 3
+    },
+    "version4|op_aco": {
+      "best_score": {
+        "mean": 14.882,
+        "std": 0.0658
+      },
+      "breakthrough_count": {
+        "mean": 16.6667,
+        "std": 4.5092
+      },
+      "breakthrough_rate_w10": {
+        "mean": 0.1467,
+        "std": 0.0404
+      },
+      "strict_fitness_event_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "tie_shorter_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "unclassified_best_update_count": {
+        "mean": 16.6667,
+        "std": 4.5092
+      },
+      "lrr": {
+        "mean": 0.1049,
+        "std": 0.0391
+      },
+      "mean_delta": {
+        "mean": -0.3373,
+        "std": 0.0281
+      },
+      "mean_pcd": {
+        "mean": 0.084,
+        "std": 0.0073
+      },
+      "mean_code_change_ratio": {
+        "mean": null,
+        "std": null
+      },
+      "avg_novelty": {
+        "mean": 0.0777,
+        "std": 0.0079
+      },
+      "init_novelty": {
+        "mean": 0.2175,
+        "std": 0.0087
+      },
+      "mean_h_spatial": {
+        "mean": 2.2239,
+        "std": 0.0278
+      },
+      "mean_h_fitness": {
+        "mean": 2.2233,
+        "std": 0.0276
+      },
+      "llm_calls": {
+        "mean": 1487.0,
+        "std": 1.7321
+      },
+      "n_reps": 3
+    },
+    "version4|tsp_construct": {
+      "best_score": {
+        "mean": -5.9764,
+        "std": 0.0609
+      },
+      "breakthrough_count": {
+        "mean": 26.3333,
+        "std": 7.2342
+      },
+      "breakthrough_rate_w10": {
+        "mean": 0.22,
+        "std": 0.0608
+      },
+      "strict_fitness_event_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "tie_shorter_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "unclassified_best_update_count": {
+        "mean": 26.3333,
+        "std": 7.2342
+      },
+      "lrr": {
+        "mean": 0.1409,
+        "std": 0.0116
+      },
+      "mean_delta": {
+        "mean": -0.4637,
+        "std": 0.0881
+      },
+      "mean_pcd": {
+        "mean": 0.1048,
+        "std": 0.0247
+      },
+      "mean_code_change_ratio": {
+        "mean": null,
+        "std": null
+      },
+      "avg_novelty": {
+        "mean": 0.1005,
+        "std": 0.0184
+      },
+      "init_novelty": {
+        "mean": 0.3388,
+        "std": 0.0351
+      },
+      "mean_h_spatial": {
+        "mean": 2.2393,
+        "std": 0.0175
+      },
+      "mean_h_fitness": {
+        "mean": 2.2389,
+        "std": 0.0176
+      },
+      "llm_calls": {
+        "mean": 1141.3333,
+        "std": 617.7656
+      },
+      "n_reps": 3
+    },
+    "version5|cvrp_aco": {
+      "best_score": {
+        "mean": -8.7172,
+        "std": 0.0842
+      },
+      "breakthrough_count": {
+        "mean": 25.0,
+        "std": 4.5826
+      },
+      "breakthrough_rate_w10": {
+        "mean": 0.2,
+        "std": 0.0557
+      },
+      "strict_fitness_event_count": {
+        "mean": 25.0,
+        "std": 4.5826
+      },
+      "tie_shorter_count": {
+        "mean": 11.3333,
+        "std": 4.9329
+      },
+      "unclassified_best_update_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "lrr": {
+        "mean": 0.1624,
+        "std": 0.0152
+      },
+      "mean_delta": {
+        "mean": -0.7909,
+        "std": 0.3249
+      },
+      "mean_pcd": {
+        "mean": 0.0826,
+        "std": 0.0105
+      },
+      "mean_code_change_ratio": {
+        "mean": null,
+        "std": null
+      },
+      "avg_novelty": {
+        "mean": 0.061,
+        "std": 0.0071
+      },
+      "init_novelty": {
+        "mean": 0.3012,
+        "std": 0.0239
+      },
+      "mean_h_spatial": {
+        "mean": 2.2015,
+        "std": 0.019
+      },
+      "mean_h_fitness": {
+        "mean": 2.2001,
+        "std": 0.0196
+      },
+      "llm_calls": {
+        "mean": 1486.0,
+        "std": 1.0
+      },
+      "n_reps": 3
+    },
+    "version5|online_bin_packing": {
+      "best_score": {
+        "mean": -733.25,
+        "std": 9.189
+      },
+      "breakthrough_count": {
+        "mean": 7.6667,
+        "std": 7.3711
+      },
+      "breakthrough_rate_w10": {
+        "mean": 0.0667,
+        "std": 0.0569
+      },
+      "strict_fitness_event_count": {
+        "mean": 7.6667,
+        "std": 7.3711
+      },
+      "tie_shorter_count": {
+        "mean": 8.3333,
+        "std": 1.1547
+      },
+      "unclassified_best_update_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "lrr": {
+        "mean": 0.0831,
+        "std": 0.0633
+      },
+      "mean_delta": {
+        "mean": -148.8517,
+        "std": 102.7381
+      },
+      "mean_pcd": {
+        "mean": 0.0608,
+        "std": 0.0139
+      },
+      "mean_code_change_ratio": {
+        "mean": null,
+        "std": null
+      },
+      "avg_novelty": {
+        "mean": 0.0321,
+        "std": 0.0105
+      },
+      "init_novelty": {
+        "mean": 0.2369,
+        "std": 0.0047
+      },
+      "mean_h_spatial": {
+        "mean": 1.9414,
+        "std": 0.217
+      },
+      "mean_h_fitness": {
+        "mean": 1.9392,
+        "std": 0.2165
+      },
+      "llm_calls": {
+        "mean": 1490.6667,
+        "std": 3.2146
+      },
+      "n_reps": 3
+    },
+    "version5|op_aco": {
+      "best_score": {
+        "mean": 14.896,
+        "std": 0.0658
+      },
+      "breakthrough_count": {
+        "mean": 18.0,
+        "std": 6.0828
+      },
+      "breakthrough_rate_w10": {
+        "mean": 0.1533,
+        "std": 0.0551
+      },
+      "strict_fitness_event_count": {
+        "mean": 18.0,
+        "std": 6.0828
+      },
+      "tie_shorter_count": {
+        "mean": 17.6667,
+        "std": 3.0551
+      },
+      "unclassified_best_update_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "lrr": {
+        "mean": 0.1513,
+        "std": 0.0433
+      },
+      "mean_delta": {
+        "mean": -0.4992,
+        "std": 0.1877
+      },
+      "mean_pcd": {
+        "mean": 0.0676,
+        "std": 0.0212
+      },
+      "mean_code_change_ratio": {
+        "mean": null,
+        "std": null
+      },
+      "avg_novelty": {
+        "mean": 0.0461,
+        "std": 0.0125
+      },
+      "init_novelty": {
+        "mean": 0.2132,
+        "std": 0.0233
+      },
+      "mean_h_spatial": {
+        "mean": 2.1722,
+        "std": 0.0282
+      },
+      "mean_h_fitness": {
+        "mean": 2.1705,
+        "std": 0.0289
+      },
+      "llm_calls": {
+        "mean": 1484.3333,
+        "std": 1.1547
+      },
+      "n_reps": 3
+    },
+    "version5|tsp_construct": {
+      "best_score": {
+        "mean": -6.0582,
+        "std": 0.0594
+      },
+      "breakthrough_count": {
+        "mean": 22.0,
+        "std": 6.9282
+      },
+      "breakthrough_rate_w10": {
+        "mean": 0.1833,
+        "std": 0.0603
+      },
+      "strict_fitness_event_count": {
+        "mean": 22.0,
+        "std": 6.9282
+      },
+      "tie_shorter_count": {
+        "mean": 11.0,
+        "std": 3.0
+      },
+      "unclassified_best_update_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "lrr": {
+        "mean": 0.1479,
+        "std": 0.0283
+      },
+      "mean_delta": {
+        "mean": -0.5806,
+        "std": 0.1558
+      },
+      "mean_pcd": {
+        "mean": 0.1293,
+        "std": 0.0408
+      },
+      "mean_code_change_ratio": {
+        "mean": null,
+        "std": null
+      },
+      "avg_novelty": {
+        "mean": 0.0918,
+        "std": 0.0254
+      },
+      "init_novelty": {
+        "mean": 0.3386,
+        "std": 0.0131
+      },
+      "mean_h_spatial": {
+        "mean": 2.2078,
+        "std": 0.0419
+      },
+      "mean_h_fitness": {
+        "mean": 2.207,
+        "std": 0.0415
+      },
+      "llm_calls": {
+        "mean": 1492.6667,
+        "std": 6.6583
+      },
+      "n_reps": 3
+    },
+    "version6|cvrp_aco": {
+      "best_score": {
+        "mean": -8.6727,
+        "std": 0.0961
+      },
+      "breakthrough_count": {
+        "mean": 23.6667,
+        "std": 2.5166
+      },
+      "breakthrough_rate_w10": {
+        "mean": 0.1967,
+        "std": 0.0153
+      },
+      "strict_fitness_event_count": {
+        "mean": 23.3333,
+        "std": 2.5166
+      },
+      "tie_shorter_count": {
+        "mean": 1.6667,
+        "std": 0.5774
+      },
+      "unclassified_best_update_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "lrr": {
+        "mean": 0.126,
+        "std": 0.0173
+      },
+      "mean_delta": {
+        "mean": -0.9654,
+        "std": 0.3856
+      },
+      "mean_pcd": {
+        "mean": 0.1549,
+        "std": 0.0068
+      },
+      "mean_code_change_ratio": {
+        "mean": null,
+        "std": null
+      },
+      "avg_novelty": {
+        "mean": 0.1135,
+        "std": 0.0012
+      },
+      "init_novelty": {
+        "mean": 0.3048,
+        "std": 0.0099
+      },
+      "mean_h_spatial": {
+        "mean": 2.2047,
+        "std": 0.0342
+      },
+      "mean_h_fitness": {
+        "mean": 2.2035,
+        "std": 0.0351
+      },
+      "llm_calls": {
+        "mean": 1489.0,
+        "std": 2.6458
+      },
+      "n_reps": 3
+    },
+    "version6|online_bin_packing": {
+      "best_score": {
+        "mean": -729.5833,
+        "std": 7.7715
+      },
+      "breakthrough_count": {
+        "mean": 7.6667,
+        "std": 7.0238
+      },
+      "breakthrough_rate_w10": {
+        "mean": 0.0733,
+        "std": 0.0651
+      },
+      "strict_fitness_event_count": {
+        "mean": 7.6667,
+        "std": 7.0238
+      },
+      "tie_shorter_count": {
+        "mean": 4.6667,
+        "std": 3.5119
+      },
+      "unclassified_best_update_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "lrr": {
+        "mean": 0.0648,
+        "std": 0.0496
+      },
+      "mean_delta": {
+        "mean": -196.0515,
+        "std": 83.9465
+      },
+      "mean_pcd": {
+        "mean": 0.1084,
+        "std": 0.0497
+      },
+      "mean_code_change_ratio": {
+        "mean": null,
+        "std": null
+      },
+      "avg_novelty": {
+        "mean": 0.0617,
+        "std": 0.0293
+      },
+      "init_novelty": {
+        "mean": 0.2617,
+        "std": 0.0433
+      },
+      "mean_h_spatial": {
+        "mean": 2.2371,
+        "std": 0.0424
+      },
+      "mean_h_fitness": {
+        "mean": 2.2367,
+        "std": 0.0424
+      },
+      "llm_calls": {
+        "mean": 1490.6667,
+        "std": 9.8658
+      },
+      "n_reps": 3
+    },
+    "version6|op_aco": {
+      "best_score": {
+        "mean": 14.6913,
+        "std": 0.2041
+      },
+      "breakthrough_count": {
+        "mean": 13.6667,
+        "std": 1.5275
+      },
+      "breakthrough_rate_w10": {
+        "mean": 0.1133,
+        "std": 0.0153
+      },
+      "strict_fitness_event_count": {
+        "mean": 13.3333,
+        "std": 1.5275
+      },
+      "tie_shorter_count": {
+        "mean": 5.3333,
+        "std": 4.1633
+      },
+      "unclassified_best_update_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "lrr": {
+        "mean": 0.1072,
+        "std": 0.0189
+      },
+      "mean_delta": {
+        "mean": -0.9888,
+        "std": 0.3396
+      },
+      "mean_pcd": {
+        "mean": 0.1443,
+        "std": 0.0188
+      },
+      "mean_code_change_ratio": {
+        "mean": null,
+        "std": null
+      },
+      "avg_novelty": {
+        "mean": 0.0958,
+        "std": 0.0083
+      },
+      "init_novelty": {
+        "mean": 0.198,
+        "std": 0.0051
+      },
+      "mean_h_spatial": {
+        "mean": 2.235,
+        "std": 0.0071
+      },
+      "mean_h_fitness": {
+        "mean": 2.2335,
+        "std": 0.0071
+      },
+      "llm_calls": {
+        "mean": 1492.6667,
+        "std": 3.0551
+      },
+      "n_reps": 3
+    },
+    "version6|tsp_construct": {
+      "best_score": {
+        "mean": -5.98,
+        "std": 0.0807
+      },
+      "breakthrough_count": {
+        "mean": 21.6667,
+        "std": 2.5166
+      },
+      "breakthrough_rate_w10": {
+        "mean": 0.1967,
+        "std": 0.0153
+      },
+      "strict_fitness_event_count": {
+        "mean": 21.6667,
+        "std": 2.5166
+      },
+      "tie_shorter_count": {
+        "mean": 10.0,
+        "std": 6.0
+      },
+      "unclassified_best_update_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "lrr": {
+        "mean": 0.1187,
+        "std": 0.0168
+      },
+      "mean_delta": {
+        "mean": -1.2028,
+        "std": 0.3068
+      },
+      "mean_pcd": {
+        "mean": 0.1978,
+        "std": 0.0426
+      },
+      "mean_code_change_ratio": {
+        "mean": null,
+        "std": null
+      },
+      "avg_novelty": {
+        "mean": 0.1553,
+        "std": 0.0334
+      },
+      "init_novelty": {
+        "mean": 0.3452,
+        "std": 0.0439
+      },
+      "mean_h_spatial": {
+        "mean": 2.1645,
+        "std": 0.0397
+      },
+      "mean_h_fitness": {
+        "mean": 2.1636,
+        "std": 0.0396
+      },
+      "llm_calls": {
+        "mean": 1497.6667,
+        "std": 4.5092
+      },
+      "n_reps": 3
+    }
+  },
+  "by_version": {
+    "version4": {
+      "best_score": {
+        "mean": -181.1899,
+        "std": 328.0688
+      },
+      "breakthrough_count": {
+        "mean": 19.3333,
+        "std": 7.0367
+      },
+      "breakthrough_rate_w10": {
+        "mean": 0.1658,
+        "std": 0.0545
+      },
+      "strict_fitness_event_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "tie_shorter_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "unclassified_best_update_count": {
+        "mean": 19.3333,
+        "std": 7.0367
+      },
+      "lrr": {
+        "mean": 0.1162,
+        "std": 0.0318
+      },
+      "mean_delta": {
+        "mean": -12.8485,
+        "std": 26.6525
+      },
+      "mean_pcd": {
+        "mean": 0.0863,
+        "std": 0.0177
+      },
+      "mean_code_change_ratio": {
+        "mean": null,
+        "std": null
+      },
+      "avg_novelty": {
+        "mean": 0.0813,
+        "std": 0.0152
+      },
+      "init_novelty": {
+        "mean": 0.2837,
+        "std": 0.0539
+      },
+      "mean_h_spatial": {
+        "mean": 2.229,
+        "std": 0.0285
+      },
+      "mean_h_fitness": {
+        "mean": 2.2285,
+        "std": 0.0286
+      },
+      "llm_calls": {
+        "mean": 1069.6667,
+        "std": 632.3364
+      },
+      "n_runs": 12
+    },
+    "version5": {
+      "best_score": {
+        "mean": -183.2824,
+        "std": 331.8036
+      },
+      "breakthrough_count": {
+        "mean": 18.1667,
+        "std": 8.7161
+      },
+      "breakthrough_rate_w10": {
+        "mean": 0.1508,
+        "std": 0.0724
+      },
+      "strict_fitness_event_count": {
+        "mean": 18.1667,
+        "std": 8.7161
+      },
+      "tie_shorter_count": {
+        "mean": 12.0833,
+        "std": 4.5619
+      },
+      "unclassified_best_update_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "lrr": {
+        "mean": 0.1362,
+        "std": 0.0481
+      },
+      "mean_delta": {
+        "mean": -37.6806,
+        "std": 80.0834
+      },
+      "mean_pcd": {
+        "mean": 0.0851,
+        "std": 0.0349
+      },
+      "mean_code_change_ratio": {
+        "mean": null,
+        "std": null
+      },
+      "avg_novelty": {
+        "mean": 0.0577,
+        "std": 0.0267
+      },
+      "init_novelty": {
+        "mean": 0.2725,
+        "std": 0.0544
+      },
+      "mean_h_spatial": {
+        "mean": 2.1307,
+        "std": 0.1494
+      },
+      "mean_h_fitness": {
+        "mean": 2.1292,
+        "std": 0.1496
+      },
+      "llm_calls": {
+        "mean": 1488.4167,
+        "std": 4.776
+      },
+      "n_runs": 12
+    },
+    "version6": {
+      "best_score": {
+        "mean": -182.3862,
+        "std": 330.124
+      },
+      "breakthrough_count": {
+        "mean": 16.6667,
+        "std": 7.5116
+      },
+      "breakthrough_rate_w10": {
+        "mean": 0.145,
+        "std": 0.0635
+      },
+      "strict_fitness_event_count": {
+        "mean": 16.5,
+        "std": 7.4651
+      },
+      "tie_shorter_count": {
+        "mean": 5.4167,
+        "std": 4.6604
+      },
+      "unclassified_best_update_count": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "lrr": {
+        "mean": 0.1042,
+        "std": 0.0351
+      },
+      "mean_delta": {
+        "mean": -49.8021,
+        "std": 95.1794
+      },
+      "mean_pcd": {
+        "mean": 0.1514,
+        "std": 0.0443
+      },
+      "mean_code_change_ratio": {
+        "mean": null,
+        "std": null
+      },
+      "avg_novelty": {
+        "mean": 0.1066,
+        "std": 0.0402
+      },
+      "init_novelty": {
+        "mean": 0.2775,
+        "std": 0.0629
+      },
+      "mean_h_spatial": {
+        "mean": 2.2103,
+        "std": 0.0422
+      },
+      "mean_h_fitness": {
+        "mean": 2.2093,
+        "std": 0.0423
+      },
+      "llm_calls": {
+        "mean": 1492.5,
+        "std": 5.9924
+      },
+      "n_runs": 12
+    }
+  }
+}

@@ -28,6 +28,12 @@ from llm4ad.method.traceaad_v5 import (
     ValueWeights as V5ValueWeights,
 )
 from llm4ad.method.traceaad_v6 import (
+    CHECKPOINT_VERSION as V6_CHECKPOINT_VERSION,
+)
+from llm4ad.method.traceaad_v6 import (
+    PROTOCOL_ID as V6_PROTOCOL_ID,
+)
+from llm4ad.method.traceaad_v6 import (
     TraceAADProfiler as TraceAADV6Profiler,
 )
 from llm4ad.method.traceaad_v6 import (
@@ -36,6 +42,7 @@ from llm4ad.method.traceaad_v6 import (
 from llm4ad.method.traceaad_v6 import (
     ValueWeights as V6ValueWeights,
 )
+from llm4ad.method.traceaad_v6.operators import DEFAULT_OPERATORS as V6_OPERATORS
 from llm4ad.task.optimization.cvrp_aco import CVRPACOEvaluation
 from llm4ad.task.optimization.generated_data_config import (
     get_generated_task_kwargs,
@@ -59,6 +66,7 @@ TASKS: tuple[TaskName, ...] = (
     "online_bin_packing",
 )
 VERSIONS: tuple[VersionName, ...] = ("v4", "v5", "v6")
+V6_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V6_OPERATORS]
 
 
 @dataclass(frozen=True, slots=True)
@@ -308,9 +316,7 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     expected = {"task": spec.task, "method": spec.method_name}
     actual = {key: payload.get(key) for key in expected}
     if actual != expected:
-        raise ValueError(
-            f"resume config mismatch: expected {expected}, found {actual}"
-        )
+        raise ValueError(f"resume config mismatch: expected {expected}, found {actual}")
     if spec.version != "v6":
         return
     _, task_kwargs = build_task(spec)
@@ -325,8 +331,20 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
             "no_proxy": spec.no_proxy,
         },
         "method_params": {
+            "protocol_id": V6_PROTOCOL_ID,
+            "checkpoint_schema_version": V6_CHECKPOINT_VERSION,
             "max_sample_nums": spec.budget,
             "n_init": spec.n_init,
+            "actions_per_iteration": 2,
+            "max_trajectory_length": 8,
+            "max_active_trajectories": 30,
+            "softmax_temperature": 0.2,
+            "maximize": True,
+            "operators": V6_OPERATOR_NAMES,
+            "max_consecutive_sample_failures": 20,
+            "max_stalled_iterations": 20,
+            "checkpoint_interval": 10,
+            "value_weights": asdict(V6ValueWeights()),
             "action_max_tokens": spec.action_max_tokens,
             "code_max_tokens": spec.llm_output_tokens,
             "context_token_limit": spec.context_token_limit,
@@ -336,10 +354,7 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     actual_v6 = {
         "backend": payload.get("backend"),
         "task_eval": payload.get("task_eval"),
-        "llm": {
-            key: payload.get("llm", {}).get(key)
-            for key in expected_v6["llm"]
-        },
+        "llm": {key: payload.get("llm", {}).get(key) for key in expected_v6["llm"]},
         "method_params": {
             key: payload.get("method_params", {}).get(key)
             for key in expected_v6["method_params"]
@@ -389,11 +404,14 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     if spec.version == "v6":
         method_params.update(
             {
+                "protocol_id": V6_PROTOCOL_ID,
+                "checkpoint_schema_version": V6_CHECKPOINT_VERSION,
+                "maximize": True,
+                "operators": V6_OPERATOR_NAMES,
                 "action_max_tokens": spec.action_max_tokens,
                 "code_max_tokens": spec.llm_output_tokens,
                 "context_token_limit": spec.context_token_limit,
                 "random_seed": spec.seed,
-                "dual_probability": 0.25,
             }
         )
     payload = {

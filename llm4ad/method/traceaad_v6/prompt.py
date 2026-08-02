@@ -39,7 +39,6 @@ def build_initial_prompt(
     *,
     task_description: str,
     template_function: Function,
-    diversity_hint: str,
 ) -> str:
     target = copy.deepcopy(template_function)
     target.body = ""
@@ -47,11 +46,8 @@ def build_initial_prompt(
         [
             task_description.strip(),
             "",
-            (
-                "Generate a complete implementation for the target Python function. "
-                f"{diversity_hint}"
-            ),
-            "Keep the function name, arguments, return type, and contract unchanged.",
+            "Generate a simple, complete, and valid implementation for the target Python function.",
+            "The function name, arguments, return type, and contract should remain unchanged.",
             (
                 "Imports from the task template remain available. "
                 "You may add small top-level helper functions when they clarify the implementation."
@@ -118,22 +114,18 @@ def build_code_prompt(
             "",
             "[Instruction]",
             (
-                "Use the histories as evidence about tested directions, then implement "
-                "the requested modification from the primary program."
+                "The histories describe what has been tried; they may help explain the "
+                "requested modification from the primary program."
             ),
             (
-                "When a reference program is present, use it only in the way specified "
-                "by the requested modification."
+                "When a reference program is present, the requested modification can "
+                "adapt an idea from it."
             ),
+            "The target function signature and contract remain unchanged.",
+            "Return one complete implementation.",
             (
-                "Realize the modification in code rather than reproduce the current "
-                "program unchanged."
-            ),
-            "Keep the target function signature and contract unchanged.",
-            "Return exactly one complete implementation.",
-            (
-                "Imports from the current program remain available. "
-                "You may retain or add small top-level helper functions."
+                "Imports from the task template remain available. Include any additional "
+                "imports and top-level helper functions required by this implementation."
             ),
             "Output only:",
             (
@@ -154,23 +146,26 @@ def parse_actions(
     *,
     expected_count: int,
 ) -> tuple[list[str], list[str]]:
-    actions: list[str] = []
+    numbered: dict[int, str] = {}
+    errors: list[str] = []
     for line in str(response).strip().splitlines():
         match = re.match(
             r"^(?P<number>\d+)[\.\)]\s+(?P<action>\S.*)$",
             line.strip(),
         )
-        if match is None or int(match.group("number")) != len(actions) + 1:
+        if match is None:
             continue
-        actions.append(match.group("action").strip())
-    parsed_count = len(actions)
-    errors = (
-        []
-        if parsed_count == expected_count
-        else [f"expected_{expected_count}_actions_got_{parsed_count}"]
-    )
-    if errors:
-        return [], errors
+        number = int(match.group("number"))
+        if number < 1 or number > expected_count:
+            errors.append(f"action_number_out_of_range_{number}")
+            continue
+        if number in numbered:
+            errors.append(f"duplicate_action_number_{number}")
+            continue
+        numbered[number] = match.group("action").strip()
+    actions = [numbered[number] for number in sorted(numbered)]
+    if not actions:
+        errors.append(f"no_valid_actions_up_to_{expected_count}")
     return actions, errors
 
 

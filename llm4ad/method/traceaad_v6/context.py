@@ -1,4 +1,4 @@
-"""Render bounded TraceAAD v6 trajectories for model context."""
+"""Render bounded TraceAAD V6 formation histories for model context."""
 
 from __future__ import annotations
 
@@ -8,8 +8,7 @@ from dataclasses import dataclass
 from ...base import Function
 from .derivation_graph import DerivationGraph
 from .prompt import fitness_direction_hint, format_fitness
-from .schema import AnchorAttempt, ProgramNode, Trajectory
-from .attempts import select_tested_attempts
+from .schema import ProgramNode, Trajectory
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,6 +27,12 @@ def trajectory_history(
     max_steps: int = 8,
     positive_threshold: float = 0.0,
 ) -> RenderedHistory:
+    """Render recent path facts, truncating deterministically by time.
+
+    ``positive_threshold`` remains accepted for callers that build histories
+    from older configurations, but it does not affect context selection.
+    """
+    del positive_threshold
     if max_steps <= 0:
         return RenderedHistory(
             text="No earlier change is shown.",
@@ -48,27 +53,16 @@ def trajectory_history(
     base_index = trajectory.node_ids.index(base_id)
     before = trajectory.edge_ids[:base_index]
     after = trajectory.edge_ids[base_index:]
-    if len(trajectory.edge_ids) <= max_steps:
-        selected_before = before
-        selected_after = after
-    else:
-        selected_ids = set(
-            _select_evidence_edges(
-                graph,
-                trajectory.edge_ids,
-                limit=max_steps,
-                positive_threshold=positive_threshold,
-            )
-        )
-        selected_before = tuple(edge_id for edge_id in before if edge_id in selected_ids)
-        selected_after = tuple(edge_id for edge_id in after if edge_id in selected_ids)
+    selected_ids = set(trajectory.edge_ids[-max_steps:])
+    selected_before = tuple(edge_id for edge_id in before if edge_id in selected_ids)
+    selected_after = tuple(edge_id for edge_id in after if edge_id in selected_ids)
     sections: list[str] = []
     if selected_before:
         sections.append("[How This Program Was Reached]")
-        sections.extend(_render_edges(graph, selected_before, highlight_supported=False))
+        sections.extend(_render_edges(graph, selected_before))
     if selected_after:
-        sections.append("[Later Attempts From This Program]")
-        sections.extend(_render_edges(graph, selected_after, highlight_supported=False))
+        sections.append("[Later Changes From This Program]")
+        sections.extend(_render_edges(graph, selected_after))
     if not sections:
         sections.append("No earlier change is shown.")
     selected = (*selected_before, *selected_after)
@@ -88,85 +82,20 @@ def reference_history(
     max_steps: int = 8,
     positive_threshold: float = 0.0,
 ) -> RenderedHistory:
-    rendered = trajectory_history(
+    """Use the same factual history renderer for a reference route."""
+    return trajectory_history(
         graph,
         trajectory,
         base_node_id=base_node_id,
         max_steps=max_steps,
         positive_threshold=positive_threshold,
     )
-    if not rendered.formation_edge_ids and not rendered.tested_after_edge_ids:
-        return rendered
-    sections: list[str] = []
-    if rendered.formation_edge_ids:
-        sections.append("[How This Program Was Reached]")
-        sections.extend(
-            _render_edges(
-                graph,
-                rendered.formation_edge_ids,
-                highlight_supported=True,
-                positive_threshold=positive_threshold,
-            )
-        )
-    if rendered.tested_after_edge_ids:
-        sections.append("[Later Attempts From This Program]")
-        sections.extend(
-            _render_edges(
-                graph,
-                rendered.tested_after_edge_ids,
-                highlight_supported=False,
-                positive_threshold=positive_threshold,
-            )
-        )
-    return RenderedHistory(
-        text="\n".join(sections),
-        edge_ids=rendered.edge_ids,
-        formation_edge_ids=rendered.formation_edge_ids,
-        tested_after_edge_ids=rendered.tested_after_edge_ids,
-    )
-
-
-def render_tested_attempts(
-    attempts: tuple[AnchorAttempt, ...],
-    *,
-    excluded_edge_ids: set[int] | frozenset[int] = frozenset(),
-    limit: int = 6,
-) -> str:
-    selected = select_tested_attempts(
-        attempts, excluded_edge_ids=excluded_edge_ids, limit=limit
-    )
-    if not selected:
-        return "No additional tested attempts from this anchor."
-    lines = ["[Tested Attempts From This Anchor]"]
-    for position, attempt in enumerate(selected, start=1):
-        if attempt.status == "valid":
-            detail = (
-                f"{attempt.outcome}; fitness {format_fitness(attempt.fitness)}; "
-                f"route_delta={_fmt_delta(attempt.delta_route_best)}"
-            )
-        else:
-            detail = f"{attempt.status}; {attempt.failure_kind or 'failed'}"
-        markers = []
-        if attempt.new_global_best:
-            markers.append("global-best update")
-        if attempt.new_route_best:
-            markers.append("route-best update")
-        marker_text = f" ({', '.join(markers)})" if markers else ""
-        lines.extend(
-            [
-                f"Attempt {position}: {detail}{marker_text}",
-                f"  Planned: {_one_line(attempt.action, 300)}",
-                f"  Implemented: {_one_line(attempt.idea or '(none)', 300)}",
-            ]
-        )
-    return "\n".join(lines)
 
 
 def build_action_prompt(
     *,
     base_node: ProgramNode,
     primary_history: RenderedHistory,
-    tested_attempts_text: str,
     operator_constraint: str,
     task_description: str,
     template_function: Function,
@@ -185,8 +114,6 @@ def build_action_prompt(
         "",
         "[Current Program History]",
         primary_history.text,
-        "",
-        tested_attempts_text,
         "",
         "[Current Program]",
         "```python",
@@ -209,76 +136,40 @@ def build_action_prompt(
     sections.extend(
         [
             "",
-            "[Improvement Direction]",
+            "[Improvement Suggestion]",
             operator_constraint,
             "",
             "[Target Function]",
             str(target).rstrip(),
             "",
-            "[Action Contract]",
+            "[Action Guidance]",
+            "The histories provide factual context for the next algorithmic change.",
+            "Only executable suggestions can be evaluated by the search.",
             (
-                "Use the improvement direction and the provided trajectory histories "
-                "to decide the next algorithmic modification."
+                f"You may provide up to {action_count} numbered single-line {action_label}; "
+                "include only suggestions that are useful for this program."
             ),
+            "Keep each suggestion within the target function's existing contract.",
             (
-                "Ground each proposal in the task structure and avoid constants "
-                "justified only by the observed training size."
-            ),
-            (
-                f"Propose exactly {action_count} concrete, self-contained action lines. "
-                "Each action must state what to change and how it differs from relevant "
-                "attempts already shown in the histories."
-            ),
-            (
-                "Each change must be implementable inside the target function using "
-                "only its arguments and locally computed values. Do not assume hidden "
-                "state or change the function signature."
-            ),
-            (
-                "Each action must require a substantive change to executable behavior "
-                "or algorithmic structure; do not restate the current program."
-            ),
-            (
-                "If a reference program is shown, each action must state which supported "
-                "reference idea is used and how it is adapted to or made to interact "
-                "with the primary program."
-            ),
-            (
-                f"Return exactly {action_count} numbered single-line {action_label} and "
-                "nothing else."
+                "When a reference program is shown, a suggestion may explain how an "
+                "idea from it could be adapted to the primary program."
             ),
         ]
     )
     return "\n".join(sections).strip()
 
 
-def _render_edges(
-    graph: DerivationGraph,
-    edge_ids: tuple[int, ...],
-    *,
-    highlight_supported: bool,
-    positive_threshold: float = 0.0,
-) -> list[str]:
+def _render_edges(graph: DerivationGraph, edge_ids: tuple[int, ...]) -> list[str]:
     lines: list[str] = []
     for position, edge_id in enumerate(edge_ids, start=1):
         edge = graph.get_edge(edge_id)
         parent = graph.get_node(edge.parent_id)
         child = graph.get_node(edge.child_id)
-        supported = ""
-        if highlight_supported and (
-            (
-                edge.delta_route_best is not None
-                and edge.delta_route_best > positive_threshold
-            )
-            or edge.new_global_best
-        ):
-            supported = " [supported transferable update]"
         lines.extend(
             [
                 (
                     f"Step {position}: {edge.outcome}; fitness "
-                    f"{format_fitness(parent.fitness)} -> "
-                    f"{format_fitness(child.fitness)}{supported}"
+                    f"{format_fitness(parent.fitness)} -> {format_fitness(child.fitness)}"
                 ),
                 f"  Action: {_one_line(edge.action, 300)}",
                 f"  Implemented Idea: {_one_line(child.idea, 300)}",
@@ -291,36 +182,6 @@ def _render_edges(
     return lines
 
 
-def _select_evidence_edges(
-    graph: DerivationGraph,
-    edge_ids: tuple[int, ...],
-    *,
-    limit: int,
-    positive_threshold: float,
-) -> tuple[int, ...]:
-    if limit <= 0:
-        return ()
-
-    def priority(item: tuple[int, int]) -> tuple[int, int]:
-        position, edge_id = item
-        edge = graph.get_edge(edge_id)
-        supported = (
-            edge.delta_route_best is not None
-            and edge.delta_route_best > positive_threshold
-        ) or edge.new_global_best
-        boundary = edge.outcome in {"regress", "plateau", "unknown"}
-        tier = 0 if supported else 1 if boundary else 2
-        return tier, -position
-
-    indexed = list(enumerate(edge_ids))
-    selected = sorted(indexed, key=priority)[:limit]
-    return tuple(edge_id for _, edge_id in sorted(selected))
-
-
-def _fmt_delta(delta: float | None) -> str:
-    return "unknown" if delta is None else f"{delta:.6g}"
-
-
 def _one_line(text: str, limit: int) -> str:
     compact = " ".join(str(text).split())
     return compact if len(compact) <= limit else compact[: limit - 1].rstrip() + "…"
@@ -330,6 +191,5 @@ __all__ = [
     "RenderedHistory",
     "build_action_prompt",
     "reference_history",
-    "render_tested_attempts",
     "trajectory_history",
 ]

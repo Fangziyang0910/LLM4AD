@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import math
 import random
 import time
@@ -28,13 +29,11 @@ from .._observability import (
     record_sample_failure,
     reset_sample_failures,
 )
-from .attempts import AttemptMemory
-from .checkpoint import load_checkpoint, save_checkpoint
+from .checkpoint import CHECKPOINT_VERSION, load_checkpoint, save_checkpoint
 from .complexity import code_change_ratio
 from .context import (
     build_action_prompt,
     reference_history,
-    render_tested_attempts,
     trajectory_history,
 )
 from .derivation_graph import DerivationGraph
@@ -42,7 +41,7 @@ from .operators import (
     DEFAULT_OPERATORS,
     Operator,
     classify_outcome,
-    recent_route_progress,
+    is_dual_operator,
     select_operator,
 )
 from .prompt import (
@@ -51,23 +50,17 @@ from .prompt import (
     parse_actions,
     parse_program_response,
 )
-from .schema import AnchorAttempt, OperatorName, ProgramNode, Trajectory
-from .similarity import route_difference
+from .schema import PROTOCOL_ID, OperatorName, ProgramNode, Trajectory
 from .trajectory_memory import TrajectoryMemory
 from .value import (
     ValueWeights,
     compact_best_node,
-    deduplicate_by_endpoint_hash,
     directed_delta,
-    edge_credit,
-    is_mature_trajectory,
     is_program_better,
-    meaningful_improvement,
     program_quality_key,
-    qualified_reference_candidates,
+    quality_survivor_sample,
     reference_sampling_distribution,
     score_active_trajectories,
-    select_diverse_trajectories,
     trajectory_sampling_distribution,
     weighted_choice,
 )
@@ -97,7 +90,6 @@ class _EvaluatedCandidate:
     seq: int
     generated: _GeneratedProgram
     fitness: float | None
-    failure_kind: str | None
     sample_order: int | None
 
 
@@ -112,7 +104,7 @@ class TraceAADRunResult:
 
 
 class TraceAADV6:
-    """Quality-gated trajectory evolution with route-credit parent selection."""
+    """Trace-guided trajectory evolution with compact quality-only routing."""
 
     def __init__(
         self,
@@ -125,11 +117,7 @@ class TraceAADV6:
         actions_per_iteration: int = 2,
         max_trajectory_length: int = 8,
         max_active_trajectories: int = 30,
-        max_tested_attempts: int = 6,
-        elite_count: int | None = None,
-        diversity_count: int | None = None,
         softmax_temperature: float = 0.2,
-        dual_probability: float = 0.25,
         maximize: bool = True,
         value_weights: ValueWeights | None = None,
         operators: tuple[type[Operator], ...] = DEFAULT_OPERATORS,
@@ -154,8 +142,6 @@ class TraceAADV6:
             raise ValueError("max_trajectory_length must be positive")
         if softmax_temperature <= 0:
             raise ValueError("softmax_temperature must be positive")
-        if not 0.0 <= dual_probability <= 1.0:
-            raise ValueError("dual_probability must be in [0, 1]")
         if checkpoint_interval <= 0:
             raise ValueError("checkpoint_interval must be positive")
         if context_token_limit is None or context_token_limit <= 0:
@@ -171,26 +157,13 @@ class TraceAADV6:
         self._actions_per_iteration = int(actions_per_iteration)
         self._max_active_trajectories = int(max_active_trajectories)
         self._management_threshold = 2 * self._max_active_trajectories
-        self._max_tested_attempts = max(1, int(max_tested_attempts))
-        self._elite_count = (
-            max(2, math.ceil(0.1 * self._max_active_trajectories))
-            if elite_count is None
-            else max(1, int(elite_count))
-        )
-        self._diversity_count = (
-            max(2, math.ceil(0.1 * self._max_active_trajectories))
-            if diversity_count is None
-            else max(0, int(diversity_count))
-        )
         self._softmax_temperature = float(softmax_temperature)
-        self._dual_probability = float(dual_probability)
         self._maximize = bool(maximize)
         self._value_weights = value_weights or ValueWeights()
         self._debug_mode = debug_mode
         self._max_stalled_iterations = max(1, int(max_stalled_iterations))
         self._checkpoint_dir = None if checkpoint_dir is None else Path(checkpoint_dir)
         self._checkpoint_interval = int(checkpoint_interval)
-        self._last_checkpoint_sample = -1
         self._last_checkpoint_batch = -1
         self._random_seed = random_seed
         self._rng = random.Random(random_seed)
@@ -209,10 +182,13 @@ class TraceAADV6:
 
         self._graph = DerivationGraph()
         self._memory = TrajectoryMemory(max_trajectory_length=max_trajectory_length)
-        self._attempts = AttemptMemory()
         self._operators = tuple(operator_type() for operator_type in operators)
         if not self._operators:
             raise ValueError("at least one TraceAAD v6 operator is required")
+        if not any(not is_dual_operator(operator.name) for operator in self._operators):
+            raise ValueError(
+                "TraceAAD v6 requires at least one single-trajectory operator"
+            )
         self._action_max_tokens = int(action_max_tokens)
         self._code_max_tokens = int(code_max_tokens)
         if self._action_max_tokens <= 0 or self._code_max_tokens <= 0:
@@ -226,7 +202,6 @@ class TraceAADV6:
         self._batch_count = 0
         self._stalled_iterations = 0
         self._initialization_complete = False
-
         init_observability(self, max_consecutive_sample_failures)
         if profiler is not None:
             profiler.record_parameters(llm, evaluation, self)
@@ -244,30 +219,69 @@ class TraceAADV6:
                 batch_count=self._batch_count,
             )
 
+    def runtime_identity(self) -> dict[str, str | None]:
+        """Return the non-secret task/model identity required for safe resume."""
+
+        def setting(obj, name: str) -> str | None:
+            value = getattr(obj, name, None)
+            return None if value is None else repr(value)
+
+        return {
+            "task_description_sha256": hashlib.sha256(
+                self._task_description_str.encode("utf-8")
+            ).hexdigest(),
+            "template_program_sha256": hashlib.sha256(
+                str(self._template_program).encode("utf-8")
+            ).hexdigest(),
+            "evaluation_type": (
+                f"{type(self._evaluation).__module__}."
+                f"{type(self._evaluation).__qualname__}"
+            ),
+            "evaluation_random_seed": setting(self._evaluation, "random_seed"),
+            "evaluation_timeout_seconds": setting(self._evaluation, "timeout_seconds"),
+            "evaluation_safe_evaluate": setting(self._evaluation, "safe_evaluate"),
+            "evaluation_exec_code": setting(self._evaluation, "exec_code"),
+            "evaluation_fork_proc": setting(self._evaluation, "fork_proc"),
+            "evaluation_use_numba": setting(self._evaluation, "use_numba_accelerate"),
+            "evaluation_use_protected_div": setting(
+                self._evaluation, "use_protected_div"
+            ),
+            "llm_type": (
+                f"{type(self._llm).__module__}.{type(self._llm).__qualname__}"
+            ),
+            "llm_model": (
+                None
+                if getattr(self._llm, "model", None) is None
+                else str(self._llm.model)
+            ),
+            "llm_base_url": (
+                None
+                if getattr(self._llm, "base_url", None) is None
+                else str(self._llm.base_url)
+            ),
+            "llm_max_tokens": setting(self._llm, "max_tokens"),
+            "llm_temperature": setting(self._llm, "temperature"),
+            "llm_enable_thinking": setting(self._llm, "enable_thinking"),
+            "llm_do_auto_trim": setting(self._llm, "do_auto_trim"),
+        }
+
     def search_configuration(self) -> dict:
         return {
+            "protocol_id": PROTOCOL_ID,
+            "checkpoint_schema_version": CHECKPOINT_VERSION,
             "max_sample_nums": self._max_sample_nums,
             "n_init": self._n_init,
             "actions_per_iteration": self._actions_per_iteration,
             "max_trajectory_length": self._memory.max_trajectory_length,
             "max_active_trajectories": self._max_active_trajectories,
             "management_threshold": self._management_threshold,
-            "max_tested_attempts": self._max_tested_attempts,
-            "elite_count": self._elite_count,
-            "diversity_count": self._diversity_count,
             "softmax_temperature": self._softmax_temperature,
-            "dual_probability": self._dual_probability,
             "maximize": self._maximize,
             "value_weights": {
                 "endpoint_quality": self._value_weights.endpoint_quality,
                 "best_quality": self._value_weights.best_quality,
-                "search_quality": self._value_weights.search_quality,
-                "search_credit": self._value_weights.search_credit,
                 "ucb_c": self._value_weights.ucb_c,
-                "discount": self._value_weights.discount,
                 "positive_threshold": self._value_weights.positive_threshold,
-                "mature_quantile": self._value_weights.mature_quantile,
-                "mature_min_edges": self._value_weights.mature_min_edges,
             },
             "action_max_tokens": self._action_max_tokens,
             "code_max_tokens": self._code_max_tokens,
@@ -276,7 +290,7 @@ class TraceAADV6:
             "max_stalled_iterations": self._max_stalled_iterations,
             "checkpoint_interval": self._checkpoint_interval,
             "random_seed": self._random_seed,
-            "operators": [operator.name for operator in self._operators],
+            "operators": [str(operator.name) for operator in self._operators],
         }
 
     def run(self) -> TraceAADRunResult:
@@ -362,9 +376,6 @@ class TraceAADV6:
             prompt = build_initial_prompt(
                 task_description=self._task_description_str,
                 template_function=self._function_to_evolve,
-                diversity_hint=self._init_diversity_hint(
-                    len(self._memory.trajectories())
-                ),
             )
             prompt_tokens = self._count_tokens(prompt)
             if prompt_tokens > self._context_token_limit:
@@ -430,31 +441,13 @@ class TraceAADV6:
                 w=self._value_weights,
             )
 
-    def _init_diversity_hint(self, slot: int) -> str:
-        if slot == 0:
-            return "Provide a simple, complete, and valid algorithm."
-        ideas = [
-            node.idea.strip()
-            for node in self._graph.nodes()
-            if node.idea and node.idea.strip()
-        ][-6:]
-        if not ideas:
-            return "Use a clearly different algorithmic idea from a trivial baseline."
-        return "Use an idea clearly different from: " + "; ".join(
-            f"'{idea[:100]}'" for idea in ideas
-        )
-
     def _run_iteration(self, attempt_id: int) -> None:
-        # Freeze batch-before snapshot for statistics and credit.
+        # Freeze the state used for all children in this batch.
         active_before = score_active_trajectories(
             memory=self._memory,
             graph=self._graph,
             maximize=self._maximize,
             w=self._value_weights,
-        )
-        batch_best_nodes = tuple(
-            compact_best_node(route, self._graph, self._maximize)
-            for route in active_before
         )
         global_best_before = self._best_node
 
@@ -463,52 +456,34 @@ class TraceAADV6:
         visited = self._memory.record_visit(selected.id)
 
         anchor_id, anchor_role = self._select_anchor(selected)
-        mature = is_mature_trajectory(
-            selected, active=active_before, graph=self._graph, w=self._value_weights
-        )
-        progress = recent_route_progress(
-            edge_route_improvements=tuple(
-                meaningful_improvement(
-                    self._graph.get_edge(edge_id).delta_route_best,
-                    self._value_weights.positive_threshold,
-                )
-                for edge_id in selected.edge_ids
-            )
-        )
-        prefer_trim = self._prefer_trim_refine(selected, anchor_id)
-        qualified = qualified_reference_candidates(
-            primary=selected,
-            anchor_id=anchor_id,
-            active=active_before,
-            graph=self._graph,
-            w=self._value_weights,
-        )
         decision = select_operator(
             operators=self._operators,
-            mature=mature,
-            has_qualified_reference=bool(qualified),
-            anchor_role=anchor_role,
-            recent_progress=progress,
-            prefer_trim_refine=prefer_trim,
+            allow_dual=len(active_before) > 1,
             rng=self._rng,
-            dual_probability=self._dual_probability,
         )
         operator = decision.operator
         reference_route: Trajectory | None = None
         reference_node: ProgramNode | None = None
-        reference_distribution = ()
-        if decision.use_dual and qualified:
+        if decision.use_dual:
             reference_distribution = reference_sampling_distribution(
                 primary=selected,
-                candidates=qualified,
+                active=active_before,
                 temperature=self._softmax_temperature,
             )
-            reference_route = weighted_choice(
-                [route for route, _, _ in reference_distribution],
-                [probability for _, _, probability in reference_distribution],
-                self._rng,
-            )
-            reference_node = self._graph.get_node(reference_route.compact_best_id)
+            if reference_distribution:
+                reference_route = weighted_choice(
+                    [route for route, _, _ in reference_distribution],
+                    [probability for _, _, probability in reference_distribution],
+                    self._rng,
+                )
+                reference_node = self._graph.get_node(reference_route.compact_best_id)
+            else:
+                decision = select_operator(
+                    operators=self._operators,
+                    allow_dual=False,
+                    rng=self._rng,
+                )
+                operator = decision.operator
 
         context = self._build_action_context(
             selected=selected,
@@ -530,21 +505,14 @@ class TraceAADV6:
             )
             return
         if decision.use_dual and not context.used_dual:
-            # Dual evidence did not fit; fall back to a single-trace operator.
             decision = select_operator(
                 operators=self._operators,
-                mature=mature,
-                has_qualified_reference=False,
-                anchor_role=anchor_role,
-                recent_progress=progress,
-                prefer_trim_refine=prefer_trim,
+                allow_dual=False,
                 rng=self._rng,
-                dual_probability=0.0,
             )
             operator = decision.operator
             reference_route = None
             reference_node = None
-            reference_distribution = ()
             context = self._build_action_context(
                 selected=selected,
                 anchor_id=anchor_id,
@@ -574,8 +542,6 @@ class TraceAADV6:
             selected_trajectory_id=selected.id,
             base_node_id=anchor_id,
             anchor_role=anchor_role,
-            mature=mature,
-            recent_progress=progress,
             selection_reason=decision.reason,
             used_dual=context.used_dual,
             reference_trajectory_id=(
@@ -584,14 +550,6 @@ class TraceAADV6:
             reference_program_id=(
                 None if reference_node is None else reference_node.id
             ),
-            reference_difference=(
-                None
-                if reference_route is None
-                else route_difference(
-                    graph=self._graph, left=selected, right=reference_route
-                )
-            ),
-            qualified_reference_count=len(qualified),
             parent_visit_count=visited.visit_count,
             batch_count=self._batch_count,
         )
@@ -604,20 +562,76 @@ class TraceAADV6:
         base_node = self._graph.get_node(anchor_id)
         route_best_before = compact_best_node(selected, self._graph, self._maximize)
 
+        def prepare_code_requests(
+            action_items: list[str],
+        ) -> list[tuple[int, str, str, int]]:
+            requests: list[tuple[int, str, str, int]] = []
+            for seq, action in enumerate(action_items):
+                prompt = build_code_prompt(
+                    current_node=base_node,
+                    action=action,
+                    task_description=self._task_description_str,
+                    template_function=self._function_to_evolve,
+                    history=context.primary_history,
+                    reference_node=reference_node,
+                    reference_history=context.reference_history,
+                )
+                requests.append((seq, action, prompt, self._count_tokens(prompt)))
+            return requests
+
+        code_requests = prepare_code_requests(actions)
+        if context.used_dual and any(
+            tokens > self._context_token_limit for _, _, _, tokens in code_requests
+        ):
+            previous_operator = operator.name
+            decision = select_operator(
+                operators=self._operators,
+                allow_dual=False,
+                rng=self._rng,
+            )
+            operator = decision.operator
+            reference_route = None
+            reference_node = None
+            single_context = self._build_action_context(
+                selected=selected,
+                anchor_id=anchor_id,
+                operator=operator,
+                reference_route=None,
+                reference_node=None,
+            )
+            if single_context is None:
+                log_event(
+                    self,
+                    event="context_overflow",
+                    status="skipped",
+                    stage="code_fallback",
+                    attempt_id=attempt_id,
+                    selected_trajectory_id=selected.id,
+                    base_node_id=anchor_id,
+                    context_token_limit=self._context_token_limit,
+                )
+                return
+            context = single_context
+            log_event(
+                self,
+                event="operator_fallback",
+                status="ok",
+                attempt_id=attempt_id,
+                from_operator=previous_operator,
+                to_operator=operator.name,
+                reason="dual_code_context_overflow",
+            )
+            actions = self._generate_actions(
+                context,
+                operator=operator,
+                iteration=attempt_id,
+            )
+            code_requests = prepare_code_requests(actions)
+
         evaluated_candidates: list[_EvaluatedCandidate] = []
-        for seq, action in enumerate(actions):
+        for seq, action, code_prompt, code_prompt_tokens in code_requests:
             if not self._has_budget() or is_search_aborted(self):
                 break
-            code_prompt = build_code_prompt(
-                current_node=base_node,
-                action=action,
-                task_description=self._task_description_str,
-                template_function=self._function_to_evolve,
-                history=context.primary_history,
-                reference_node=reference_node,
-                reference_history=context.reference_history,
-            )
-            code_prompt_tokens = self._count_tokens(code_prompt)
             if code_prompt_tokens > self._context_token_limit:
                 log_event(
                     self,
@@ -632,7 +646,7 @@ class TraceAADV6:
                     context_token_limit=self._context_token_limit,
                 )
                 continue
-            generated, draw_failure = self._draw_program(
+            generated, _ = self._draw_program(
                 code_prompt,
                 stage="code",
                 iteration=attempt_id,
@@ -642,20 +656,8 @@ class TraceAADV6:
                 max_tokens=self._code_max_tokens,
             )
             if generated is None:
-                if draw_failure == "parse_failed":
-                    self._attempts.record(
-                        AnchorAttempt(
-                            anchor_node_id=anchor_id,
-                            primary_trajectory_id=selected.id,
-                            operator=str(operator.name),
-                            action=action,
-                            iteration=attempt_id,
-                            status="parse_failed",
-                            failure_kind="parse_failed",
-                        )
-                    )
                 continue
-            fitness, failure_kind, sample_order = self._evaluate_detailed(
+            fitness, sample_order = self._evaluate_detailed(
                 generated.program,
                 idea=generated.idea,
                 operator=operator.name,
@@ -667,7 +669,6 @@ class TraceAADV6:
                     seq=seq,
                     generated=generated,
                     fitness=fitness,
-                    failure_kind=failure_kind,
                     sample_order=sample_order,
                 )
             )
@@ -675,18 +676,6 @@ class TraceAADV6:
         created: list[tuple[_EvaluatedCandidate, ProgramNode]] = []
         for item in evaluated_candidates:
             if item.fitness is None:
-                self._attempts.record(
-                    AnchorAttempt(
-                        anchor_node_id=anchor_id,
-                        primary_trajectory_id=selected.id,
-                        operator=str(operator.name),
-                        action=item.action,
-                        iteration=attempt_id,
-                        status="eval_failed",
-                        idea=item.generated.idea,
-                        failure_kind=item.failure_kind or "eval_failed",
-                    )
-                )
                 continue
             child = self._graph.add_node(
                 code=str(item.generated.program),
@@ -695,16 +684,8 @@ class TraceAADV6:
             )
             created.append((item, child))
 
-        batch_keys = [
-            program_quality_key(node, self._maximize) for node in batch_best_nodes
-        ]
-        batch_keys.extend(
-            program_quality_key(child, self._maximize) for _, child in created
-        )
-
-        # Determine the one batch winner against the frozen global-best snapshot.
-        # The stable textual tie-break only chooses a representative among programs
-        # that are exactly equal under the documented fitness/LOC ordering.
+        # Choose one batch winner from the frozen global-best snapshot.  This
+        # keeps equal action order from changing best-program labels.
         global_candidates = [
             (item, child)
             for item, child in created
@@ -753,19 +734,8 @@ class TraceAADV6:
             outcome = classify_outcome(
                 delta_parent, self._value_weights.positive_threshold
             )
-            route_improved = meaningful_improvement(
-                delta_route, self._value_weights.positive_threshold
-            )
-            credit = edge_credit(
-                child=child,
-                batch_keys=batch_keys,
-                route_improved=route_improved,
-                maximize=self._maximize,
-            )
             new_global_best = child.id == global_winner_id
-            global_update_reason = (
-                global_winner_reason if new_global_best else None
-            )
+            global_update_reason = global_winner_reason if new_global_best else None
             new_compact = self._compact_best_for_child(
                 selected=selected,
                 anchor_id=anchor_id,
@@ -790,7 +760,6 @@ class TraceAADV6:
                 delta_loc=child.program_loc - base_node.program_loc,
                 code_change_ratio=code_change_ratio(base_node.code, child.code),
                 outcome=outcome,
-                edge_credit=credit,
                 iteration=attempt_id,
                 new_global_best=new_global_best,
                 global_best_update_reason=global_update_reason,
@@ -803,27 +772,6 @@ class TraceAADV6:
                 compact_best_id=new_compact.id,
             )
             child_routes[child.id] = child_route
-            self._attempts.record(
-                AnchorAttempt(
-                    anchor_node_id=anchor_id,
-                    primary_trajectory_id=selected.id,
-                    operator=str(operator.name),
-                    action=item.action,
-                    iteration=attempt_id,
-                    status="valid",
-                    idea=child.idea,
-                    fitness=child.fitness,
-                    delta_parent=delta_parent,
-                    delta_route_best=delta_route,
-                    delta_global_best=delta_global,
-                    outcome=outcome,
-                    edge_id=edge.id,
-                    child_id=child.id,
-                    program_loc=child.program_loc,
-                    new_route_best=route_improved,
-                    new_global_best=new_global_best,
-                )
-            )
             log_event(
                 self,
                 event="child_accepted",
@@ -841,7 +789,6 @@ class TraceAADV6:
                 delta_parent=delta_parent,
                 delta_route_best=delta_route,
                 delta_global_best=delta_global,
-                edge_credit=credit,
                 outcome=outcome,
                 anchor_role=anchor_role,
                 reference_trajectory_id=(
@@ -883,31 +830,6 @@ class TraceAADV6:
             batch_count=self._batch_count,
         )
 
-    def _prefer_trim_refine(self, trajectory: Trajectory, anchor_id: int) -> bool:
-        if not trajectory.edge_ids:
-            return False
-        recent = []
-        for edge_id in reversed(trajectory.edge_ids):
-            edge = self._graph.get_edge(edge_id)
-            if edge.parent_id != anchor_id and edge.child_id != anchor_id:
-                if anchor_id not in (
-                    edge.parent_id,
-                    edge.child_id,
-                ) and edge.parent_id not in trajectory.node_ids:
-                    continue
-            recent.append(edge)
-            if len(recent) >= 3:
-                break
-        if len(recent) < 2:
-            return False
-        return all(
-            edge.delta_loc > 0
-            and not meaningful_improvement(
-                edge.delta_route_best, self._value_weights.positive_threshold
-            )
-            for edge in recent
-        )
-
     def _select_trajectory(self, attempt_id: int, *, batch_count: int) -> Trajectory:
         distribution = trajectory_sampling_distribution(
             memory=self._memory,
@@ -934,12 +856,10 @@ class TraceAADV6:
             selected_trajectory_id=selected.id,
             active_count=len(routes),
             selected_probability=selected_prob,
-            selected_scalar_value=selected.scalar_value,
             selected_adjusted_score=selected_adjusted,
             selected_quality=(
                 None if selected.value is None else selected.value.quality
             ),
-            selected_credit=(None if selected.value is None else selected.value.credit),
             selected_visit_count=selected.visit_count,
             batch_count=batch_count,
             max_probability=sorted_probs[0],
@@ -953,7 +873,7 @@ class TraceAADV6:
         compact = trajectory.compact_best_id
         if endpoint == compact:
             return endpoint, "endpoint_compact_best"
-        if self._rng.random() < 0.5:
+        if self._rng.randrange(2) == 0:
             return endpoint, "endpoint"
         return compact, "compact_best"
 
@@ -969,30 +889,8 @@ class TraceAADV6:
         requested_dual = reference_route is not None and reference_node is not None
         modes = (True, False) if requested_dual else (False,)
         max_steps = self._memory.max_trajectory_length
-        # Keep high-priority attempts while first removing lower-priority attempts,
-        # then progressively shorten the retained path. The order is fixed so the
-        # same state and token counter always produce the same context.
-        reductions = sorted(
-            (
-                (history_steps, attempt_limit)
-                for history_steps in range(max_steps, -1, -1)
-                for attempt_limit in range(self._max_tested_attempts, -1, -1)
-            ),
-            key=lambda item: (-(item[0] + item[1]), -item[0], -item[1]),
-        )
         for use_reference in modes:
-            ref_history = (
-                reference_history(
-                    self._graph,
-                    reference_route,
-                    base_node_id=reference_node.id,
-                    max_steps=max_steps,
-                    positive_threshold=self._value_weights.positive_threshold,
-                )
-                if use_reference
-                else None
-            )
-            for history_steps, attempt_limit in reductions:
+            for history_steps in range(max_steps, -1, -1):
                 primary_history = trajectory_history(
                     self._graph,
                     selected,
@@ -1000,15 +898,20 @@ class TraceAADV6:
                     max_steps=history_steps,
                     positive_threshold=self._value_weights.positive_threshold,
                 )
-                tested_text = render_tested_attempts(
-                    self._attempts.for_anchor(anchor_id),
-                    excluded_edge_ids=set(primary_history.edge_ids),
-                    limit=attempt_limit,
+                ref_history = (
+                    reference_history(
+                        self._graph,
+                        reference_route,
+                        base_node_id=reference_node.id,
+                        max_steps=history_steps,
+                        positive_threshold=self._value_weights.positive_threshold,
+                    )
+                    if use_reference
+                    else None
                 )
                 prompt = build_action_prompt(
                     base_node=self._graph.get_node(anchor_id),
                     primary_history=primary_history,
-                    tested_attempts_text=tested_text,
                     operator_constraint=operator.prompt_constraint,
                     task_description=self._task_description_str,
                     template_function=self._function_to_evolve,
@@ -1023,10 +926,8 @@ class TraceAADV6:
                 return _PromptContext(
                     prompt=prompt,
                     token_count=token_count,
-                    primary_history=primary_history.text + "\n" + tested_text,
-                    reference_history=(
-                        "" if ref_history is None else ref_history.text
-                    ),
+                    primary_history=primary_history.text,
+                    reference_history=("" if ref_history is None else ref_history.text),
                     primary_edge_ids=primary_history.edge_ids,
                     reference_edge_ids=(
                         () if ref_history is None else ref_history.edge_ids
@@ -1212,125 +1113,25 @@ class TraceAADV6:
         )
         if len(ranked) < self._management_threshold:
             return
-        deduped = list(
-            deduplicate_by_endpoint_hash(
-                routes=tuple(ranked),
-                graph=self._graph,
-                best_trajectory_id=self._best_trajectory_id,
-            )
+        best_route = next(
+            (route for route in ranked if route.id == self._best_trajectory_id),
+            None,
         )
-        deduped = list(
-            score_active_trajectories(
-                memory=self._memory,
-                graph=self._graph,
-                maximize=self._maximize,
-                w=self._value_weights,
-                trajectories=tuple(deduped),
-            )
-        )
-        if len(deduped) <= self._max_active_trajectories:
-            keep_ids = {route.id for route in deduped}
-            decisions = []
-            for route in ranked:
-                keep = route.id in keep_ids
-                if not keep:
-                    self._memory.archive(route.id)
-                recorded_route = self._memory.get_trajectory(route.id)
-                decisions.append(
-                    {
-                        "trajectory_id": route.id,
-                        "decision": "keep" if keep else "archive",
-                        "roles": ["exact_dedup"] if keep else [],
-                        "quality": (
-                            None
-                            if recorded_route.value is None
-                            else recorded_route.value.quality
-                        ),
-                    }
-                )
-            log_event(
-                self,
-                event="population_management",
-                status="ok",
-                management_threshold=self._management_threshold,
-                before=len(ranked),
-                after=len(self._memory.active()),
-                decisions=decisions,
-                selection_mode="exact_dedup_only",
-            )
-            save_checkpoint(self)
-            return
-
-        # Quality elite by Q.
-        by_quality = sorted(
-            deduped,
-            key=lambda route: (
-                -(0.0 if route.value is None else route.value.quality),
-                -(route.scalar_value or 0.0),
-                route.id,
-            ),
-        )
-        elite_count = min(self._elite_count, self._max_active_trajectories, len(by_quality))
-        elites = by_quality[:elite_count]
-        if self._best_trajectory_id is not None:
+        if best_route is None and self._best_node is not None:
             best_route = next(
-                (route for route in by_quality if route.id == self._best_trajectory_id),
+                (route for route in ranked if self._best_node.id in route.node_ids),
                 None,
             )
-            if best_route is not None and best_route.id not in {
-                route.id for route in elites
-            }:
-                weakest = min(
-                    elites,
-                    key=lambda route: (
-                        0.0 if route.value is None else route.value.quality,
-                        route.scalar_value or 0.0,
-                        -route.id,
-                    ),
-                )
-                elites = [best_route, *[route for route in elites if route.id != weakest.id]]
-
-        elite_ids = {route.id for route in elites}
-        mature_pool = tuple(
-            route
-            for route in by_quality
-            if route.id not in elite_ids
-            and is_mature_trajectory(
-                route, active=tuple(by_quality), graph=self._graph, w=self._value_weights
-            )
-        )
-        diversity_slots = min(
-            self._diversity_count,
-            max(0, self._max_active_trajectories - len(elites)),
-        )
-        if not mature_pool:
-            diversity_slots = 0
-        diverse = select_diverse_trajectories(
-            candidates=mature_pool,
-            graph=self._graph,
-            count=diversity_slots,
-            reference=tuple(elites),
-        )
-        diverse_ids = {route.id for route in diverse}
-        remaining = [
-            route
-            for route in by_quality
-            if route.id not in elite_ids and route.id not in diverse_ids
-        ]
-        sampled = self._weighted_survivor_sample(
+        if best_route is None:
+            best_route = ranked[0]
+        remaining = [route for route in ranked if route.id != best_route.id]
+        sampled = quality_survivor_sample(
             remaining,
-            self._max_active_trajectories - len(elites) - len(diverse),
+            max(0, self._max_active_trajectories - 1),
+            temperature=self._softmax_temperature,
+            rng=self._rng,
         )
-        roles: dict[int, list[str]] = {}
-        for route in elites:
-            roles.setdefault(route.id, []).append("quality_elite")
-        for route in diverse:
-            roles.setdefault(route.id, []).append("difference_reserve")
-        for route in sampled:
-            roles.setdefault(route.id, []).append("continue_develop")
-        if self._best_trajectory_id is not None and self._best_trajectory_id in roles:
-            roles[self._best_trajectory_id].append("best_anchor")
-        keep_ids = set(roles)
+        keep_ids = {best_route.id, *(route.id for route in sampled)}
         decisions = []
         for route in ranked:
             keep = route.id in keep_ids
@@ -1341,18 +1142,18 @@ class TraceAADV6:
                 {
                     "trajectory_id": route.id,
                     "decision": "keep" if keep else "archive",
-                    "roles": roles.get(route.id, []),
+                    "roles": (
+                        ["global_best"]
+                        if route.id == best_route.id
+                        else ["q_softmax"]
+                        if keep
+                        else []
+                    ),
                     "quality": (
                         None
                         if recorded_route.value is None
                         else recorded_route.value.quality
                     ),
-                    "credit": (
-                        None
-                        if recorded_route.value is None
-                        else recorded_route.value.credit
-                    ),
-                    "scalar_value": recorded_route.scalar_value,
                 }
             )
         log_event(
@@ -1363,26 +1164,9 @@ class TraceAADV6:
             before=len(ranked),
             after=len(self._memory.active()),
             decisions=decisions,
-            selection_mode="dedup_elite_difference_v_softmax",
+            selection_mode="global_best_q_softmax",
         )
         save_checkpoint(self)
-
-    def _weighted_survivor_sample(
-        self, candidates: list[Trajectory], count: int
-    ) -> tuple[Trajectory, ...]:
-        remaining = list(candidates)
-        selected: list[Trajectory] = []
-        while remaining and len(selected) < count:
-            scores = [float(route.scalar_value or 0.0) for route in remaining]
-            maximum = max(scores)
-            weights = [
-                math.exp((score - maximum) / self._softmax_temperature)
-                for score in scores
-            ]
-            choice = weighted_choice(remaining, weights, self._rng)
-            remaining.remove(choice)
-            selected.append(choice)
-        return tuple(selected)
 
     def _draw_program(
         self,
@@ -1481,7 +1265,7 @@ class TraceAADV6:
         operator: str | OperatorName,
         sample_time: float,
     ) -> float | None:
-        score, _, _ = self._evaluate_detailed(
+        score, _ = self._evaluate_detailed(
             program, idea=idea, operator=operator, sample_time=sample_time
         )
         return score
@@ -1493,9 +1277,9 @@ class TraceAADV6:
         idea: str,
         operator: str | OperatorName,
         sample_time: float,
-    ) -> tuple[float | None, str | None, int | None]:
+    ) -> tuple[float | None, int | None]:
         if not self._has_budget():
-            return None, "no_budget", None
+            return None, None
         outcome, eval_time = self._evaluator.evaluate_program_record_time_with_details(
             program
         )
@@ -1519,7 +1303,9 @@ class TraceAADV6:
                 else:
                     failure_kind = "invalid_result"
                     failure_error_type = "NonFiniteEvaluationResult"
-                    failure_error = f"evaluator returned non-finite score: {numeric_score}"
+                    failure_error = (
+                        f"evaluator returned non-finite score: {numeric_score}"
+                    )
         function = copy.deepcopy(program.get_function(self._function_to_evolve.name))
         function.algorithm = idea
         function.score = score
@@ -1548,7 +1334,7 @@ class TraceAADV6:
             counts_budget=True,
             **failure,
         )
-        return score, failure_kind, self._tot_sample_nums
+        return score, self._tot_sample_nums
 
     def _record_generation_failure(
         self,

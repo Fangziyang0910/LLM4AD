@@ -8,6 +8,7 @@ import pytest
 from experiments.runners.traceaad import launch, run
 from llm4ad.method.traceaad_v4 import TraceAADV4
 from llm4ad.method.traceaad_v5 import TraceAADV5
+from llm4ad.method.traceaad_v6 import PROTOCOL_ID as V6_PROTOCOL_ID
 from llm4ad.method.traceaad_v6 import TraceAADV6
 
 
@@ -42,6 +43,7 @@ def test_unified_runner_builds_each_task_and_version(
         assert not hasattr(method, "_global_experience")
         if version == "v6":
             assert method._context_token_limit == 24576
+            assert not hasattr(method, "_dual_probability")
 
 
 def test_runner_writes_one_reproducible_config_per_run(tmp_path: Path) -> None:
@@ -69,6 +71,28 @@ def test_runner_writes_one_reproducible_config_per_run(tmp_path: Path) -> None:
     assert payload["method_params"]["random_seed"] == 3
     assert "api_key" not in payload["llm"]
     assert payload["llm"]["api_key_configured"] is False
+
+
+def test_v6_runner_records_occam_protocol(tmp_path: Path) -> None:
+    spec = run.make_run_spec(
+        task="tsp_construct",
+        version="v6",
+        experiments_root=tmp_path,
+    )
+    run_dir, run_name, _ = run.resolve_run_dir(spec)
+    run.write_run_config(spec, run_dir, run_name)
+    payload = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
+
+    assert payload["method_params"]["protocol_id"] == V6_PROTOCOL_ID
+    assert payload["method_params"]["checkpoint_schema_version"] == 8
+    assert payload["method_params"]["maximize"] is True
+    assert payload["method_params"]["operators"] == [
+        "trace_ideate",
+        "trace_refine",
+        "trace_synthesize",
+        "trace_transfer",
+    ]
+    assert "dual_probability" not in payload["method_params"]
 
 
 def test_resume_uses_version_specific_checkpoint_source(tmp_path: Path) -> None:

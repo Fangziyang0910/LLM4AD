@@ -1,4 +1,4 @@
-"""Lightweight route-difference proxy used by TraceAAD V6."""
+"""Lightweight trajectory similarity helpers retained for analysis."""
 
 from __future__ import annotations
 
@@ -58,9 +58,7 @@ def trajectory_idea_tokens(
         texts.append(edge.action)
         texts.append(graph.get_node(edge.child_id).idea)
     return frozenset(
-        token.lower()
-        for text in texts
-        for token in _WORD_TOKEN_RE.findall(text or "")
+        token.lower() for text in texts for token in _WORD_TOKEN_RE.findall(text or "")
     )
 
 
@@ -90,18 +88,6 @@ def trajectory_similarity(
     return w_code * code + w_idea * idea + w_path * pattern
 
 
-def route_difference(
-    *,
-    graph: DerivationGraph,
-    left: Trajectory,
-    right: Trajectory,
-    weights: tuple[float, float, float] = DEFAULT_SIMILARITY_WEIGHTS,
-) -> float:
-    return 1.0 - trajectory_similarity(
-        graph=graph, left=left, right=right, weights=weights
-    )
-
-
 def _jaccard(a: frozenset[str], b: frozenset[str]) -> float:
     if not a and not b:
         return 1.0
@@ -115,7 +101,6 @@ __all__ = [
     "code_similarity",
     "code_tokens",
     "normalize_code",
-    "route_difference",
     "trajectory_idea_tokens",
     "trajectory_pattern",
     "trajectory_pattern_similarity",

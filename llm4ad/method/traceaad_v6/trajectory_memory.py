@@ -76,10 +76,8 @@ class TrajectoryMemory:
             visit_count=self.get_trajectory(trajectory_id).visit_count + 1,
         )
 
-    def set_value(
-        self, trajectory_id: TrajectoryId, value: ValueVec, scalar: float
-    ) -> Trajectory:
-        return self._replace(trajectory_id, value=value, scalar_value=scalar)
+    def set_value(self, trajectory_id: TrajectoryId, value: ValueVec) -> Trajectory:
+        return self._replace(trajectory_id, value=value)
 
     def archive(self, trajectory_id: TrajectoryId) -> Trajectory:
         return self._replace(trajectory_id, status=TrajectoryStatus.ARCHIVED)

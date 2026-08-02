@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TypeAlias
+from typing import Final, TypeAlias
+
+PROTOCOL_ID: Final[str] = "traceaad-v6-occam-v1"
 
 NodeId: TypeAlias = int
 EdgeId: TypeAlias = int
@@ -50,7 +52,6 @@ class ImprovementEdge:
     delta_loc: int = 0
     code_change_ratio: float = 0.0
     outcome: str = "unknown"
-    edge_credit: float = 0.0
     iteration: int | None = None
     new_global_best: bool = False
     global_best_update_reason: str | None = None
@@ -58,10 +59,9 @@ class ImprovementEdge:
 
 @dataclass(frozen=True, slots=True)
 class ValueVec:
-    """Route quality and retained-path credit for continued development."""
+    """Route quality used for continued development."""
 
     quality: float = 0.0
-    credit: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,40 +74,15 @@ class Trajectory:
     visit_count: int = 0
     status: TrajectoryStatus = TrajectoryStatus.ACTIVE
     value: ValueVec | None = None
-    scalar_value: float | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class AnchorAttempt:
-    """A tested attempt from an anchor, including failed non-program candidates."""
-
-    anchor_node_id: NodeId
-    primary_trajectory_id: TrajectoryId
-    operator: str
-    action: str
-    iteration: int | None
-    status: str
-    idea: str = ""
-    fitness: float | None = None
-    delta_parent: float | None = None
-    delta_route_best: float | None = None
-    delta_global_best: float | None = None
-    outcome: str = "unknown"
-    edge_id: EdgeId | None = None
-    child_id: NodeId | None = None
-    program_loc: int | None = None
-    failure_kind: str | None = None
-    new_route_best: bool = False
-    new_global_best: bool = False
 
 
 __all__ = [
-    "AnchorAttempt",
     "EdgeId",
     "ImprovementEdge",
     "NodeId",
     "OperatorName",
     "ProgramNode",
+    "PROTOCOL_ID",
     "Trajectory",
     "TrajectoryId",
     "TrajectoryStatus",

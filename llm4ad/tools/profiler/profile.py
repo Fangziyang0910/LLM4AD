@@ -78,8 +78,6 @@ _METHOD_SAFE_FIELDS = frozenset(
         "_output_token_reserve",
         "_action_max_tokens",
         "_code_max_tokens",
-        "_dual_probability",
-        "_max_tested_attempts",
         "_management_threshold",
         "_random_seed",
         "_checkpoint_interval",
