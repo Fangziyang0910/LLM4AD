@@ -79,6 +79,28 @@ METHODS = {
         "color": "#56B4E9",
         "band": "#A8D8F0",
     },
+    "TraceAAD V6": {
+        "directory": "traceaad_v6/version6",
+        "runs": (
+            "v6_20260801_183249_tspc_v6_rep1",
+            "v6_20260801_183249_tspc_v6_rep2",
+            "v6_20260801_183249_tspc_v6_rep3",
+        ),
+        "budget": 1000,
+        "color": "#D55E00",
+        "band": "#F5C49A",
+    },
+    "ShinkaEvolve": {
+        "directory": "shinka_evo",
+        "runs": (
+            "fair1000_20260730_1755_tsp_shinka_rep1_retry2",
+            "fair1000_20260730_1755_tsp_shinka_rep2",
+            "fair1000_20260730_1755_tsp_shinka_rep3_retry2",
+        ),
+        "budget": 1000,
+        "color": "#882255",
+        "band": "#D4A5B8",
+    },
 }
 
 

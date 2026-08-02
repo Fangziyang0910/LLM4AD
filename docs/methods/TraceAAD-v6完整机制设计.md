@@ -34,9 +34,9 @@ V4、V5 的正式结果和过程审计提供了以下设计线索。这些现象
 
 ## 3. 搜索对象与轨迹证据
 
-候选程序记为 \(p\)，evaluator 返回任务结果 \(f(p)\)。实现统一比较方向，使数值越大表示结果越好。只有通过解析、执行、有效性检查并得到有限评价值的候选才是有效程序。
+候选程序记为 $p$，evaluator 返回任务结果 $f(p)$。实现统一比较方向，使数值越大表示结果越好。只有通过解析、执行、有效性检查并得到有限评价值的候选才是有效程序。
 
-一条轨迹 \(\tau_i\) 是从初始程序到当前程序的祖先路径，包含两个重要位置：
+一条轨迹 $\tau_i$ 是从初始程序到当前程序的祖先路径，包含两个重要位置：
 
 - **endpoint**：最近生成的程序，表示当前延伸位置；
 - **compact best**：轨迹中评价最好、完全同分时非空 LOC 最少的程序。
@@ -74,7 +74,7 @@ LLM 在 TraceAAD 中只需要发挥三种能力：
 
 这些算子是提示词约束的语义操作。记录参考来源只说明模型看到了该路线；Action、实际代码变化和 evaluator 结果共同说明预期操作是否落实，V6 不增加独立的 LLM judge。`trace_refine` 可以增加、替换、合并或删除代码；若锚点附近连续出现“LOC 增加但没有路线推进”的尝试，其指令优先删改缺少评价支持的机制。
 
-选定主轨迹后，在 endpoint 和 compact best 之间选择锚点：两者相同则直接使用，不同则等概率选择。路线同时满足以下条件时记为成熟：\(Q_i\) 位于 active 前 30%（边界并列全部保留），保留路径至少有 2 条有效边，并且至少 1 条边以超过任务阈值的幅度更新路线最好。
+选定主轨迹后，在 endpoint 和 compact best 之间选择锚点：两者相同则直接使用，不同则等概率选择。路线同时满足以下条件时记为成熟：$Q_i$ 位于 active 前 30%（边界并列全部保留），保留路径至少有 2 条有效边，并且至少 1 条边以超过任务阈值的幅度更新路线最好。
 
 算子按当前状态选择：
 
@@ -88,64 +88,57 @@ LLM 在 TraceAAD 中只需要发挥三种能力：
 
 路线质量同时考虑当前延伸位置和路线已有最好结果：
 
-\[
-Q_i=0.7Q_{\mathrm{endpoint},i}+0.3Q_{\mathrm{best},i},
-\]
+$$
+Q_i = 0.7 Q_{\mathrm{endpoint},i} + 0.3 Q_{\mathrm{best},i}.
+$$
 
 前者在 active 路线的 endpoint 集合中计算并列感知百分位，后者在 compact-best 程序集合中计算。程序首先按 evaluator 原始结果比较，只有结果完全相同才用非空 LOC 择短；global best 和 compact best 也遵循这一规则。
 
-V6 不用父子增量直接评价路线，因为它会偏爱从较差起点得到的一般改进。一次批次开始前冻结 active、路线最好和全局最好。设 \(\mathcal B_t\) 为批次前各 active 路线的 compact-best 程序集合，\(\mathcal C_t\) 为本批有效子程序集合；\(q_t(v)\) 是子程序 \(v\) 在 \(\mathcal B_t\cup\mathcal C_t\) 中按相同程序比较规则得到的百分位。若 \(v\) 相比批次前路线最好取得大于 \(\epsilon_{\mathcal T}\) 的提升，令 \(I_{\mathrm{route}}(v)=1\)，否则为 0：
+V6 不用父子增量直接评价路线，因为它会偏爱从较差起点得到的一般改进。一次批次开始前冻结 active、路线最好和全局最好。设 $\mathcal{B}_t$ 为批次前各 active 路线的 compact-best 程序集合，$\mathcal{C}_t$ 为本批有效子程序集合；$q_t(v)$ 是子程序 $v$ 在 $\mathcal{B}_t \cup \mathcal{C}_t$ 中按相同程序比较规则得到的百分位。若 $v$ 相比批次前路线最好取得大于 $\epsilon_{\mathcal{T}}$ 的提升，令 $I_{\mathrm{route}}(v)=1$，否则为 0：
 
-\[
-c(e)=q_t(v)I_{\mathrm{route}}(v).
-\]
+$$
+c(e) = q_t(v)\, I_{\mathrm{route}}(v).
+$$
 
 边信用在创建时确定，不随后续种群变化重算。路线信用是保留路径上边信用的近期折扣平均：
 
-\[
-C_i=
-\frac{\sum_{k=1}^{m}\gamma^{m-k}c(e_k)}
-     {\sum_{k=1}^{m}\gamma^{m-k}},
-\qquad \gamma=0.8,
-\]
+$$
+C_i = \frac{\sum_{k=1}^{m} \gamma^{m-k} c(e_k)}{\sum_{k=1}^{m} \gamma^{m-k}}, \qquad \gamma = 0.8.
+$$
 
-单节点轨迹的 \(C_i=0\)。\(\epsilon_{\mathcal T}\) 只用于划分有意义的 improve、plateau、regress 和计算信用，不改变 evaluator 原始结果的严格排序。边的 outcome 按子程序相对结构父代的变化分类，只用于轨迹证据和路线差异。确定性固定种子的 evaluator 默认取 0，其他任务必须根据评价精度显式设置。
+单节点轨迹的 $C_i=0$。$\epsilon_{\mathcal{T}}$ 只用于划分有意义的 improve、plateau、regress 和计算信用，不改变 evaluator 原始结果的严格排序。边的 outcome 按子程序相对结构父代的变化分类，只用于轨迹证据和路线差异。确定性固定种子的 evaluator 默认取 0，其他任务必须根据评价精度显式设置。
 
 继续开发价值和父代分布为：
 
-\[
-V_i=0.8Q_i+0.2C_i,
-\]
+$$
+V_i = 0.8 Q_i + 0.2 C_i,
+$$
 
-\[
-A_i=V_i+0.25\sqrt{\frac{\log(1+N)}{1+n_i}},
-\qquad
-\Pr(\tau_i)=\operatorname{softmax}(A_i/0.2).
-\]
+$$
+A_i = V_i + 0.25 \sqrt{\frac{\log(1+N)}{1+n_i}}, \qquad \Pr(\tau_i) = \operatorname{softmax}(A_i / 0.2).
+$$
 
-\(N\) 是整次运行已经发起的主轨迹批次数，种群收缩后不重置；\(n_i\) 是当前轨迹被选为主轨迹的次数。新分支继承祖先证据，访问次数从 0 开始。主轨迹一旦被选中并发起批次，其访问次数增加 1；本批没有得到可评价代码时也计数。
+$N$ 是整次运行已经发起的主轨迹批次数，种群收缩后不重置；$n_i$ 是当前轨迹被选为主轨迹的次数。新分支继承祖先证据，访问次数从 0 开始。主轨迹一旦被选中并发起批次，其访问次数增加 1；本批没有得到可评价代码时也计数。
 
 ## 7. 质量门控的差异参考
 
 参考候选必须是另一条成熟 active 轨迹，其 compact-best 程序哈希同时不同于主路线 compact best 和本轮主锚点。V6 使用轻量路线差异代理：
 
-\[
-D(i,j)=1-\operatorname{Sim}(i,j),
-\]
+$$
+D(i,j) = 1 - \operatorname{Sim}(i,j),
+$$
 
-\[
-\operatorname{Sim}(i,j)=0.5S_{\mathrm{code}}(i,j)+0.3S_{\mathrm{idea}}(i,j)+0.2S_{\mathrm{path}}(i,j).
-\]
+$$
+\operatorname{Sim}(i,j) = 0.5 S_{\mathrm{code}}(i,j) + 0.3 S_{\mathrm{idea}}(i,j) + 0.2 S_{\mathrm{path}}(i,j).
+$$
 
-\(S_{\mathrm{code}}\) 是两条 compact-best 代码标识符集合的 Jaccard 相似度；\(S_{\mathrm{idea}}\) 是保留路径中 Action 与 Implemented Idea 词项集合的 Jaccard 相似度；\(S_{\mathrm{path}}\) 是 `(operator, outcome)` 集合的 Jaccard 相似度。
+$S_{\mathrm{code}}$ 是两条 compact-best 代码标识符集合的 Jaccard 相似度；$S_{\mathrm{idea}}$ 是保留路径中 Action 与 Implemented Idea 词项集合的 Jaccard 相似度；$S_{\mathrm{path}}$ 是 `(operator, outcome)` 集合的 Jaccard 相似度。
 
-参考还需满足 \(D(i,j)>0\)，且差异不低于本轮候选的中位数。合格参考按下式采样：
+参考还需满足 $D(i,j)>0$，且差异不低于本轮候选的中位数。合格参考按下式采样：
 
-\[
-R(j\mid i)=Q_jD(i,j),
-\qquad
-\Pr(\rho_j\mid\tau_i)=\operatorname{softmax}(R(j\mid i)/0.2).
-\]
+$$
+R(j \mid i) = Q_j D(i,j), \qquad \Pr(\rho_j \mid \tau_i) = \operatorname{softmax}\bigl(R(j \mid i) / 0.2\bigr).
+$$
 
 这个差异只用于排除明显重复的路线，不等同于程序功能差异，也不能在交叉前证明两条路线互补。在线搜索把“交叉子程序更新路线最好或全局最好”记为有效知识交换的后验成功；Action、Implemented Idea 和代码变化保留给后续分析。这是可计算的操作性证据，不是互补性的因果证明。V6 第一版不依赖 embedding 或任务专用行为向量；若任务以后能提供稳定的功能行为距离，可在独立验证后替换当前代理。
 
@@ -161,18 +154,18 @@ Action 请求生成恰好两条编号、单行、自包含的修改建议。每�
 
 ## 9. 扩张—收缩种群
 
-active frontier 的目标规模为 \(M=30\)。有效子程序产生新 active 轨迹；规模达到 \(2M\) 时收缩回 \(M\)：
+active frontier 的目标规模为 $M=30$。有效子程序产生新 active 轨迹；规模达到 $2M$ 时收缩回 $M$：
 
-1. **精确去重**：按规范化完整程序哈希合并 endpoint 相同的路线。全局最优锚定路线（best-anchor）指当前登记为 global best 所属的 active 路线；重复组包含它时保留它，否则保留 \(V\) 更高者，再按稳定路线编号决胜；
-2. **质量精英**：按 \(Q\) 保留 \(E=\max(2,\lceil0.1M\rceil)\) 条路线；best-anchor 必须进入精英集合，必要时替换其中最弱路线；
-3. **差异保留**：从其余成熟路线中，以相对“精英 + 已选差异路线”的 max-min 路线差异保留 \(R=\max(2,\lceil0.1M\rceil)\) 条；
-4. **继续开发**：其余席位按 \(V\)-softmax 无放回抽样。
+1. **精确去重**：按规范化完整程序哈希合并 endpoint 相同的路线。全局最优锚定路线（best-anchor）指当前登记为 global best 所属的 active 路线；重复组包含它时保留它，否则保留 $V$ 更高者，再按稳定路线编号决胜；
+2. **质量精英**：按 $Q$ 保留 $E=\max(2,\lceil 0.1M \rceil)$ 条路线；best-anchor 必须进入精英集合，必要时替换其中最弱路线；
+3. **差异保留**：从其余成熟路线中，以相对“精英 + 已选差异路线”的 max-min 路线差异保留 $R=\max(2,\lceil 0.1M \rceil)$ 条；
+4. **继续开发**：其余席位按 $V$-softmax 无放回抽样。
 
-精确去重后不超过 \(M\) 条时直接保留全部路线，不再执行后续选择。成熟路线不足时释放差异保留名额。退出 active 的路线转为 archived，完整派生事实和独立保存的 global best 不删除。
+精确去重后不超过 $M$ 条时直接保留全部路线，不再执行后续选择。成熟路线不足时释放差异保留名额。退出 active 的路线转为 archived，完整派生事实和独立保存的 global best 不删除。
 
 ## 10. 完整搜索流程
 
-初始化在预算内连续生成候选，直到建立 \(M\) 条有效单节点轨迹。第一个请求强调简单、完整和有效；后续请求展示最近至多 6 个初始思想的简述，鼓励形成不同起点。初始化和正式搜索遵循同一评估预算。
+初始化在预算内连续生成候选，直到建立 $M$ 条有效单节点轨迹。第一个请求强调简单、完整和有效；后续请求展示最近至多 6 个初始思想的简述，鼓励形成不同起点。初始化和正式搜索遵循同一评估预算。
 
 ```text
 1. 在预算内建立最多 M 条有效初始轨迹。
@@ -197,11 +190,9 @@ checkpoint 保存完整派生图、active/archived 轨迹、锚点尝试、globa
 
 这些事实形成：
 
-\[
-(\text{context},\text{instruction})
-\longrightarrow
-(\text{action},\text{code},\text{evaluation}).
-\]
+$$
+(\text{context},\text{instruction}) \longrightarrow (\text{action},\text{code},\text{evaluation}).
+$$
 
 V6 在线搜索只记录事实，不把每次退步直接定义为负样本。后续研究可以结合即时改进、路线推进和后代长期贡献构造监督、偏好或强化学习信号，把搜索过程中发现的改进能力内化到模型；学习算法不属于 V6 在线搜索机制。
 
@@ -218,8 +209,8 @@ V6 在线搜索只记录事实，不把每次退步直接定义为负样本。�
 | 有进展 refine / ideate；重新出发或无进展 | 2 / 1；1 / 2 |
 | transfer / synthesize | 1 / 1 |
 | 路线相似度 code / idea / path | 0.5 / 0.3 / 0.2 |
-| 精英数；差异保留数 | 各 \(\max(2,\lceil0.1M\rceil)\) |
-| 默认 \(\epsilon_{\mathcal T}\) | 确定性固定种子 evaluator 取 0；其他任务显式设置 |
+| 精英数；差异保留数 | 各 $\max(2,\lceil 0.1M \rceil)$ |
+| 默认 $\epsilon_{\mathcal{T}}$ | 确定性固定种子 evaluator 取 0；其他任务显式设置 |
 | Action / Code 输出上限 | 1024 / 8192 token |
 | checkpoint 周期；连续停滞上限 | 10 个完成批次；20 |
 
