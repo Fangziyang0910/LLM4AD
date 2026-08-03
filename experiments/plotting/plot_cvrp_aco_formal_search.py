@@ -82,9 +82,9 @@ METHODS = {
     "TraceAAD V6": {
         "directory": "traceaad_v6/version6",
         "runs": (
-            "v6_20260801_183249_cvrp_v6_rep1",
-            "v6_20260801_183249_cvrp_v6_rep2",
-            "v6_20260801_183249_cvrp_v6_rep3",
+            "v6_20260802_170400_occamv1_cvrp_v6_rep1",
+            "v6_20260802_170400_occamv1_cvrp_v6_rep2",
+            "v6_20260802_170400_occamv1_cvrp_v6_rep3",
         ),
         "budget": 1000,
         "color": "#D55E00",

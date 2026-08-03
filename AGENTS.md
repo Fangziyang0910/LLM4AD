@@ -50,7 +50,7 @@
 - `docs/inbox.md` 暂存尚未形成明确问题的想法；澄清后移入 `docs/research/`。
 - `docs/research/` 是科研过程主线。一个问题在同一篇笔记中维护事实、假设、设计、实验、分析、决定和下一步；没有内容的栏目不创建。
 - `docs/knowledge/研究认识.md` 只保存跨问题、跨版本可复用的科学认识。重要 idea 或机制讨论前先阅读；稳定认识及时融入现有主题，未验证判断标记 `[待验证]`。
-- `docs/methods/` 保存完整方法规范；TraceAAD V4 与 V5 的权威说明分别是 `docs/methods/TraceAAD-v4完整机制设计.md` 和 `docs/methods/TraceAAD-v5完整机制设计.md`，独立实现分别位于 `llm4ad/method/traceaad_v4/` 与 `llm4ad/method/traceaad_v5/`。描述运行行为时必须注明版本。
+- `docs/methods/` 保存完整方法规范；TraceAAD V4 / V5 / V6 的权威说明分别是 `docs/methods/TraceAAD-v4完整机制设计.md`、`docs/methods/TraceAAD-v5完整机制设计.md` 与 `docs/methods/TraceAAD-v6完整机制设计.md`，独立实现分别位于 `llm4ad/method/traceaad_v4/`、`llm4ad/method/traceaad_v5/` 与 `llm4ad/method/traceaad_v6/`。描述运行行为时必须注明版本。
 - `docs/references/` 保存论文与原始实现调研；`docs/archive/` 保存凝练后的冻结审计和开发复盘。根目录 `archive/` 只保留历史原始实验工件，不保存文档或旧方法副本。
 - `docs/experiments/配置.md` 记录训练、测试、ID/OOD 和搜索配置；`docs/experiments/覆盖.md` 只记录 method × task 完成状态。
 - `docs/results/<task>/结果汇总.md` 保存已完成的权威结果，按 task 聚合。

@@ -73,7 +73,7 @@ def test_runner_writes_one_reproducible_config_per_run(tmp_path: Path) -> None:
     assert payload["llm"]["api_key_configured"] is False
 
 
-def test_v6_runner_records_occam_protocol(tmp_path: Path) -> None:
+def test_v6_runner_records_protocol(tmp_path: Path) -> None:
     spec = run.make_run_spec(
         task="tsp_construct",
         version="v6",

@@ -1,4 +1,4 @@
-"""Mechanism contract tests for the Occam TraceAAD V6 protocol."""
+"""Mechanism contract tests for TraceAAD V6."""
 
 from __future__ import annotations
 
@@ -161,11 +161,11 @@ class _IndexRng:
         return self.index % size
 
 
-def test_public_package_identifies_occam_protocol():
+def test_public_package_identifies_v6_protocol():
     import llm4ad.method.traceaad_v6 as package
 
     assert package.TraceAADV6 is TraceAADV6
-    assert package.PROTOCOL_ID == "traceaad-v6-occam-v1"
+    assert package.PROTOCOL_ID == "traceaad-v6-v1"
     assert package.CHECKPOINT_VERSION == 8
     assert set(package.__all__) == {
         "TraceAADV6",

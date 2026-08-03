@@ -256,7 +256,7 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
         )
     if payload.get("protocol_id") != PROTOCOL_ID:
         raise ValueError(
-            "checkpoint protocol_id does not match TraceAAD v6 Occam protocol"
+            "checkpoint protocol_id does not match TraceAAD v6 protocol"
         )
     if payload.get("search_configuration") != method.search_configuration():
         raise ValueError(

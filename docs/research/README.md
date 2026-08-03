@@ -12,5 +12,6 @@
 
 ## 分析报告
 
+- [TraceAAD 版本机制诊断](TraceAAD版本机制诊断.md)：重建 V1-V6 的机制变更与实验谱系，解释 V5 为何成为最强 TraceAAD、MCTS-AHD 为何仍领先，并逐项诊断上下文、算子、种群、轨迹、评分、父代选择和复杂度机制。
 - [TraceAAD v4–v6 轨迹过程分析](TraceAAD-v4-v6-轨迹过程分析.md)：对照 LLM 优化器轨迹论文的方法，对 v4/v5/v6 现有 run 做突破统计、LRR/PCD、新颖性与语义几何的离线分析。
 - [跨方法轨迹过程分析](跨方法轨迹过程分析.md)：同一套分析扩展到 MCTS-AHD、EoH、ReEvo、ShinkaEvo、PathWise，8 方法 × 4 任务 × 3 重复。

@@ -1,6 +1,8 @@
 # TraceAAD V6：简约的轨迹进化
 
-> 状态：V6 于 2026-08-02 收敛为 `traceaad-v6-occam-v1` 协议，实现位于 `llm4ad/method/traceaad_v6/`。此前启动的 12 路 V6 实验运行的是质量门控协议，只作为机制诊断样本，不代表本文协议。V4、V5 继续由各自文档和实现独立维护。
+> 正式版本：Occam V6（2026-08-03）。实现位于 `llm4ad/method/traceaad_v6/`。
+> 质量门控历史版已归档，见 [V6 开发复盘](../archive/development/TraceAAD-V6开发复盘.md)。
+> V4、V5 继续由各自文档和实现独立维护。
 
 ## 1. 研究问题
 
@@ -129,7 +131,7 @@ active frontier 目标规模为 $M=30$。有效子程序产生新的 active 轨�
 - 原子 checkpoint、随机数状态、global best 与完整图状态；
 - 严格的配置一致性检查。
 
-当前协议标识为 `traceaad-v6-occam-v1`，checkpoint schema version 为 8。checkpoint 同时核对完整搜索配置以及任务描述、模板、evaluator 类型、模型类型/名称和服务地址的非秘密身份；正式 runner 另外核对完整 task/evaluator 参数。质量门控版 V6 的旧 checkpoint 不允许静默续跑到当前协议；旧实验只保留为历史工件。
+当前协议标识为 `traceaad-v6-v1`，checkpoint schema version 为 8。checkpoint 同时核对完整搜索配置以及任务描述、模板、evaluator 类型、模型类型/名称和服务地址的非秘密身份；正式 runner 另外核对完整 task/evaluator 参数。质量门控版 V6 的旧 checkpoint 不允许静默续跑到当前协议；旧实验只保留为历史工件，见 [V6 开发复盘](../archive/development/TraceAAD-V6开发复盘.md)。
 
 ## 11. 默认协议
 
