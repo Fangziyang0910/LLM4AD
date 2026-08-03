@@ -10,6 +10,8 @@ from llm4ad.method.traceaad_v4 import TraceAADV4
 from llm4ad.method.traceaad_v5 import TraceAADV5
 from llm4ad.method.traceaad_v6 import PROTOCOL_ID as V6_PROTOCOL_ID
 from llm4ad.method.traceaad_v6 import TraceAADV6
+from llm4ad.method.traceaad_v7 import PROTOCOL_ID as V7_PROTOCOL_ID
+from llm4ad.method.traceaad_v7 import TraceAADV7
 
 
 @pytest.mark.parametrize("task", run.TASKS)
@@ -30,6 +32,7 @@ def test_unified_runner_builds_each_task_and_version(
         "v4": TraceAADV4,
         "v5": TraceAADV5,
         "v6": TraceAADV6,
+        "v7": TraceAADV7,
     }[version]
     assert isinstance(method, expected_type)
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
@@ -41,7 +44,7 @@ def test_unified_runner_builds_each_task_and_version(
         assert method._llm.max_tokens == 8192
         assert method._action_max_tokens == 1024
         assert not hasattr(method, "_global_experience")
-        if version == "v6":
+        if version in {"v6", "v7"}:
             assert method._context_token_limit == 24576
             assert not hasattr(method, "_dual_probability")
 
@@ -93,6 +96,27 @@ def test_v6_runner_records_protocol(tmp_path: Path) -> None:
         "trace_transfer",
     ]
     assert "dual_probability" not in payload["method_params"]
+
+
+def test_v7_runner_records_protocol_and_minimal_population_controls(
+    tmp_path: Path,
+) -> None:
+    spec = run.make_run_spec(
+        task="tsp_construct",
+        version="v7",
+        experiments_root=tmp_path,
+    )
+    run_dir, run_name, _ = run.resolve_run_dir(spec)
+    run.write_run_config(spec, run_dir, run_name)
+    payload = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
+
+    params = payload["method_params"]
+    assert params["protocol_id"] == V7_PROTOCOL_ID
+    assert params["checkpoint_schema_version"] == 9
+    assert params["elite_count"] == 3
+    assert params["value_weights"]["search_quality"] == 0.8
+    assert params["value_weights"]["search_trend"] == 0.2
+    assert "diversity_count" not in params
 
 
 def test_resume_uses_version_specific_checkpoint_source(tmp_path: Path) -> None:
