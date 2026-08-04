@@ -225,25 +225,6 @@ def dump_state(method) -> dict[str, Any]:
         "rng_state": method._rng.getstate(),
         "search_configuration": method.search_configuration(),
         "runtime_identity": method.runtime_identity(),
-        "profiler": _dump_profiler(method),
-    }
-
-
-def _dump_profiler(method) -> dict[str, Any] | None:
-    profiler = method._profiler
-    if profiler is None:
-        return None
-    return {
-        "started_at": profiler._process_start_time.isoformat(),
-        "evaluate_success_program_num": profiler._evaluate_success_program_num,
-        "evaluate_failed_program_num": profiler._evaluate_failed_program_num,
-        "total_sample_time": profiler._tot_sample_time,
-        "total_evaluate_time": profiler._tot_evaluate_time,
-        "error_count": profiler._error_count,
-        "llm_call_count": profiler._llm_call_count,
-        "method_event_count": profiler._method_event_count,
-        "method_state_count": profiler._method_state_count,
-        "logging_degraded": profiler._logging_degraded,
     }
 
 
@@ -294,39 +275,26 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     ):
         raise ValueError("checkpoint best trajectory does not exist")
     method._rng.setstate(_as_tuple(payload["rng_state"]))
-    _restore_profiler(method, payload.get("profiler"))
+    artifacts = getattr(method, "_artifacts", None) or getattr(method, "_profiler", None)
+    if artifacts is not None and hasattr(artifacts, "sync_after_resume"):
+        best = method._best_node
+        artifacts.sync_after_resume(
+            total_samples=method._tot_sample_nums,
+            best_score=None if best is None else best.fitness,
+            best_sample_order=method._best_node_sample_order,
+        )
+    elif artifacts is not None and hasattr(artifacts, "_num_samples"):
+        artifacts._num_samples = method._tot_sample_nums
+        best = method._best_node
+        if best is not None and best.fitness is not None:
+            artifacts._best_score = best.fitness
+            artifacts._best_sample_order = method._best_node_sample_order
 
 
 def _as_tuple(value):
     if isinstance(value, list):
         return tuple(_as_tuple(item) for item in value)
     return value
-
-
-def _restore_profiler(method, payload: Mapping[str, Any] | None) -> None:
-    profiler = method._profiler
-    if profiler is None or payload is None:
-        return
-    profiler._num_samples = method._tot_sample_nums
-    profiler._process_start_time = profiler._process_start_time.fromisoformat(
-        payload["started_at"]
-    )
-    profiler._evaluate_success_program_num = int(
-        payload["evaluate_success_program_num"]
-    )
-    profiler._evaluate_failed_program_num = int(payload["evaluate_failed_program_num"])
-    profiler._tot_sample_time = float(payload["total_sample_time"])
-    profiler._tot_evaluate_time = float(payload["total_evaluate_time"])
-    profiler._error_count = int(payload["error_count"])
-    profiler._llm_call_count = int(payload["llm_call_count"])
-    profiler._method_event_count = int(payload["method_event_count"])
-    profiler._method_state_count = int(payload.get("method_state_count", 0))
-    profiler._logging_degraded = bool(payload["logging_degraded"])
-    best = method._best_node
-    if best is None or best.fitness is None:
-        return
-    profiler._cur_best_program_score = best.fitness
-    profiler._cur_best_program_sample_order = method._best_node_sample_order
 
 
 def save_checkpoint(method, directory: str | Path | None = None) -> Path | None:

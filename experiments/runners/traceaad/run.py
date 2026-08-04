@@ -9,17 +9,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
-from llm4ad.method.traceaad_v4 import (
-    TraceAADProfiler as TraceAADV4Profiler,
-)
+from llm4ad.method.traceaad_artifacts import TraceAADArtifacts
 from llm4ad.method.traceaad_v4 import (
     TraceAADV4,
 )
 from llm4ad.method.traceaad_v4 import (
     ValueWeights as V4ValueWeights,
-)
-from llm4ad.method.traceaad_v5 import (
-    TraceAADProfiler as TraceAADV5Profiler,
 )
 from llm4ad.method.traceaad_v5 import (
     TraceAADV5,
@@ -34,9 +29,6 @@ from llm4ad.method.traceaad_v6 import (
     PROTOCOL_ID as V6_PROTOCOL_ID,
 )
 from llm4ad.method.traceaad_v6 import (
-    TraceAADProfiler as TraceAADV6Profiler,
-)
-from llm4ad.method.traceaad_v6 import (
     TraceAADV6,
 )
 from llm4ad.method.traceaad_v6 import (
@@ -48,9 +40,6 @@ from llm4ad.method.traceaad_v7 import (
 )
 from llm4ad.method.traceaad_v7 import (
     PROTOCOL_ID as V7_PROTOCOL_ID,
-)
-from llm4ad.method.traceaad_v7 import (
-    TraceAADProfiler as TraceAADV7Profiler,
 )
 from llm4ad.method.traceaad_v7 import (
     TraceAADV7,
@@ -261,7 +250,6 @@ def build_method(
         temperature=1.0,
         enable_thinking=False,
     )
-    log_dir = run_dir / "logs"
     common = {
         "llm": llm,
         "evaluation": evaluation,
@@ -275,56 +263,42 @@ def build_method(
         "max_stalled_iterations": 20,
         "checkpoint_interval": 10,
         "resume_from": resume_from,
+        "checkpoint_dir": run_dir / "checkpoints",
     }
+    artifacts = TraceAADArtifacts(run_dir=run_dir)
     if spec.version == "v4":
         return TraceAADV4(
-            profiler=TraceAADV4Profiler(
-                log_dir=str(log_dir),
-                log_style="complex",
-                create_random_path=False,
-            ),
+            profiler=artifacts,
             value_weights=V4ValueWeights(),
-            checkpoint_dir=log_dir / "checkpoints",
             **common,
         )
     if spec.version == "v5":
         return TraceAADV5(
-            profiler=TraceAADV5Profiler(run_dir=run_dir),
+            profiler=artifacts,
             value_weights=V5ValueWeights(),
             elite_count=3,
             action_max_tokens=spec.action_max_tokens,
             random_seed=spec.seed,
-            checkpoint_dir=run_dir / "checkpoints",
             **common,
         )
     if spec.version == "v6":
         return TraceAADV6(
-            profiler=TraceAADV6Profiler(
-                log_dir=str(log_dir),
-                log_style="simple",
-                create_random_path=False,
-            ),
+            profiler=artifacts,
             value_weights=V6ValueWeights(),
             action_max_tokens=spec.action_max_tokens,
             code_max_tokens=spec.llm_output_tokens,
             context_token_limit=spec.context_token_limit,
             random_seed=spec.seed,
-            checkpoint_dir=log_dir / "checkpoints",
             **common,
         )
     return TraceAADV7(
-        profiler=TraceAADV7Profiler(
-            log_dir=str(log_dir),
-            log_style="simple",
-            create_random_path=False,
-        ),
+        profiler=artifacts,
         value_weights=V7ValueWeights(),
         elite_count=3,
         action_max_tokens=spec.action_max_tokens,
         code_max_tokens=spec.llm_output_tokens,
         context_token_limit=spec.context_token_limit,
         random_seed=spec.seed,
-        checkpoint_dir=log_dir / "checkpoints",
         **common,
     )
 
@@ -421,11 +395,20 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
 
 
 def checkpoint_source(spec: RunSpec, run_dir: Path) -> Path:
-    if spec.version == "v4":
-        return run_dir
-    if spec.version == "v5":
-        return run_dir / "checkpoints" / "latest.json"
-    return run_dir / "logs" / "checkpoints" / "latest.json"
+    """Return the checkpoint path used for resume.
+
+    Canonical location is ``run_dir/checkpoints/latest.json``. V4 also accepts
+    legacy locations when the canonical file is missing.
+    """
+    canonical = run_dir / "checkpoints" / "latest.json"
+    if canonical.is_file() or spec.version != "v4":
+        return canonical
+    from llm4ad.method.traceaad_v4.checkpoint import find_latest_checkpoint
+
+    try:
+        return find_latest_checkpoint(run_dir)
+    except FileNotFoundError:
+        return canonical
 
 
 def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:

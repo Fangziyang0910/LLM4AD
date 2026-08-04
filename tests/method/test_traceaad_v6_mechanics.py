@@ -171,6 +171,7 @@ def test_public_package_identifies_v6_protocol():
         "TraceAADV6",
         "TraceAADRunResult",
         "TraceAADProfiler",
+        "TraceAADArtifacts",
         "ValueWeights",
         "CHECKPOINT_VERSION",
         "PROTOCOL_ID",
@@ -688,22 +689,31 @@ def test_context_limit_is_hard_for_initialization_and_single_trace():
     assert context is None
 
 
-def test_successful_llm_calls_record_exact_prompt_and_response(tmp_path: Path):
-    profiler = TraceAADProfiler(
-        log_dir=str(tmp_path),
-        log_style="simple",
-        create_random_path=False,
+def test_llm_calls_keep_metadata_and_drop_successful_prompt_response(tmp_path: Path):
+    method = _make_method(
+        profiler=TraceAADProfiler(run_dir=tmp_path),
+        n_init=1,
+        max_sample_nums=3,
     )
-    method = _make_method(profiler=profiler, n_init=1, max_sample_nums=3)
     method.run()
     records = [
         json.loads(line)
-        for line in (tmp_path / "llm_calls.jsonl")
+        for line in (tmp_path / "artifacts" / "llm_calls.jsonl")
         .read_text(encoding="utf-8")
         .splitlines()
     ]
     assert {record["stage"] for record in records} == {"init", "action", "code"}
-    assert all("prompt" in record and "response" in record for record in records)
+    for record in records:
+        assert "prompt" not in record
+        assert {"stage", "status", "prompt_tokens", "response_tokens"} <= set(record)
+        if record["status"] == "ok":
+            assert "response" not in record
+            assert "parsed_actions" not in record
+        if record["stage"] == "action" and record["status"] == "ok":
+            assert isinstance(record.get("n_actions"), int)
+            assert record["n_actions"] >= 1
+    summary = json.loads((tmp_path / "logs" / "summary.json").read_text())
+    assert summary["status"] in {"finished", "aborted"}
 
 
 def test_checkpoint_preserves_stop_state_and_rejects_old_or_drifted_protocol():
@@ -716,6 +726,7 @@ def test_checkpoint_preserves_stop_state_and_rejects_old_or_drifted_protocol():
     assert payload["stalled_iterations"] == 4
     assert payload["consecutive_sample_failures"] == 5
     assert "attempts" not in payload
+    assert "profiler" not in payload
 
     restored = _make_method(max_sample_nums=3)
     load_state(restored, payload)

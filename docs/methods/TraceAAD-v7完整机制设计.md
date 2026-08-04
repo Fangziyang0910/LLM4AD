@@ -259,7 +259,9 @@ V7 协议 ID 为 `traceaad-v7`，checkpoint schema 为 11。checkpoint 保存：
 - 完整节点、边、轨迹和 active/archive 状态；
 - Q/P/V、访问数、global best 及样本顺序；
 - evaluator 预算、批次、失败和停滞状态；
-- RNG 状态和 profiler 累计信息；
+- RNG 状态；
+
+运行工件与其他 TraceAAD 版本共用 `TraceAADArtifacts` 三分开契约（`logs/` 监控、`artifacts/` 原始分析、`checkpoints/` 续训）。checkpoint 不保存 profiler/事件计数。
 - 完整搜索配置；
 - 任务描述、模板、evaluator 类型/关键设置、LLM 类型/模型/端点的非密钥身份。
 

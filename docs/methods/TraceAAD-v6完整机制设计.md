@@ -133,11 +133,12 @@ active frontier 目标规模为 $M=30$。有效子程序产生新的 active 轨�
 - 单结构父代和有限评价值不变量；
 - evaluator 预算、失败计数与停滞停止；
 - 函数接口、parser/validator 和 context hard limit；
-- 实际 prompt/response、候选、评价和种群事件日志；
-- 原子 checkpoint、随机数状态、global best 与完整图状态；
+- 实际候选、边、LLM 元数据与精简决策事实（`artifacts/`）；
+- 监控进度与错误（`logs/`）；
+- 原子 checkpoint、随机数状态、global best 与完整图状态（`checkpoints/`）；
 - 严格的配置一致性检查。
 
-当前协议标识为 `traceaad-v6`，checkpoint schema version 为 8。checkpoint 同时核对完整搜索配置以及任务描述、模板、evaluator 类型、模型类型/名称和服务地址的非秘密身份；运行入口另外核对完整 task/evaluator 参数。质量门控版 V6 的旧 checkpoint 不允许静默续跑到当前协议；旧实验位于 [`archive/traceaad-v6-development/`](../../archive/traceaad-v6-development/)，见 [V6 开发复盘](../archive/development/TraceAAD-V6开发复盘.md)。
+当前协议标识为 `traceaad-v6`，checkpoint schema version 为 8。checkpoint 核对完整搜索配置以及任务/模型非秘密身份，**不**保存 profiler 事件计数。运行工件与其他 TraceAAD 版本共用 `TraceAADArtifacts` 三分开契约。质量门控版 V6 的旧 checkpoint 不允许静默续跑到当前协议；旧实验位于 [`archive/traceaad-v6-development/`](../../archive/traceaad-v6-development/)，见 [V6 开发复盘](../archive/development/TraceAAD-V6开发复盘.md)。
 
 ### 11. 默认协议
 

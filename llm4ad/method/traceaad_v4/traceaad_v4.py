@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import math
 import random
 import re
@@ -19,14 +20,11 @@ from ...base import (
     SecureEvaluator,
     TextFunctionProgramConverter,
 )
-from ...tools.profiler import ProfilerBase
+from ..traceaad_artifacts import TraceAADArtifacts
 from .._observability import (
     close_llm,
-    finish_profiler,
     init_observability,
     is_search_aborted,
-    log_event,
-    log_llm_call,
     record_sample_failure,
     reset_sample_failures,
 )
@@ -75,7 +73,7 @@ class TraceAADV4:
         self,
         llm: LLM,
         evaluation: Evaluation,
-        profiler: ProfilerBase = None,
+        profiler: TraceAADArtifacts | None = None,
         max_sample_nums: Optional[int] = 100,
         *,
         n_init: int = 30,
@@ -108,6 +106,7 @@ class TraceAADV4:
 
         self._llm = llm
         self._evaluation = evaluation
+        self._artifacts = profiler
         self._profiler = profiler
         self._task_description_str = evaluation.task_description
         self._max_sample_nums = max_sample_nums
@@ -143,6 +142,7 @@ class TraceAADV4:
         self._memory = TrajectoryMemory(max_trajectory_length=max_trajectory_length)
         self._best_node: ProgramNode | None = None
         self._best_trajectory_id: int | None = None
+        self._best_node_sample_order: int | None = None
         self._tot_sample_nums = 0
         self._next_attempt_id = 0
         self._initialization_complete = False
@@ -153,17 +153,19 @@ class TraceAADV4:
             checkpoint = load_checkpoint(self, resume_from)
             if self._checkpoint_dir is None:
                 self._checkpoint_dir = checkpoint.parent
-            log_event(
-                self,
-                event="checkpoint_loaded",
-                status="ok",
+            self._record_decision(
+                "checkpoint_loaded",
                 checkpoint=str(checkpoint),
                 sample_order=self._tot_sample_nums,
+                next_attempt_id=self._next_attempt_id,
             )
 
     def run(self) -> TraceAADRunResult:
         stalled_attempts = 0
         attempt_id = self._next_attempt_id
+        status = "error"
+        error: dict[str, str] = {}
+        result: TraceAADRunResult | None = None
         try:
             if not self._initialization_complete:
                 self._initialize()
@@ -171,20 +173,23 @@ class TraceAADV4:
                 save_checkpoint(self)
             while self._has_budget() and not is_search_aborted(self):
                 if not self._memory.active():
-                    log_event(
-                        self, event="search_stopped", status="no_active_trajectory"
+                    self._record_decision(
+                        "search_stopped", status="no_active_trajectory"
                     )
+                    self._log_progress("search_stopped no_active_trajectory")
                     break
                 samples_before = self._tot_sample_nums
                 self._run_iteration(attempt_id)
                 if self._tot_sample_nums == samples_before:
                     stalled_attempts += 1
                     if stalled_attempts >= self._max_stalled_iterations:
-                        log_event(
-                            self,
-                            event="search_stopped",
+                        self._record_decision(
+                            "search_stopped",
                             status="stalled_generation",
                             attempt_id=attempt_id,
+                        )
+                        self._log_progress(
+                            f"search_stopped stalled_generation attempt={attempt_id}"
                         )
                         break
                 else:
@@ -194,23 +199,40 @@ class TraceAADV4:
                 self._next_attempt_id = attempt_id
                 self._save_checkpoint_if_due()
 
-            # Do not force-contract a mid-expansion pool when the run ends.
             result = self._result()
-            finish_profiler(
-                self,
-                status="aborted" if is_search_aborted(self) else "finished",
-                best_node_id=None if result.best_node is None else result.best_node.id,
-                best_score=None
-                if result.best_node is None
-                else result.best_node.fitness,
-                n_total_nodes=result.n_total_nodes,
-                n_valid_nodes=result.n_valid_nodes,
-                n_edges=result.n_edges,
-                n_trajectories=result.n_trajectories,
-            )
+            status = "aborted" if is_search_aborted(self) else "finished"
             return result
+        except Exception as exc:
+            error = {
+                "error_type": type(exc).__name__,
+                "error": str(exc)[:1000],
+            }
+            if self._artifacts is not None:
+                self._artifacts.record_error("run", exc)
+            raise
         finally:
+            if result is None:
+                result = self._result()
             save_checkpoint(self)
+            if self._artifacts is not None:
+                self._artifacts.write_summary(
+                    status=status,
+                    best_node_id=(
+                        None if result.best_node is None else result.best_node.id
+                    ),
+                    best_score=(
+                        None if result.best_node is None else result.best_node.fitness
+                    ),
+                    best_sample_order=self._best_node_sample_order,
+                    method_sample_count=self._tot_sample_nums,
+                    n_total_nodes=result.n_total_nodes,
+                    n_valid_nodes=result.n_valid_nodes,
+                    n_edges=result.n_edges,
+                    n_trajectories=result.n_trajectories,
+                    search_aborted=is_search_aborted(self),
+                    **error,
+                )
+                self._artifacts.finish()
             close_llm(self._llm)
 
     def _save_checkpoint_if_due(self) -> None:
@@ -252,13 +274,12 @@ class TraceAADV4:
             node = self._add_node(generated, evaluated)
             trajectory = self._memory.create_initial(node_id=node.id)
             self._update_best(node, trajectory_id=trajectory.id, operator="init")
-            log_event(
-                self,
-                event="trajectory_created",
-                status="ok",
+            self._record_decision(
+                "trajectory_created",
                 stage="init",
                 node_id=node.id,
                 trajectory_id=trajectory.id,
+                sample_order=self._tot_sample_nums,
             )
         if self._memory.active():
             self._score_active_pool()
@@ -286,15 +307,12 @@ class TraceAADV4:
         )
         operator = random.choice(self._operators)
         anchor_id = self._select_anchor(selected)
-        log_event(
-            self,
-            event="operator_selection",
-            status="ok",
+        self._record_decision(
+            "operator_selected",
             attempt_id=attempt_id,
-            selected_operator=operator.name,
-            selected_trajectory_id=selected.id,
-            base_node_id=anchor_id,
-            selected_value=selected.scalar_value,
+            operator=operator.name,
+            trajectory_id=selected.id,
+            anchor_id=anchor_id,
         )
         prompt = build_action_prompt(
             graph=self._graph,
@@ -310,7 +328,6 @@ class TraceAADV4:
             max_steps=self._memory.max_trajectory_length,
         )
         actions = self._generate_actions(prompt, attempt_id)
-        accepted = 0
         for seq, action in enumerate(actions):
             if not self._has_budget() or is_search_aborted(self):
                 break
@@ -361,40 +378,25 @@ class TraceAADV4:
                 child_id=child.id,
                 edge_id=edge.id,
             )
-            log_event(
-                self,
-                event="child_accepted",
-                status="ok",
-                iteration=attempt_id,
-                seq=seq,
-                operator=operator.name,
-                child_id=child.id,
-                trajectory_id=child_trajectory.id,
-                score=child.fitness,
-                parent_id=anchor_id,
-                edge_id=edge.id,
-                action=action,
-                delta=delta,
-                outcome=outcome,
-            )
+            if self._artifacts is not None:
+                self._artifacts.record_edge(
+                    edge_id=edge.id,
+                    parent_id=anchor_id,
+                    child_id=child.id,
+                    sample_order=self._tot_sample_nums,
+                    iteration=attempt_id,
+                    seq=seq,
+                    operator=operator.name,
+                    action=action,
+                    trajectory_id=child_trajectory.id,
+                )
             self._update_best(
                 child,
                 trajectory_id=child_trajectory.id,
                 iteration=attempt_id,
                 operator=operator.name,
             )
-            accepted += 1
         self._memory.record_visit(selected.id)
-        log_event(
-            self,
-            event="operator_batch",
-            status="ok" if accepted else "empty",
-            attempt_id=attempt_id,
-            operator=operator.name,
-            accepted=accepted,
-            active_trajectories=len(self._memory.active()),
-            parent_visit_count=self._memory.get_trajectory(selected.id).visit_count,
-        )
 
     def _select_anchor(self, trajectory: Trajectory) -> int:
         endpoint = trajectory.endpoint_id
@@ -486,10 +488,8 @@ class TraceAADV4:
             if trajectory.id not in keep_ids:
                 self._memory.archive(trajectory.id)
                 archived += 1
-        log_event(
-            self,
-            event="population_management",
-            status="ok",
+        self._record_decision(
+            "population_managed",
             management_threshold=self._management_threshold,
             before=len(ranked),
             after=len(self._memory.active()),
@@ -517,19 +517,18 @@ class TraceAADV4:
             )
             return []
         actions = _parse_actions(response, expected_count=self._actions_per_iteration)
-        log_llm_call(
-            self,
-            stage="action",
-            operator="semantic",
-            sample_order=self._tot_sample_nums + 1,
-            iteration=iteration,
-            seq=0,
-            prompt=prompt,
-            response=response,
-            sample_time=sample_time,
-            parsed_actions=actions,
-            status="ok" if actions else "parse_failed",
-        )
+        if self._artifacts is not None:
+            self._artifacts.record_llm_call(
+                stage="action",
+                operator="semantic",
+                sample_order=self._tot_sample_nums + 1,
+                iteration=iteration,
+                seq=0,
+                sample_time=sample_time,
+                n_actions=len(actions),
+                response=response,
+                status="ok" if actions else "parse_failed",
+            )
         return actions
 
     def _draw_program(
@@ -565,21 +564,18 @@ class TraceAADV4:
         generated = _parse_program_response(
             response, self._function_to_evolve.name
         )
-        log_llm_call(
-            self,
-            stage=stage,
-            operator=operator,
-            sample_order=sample_order,
-            iteration=iteration,
-            seq=seq,
-            action=action,
-            prompt=prompt,
-            response=response,
-            sample_time=sample_time,
-            parsed_idea=None if generated is None else generated.idea,
-            program_parse_success=generated is not None,
-            status="ok" if generated is not None else "parse_failed",
-        )
+        if self._artifacts is not None:
+            self._artifacts.record_llm_call(
+                stage=stage,
+                operator=operator,
+                sample_order=sample_order,
+                iteration=iteration,
+                seq=seq,
+                sample_time=sample_time,
+                program_parse_success=generated is not None,
+                response=response,
+                status="ok" if generated is not None else "parse_failed",
+            )
         return generated
 
     def _evaluate(
@@ -590,24 +586,19 @@ class TraceAADV4:
         result, eval_time = self._evaluator.evaluate_program_record_time(program)
         self._tot_sample_nums += 1
         score = result.fitness if isinstance(result, EvalResult) else result
-        function = TextFunctionProgramConverter.program_to_function(program)
-        if function is not None:
-            function.algorithm = idea
-            function.score = score
-            function.evaluate_time = eval_time
-            function.operator = operator
-            if self._profiler is not None:
-                self._profiler.register_function(function, program=str(program))
-        log_event(
-            self,
-            event="program_evaluated",
-            status="ok" if score is not None else "eval_failed",
-            operator=operator,
-            sample_order=self._tot_sample_nums,
-            score=score,
-            evaluate_time=eval_time,
-            counts_budget=True,
-        )
+        program_text = str(program)
+        if self._artifacts is not None:
+            self._artifacts.record_candidate(
+                sample_order=self._tot_sample_nums,
+                score=None if score is None else float(score),
+                operator=operator,
+                program=program_text,
+                idea=idea,
+                code_hash=_code_hash(program_text),
+                program_loc=_nonempty_loc(program_text),
+                evaluate_time=eval_time,
+                status="ok" if score is not None else "eval_failed",
+            )
         return None if score is None else EvalResult(fitness=float(score))
 
     def _update_best(
@@ -626,23 +617,25 @@ class TraceAADV4:
             return
         previous = self._best_node
         self._best_node = node
+        self._best_node_sample_order = self._tot_sample_nums
         if trajectory_id is not None:
             self._best_trajectory_id = trajectory_id
-        log_event(
-            self,
-            event="best_updated",
-            status="ok",
-            iteration=iteration,
+        self._record_decision(
+            "best_updated",
             sample_order=self._tot_sample_nums,
-            previous_best_node_id=None if previous is None else previous.id,
-            new_best_node_id=node.id,
+            node_id=node.id,
+            iteration=iteration,
             operator=operator,
-            delta_to_previous_best=directed_delta(
-                None if previous is None else previous.fitness,
-                node.fitness,
-                self._maximize,
-            ),
+            previous_best_node_id=None if previous is None else previous.id,
         )
+
+    def _record_decision(self, event: str, **payload) -> None:
+        if self._artifacts is not None:
+            self._artifacts.record_decision(event, **payload)
+
+    def _log_progress(self, message: str) -> None:
+        if self._artifacts is not None:
+            self._artifacts.log_progress(message)
 
     def active_trajectories(self) -> tuple[Trajectory, ...]:
         return self._memory.active()
@@ -663,6 +656,15 @@ class TraceAADV4:
             n_edges=len(self._graph.edges()),
             n_samples=self._tot_sample_nums,
         )
+
+
+def _code_hash(code: str) -> str:
+    text = code.replace("\r\n", "\n").replace("\r", "\n").strip()
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _nonempty_loc(code: str) -> int:
+    return sum(bool(line.strip()) for line in code.splitlines())
 
 
 def _is_better(candidate: float, incumbent: float, maximize: bool) -> bool:

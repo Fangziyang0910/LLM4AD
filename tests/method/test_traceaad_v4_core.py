@@ -55,6 +55,7 @@ def test_public_configuration_exposes_only_search_mechanism_controls():
         "ucb_c",
     )
     assert set(traceaad_package.__all__) == {
+        "TraceAADArtifacts",
         "TraceAADV4",
         "TraceAADRunResult",
         "TraceAADProfiler",

@@ -9,7 +9,6 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Mapping
 
-from ...base import TextFunctionProgramConverter
 from .derivation_graph import DerivationGraph
 from .schema import (
     ImprovementEdge,
@@ -184,24 +183,22 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     best_id = payload.get("best_node_id")
     method._best_node = None if best_id is None else graph.get_node(int(best_id))
     method._best_trajectory_id = payload.get("best_trajectory_id")
-    _restore_profiler(method)
-
-
-def _restore_profiler(method) -> None:
-    profiler = method._profiler
-    if profiler is None:
-        return
-    profiler._num_samples = method._tot_sample_nums
-    best = method._best_node
-    if best is None or best.fitness is None or getattr(profiler, "_num_objs", 1) >= 2:
-        return
-    function = TextFunctionProgramConverter.program_to_function(best.code)
-    if function is not None:
-        function.score = best.fitness
-        function.algorithm = best.idea
-        profiler._cur_best_function = function
-    profiler._cur_best_program_score = best.fitness
-    profiler._cur_best_program_sample_order = method._tot_sample_nums
+    artifacts = getattr(method, "_artifacts", None) or getattr(method, "_profiler", None)
+    if artifacts is not None and hasattr(artifacts, "sync_after_resume"):
+        best = method._best_node
+        artifacts.sync_after_resume(
+            total_samples=method._tot_sample_nums,
+            best_score=None if best is None else best.fitness,
+            best_sample_order=getattr(method, "_best_node_sample_order", None),
+        )
+    elif artifacts is not None and hasattr(artifacts, "_num_samples"):
+        artifacts._num_samples = method._tot_sample_nums
+        best = method._best_node
+        if best is not None and best.fitness is not None:
+            artifacts._best_score = best.fitness
+            artifacts._best_sample_order = getattr(
+                method, "_best_node_sample_order", None
+            )
 
 
 def find_latest_checkpoint(path: str | Path) -> Path:

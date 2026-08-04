@@ -24,7 +24,7 @@ from .._observability import (
     record_sample_failure,
     reset_sample_failures,
 )
-from .artifacts import TraceAADV5Artifacts
+from ..traceaad_artifacts import TraceAADArtifacts
 from .checkpoint import load_checkpoint, save_checkpoint
 from .complexity import code_change_ratio, code_hash, nonempty_loc
 from .context import build_action_prompt, trajectory_history
@@ -89,7 +89,7 @@ class TraceAADV5:
         self,
         llm: LLM,
         evaluation: Evaluation,
-        profiler: TraceAADV5Artifacts | None = None,
+        profiler: TraceAADArtifacts | None = None,
         max_sample_nums: int | None = 100,
         *,
         n_init: int = 30,

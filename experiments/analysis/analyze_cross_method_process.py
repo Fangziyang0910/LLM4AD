@@ -70,11 +70,16 @@ def discover_runs(run_prefixes: list[str] | None = None) -> list[dict]:
         )
 
     runs: list[dict] = []
-    # TraceAAD versions.
-    for summary in sorted(
+    # TraceAAD versions (legacy run_summary.json and new summary.json).
+    summary_paths = list(
         ROOT.glob("experiments/*/traceaad_v*/version*/*/logs/run_summary.json")
-    ):
+    ) + list(ROOT.glob("experiments/*/traceaad_v*/version*/*/logs/summary.json"))
+    seen_runs: set[Path] = set()
+    for summary in sorted(summary_paths):
         run_dir = summary.parent.parent
+        if run_dir in seen_runs:
+            continue
+        seen_runs.add(run_dir)
         if "_eval_proxy" in run_dir.name:
             continue
         if not selected(run_dir):
@@ -132,28 +137,62 @@ def extract_edges(method: str, run_dir: Path, samples: list[dict]) -> list[dict]
     edges: list[dict] = []
 
     if method.startswith("version"):
-        # TraceAAD v4/v5/v6: reuse node resolution from the TraceAAD script.
+        # TraceAAD: prefer new artifacts layout; fall back to legacy method_events.
         try:
-            from analyze_traceaad_process import resolve_nodes
-        except ModuleNotFoundError:  # pragma: no cover - package import path
-            from experiments.analysis.analyze_traceaad_process import resolve_nodes
-
-        events = _load_jsonl(logs / "method_events.jsonl")
-        nodes = resolve_nodes(events, samples, method)
-        for ev in events:
-            if ev.get("event") != "child_accepted":
-                continue
-            child = nodes.get(ev.get("child_id"))
-            parent = nodes.get(ev.get("parent_id"))
-            if child is None or parent is None:
-                continue
-            edges.append(
-                {
-                    "child_sample_order": child.sample_order,
-                    "parent_sample_order": parent.sample_order,
-                    "operator": ev.get("operator") or "",
-                }
+            from analyze_traceaad_process import (
+                load_decision_events,
+                load_edge_events,
+                resolve_nodes,
+                resolve_nodes_from_artifacts,
             )
+        except ModuleNotFoundError:  # pragma: no cover - package import path
+            from experiments.analysis.analyze_traceaad_process import (
+                load_decision_events,
+                load_edge_events,
+                resolve_nodes,
+                resolve_nodes_from_artifacts,
+            )
+
+        edge_events = load_edge_events(run_dir)
+        if (run_dir / "artifacts" / "edges.jsonl").is_file():
+            decisions = load_decision_events(run_dir)
+            nodes = resolve_nodes_from_artifacts(samples, edge_events, decisions)
+            for ev in edge_events:
+                child = nodes.get(ev.get("child_id"))
+                parent = nodes.get(ev.get("parent_id"))
+                if child is None or parent is None:
+                    continue
+                edges.append(
+                    {
+                        "child_sample_order": child.sample_order,
+                        "parent_sample_order": parent.sample_order,
+                        "operator": ev.get("operator") or "",
+                    }
+                )
+            return edges
+
+        events = edge_events  # legacy: child_accepted list from method_events
+        # When edges.jsonl missing, load_edge_events returns child_accepted rows.
+        # Older resolve_nodes still needs full method_events for init nodes.
+        legacy_events = _load_jsonl(logs / "method_events.jsonl")
+        nodes = resolve_nodes(legacy_events or events, samples, method)
+        for ev in events:
+            if ev.get("event") not in {None, "child_accepted"} and "parent_id" not in ev:
+                continue
+            if ev.get("event") == "child_accepted" or (
+                "parent_id" in ev and "child_id" in ev
+            ):
+                child = nodes.get(ev.get("child_id"))
+                parent = nodes.get(ev.get("parent_id"))
+                if child is None or parent is None:
+                    continue
+                edges.append(
+                    {
+                        "child_sample_order": child.sample_order,
+                        "parent_sample_order": parent.sample_order,
+                        "operator": ev.get("operator") or "",
+                    }
+                )
         return edges
 
     if method == "mcts_ahd":
@@ -267,7 +306,15 @@ def analyze_run(
     method: str, task: str, run_dir: Path
 ) -> tuple[dict, list[dict], list[dict]]:
     logs = run_dir / "logs"
-    summary = json.load(open(logs / "run_summary.json", encoding="utf-8"))
+    try:
+        from analyze_traceaad_process import load_run_summary
+    except ModuleNotFoundError:  # pragma: no cover
+        from experiments.analysis.analyze_traceaad_process import load_run_summary
+
+    try:
+        summary = load_run_summary(run_dir)
+    except FileNotFoundError:
+        summary = json.load(open(logs / "run_summary.json", encoding="utf-8"))
     samples = valid_scored_samples(load_samples(run_dir))
     samples_by_order = {s["sample_order"]: s for s in samples}
 

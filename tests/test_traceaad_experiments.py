@@ -141,15 +141,7 @@ def test_resume_uses_version_specific_checkpoint_source(tmp_path: Path) -> None:
 
         assert resumed
         assert resolved == run_dir
-        expected = (
-            run_dir
-            if version == "v4"
-            else (
-                run_dir / "checkpoints" / "latest.json"
-                if version == "v5"
-                else run_dir / "logs" / "checkpoints" / "latest.json"
-            )
-        )
+        expected = run_dir / "checkpoints" / "latest.json"
         assert run.checkpoint_source(spec, resolved) == expected
 
 

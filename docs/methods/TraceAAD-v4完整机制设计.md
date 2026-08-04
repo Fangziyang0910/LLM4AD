@@ -154,7 +154,8 @@ V4 的实现位于 `llm4ad/method/traceaad_v4/`，实验统一由
 
 检查点保存树节点、单父代修改边、轨迹路径和 active/archived 状态、访问次数、global-best 节点与 best-anchor 路线、评估计数和随机搜索配置。检查点只保障恢复，不改变搜索机制。
 
-过程日志至少记录父代轨迹及其 `V_search/UCB/visit_count`、锚点原因、算子、action、子代结果、种群管理前后规模、精英/reserve/best-anchor 保留和全局最好更新。
+过程工件使用共享 `TraceAADArtifacts`：`artifacts/` 保存候选与边等原始事实，
+`logs/` 保存进度与错误，`checkpoints/` 保存可恢复搜索状态。过程指标离线计算。
 
 ### 8.2 实现不变量
 

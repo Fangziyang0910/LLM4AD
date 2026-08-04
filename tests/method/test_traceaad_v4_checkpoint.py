@@ -53,19 +53,15 @@ def _method(
     checkpoint_dir: Path | None,
     resume_from: Path | None = None,
     llm: LLM | None = None,
-    log_dir: Path | None = None,
+    run_dir: Path | None = None,
 ) -> TraceAADV4:
     return TraceAADV4(
         llm=llm or CheckpointLLM(),
         evaluation=CheckpointEvaluation(),
         profiler=(
             None
-            if log_dir is None
-            else TraceAADProfiler(
-                log_dir=str(log_dir),
-                log_style="complex",
-                create_random_path=False,
-            )
+            if run_dir is None
+            else TraceAADProfiler(run_dir=run_dir)
         ),
         max_sample_nums=budget,
         n_init=2,
@@ -156,28 +152,26 @@ def test_resume_rejects_a_different_search_configuration(tmp_path: Path) -> None
 
 
 def test_resume_continues_profiler_sample_numbers(tmp_path: Path) -> None:
-    log_dir = tmp_path / "logs"
-    checkpoint_dir = log_dir / "checkpoints"
+    checkpoint_dir = tmp_path / "checkpoints"
     _method(
         budget=4,
         checkpoint_dir=checkpoint_dir,
-        log_dir=log_dir,
+        run_dir=tmp_path,
     ).run()
 
     resumed = _method(
         budget=6,
         checkpoint_dir=None,
         resume_from=checkpoint_dir,
-        log_dir=log_dir,
+        run_dir=tmp_path,
     )
     resumed.run()
 
     assert resumed._profiler._num_samples == 6
+    candidates_path = tmp_path / "artifacts" / "candidates.jsonl"
+    assert candidates_path.is_file()
     sample_orders = []
-    for path in (log_dir / "samples").glob("samples_*.json"):
-        if path.name == "samples_best.json":
-            continue
-        sample_orders.extend(
-            row["sample_order"] for row in json.loads(path.read_text(encoding="utf-8"))
-        )
+    for line in candidates_path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            sample_orders.append(json.loads(line)["sample_order"])
     assert sorted(sample_orders) == [1, 2, 3, 4, 5, 6]

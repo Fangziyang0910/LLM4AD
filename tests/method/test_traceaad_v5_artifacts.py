@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 
 from llm4ad.base import Evaluation, LLM
+from llm4ad.method.traceaad_artifacts import _RESPONSE_TRUNCATE
 from llm4ad.method.traceaad_v5 import TraceAADProfiler, TraceAADV5, TraceAADV5Artifacts
-from llm4ad.method.traceaad_v5.artifacts import _RESPONSE_TRUNCATE
 from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
 
 

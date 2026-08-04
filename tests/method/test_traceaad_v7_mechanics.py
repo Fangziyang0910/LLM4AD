@@ -190,6 +190,7 @@ def test_public_package_identifies_v7_protocol():
         "TraceAADV7",
         "TraceAADRunResult",
         "TraceAADProfiler",
+        "TraceAADArtifacts",
         "ValueWeights",
         "CHECKPOINT_VERSION",
         "PROTOCOL_ID",
