@@ -21,7 +21,8 @@ class CVRPACODataset:
 
 
 # The 10/64-instance protocol follows MCTS-AHD and ReEvo. The 250-instance
-# paper_test splits match PathWise's final reporting protocol.
+# paper_test splits match PathWise's final reporting protocol. test_200 was
+# appended to the canonical stream so train/test_50/test_100 stay byte-identical.
 SPLIT_SPECS = {
     "train": CVRPACODataset("train", 50, 10, 1234),
     "val_20": CVRPACODataset("validation", 20, 64, 1234),
@@ -30,6 +31,7 @@ SPLIT_SPECS = {
     "test_20": CVRPACODataset("test", 20, 64, 3200),
     "test_50": CVRPACODataset("test", 50, 64, 1234),
     "test_100": CVRPACODataset("test", 100, 64, 1234),
+    "test_200": CVRPACODataset("test", 200, 64, 1234),
     "paper_test_50": CVRPACODataset("test", 50, 250, 4500),
     "paper_test_100": CVRPACODataset("test", 100, 250, 4100),
 }
@@ -41,6 +43,7 @@ CANONICAL_SPLIT_ORDER = (
     "val_100",
     "test_50",
     "test_100",
+    "test_200",
 )
 
 

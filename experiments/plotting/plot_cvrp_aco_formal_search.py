@@ -100,18 +100,7 @@ METHODS = {
         "budget": 1000,
         "color": "#6A3D9A",
         "band": "#C9B1E0",
-    },
-    "ShinkaEvolve": {
-        "directory": "shinka_evo",
-        "runs": (
-            "fair1000_20260730_1755_cvrp_shinka_rep1",
-            "fair1000_20260730_1755_cvrp_shinka_rep2_retry2",
-            "fair1000_20260730_1755_cvrp_shinka_rep3_retry2",
-        ),
-        "budget": 1000,
-        "color": "#882255",
-        "band": "#D4A5B8",
-    },
+    }
 }
 
 

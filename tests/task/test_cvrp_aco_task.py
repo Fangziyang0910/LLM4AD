@@ -40,6 +40,7 @@ def test_train_split_matches_published_protocol_and_is_reproducible():
         ("test_20", 20, 64),
         ("test_50", 50, 64),
         ("test_100", 100, 64),
+        ("test_200", 200, 64),
         ("paper_test_50", 50, 250),
         ("paper_test_100", 100, 250),
     ],

@@ -20,7 +20,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from llm4ad.task.optimization.cvrp_aco import CVRPACOEvaluation, load_split_instances  # noqa: E402
 
 
-DEFAULT_SPLITS = ("test_50", "test_100")
+DEFAULT_SPLITS = ("test_50", "test_100", "test_200")
 DEFAULT_WORKERS = 16
 N_ANTS = 30
 N_ITERATIONS = 100
