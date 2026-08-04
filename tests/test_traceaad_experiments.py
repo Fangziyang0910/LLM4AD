@@ -12,6 +12,8 @@ from llm4ad.method.traceaad_v6 import PROTOCOL_ID as V6_PROTOCOL_ID
 from llm4ad.method.traceaad_v6 import TraceAADV6
 from llm4ad.method.traceaad_v7 import PROTOCOL_ID as V7_PROTOCOL_ID
 from llm4ad.method.traceaad_v7 import TraceAADV7
+from llm4ad.method.traceaad_v8 import PROTOCOL_ID as V8_PROTOCOL_ID
+from llm4ad.method.traceaad_v8 import TraceAADV8
 
 
 @pytest.mark.parametrize("task", run.TASKS)
@@ -33,6 +35,7 @@ def test_unified_runner_builds_each_task_and_version(
         "v5": TraceAADV5,
         "v6": TraceAADV6,
         "v7": TraceAADV7,
+        "v8": TraceAADV8,
     }[version]
     assert isinstance(method, expected_type)
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
@@ -44,7 +47,7 @@ def test_unified_runner_builds_each_task_and_version(
         assert method._llm.max_tokens == 8192
         assert method._action_max_tokens == 1024
         assert not hasattr(method, "_global_experience")
-        if version in {"v6", "v7"}:
+        if version in {"v6", "v7", "v8"}:
             assert method._context_token_limit == 24576
             assert not hasattr(method, "_dual_probability")
 
@@ -121,6 +124,36 @@ def test_v7_runner_records_protocol_and_minimal_population_controls(
     assert "diversity_count" not in params
 
 
+def test_v8_runner_records_tree_protocol_without_population_controls(
+    tmp_path: Path,
+) -> None:
+    spec = run.make_run_spec(
+        task="tsp_construct",
+        version="v8",
+        experiments_root=tmp_path,
+    )
+    run_dir, run_name, _ = run.resolve_run_dir(spec)
+    run.write_run_config(spec, run_dir, run_name)
+    payload = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
+
+    params = payload["method_params"]
+    assert payload["experiment_version"] == "version8"
+    assert params["protocol_id"] == V8_PROTOCOL_ID
+    assert params["checkpoint_schema_version"] == 1
+    assert params["exploration_constant"] == 0.5
+    assert params["widening_alpha"] == 0.5
+    assert params["direct_child_top_count"] == 4
+    assert params["operators"] == [
+        "trace_ideate",
+        "trace_refine",
+        "trace_synthesize",
+        "trace_transfer",
+    ]
+    assert "max_active_trajectories" not in params
+    assert "value_weights" not in params
+    assert "elite_count" not in params
+
+
 def test_resume_uses_version_specific_checkpoint_source(tmp_path: Path) -> None:
     for version in run.VERSIONS:
         run_dir = tmp_path / version
@@ -159,6 +192,29 @@ def test_v6_resume_rejects_changed_experiment_configuration(tmp_path: Path) -> N
     changed = run.make_run_spec(
         task="tsp_construct",
         version="v6",
+        budget=101,
+        seed=3,
+        resume_from=run_dir,
+        experiments_root=tmp_path,
+    )
+    with pytest.raises(ValueError, match="resume config mismatch"):
+        run.resolve_run_dir(changed)
+
+
+def test_v8_resume_rejects_changed_experiment_configuration(tmp_path: Path) -> None:
+    run_dir = tmp_path / "v8"
+    run_dir.mkdir()
+    original = run.make_run_spec(
+        task="tsp_construct",
+        version="v8",
+        budget=100,
+        seed=3,
+        experiments_root=tmp_path,
+    )
+    run.write_run_config(original, run_dir, run_dir.name)
+    changed = run.make_run_spec(
+        task="tsp_construct",
+        version="v8",
         budget=101,
         seed=3,
         resume_from=run_dir,

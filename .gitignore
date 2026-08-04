@@ -48,6 +48,8 @@ experiments/**/selected_finite.json
 experiments/**/tmux_run.log
 experiments/**/logs/
 experiments/**/logs_*/
+experiments/**/artifacts/
+experiments/**/checkpoints/
 
 # Historical experiment artifacts are local-only (repo-root archive/).
 /archive/
