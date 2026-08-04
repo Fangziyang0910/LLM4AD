@@ -165,7 +165,7 @@ def test_public_package_identifies_v6_protocol():
     import llm4ad.method.traceaad_v6 as package
 
     assert package.TraceAADV6 is TraceAADV6
-    assert package.PROTOCOL_ID == "traceaad-v6-v1"
+    assert package.PROTOCOL_ID == "traceaad-v6"
     assert package.CHECKPOINT_VERSION == 8
     assert set(package.__all__) == {
         "TraceAADV6",

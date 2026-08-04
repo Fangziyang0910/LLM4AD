@@ -30,7 +30,7 @@ from .._observability import (
     reset_sample_failures,
 )
 from .checkpoint import CHECKPOINT_VERSION, load_checkpoint, save_checkpoint
-from .complexity import code_change_ratio
+from .complexity import code_change_ratio, code_hash
 from .context import (
     build_action_prompt,
     trajectory_history,
@@ -39,21 +39,28 @@ from .derivation_graph import DerivationGraph
 from .operators import (
     DEFAULT_OPERATORS,
     Operator,
-    classify_outcome,
+    classify_program_outcome,
     is_dual_operator,
     select_operator,
 )
 from .prompt import (
+    ACTION_OUTPUT_MODE,
+    action_response_format,
     build_code_prompt,
     build_initial_prompt,
     parse_actions,
     parse_program_response,
 )
-from .schema import PROTOCOL_ID, OperatorName, ProgramNode, Trajectory
+from .schema import (
+    PROTOCOL_ID,
+    OperatorName,
+    ProgramNode,
+    Trajectory,
+    TrajectoryStatus,
+)
 from .trajectory_memory import TrajectoryMemory
 from .value import (
     ValueWeights,
-    compact_best_node,
     directed_delta,
     is_program_better,
     program_quality_key,
@@ -126,7 +133,7 @@ class TraceAADV7:
         value_weights: ValueWeights | None = None,
         operators: tuple[Operator, ...] = DEFAULT_OPERATORS,
         action_max_tokens: int = 1024,
-        code_max_tokens: int = 8192,
+        code_max_tokens: int = 16384,
         context_token_limit: int | None = None,
         random_seed: int | None = None,
         debug_mode: bool = False,
@@ -191,6 +198,7 @@ class TraceAADV7:
 
         self._graph = DerivationGraph()
         self._memory = TrajectoryMemory(max_trajectory_length=max_trajectory_length)
+        self._fitness_cache: dict[str, float] = {}
         self._operators = tuple(operators)
         if not self._operators:
             raise ValueError("at least one TraceAAD v7 operator is required")
@@ -297,6 +305,7 @@ class TraceAADV7:
                 "positive_threshold": self._value_weights.positive_threshold,
             },
             "action_max_tokens": self._action_max_tokens,
+            "action_output_mode": ACTION_OUTPUT_MODE,
             "code_max_tokens": self._code_max_tokens,
             "context_token_limit": self._context_token_limit,
             "max_consecutive_sample_failures": self._max_consecutive_sample_failures,
@@ -496,6 +505,8 @@ class TraceAADV7:
                 primary=selected,
                 active=active_before,
                 temperature=self._softmax_temperature,
+                graph=self._graph,
+                primary_node_id=anchor_id,
             )
             if reference_distribution:
                 reference_route = weighted_choice(
@@ -586,7 +597,10 @@ class TraceAADV7:
             iteration=attempt_id,
         )
         base_node = self._graph.get_node(anchor_id)
-        route_best_before = compact_best_node(selected, self._graph, self._maximize)
+        route_best_before = self._route_best_before_child(
+            selected=selected,
+            anchor_id=anchor_id,
+        )
 
         def prepare_code_requests(
             action_items: list[str],
@@ -598,9 +612,7 @@ class TraceAADV7:
                     action=action,
                     task_description=self._task_description_str,
                     template_function=self._function_to_evolve,
-                    history=context.primary_history,
                     reference_node=reference_node,
-                    reference_history=context.reference_history,
                 )
                 requests.append((seq, action, prompt, self._count_tokens(prompt)))
             return requests
@@ -758,8 +770,17 @@ class TraceAADV7:
                 child.fitness,
                 self._maximize,
             )
-            outcome = classify_outcome(
-                delta_parent, self._value_weights.positive_threshold
+            outcome = classify_program_outcome(
+                base_node,
+                child,
+                maximize=self._maximize,
+                positive_threshold=self._value_weights.positive_threshold,
+            )
+            route_update_reason = classify_program_outcome(
+                route_best_before,
+                child,
+                maximize=self._maximize,
+                positive_threshold=self._value_weights.positive_threshold,
             )
             new_global_best = child.id == global_winner_id
             global_update_reason = global_winner_reason if new_global_best else None
@@ -787,6 +808,11 @@ class TraceAADV7:
                 delta_loc=child.program_loc - base_node.program_loc,
                 code_change_ratio=code_change_ratio(base_node.code, child.code),
                 outcome=outcome,
+                route_best_update_reason=(
+                    route_update_reason
+                    if route_update_reason in {"strict_fitness", "tie_shorter"}
+                    else None
+                ),
                 iteration=attempt_id,
                 new_global_best=new_global_best,
                 global_best_update_reason=global_update_reason,
@@ -817,6 +843,11 @@ class TraceAADV7:
                 delta_route_best=delta_route,
                 delta_global_best=delta_global,
                 outcome=outcome,
+                route_best_update_reason=(
+                    route_update_reason
+                    if route_update_reason in {"strict_fitness", "tie_shorter"}
+                    else None
+                ),
                 anchor_role=anchor_role,
                 reference_trajectory_id=(
                     None if reference_route is None else reference_route.id
@@ -926,19 +957,23 @@ class TraceAADV7:
     ) -> _PromptContext | None:
         use_reference = reference_route is not None and reference_node is not None
         max_steps = self._memory.max_trajectory_length
-        for history_steps in range(max_steps, -1, -1):
+        if use_reference:
+            history_pairs = ((max_steps, steps) for steps in range(max_steps, -1, -1))
+        else:
+            history_pairs = ((steps, 0) for steps in range(max_steps, -1, -1))
+        for primary_history_steps, reference_history_steps in history_pairs:
             primary_history = trajectory_history(
                 self._graph,
                 selected,
                 base_node_id=anchor_id,
-                max_steps=history_steps,
+                max_steps=primary_history_steps,
             )
             ref_history = (
                 trajectory_history(
                     self._graph,
                     reference_route,
                     base_node_id=reference_node.id,
-                    max_steps=history_steps,
+                    max_steps=reference_history_steps,
                 )
                 if use_reference
                 else None
@@ -999,6 +1034,7 @@ class TraceAADV7:
             response = self._llm.draw_sample(
                 context.prompt,
                 max_tokens=self._action_max_tokens,
+                response_format=action_response_format(self._actions_per_iteration),
             )
             sample_time = time.time() - start
         except Exception as exc:
@@ -1058,6 +1094,7 @@ class TraceAADV7:
             token_count_mode=self._token_count_mode,
             parsed_actions=actions,
             parse_errors=errors,
+            action_output_mode=ACTION_OUTPUT_MODE,
             primary_edge_ids=list(context.primary_edge_ids),
             reference_edge_ids=list(context.reference_edge_ids),
             status="ok" if actions else "parse_failed",
@@ -1071,13 +1108,39 @@ class TraceAADV7:
         anchor_id: int,
         child: ProgramNode,
     ) -> ProgramNode:
-        anchor_index = selected.node_ids.index(anchor_id)
-        candidates = [
-            self._graph.get_node(node_id)
-            for node_id in selected.node_ids[: anchor_index + 1]
-        ]
+        candidates = self._bounded_child_prefix_nodes(selected, anchor_id)
         candidates.append(child)
-        candidates = candidates[-self._memory.max_trajectory_length :]
+        best = candidates[0]
+        for candidate in candidates[1:]:
+            if is_program_better(candidate, best, self._maximize):
+                best = candidate
+        return best
+
+    def _bounded_child_prefix_nodes(
+        self,
+        selected: Trajectory,
+        anchor_id: int,
+    ) -> list[ProgramNode]:
+        """Return exactly the prefix retained when the child is appended."""
+        anchor_index = selected.node_ids.index(anchor_id)
+        prefix = selected.node_ids[: anchor_index + 1]
+        capacity = self._memory.max_trajectory_length - 1
+        if capacity <= 0:
+            return []
+        retained = prefix[-capacity:]
+        return [self._graph.get_node(node_id) for node_id in retained]
+
+    def _route_best_before_child(
+        self,
+        *,
+        selected: Trajectory,
+        anchor_id: int,
+    ) -> ProgramNode:
+        candidates = self._bounded_child_prefix_nodes(selected, anchor_id)
+        if not candidates:
+            # A one-node route replaces its only state when the child is
+            # appended; the current anchor is still the comparison baseline.
+            return self._graph.get_node(anchor_id)
         best = candidates[0]
         for candidate in candidates[1:]:
             if is_program_better(candidate, best, self._maximize):
@@ -1145,12 +1208,41 @@ class TraceAADV7:
                 w=self._value_weights,
             )
         )
-        if len(ranked) < self._management_threshold:
-            return
         best_route = next(
             (route for route in ranked if route.id == self._best_trajectory_id),
             None,
         )
+        if best_route is None and self._best_trajectory_id is not None:
+            try:
+                stored_best_route = self._memory.get_trajectory(
+                    self._best_trajectory_id
+                )
+            except KeyError:
+                stored_best_route = None
+            if (
+                stored_best_route is not None
+                and stored_best_route.status == TrajectoryStatus.ARCHIVED
+            ):
+                self._memory.activate(stored_best_route.id)
+                ranked = list(
+                    score_active_trajectories(
+                        memory=self._memory,
+                        graph=self._graph,
+                        maximize=self._maximize,
+                        w=self._value_weights,
+                    )
+                )
+                best_route = next(
+                    (route for route in ranked if route.id == self._best_trajectory_id),
+                    None,
+                )
+        if len(ranked) < self._management_threshold:
+            return
+        if best_route is None and self._best_node is not None:
+            best_route = next(
+                (route for route in ranked if route.compact_best_id == self._best_node.id),
+                None,
+            )
         if best_route is None and self._best_node is not None:
             best_route = next(
                 (route for route in ranked if self._best_node.id in route.node_ids),
@@ -1167,6 +1259,11 @@ class TraceAADV7:
                 None,
             )
         if best_route is None:
+            if self._best_node is not None:
+                raise RuntimeError(
+                    "active population has no route preserving global best node "
+                    f"{self._best_node.id}"
+                )
             best_route = ranked[0]
         quality_ranked = sorted(
             (route for route in ranked if route.id != best_route.id),
@@ -1360,32 +1457,52 @@ class TraceAADV7:
     ) -> tuple[float | None, int | None]:
         if not self._has_budget():
             return None, None
-        outcome, eval_time = self._evaluator.evaluate_program_record_time_with_details(
-            program
-        )
+        source_hash = code_hash(str(program))
+        score = self._fitness_cache.get(source_hash)
+        cache_hit = score is not None
+        if not cache_hit:
+            for node in self._graph.nodes():
+                if node.code_hash == source_hash:
+                    score = node.fitness
+                    self._fitness_cache[source_hash] = score
+                    cache_hit = True
+                    break
+        if cache_hit:
+            outcome = None
+            eval_time = 0.0
+        else:
+            outcome, eval_time = (
+                self._evaluator.evaluate_program_record_time_with_details(program)
+            )
         self._tot_sample_nums += 1
-        result = outcome.result
-        raw_score = getattr(result, "fitness", result)
-        score: float | None = None
-        failure_kind = outcome.failure_kind
-        failure_error_type = outcome.error_type
-        failure_error = outcome.error
-        if raw_score is not None:
-            try:
-                numeric_score = float(raw_score)
-            except (TypeError, ValueError, OverflowError) as exc:
-                failure_kind = "invalid_result"
-                failure_error_type = type(exc).__name__
-                failure_error = str(exc)
-            else:
-                if math.isfinite(numeric_score):
-                    score = numeric_score
-                else:
+        failure_kind = None
+        failure_error_type = None
+        failure_error = None
+        if not cache_hit:
+            result = outcome.result
+            raw_score = getattr(result, "fitness", result)
+            score = None
+            failure_kind = outcome.failure_kind
+            failure_error_type = outcome.error_type
+            failure_error = outcome.error
+            if raw_score is not None:
+                try:
+                    numeric_score = float(raw_score)
+                except (TypeError, ValueError, OverflowError) as exc:
                     failure_kind = "invalid_result"
-                    failure_error_type = "NonFiniteEvaluationResult"
-                    failure_error = (
-                        f"evaluator returned non-finite score: {numeric_score}"
-                    )
+                    failure_error_type = type(exc).__name__
+                    failure_error = str(exc)
+                else:
+                    if math.isfinite(numeric_score):
+                        score = numeric_score
+                    else:
+                        failure_kind = "invalid_result"
+                        failure_error_type = "NonFiniteEvaluationResult"
+                        failure_error = (
+                            f"evaluator returned non-finite score: {numeric_score}"
+                        )
+            if score is not None:
+                self._fitness_cache[source_hash] = score
         function = copy.deepcopy(program.get_function(self._function_to_evolve.name))
         function.algorithm = idea
         function.score = score
@@ -1412,6 +1529,7 @@ class TraceAADV7:
             score=score,
             evaluate_time=eval_time,
             counts_budget=True,
+            cache_hit=cache_hit,
             **failure,
         )
         return score, self._tot_sample_nums

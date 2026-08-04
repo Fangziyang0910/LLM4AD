@@ -59,6 +59,9 @@ from llm4ad.method.traceaad_v7 import (
     ValueWeights as V7ValueWeights,
 )
 from llm4ad.method.traceaad_v7.operators import DEFAULT_OPERATORS as V7_OPERATORS
+from llm4ad.method.traceaad_v7.prompt import (
+    ACTION_OUTPUT_MODE as V7_ACTION_OUTPUT_MODE,
+)
 from llm4ad.task.optimization.cvrp_aco import CVRPACOEvaluation
 from llm4ad.task.optimization.generated_data_config import (
     get_generated_task_kwargs,
@@ -148,7 +151,7 @@ class RunSpec:
     def llm_output_tokens(self) -> int:
         if self.output_tokens is not None:
             return self.output_tokens
-        return 16384 if self.version == "v4" else 8192
+        return 16384 if self.version in {"v4", "v7"} else 8192
 
 
 def make_run_spec(
@@ -395,6 +398,9 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     }
     if spec.version == "v7":
         expected_protocol["method_params"]["elite_count"] = 3
+        expected_protocol["method_params"][
+            "action_output_mode"
+        ] = V7_ACTION_OUTPUT_MODE
     actual_protocol = {
         "backend": payload.get("backend"),
         "task_eval": payload.get("task_eval"),
@@ -472,6 +478,7 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
                 "operators": V7_OPERATOR_NAMES,
                 "elite_count": 3,
                 "action_max_tokens": spec.action_max_tokens,
+                "action_output_mode": V7_ACTION_OUTPUT_MODE,
                 "code_max_tokens": spec.llm_output_tokens,
                 "context_token_limit": spec.context_token_limit,
                 "random_seed": spec.seed,

@@ -86,13 +86,24 @@ METHODS = {
     "TraceAAD V6": {
         "directory": "traceaad_v6/version6",
         "runs": (
-            "v6_20260802_170400_occamv1_obp_v6_rep1",
-            "v6_20260802_170400_occamv1_obp_v6_rep2",
-            "v6_20260802_170400_occamv1_obp_v6_rep3",
+            "v6_20260802_170400_obp_v6_rep1",
+            "v6_20260802_170400_obp_v6_rep2",
+            "v6_20260802_170400_obp_v6_rep3",
         ),
         "budget": 1000,
         "color": "#D55E00",
         "band": "#F5C49A",
+    },
+    "TraceAAD V7": {
+        "directory": "traceaad_v7/version7",
+        "runs": (
+            "v7_20260804_001931_obp_v7_rep1",
+            "v7_20260804_001931_obp_v7_rep2",
+            "v7_20260804_001931_obp_v7_rep3",
+        ),
+        "budget": 1000,
+        "color": "#6A3D9A",
+        "band": "#C9B1E0",
     },
     "ShinkaEvolve": {
         "directory": "shinka_evo",

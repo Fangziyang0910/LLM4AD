@@ -49,8 +49,8 @@ experiments/**/tmux_run.log
 experiments/**/logs/
 experiments/**/logs_*/
 
-# Historical experiment artifacts are local-only.
-archive/
+# Historical experiment artifacts are local-only (repo-root archive/).
+/archive/
 
 # Local task datasets and downloaded model/data caches
 llm4ad/task/optimization/*/data/

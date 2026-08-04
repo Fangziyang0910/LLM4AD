@@ -23,7 +23,7 @@ from .schema import (
 )
 from .trajectory_memory import TrajectoryMemory
 
-CHECKPOINT_VERSION = 9
+CHECKPOINT_VERSION = 11
 
 
 def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
@@ -90,6 +90,7 @@ def _graph_from_dict(payload: Mapping[str, Any]) -> DerivationGraph:
             delta_loc=int(item["delta_loc"]),
             code_change_ratio=float(item["code_change_ratio"]),
             outcome=str(item["outcome"]),
+            route_best_update_reason=item.get("route_best_update_reason"),
             iteration=item["iteration"],
             new_global_best=bool(item["new_global_best"]),
             global_best_update_reason=item["global_best_update_reason"],
@@ -158,6 +159,9 @@ def _memory_from_dict(
             edge_ids=tuple(int(x) for x in item["edge_ids"]),
             endpoint_id=int(item["endpoint_id"]),
             compact_best_id=int(item["compact_best_id"]),
+            evidence_edge_ids=tuple(
+                int(x) for x in item.get("evidence_edge_ids", ())
+            ),
             visit_count=int(item["visit_count"]),
             status=TrajectoryStatus(item["status"]),
             value=value,
@@ -181,6 +185,10 @@ def _memory_from_dict(
             raise ValueError(f"trajectory exceeds configured length: {route.id}")
         if route.compact_best_id not in route.node_ids:
             raise ValueError(f"compact best is outside trajectory: {route.id}")
+        if len(route.evidence_edge_ids) > memory.max_trajectory_length:
+            raise ValueError(f"trajectory evidence exceeds configured length: {route.id}")
+        if len(set(route.evidence_edge_ids)) != len(route.evidence_edge_ids):
+            raise ValueError(f"trajectory evidence contains duplicates: {route.id}")
         if route.endpoint_id != route.node_ids[-1]:
             raise ValueError(f"endpoint is not the final trajectory node: {route.id}")
         if route.id in memory._trajectories:
@@ -201,6 +209,13 @@ def _memory_from_dict(
                 or edge.child_id != route.node_ids[index + 1]
             ):
                 raise ValueError(f"trajectory {route.id} contains a misaligned edge")
+        if set(route.evidence_edge_ids) & set(route.edge_ids):
+            raise ValueError(f"trajectory {route.id} duplicates structural evidence")
+        for edge_id in route.evidence_edge_ids:
+            if edge_id not in graph._edges:
+                raise ValueError(
+                    f"trajectory {route.id} references unknown evidence edge {edge_id}"
+                )
         memory._trajectories[route.id] = route
     if memory._next_id < 0 or (
         memory._trajectories and memory._next_id <= max(memory._trajectories)

@@ -51,6 +51,14 @@ class TrajectoryMemory:
         base_index = parent.node_ids.index(base_node_id)
         node_ids = (*parent.node_ids[: base_index + 1], child_id)
         edge_ids = (*parent.edge_ids[:base_index], edge_id)
+        carried = list(parent.evidence_edge_ids)
+        carried.extend(parent.edge_ids[base_index:])
+        structural_ids = set(edge_ids)
+        evidence_edge_ids = tuple(
+            edge
+            for edge in dict.fromkeys(carried)
+            if edge not in structural_ids
+        )[-self.max_trajectory_length :]
         overflow = len(node_ids) - self.max_trajectory_length
         if overflow > 0:
             node_ids = node_ids[overflow:]
@@ -65,6 +73,7 @@ class TrajectoryMemory:
             edge_ids=edge_ids,
             endpoint_id=child_id,
             compact_best_id=compact_best_id,
+            evidence_edge_ids=evidence_edge_ids,
         )
         self._trajectories[trajectory.id] = trajectory
         self._next_id += 1
@@ -83,6 +92,9 @@ class TrajectoryMemory:
 
     def archive(self, trajectory_id: TrajectoryId) -> Trajectory:
         return self._replace(trajectory_id, status=TrajectoryStatus.ARCHIVED)
+
+    def activate(self, trajectory_id: TrajectoryId) -> Trajectory:
+        return self._replace(trajectory_id, status=TrajectoryStatus.ACTIVE)
 
     def get_trajectory(self, trajectory_id: TrajectoryId) -> Trajectory:
         return self._trajectories[trajectory_id]

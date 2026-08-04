@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Final, TypeAlias
 
-PROTOCOL_ID: Final[str] = "traceaad-v6-v1"
+PROTOCOL_ID: Final[str] = "traceaad-v6"
 
 NodeId: TypeAlias = int
 EdgeId: TypeAlias = int

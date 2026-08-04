@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Final, TypeAlias
 
-PROTOCOL_ID: Final[str] = "traceaad-v7-v1"
+PROTOCOL_ID: Final[str] = "traceaad-v7"
 
 NodeId: TypeAlias = int
 EdgeId: TypeAlias = int
@@ -52,6 +52,7 @@ class ImprovementEdge:
     delta_loc: int = 0
     code_change_ratio: float = 0.0
     outcome: str = "unknown"
+    route_best_update_reason: str | None = None
     iteration: int | None = None
     new_global_best: bool = False
     global_best_update_reason: str | None = None
@@ -77,6 +78,9 @@ class Trajectory:
     edge_ids: tuple[EdgeId, ...]
     endpoint_id: NodeId
     compact_best_id: NodeId
+    # Attempts tested after an internal anchor are carried as evidence when a
+    # new route branches from that anchor. They are not structural ancestry.
+    evidence_edge_ids: tuple[EdgeId, ...] = ()
     visit_count: int = 0
     status: TrajectoryStatus = TrajectoryStatus.ACTIVE
     value: ValueVec | None = None

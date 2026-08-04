@@ -169,7 +169,8 @@ V5 流程中没有全局反思阶段、共享经验状态或反思 LLM 调用。
 
 V5 使用四个轨迹语义算子、最长 8 节点轨迹、Action/Code 共享历史和双轨迹直接参考。实现位于 `llm4ad/method/traceaad_v5/`。实验统一由
 `python -m experiments.runners.traceaad.run --version v5` 启动，工件写入
-`traceaad_v5/version5/`。
+`traceaad_v5/version5/`；正式批次为 `20260728_151736`，held-out 位于
+`traceaad_v5/eval_best_20260728_151736/`。
 
 方法默认完整构造当前最多 8 节点的轨迹上下文，不设置人为本地 prompt 上限。模型服务的上下文边界由实验后端配置负责；方法不把候选路线预先裁掉，也不增加独立的在线 prompt 拒绝规则。
 

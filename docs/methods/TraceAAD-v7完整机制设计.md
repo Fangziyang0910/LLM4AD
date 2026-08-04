@@ -1,6 +1,8 @@
 # TraceAAD V7：可执行状态唯一的轨迹进化
 
-> 本文定义 V7 的拟议机制；实现已完成，但性能实验尚未运行。
+> 本文定义正式 TraceAAD V7 机制；正式实验批次为 `v7_20260804_001931`
+> （协议 `traceaad-v7` / checkpoint schema 11），结果见
+> [实验总汇](../results/实验总汇.md)。
 > V7 的设计来源、证据和待验证假设见
 > [V5 机制全面分析与 V7 设计](../research/TraceAAD-V5机制全面分析与V7设计.md)。
 > V4/V5/V6 继续由各自文档和独立实现维护。
@@ -39,21 +41,23 @@ V7 的核心设计假设是：
 
 一条 active 轨迹保存最多 8 个节点和 7 条边：
 
-\[
+$$
 \tau_i=(n_0,e_1,n_1,\ldots,e_k,n_k),\quad k\le 7.
-\]
+$$
 
 轨迹记录 endpoint、当前保留路径的 compact best、访问次数、状态、质量 $Q$、
-趋势 $P$ 和调度值 $V$。路径超过上限时从最早端截断，完整派生图不删除。
+趋势 $P$ 和调度值 $V$。路径超过上限时从最早端截断，完整派生图不删除。若从内部
+compact-best 锚点分支，锚点之后的旧尝试以最多 8 条 `evidence_edge_ids` 携带到
+新路线；这些边是知识证据，不是第二结构父代，也不改变路径长度。
 
 ### 3. 可执行状态唯一性
 
 active frontier 满足不变量：
 
-\[
+$$
 \forall \tau_i\ne\tau_j\in\mathcal A,
 \operatorname{hash}(endpoint_i)\ne\operatorname{hash}(endpoint_j).
-\]
+$$
 
 这里的 hash 是完整规范化程序文本的精确 `code_hash`，不使用 token 相似度、
 Idea 相似度或路径相似度。
@@ -69,8 +73,9 @@ Idea 相似度或路径相似度。
 这是一条状态卫生规则，不判断两段不同代码是否功能相似，也不删除不同历史。
 checkpoint 恢复时若发现两个 active endpoint 具有相同 `code_hash`，直接拒绝恢复。
 
-初始化目标是 30 个唯一 active endpoint。重复有效程序仍消耗 evaluator 预算并
-写入事实层，但不增加 active 数；连续尝试没有增加唯一 active 状态时按停滞上限
+初始化目标是 30 个唯一 active endpoint。重复有效程序仍消耗候选 evaluator 预算并
+写入事实层，但若已有相同 `code_hash`，直接复用已知 finite fitness，不重复调用
+evaluator；它仍不增加 active 数。连续尝试没有增加唯一 active 状态时按停滞上限
 停止，达到预算上限时即使不足 30 个唯一状态也停止。
 
 ### 4. 历史上下文
@@ -80,41 +85,50 @@ compact best 时，历史分为：
 
 - `[How This Program Was Reached]`：锚点形成过程；
 - `[Later Attempts From This Program]`：锚点之后已测试的尝试。
+- `[Carried Route Evidence]`：此前从内部锚点分支时携带的旧尝试，避免新路线重复相同
+  的失败边界。
 
-每条边按时间顺序展示 Planned Action、Implemented Idea、父子 fitness、
-improve/plateau/regress、代码变化比例和 LOC 变化。主锚点完整展示代码，历史边
-不重复完整代码。
+每条边按时间顺序只展示 Requested change、父子 fitness、相对父代结果、路线推进
+量、路线 best 更新原因和是否产生 global breakthrough。模型自述的 Implemented Idea、代码变化比例和
+LOC 只保留在事实日志中，不进入生成上下文。主锚点完整展示代码，历史边不重复
+完整代码。
 
 双轨迹算子另外展示参考轨迹及其 compact-best 程序。参考轨迹只说明另一条路线
 有哪些具体思想和试错结果；子程序仍写入主轨迹。
 
-Action 和 Code 阶段接收同一份主历史；双轨迹时也接收同一份参考历史和参考
-程序，避免决策与实现使用不同事实条件。
+Action 阶段接收轨迹事实和可选参考程序，用于决定下一步修改。Code 阶段只接收
+当前主程序、已选 Requested Modification 和必要的参考程序代码，负责忠实执行
+该修改，不重新解释完整搜索历史。
 
 ### 5. 四个语义算子
 
 | 算子 | 约束 |
 | --- | --- |
-| `trace_ideate` | 根据保留历史提出真正新的算法方向，把 regress/plateau 当作已测试边界 |
-| `trace_refine` | 对已显示价值的机制或历史暴露的弱点做一次聚焦修改 |
-| `trace_synthesize` | 从主/参考轨迹各找一个受支持原则，使两者在主程序内形成功能交互，不拼接完整实现 |
-| `trace_transfer` | 保持主程序核心结构，只适配参考轨迹中的一个受支持思想 |
+| `trace_ideate` | 提出历史中尚未尝试的具体方向；失败只约束同一实现，不否定整个思想 |
+| `trace_refine` | 只修改一个已有机制，并指向路线推进证据或一个明确暴露的弱点 |
+| `trace_synthesize` | 从两条不同程序路线各取一个有结果支持的原则，在一个具体接口交互 |
+| `trace_transfer` | 保持主程序结构，只迁移参考路线中主程序尚未拥有的一个有结果支持的原则 |
 
 有至少两条 active 路线时，四算子等概率选择。只有一条 active 路线或双轨迹
 上下文不可用时，只在 `ideate/refine` 中等概率选择。算子不维护在线 reward、
 Elo 或成熟度状态。
 
-双轨迹参考排除主轨迹后按路线质量 $Q$-softmax 选择，使用参考路线 compact
-best。参考选择不设置相似度门槛，也不增加参考路线访问数。
+双轨迹参考排除主轨迹以及与主锚点具有相同 `code_hash` 的路线后，按路线质量
+$Q$-softmax 选择，使用参考路线 compact-best。若没有不同的可执行参考程序，
+退化为单轨迹算子。参考选择不增加参考路线访问数。
 
 ### 6. Action 与 Code
 
-Action 阶段输出最多两条编号、单行、自包含的自然语言修改。每条 Action 说明
-具体改动，并遵守当前算子语义。Code 阶段从唯一主锚点实现 Action，返回完整
-可执行候选。
+Action 阶段通过 OpenAI-compatible `response_format=json_schema` 请求结构化输出。
+schema 只包含一个 `actions` 字符串数组，数组长度为 1–2；每条 Action 是单行、
+自包含的自然语言修改，说明具体改动并遵守当前算子语义。Code 阶段从唯一主
+锚点实现 Action，返回完整可执行 Python 程序，并由程序 parser 和 evaluator 校验。
 
-默认 Action 输出上限 1024 token，Code 输出上限 8192 token。每一条有效
-Action 单独生成和评价一个候选；解析失败不进入图，也不消耗 evaluator 预算。
+默认 Action 输出上限 1024 token，每条 Action 另有 600 字符上限；Code 输出上限
+16384 token。每一条有效
+Action 单独生成和评价一个候选；JSON 解析或 schema 后校验失败不进入图，也不消耗
+evaluator 预算。V7 不接受编号文本或其他非 JSON 兜底；若服务端未执行 schema，
+该次 Action 明确记为协议失败。
 
 ### 7. 轨迹评分
 
@@ -122,39 +136,40 @@ Action 单独生成和评价一个候选；解析失败不进入图，也不消�
 
 endpoint 和 compact best 分别在当前 active 集合中做并列感知百分位排名：
 
-\[
-Q_i=0.7Q_{endpoint,i}+0.3Q_{best,i}.
-\]
+$$
+Q_i=0.7Q_{\mathrm{endpoint},i}+0.3Q_{\mathrm{best},i}.
+$$
 
 程序比较首先看 evaluator fitness；仅在 fitness 完全相同时，非空 LOC 更少者
 优先。最大化和最小化任务先统一为有向 fitness。
 
 #### 7.2 近期趋势
 
-对保留路径的每条父子边定义：
+对保留路径的每条父子边，使用子程序相对该路线在该边之前的 compact-best 的有向
+fitness 变化 $Delta_j=Delta_{mathrm{route_best}}$：
 
-\[
+$$
 s_j=\begin{cases}
 +1,&\Delta_j>10^{-12}\\
 0,&|\Delta_j|\le10^{-12}\\
 -1,&\Delta_j<-10^{-12}.
 \end{cases}
-\]
+$$
 
 用折扣 $d=0.8$ 让近期边权重更高：
 
-\[
+$$
 P_i=\frac{1}{2}\left(
 1+\frac{\sum_{j=1}^{k}d^{k-j}s_j}
 {\sum_{j=1}^{k}d^{k-j}}
 \right).
-\]
+$$
 
 无历史边时 $P_i=0.5$。调度基础值为：
 
-\[
+$$
 V_i=0.8Q_i+0.2P_i.
-\]
+$$
 
 #### 7.3 剩余预算衰减 UCB
 
@@ -162,16 +177,16 @@ V_i=0.8Q_i+0.2P_i.
 为 $N$。$N$ 是从搜索开始发起过的主轨迹 sibling 批次数，不是当前 active
 路线访问数之和，因此归档路线不会让探索时钟回退。剩余预算比例：
 
-\[
+$$
 r_b=\operatorname{clip}\left(\frac{B-b}{B},0,1\right).
-\]
+$$
 
 父代调整值：
 
-\[
+$$
 A_i=V_i+0.25r_b
 \sqrt{\frac{\log(1+N)}{1+n_i}}.
-\]
+$$
 
 再按温度 0.2 的 softmax 选择主轨迹。早期 $r_b$ 较大，低访问路线得到覆盖；
 预算接近耗尽时 $r_b\to0$，选择逐步回到 $V_i$。无限预算配置下 $r_b=1$。
@@ -197,6 +212,9 @@ A_i=V_i+0.25r_b
 - Action/Code parse 失败：记录解析失败，不进入图；
 - evaluator runtime/timeout/invalid result：消耗 evaluator 预算，记录失败类型，
   不进入图；
+- exact `code_hash` cache hit：消耗候选预算并进入事实层，但复用已知 fitness，
+  不再次执行 evaluator；该优化要求 evaluator 对相同代码和固定数据/seed 是确定的，
+  当前正式 runner 的任务配置满足这一条件。
 - NaN/Inf：按 `invalid_result` 拒绝，不进入图。
 
 有效子代记录相对父代、路线 compact best 和批前 global best 的三种有向变化，
@@ -216,8 +234,9 @@ V7 不维护 semantic diversity reserve。可执行状态差异由精确 hash �
 
 ### 11. 复杂度规则
 
-复杂度只使用非空 LOC，并且只作为 fitness 完全相同的 tie-break。严格更优的长
-程序仍优于较短程序。LOC 不以连续惩罚项或独立加权项进入 Q/P/UCB；当两个程序
+复杂度只使用非空 LOC，并且只作为 fitness 完全相同的 tie-break。该 tie-shorter
+比较结果同时写入 parent outcome、route-best update 和 global-best update，确保
+评分、趋势和上下文使用同一比较器。严格更优的长程序仍优于较短程序。LOC 不以连续惩罚项或独立加权项进入 Q/P/UCB；当两个程序
 fitness 完全相同时，它会打破 Q 百分位、compact best、锚点和 global best 的
 并列。复杂度不作为候选拒绝条件，也不触发独立 simplify 算子。
 
@@ -226,16 +245,16 @@ fitness 完全相同时，它会打破 Q 百分位、compact best、锚点和 gl
 ### 12. 上下文协议
 
 实验必须显式提供正的 context input limit，默认 runner 使用 24576 token。
-构造 prompt 时从最长 8 步历史开始，逐步缩短历史直到符合上限。
+构造 Action prompt 时从最长 8 步历史开始，优先保留主轨迹，再缩短参考轨迹；
+内部锚点同时保留锚点形成证据和锚点之后的最近尝试，直到符合上限。
 
 双轨迹 Action context 若超限，由调用方重新选择单轨迹算子并构造一次单轨迹
-context；双轨迹 Action 虽然可放入、但对应 Code prompt 超限时，整批重新选择
-单轨迹算子并重新生成 Action。任何实际发送给 LLM 的 prompt 都不得超过配置的
-input limit。
+context。Code prompt 不重复完整历史，因此只在当前程序、Action 和参考程序本身
+超限时回退。任何实际发送给 LLM 的 prompt 都不得超过配置的 input limit。
 
 ### 13. Checkpoint 与身份校验
 
-V7 协议 ID 为 `traceaad-v7-v1`，checkpoint schema 为 9。checkpoint 保存：
+V7 协议 ID 为 `traceaad-v7`，checkpoint schema 为 11。checkpoint 保存：
 
 - 完整节点、边、轨迹和 active/archive 状态；
 - Q/P/V、访问数、global best 及样本顺序；
@@ -282,10 +301,10 @@ checkpoint 不自动迁移。
 | 质量精英 | 3 |
 | 每轮 sibling Action | 2 |
 | 轨迹节点上限 | 8 |
-| (Q_{endpoint}/Q_{best}) | 0.7 / 0.3 |
-| (Q/P) | 0.8 / 0.2 |
+| $Q_{\mathrm{endpoint}}/Q_{\mathrm{best}}$ | 0.7 / 0.3 |
+| $Q/P$ | 0.8 / 0.2 |
 | 趋势折扣 | 0.8 |
-| 趋势阈值 | (10^{-12}) |
+| 趋势阈值 | $10^{-12}$ |
 | 初始 UCB 系数 | 0.25 |
 | UCB 时间因子 | 剩余预算比例 |
 | softmax 温度 | 0.2 |
@@ -296,10 +315,11 @@ checkpoint 不自动迁移。
 | 生存 | global best + 3 个 Q 精英 + Q/P softmax |
 | semantic diversity reserve | 无 |
 | 复杂度 | fitness 完全同分时择短 |
-| Action / Code token 上限 | 1024 / 8192 |
+| Action / Code token 上限 | 1024 / 16384 |
+| Action 输出协议 | strict JSON Schema：`{"actions": [...]}` |
 | runner context input limit | 24576 |
 | 在线全局经验 | 无 |
-| checkpoint schema | 9 |
+| checkpoint schema | 11 |
 | 默认实验目录 | `traceaad_v7/version7/` |
 
 ## 预期结果与证据边界

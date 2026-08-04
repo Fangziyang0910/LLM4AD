@@ -38,7 +38,7 @@ def test_unified_runner_builds_each_task_and_version(
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
     assert spec.experiment_version == f"version{version.removeprefix('v')}"
 
-    if version == "v4":
+    if version in {"v4", "v7"}:
         assert method._llm.max_tokens == 16384
     else:
         assert method._llm.max_tokens == 8192
@@ -112,7 +112,9 @@ def test_v7_runner_records_protocol_and_minimal_population_controls(
 
     params = payload["method_params"]
     assert params["protocol_id"] == V7_PROTOCOL_ID
-    assert params["checkpoint_schema_version"] == 9
+    assert params["checkpoint_schema_version"] == 11
+    assert params["code_max_tokens"] == 16384
+    assert params["action_output_mode"] == "json_schema"
     assert params["elite_count"] == 3
     assert params["value_weights"]["search_quality"] == 0.8
     assert params["value_weights"]["search_trend"] == 0.2

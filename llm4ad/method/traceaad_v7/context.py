@@ -17,6 +17,7 @@ class RenderedHistory:
     edge_ids: tuple[int, ...]
     formation_edge_ids: tuple[int, ...]
     tested_after_edge_ids: tuple[int, ...]
+    carried_edge_ids: tuple[int, ...] = ()
 
 
 def trajectory_history(
@@ -26,13 +27,14 @@ def trajectory_history(
     base_node_id: int | None = None,
     max_steps: int = 8,
 ) -> RenderedHistory:
-    """Render recent path facts, truncating deterministically by time."""
+    """Render bounded path facts while preserving both sides of an anchor."""
     if max_steps <= 0:
         return RenderedHistory(
             text="No earlier change is shown.",
             edge_ids=(),
             formation_edge_ids=(),
             tested_after_edge_ids=(),
+            carried_edge_ids=(),
         )
     if not trajectory.edge_ids:
         return RenderedHistory(
@@ -40,6 +42,7 @@ def trajectory_history(
             edge_ids=(),
             formation_edge_ids=(),
             tested_after_edge_ids=(),
+            carried_edge_ids=(),
         )
     base_id = trajectory.endpoint_id if base_node_id is None else base_node_id
     if base_id not in trajectory.node_ids:
@@ -47,36 +50,66 @@ def trajectory_history(
     base_index = trajectory.node_ids.index(base_id)
     before = trajectory.edge_ids[:base_index]
     after = trajectory.edge_ids[base_index:]
-    selected_ids = set(trajectory.edge_ids[-max_steps:])
-    selected_before = tuple(edge_id for edge_id in before if edge_id in selected_ids)
-    selected_after = tuple(edge_id for edge_id in after if edge_id in selected_ids)
+    carried = tuple(
+        edge_id for edge_id in trajectory.evidence_edge_ids
+        if edge_id not in after
+    )
+    before_budget = min(len(before), max_steps // 2)
+    attempt_budget = max_steps - before_budget
+    selected_before = tuple(before[-before_budget:]) if before_budget else ()
+    attempt_ids = tuple(dict.fromkeys((*after, *carried)))
+    selected_attempts: set[int] = set()
+    if attempt_budget:
+        # Keep at least the latest structural and carried attempt when both
+        # kinds exist, then fill remaining slots by recency.
+        for edge_id in (after[-1:] + carried[-1:]):
+            if len(selected_attempts) >= attempt_budget:
+                break
+            selected_attempts.add(edge_id)
+        for edge_id in reversed(attempt_ids):
+            if len(selected_attempts) >= attempt_budget:
+                break
+            selected_attempts.add(edge_id)
+    selected_after = tuple(edge_id for edge_id in after if edge_id in selected_attempts)
+    selected_carried = tuple(
+        edge_id for edge_id in carried if edge_id in selected_attempts
+    )
     sections: list[str] = []
+    position = 1
     if selected_before:
         sections.append("[How This Program Was Reached]")
         sections.extend(
             _render_edges(
                 graph,
                 selected_before,
-                start_position=trajectory.edge_ids.index(selected_before[0]) + 1,
+                start_position=position,
             )
         )
+        position += len(selected_before)
     if selected_after:
         sections.append("[Later Attempts From This Program]")
         sections.extend(
             _render_edges(
                 graph,
                 selected_after,
-                start_position=trajectory.edge_ids.index(selected_after[0]) + 1,
+                start_position=position,
             )
+        )
+        position += len(selected_after)
+    if selected_carried:
+        sections.append("[Carried Route Evidence]")
+        sections.extend(
+            _render_edges(graph, selected_carried, start_position=position)
         )
     if not sections:
         sections.append("No earlier change is shown.")
-    selected = (*selected_before, *selected_after)
+    selected = (*selected_before, *selected_after, *selected_carried)
     return RenderedHistory(
         text="\n".join(sections),
         edge_ids=selected,
         formation_edge_ids=tuple(selected_before),
         tested_after_edge_ids=tuple(selected_after),
+        carried_edge_ids=tuple(selected_carried),
     )
 
 
@@ -131,17 +164,15 @@ def build_action_prompt(
             str(target).rstrip(),
             "",
             "[Action Guidance]",
-            "The histories provide factual context for the next algorithmic change.",
-            "Only executable suggestions can be evaluated by the search.",
+            "Use the history as local evidence: do not repeat an identical tested change.",
+            "Each action must be one concrete, code-level modification that can be implemented without further interpretation.",
+            "Do not output analysis, comparisons, audit fields, or explanations outside the action strings.",
             (
-                f"You may provide up to {action_count} numbered single-line {action_label}; "
+                f"Put up to {action_count} single-line {action_label} in the "
+                "schema-defined actions array; "
                 "include only suggestions that are useful for this program."
             ),
             "Keep each suggestion within the target function's existing contract.",
-            (
-                "When a reference program is shown, a suggestion may explain how an "
-                "idea from it could be adapted to the primary program."
-            ),
         ]
     )
     return "\n".join(sections).strip()
@@ -161,18 +192,24 @@ def _render_edges(
         lines.extend(
             [
                 (
-                    f"Step {position}: {edge.outcome}; fitness "
-                    f"{format_fitness(parent.fitness)} -> {format_fitness(child.fitness)}"
+                    f"Step {position}: fitness "
+                    f"{format_fitness(parent.fitness)} -> {format_fitness(child.fitness)}; "
+                    f"parent result={edge.outcome}; "
+                    f"route gain={_format_gain(edge.delta_route_best)}; "
+                    f"route best update={edge.route_best_update_reason or 'no'}; "
+                    "global breakthrough="
+                    f"{'yes' if edge.global_best_update_reason in {'strict_fitness', 'tie_shorter'} else 'no'}"
                 ),
-                f"  Action: {_one_line(edge.action, 300)}",
-                f"  Implemented Idea: {_one_line(child.idea, 300)}",
-                (
-                    f"  Code change: {edge.code_change_ratio:.0%}; "
-                    f"LOC {parent.program_loc} -> {child.program_loc}"
-                ),
+                f"  Requested change: {_one_line(edge.action, 360)}",
             ]
         )
     return lines
+
+
+def _format_gain(delta: float | None) -> str:
+    if delta is None:
+        return "unknown"
+    return f"{delta:+.6g}"
 
 
 def _one_line(text: str, limit: int) -> str:

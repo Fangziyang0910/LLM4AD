@@ -28,7 +28,12 @@ from llm4ad.method.traceaad_v7.operators import (
     OperatorDecision,
     select_operator,
 )
-from llm4ad.method.traceaad_v7.prompt import build_code_prompt
+from llm4ad.method.traceaad_v7.prompt import (
+    ACTION_MAX_CHARS,
+    action_response_format,
+    build_code_prompt,
+    parse_actions,
+)
 from llm4ad.method.traceaad_v7.schema import (
     OperatorName,
     TrajectoryStatus,
@@ -62,7 +67,14 @@ class ScriptedV7LLM(LLM):
             return self.program(self.initial_programs)
         if "[Requested Modification]" in prompt:
             return self.program(self.calls)
-        return "1. Make one focused change.\n2. Test a second focused change."
+        return json.dumps(
+            {
+                "actions": [
+                    "Make one focused change.",
+                    "Test a second focused change.",
+                ]
+            }
+        )
 
     @staticmethod
     def program(value: int) -> str:
@@ -131,6 +143,9 @@ def _add_route(
     route = memory.create_initial(node_id=nodes[0].id)
     for index, child in enumerate(nodes[1:], start=1):
         parent = nodes[index - 1]
+        route_best_before = max(
+            nodes[:index], key=lambda node: program_quality_key(node, True)
+        )
         edge = graph.add_edge(
             parent_id=parent.id,
             child_id=child.id,
@@ -139,6 +154,7 @@ def _add_route(
             anchor_role="endpoint",
             primary_trajectory_id=route.id,
             delta_parent=child.fitness - parent.fitness,
+            delta_route_best=child.fitness - route_best_before.fitness,
         )
         compact = max(
             nodes[: index + 1], key=lambda node: program_quality_key(node, True)
@@ -168,8 +184,8 @@ def test_public_package_identifies_v7_protocol():
     import llm4ad.method.traceaad_v7 as package
 
     assert package.TraceAADV7 is TraceAADV7
-    assert package.PROTOCOL_ID == "traceaad-v7-v1"
-    assert package.CHECKPOINT_VERSION == 9
+    assert package.PROTOCOL_ID == "traceaad-v7"
+    assert package.CHECKPOINT_VERSION == 11
     assert set(package.__all__) == {
         "TraceAADV7",
         "TraceAADRunResult",
@@ -178,6 +194,70 @@ def test_public_package_identifies_v7_protocol():
         "CHECKPOINT_VERSION",
         "PROTOCOL_ID",
     }
+
+
+def test_action_response_format_is_a_strict_bounded_json_schema():
+    response_format = action_response_format(2)
+    schema = response_format["json_schema"]["schema"]
+
+    assert response_format["type"] == "json_schema"
+    assert response_format["json_schema"]["strict"] is True
+    assert schema["required"] == ["actions"]
+    assert schema["additionalProperties"] is False
+    assert schema["properties"]["actions"]["minItems"] == 1
+    assert schema["properties"]["actions"]["maxItems"] == 2
+    assert schema["properties"]["actions"]["items"]["maxLength"] == ACTION_MAX_CHARS
+
+
+def test_action_parser_prefers_json_and_validates_its_contract():
+    actions, errors = parse_actions(
+        '{"actions":[" first change ","second\\nchange"]}',
+        expected_count=2,
+    )
+    assert actions == ["first change", "second change"]
+    assert errors == []
+
+    assert parse_actions('{"actions":[]}', expected_count=2) == (
+        [],
+        ["action_count_out_of_range_0"],
+    )
+    assert parse_actions('{"actions":["valid"],"extra":true}', expected_count=2) == (
+        [],
+        ["json_object_must_only_contain_actions"],
+    )
+    assert parse_actions(
+        json.dumps({"actions": ["x" * (ACTION_MAX_CHARS + 1)]}), expected_count=2
+    ) == ([], ["action_1_too_long"])
+
+
+def test_action_parser_rejects_unstructured_text():
+    for response in (
+        "1. first\n2. second",
+        "1: first\n2: second",
+        "Action 1: first\nAction 2: second",
+    ):
+        assert parse_actions(response, expected_count=2) == ([], ["invalid_json"])
+
+
+def test_action_call_requests_structured_output():
+    class CapturingStructuredLLM(ScriptedV7LLM):
+        def __init__(self) -> None:
+            super().__init__()
+            self.action_kwargs = None
+
+        def draw_sample(self, prompt, *args, **kwargs):
+            if "[Action Guidance]" in str(prompt):
+                self.action_kwargs = kwargs
+            return super().draw_sample(prompt, *args, **kwargs)
+
+    llm = CapturingStructuredLLM()
+    method = _make_method(llm=llm, n_init=1, max_sample_nums=3)
+    method._initialize()
+    method._initialization_complete = True
+    method._run_iteration(0)
+
+    assert llm.action_kwargs is not None
+    assert llm.action_kwargs["response_format"] == action_response_format(2)
 
 
 def test_value_weights_restore_v5_quality_trend_mixture():
@@ -217,6 +297,172 @@ def test_recent_trend_changes_scheduling_without_changing_fitness_order():
     assert program_quality_key(
         graph.get_node(improving.endpoint_id), True
     ) == program_quality_key(graph.get_node(regressing.endpoint_id), True)
+
+
+def test_trend_uses_route_best_not_parent_rebound():
+    graph = DerivationGraph()
+    memory = TrajectoryMemory(max_trajectory_length=8)
+    route = _add_route(graph, memory, [1.0, 3.0, 2.0, 2.5], code_prefix="rebound")
+
+    scored = score_active_trajectories(
+        memory=memory,
+        graph=graph,
+        maximize=True,
+        w=ValueWeights(endpoint_quality=1.0, best_quality=0.0),
+        trajectories=(route,),
+    )
+
+    # The final child improves its immediate parent but remains below the
+    # route-best state, so the route trend must be below neutral.
+    assert scored[0].value.trend < 0.5
+
+
+def test_tie_shorter_is_recorded_in_parent_route_and_global_feedback():
+    graph = DerivationGraph()
+    memory = TrajectoryMemory(max_trajectory_length=8)
+    parent = graph.add_node(
+        code="def choose(value: int) -> int:\n    return value + 1  # longer\n",
+        idea="parent",
+        fitness=1.0,
+    )
+    child = graph.add_node(
+        code="def choose(value: int) -> int:\n    return value + 1\n",
+        idea="shorter",
+        fitness=1.0,
+    )
+    route = memory.create_initial(node_id=parent.id)
+    edge = graph.add_edge(
+        parent_id=parent.id,
+        child_id=child.id,
+        action="remove redundant code",
+        operator=OperatorName.REFINE,
+        anchor_role="endpoint",
+        primary_trajectory_id=route.id,
+        delta_parent=0.0,
+        delta_route_best=0.0,
+        delta_global_best=0.0,
+        outcome="tie_shorter",
+        route_best_update_reason="tie_shorter",
+        global_best_update_reason="tie_shorter",
+    )
+    route = memory.branch_from(
+        trajectory_id=route.id,
+        base_node_id=parent.id,
+        child_id=child.id,
+        edge_id=edge.id,
+        compact_best_id=child.id,
+    )
+    scored = score_active_trajectories(
+        memory=memory,
+        graph=graph,
+        maximize=True,
+        w=ValueWeights(endpoint_quality=1.0, best_quality=0.0),
+        trajectories=(route,),
+    )
+    assert scored[0].value.trend == pytest.approx(1.0)
+
+
+def test_branch_from_internal_anchor_carries_later_attempts_into_history():
+    graph = DerivationGraph()
+    memory = TrajectoryMemory(max_trajectory_length=8)
+    route = _add_route(graph, memory, [1.0, 2.0, 1.5], code_prefix="carried")
+    anchor_id = route.node_ids[1]
+    child = graph.add_node(
+        code="def choose(value: int) -> int:\n    return value + 9\n",
+        idea="new branch",
+        fitness=9.0,
+    )
+    edge = graph.add_edge(
+        parent_id=anchor_id,
+        child_id=child.id,
+        action="try a new branch",
+        operator=OperatorName.REFINE,
+        anchor_role="compact_best",
+        primary_trajectory_id=route.id,
+        delta_parent=7.0,
+        delta_route_best=7.0,
+        outcome="improve",
+        route_best_update_reason="strict_fitness",
+    )
+    branched = memory.branch_from(
+        trajectory_id=route.id,
+        base_node_id=anchor_id,
+        child_id=child.id,
+        edge_id=edge.id,
+        compact_best_id=child.id,
+    )
+    assert route.edge_ids[1] in branched.evidence_edge_ids
+    history = trajectory_history(graph, branched, base_node_id=child.id)
+    assert "[Carried Route Evidence]" in history.text
+    assert "Requested change: change-2" in history.text
+    assert route.edge_ids[1] in history.carried_edge_ids
+
+
+def test_route_best_before_child_uses_the_bounded_retained_prefix():
+    method = _make_method(max_trajectory_length=3, n_init=0, max_sample_nums=0)
+    route = _add_route(method._graph, method._memory, [10.0, 9.0, 8.0], code_prefix="cut")
+    child = method._graph.add_node(
+        code="def choose(value: int) -> int:\n    return value + 95\n",
+        idea="candidate",
+        fitness=9.5,
+    )
+    best = method._route_best_before_child(
+        selected=route,
+        anchor_id=route.endpoint_id,
+    )
+    assert best.fitness == pytest.approx(9.0)
+    assert method._compact_best_for_child(
+        selected=route,
+        anchor_id=route.endpoint_id,
+        child=child,
+    ).fitness == pytest.approx(9.5)
+
+
+def test_single_node_route_does_not_use_python_negative_zero_slice():
+    method = _make_method(max_trajectory_length=1, n_init=0, max_sample_nums=0)
+    first = method._graph.add_node(
+        code="def choose(value: int) -> int:\n    return value + 10\n",
+        idea="one-0",
+        fitness=10.0,
+    )
+    second = method._graph.add_node(
+        code="def choose(value: int) -> int:\n    return value + 9\n",
+        idea="one-1",
+        fitness=9.0,
+    )
+    route = method._memory.create_initial(node_id=first.id)
+    edge = method._graph.add_edge(
+        parent_id=first.id,
+        child_id=second.id,
+        action="change",
+        operator=OperatorName.REFINE,
+        anchor_role="endpoint",
+        primary_trajectory_id=route.id,
+        delta_parent=-1.0,
+        delta_route_best=-1.0,
+        outcome="regress",
+    )
+    route = method._memory.branch_from(
+        trajectory_id=route.id,
+        base_node_id=first.id,
+        child_id=second.id,
+        edge_id=edge.id,
+        compact_best_id=second.id,
+    )
+    child = method._graph.add_node(
+        code="def choose(value: int) -> int:\n    return value + 95\n",
+        idea="candidate",
+        fitness=9.5,
+    )
+    assert method._route_best_before_child(
+        selected=route,
+        anchor_id=route.endpoint_id,
+    ).fitness == pytest.approx(9.0)
+    assert method._compact_best_for_child(
+        selected=route,
+        anchor_id=route.endpoint_id,
+        child=child,
+    ).id == child.id
 
 
 def test_ucb_exploration_decays_with_remaining_budget():
@@ -271,6 +517,34 @@ def test_initialization_keeps_one_active_route_per_executable_state():
     )
 
 
+def test_duplicate_program_reuses_fitness_without_repeating_evaluator():
+    class CountingEvaluation(ScoreByProgram):
+        def __init__(self):
+            super().__init__()
+            self.calls = 0
+
+        def evaluate_program(self, program_str, callable_func, **kwargs):
+            self.calls += 1
+            return super().evaluate_program(program_str, callable_func, **kwargs)
+
+    class DuplicateInitLLM(ScriptedV7LLM):
+        def draw_sample(self, prompt, *args, **kwargs):
+            self.calls += 1
+            return self.program(1)
+
+    evaluation = CountingEvaluation()
+    method = _make_method(
+        llm=DuplicateInitLLM(),
+        evaluation=evaluation,
+        n_init=3,
+        max_sample_nums=3,
+    )
+    method.run()
+
+    assert evaluation.calls == 1
+    assert method._tot_sample_nums == 3
+
+
 def test_duplicate_child_keeps_fact_edges_but_not_active_slots():
     class DuplicateChildLLM(ScriptedV7LLM):
         def draw_sample(self, prompt, *args, **kwargs):
@@ -281,7 +555,7 @@ def test_duplicate_child_keeps_fact_edges_but_not_active_slots():
                 return self.program(self.initial_programs)
             if "[Requested Modification]" in prompt:
                 return self.program(1)
-            return "1. First duplicate.\n2. Second duplicate."
+            return json.dumps({"actions": ["First duplicate.", "Second duplicate."]})
 
     method = _make_method(
         llm=DuplicateChildLLM(),
@@ -321,9 +595,7 @@ def test_batch_global_best_marking_is_order_independent():
             if "Generate a simple, complete" in prompt:
                 return self.program(0)
             if "[Requested Modification]" not in prompt:
-                return "\n".join(
-                    f"{index}. {name}" for index, name in enumerate(self.order, 1)
-                )
+                return json.dumps({"actions": list(self.order)})
             return self.program(2 if "HIGH" in prompt else 1)
 
     def run_order(order: tuple[str, str]):
@@ -356,7 +628,7 @@ def test_failed_children_never_enter_graph_or_trajectory_memory(failure_mode: st
             if "Generate a simple, complete" in prompt:
                 return self.program(0)
             if "[Requested Modification]" not in prompt:
-                return "1. First change.\n2. Second change."
+                return json.dumps({"actions": ["First change.", "Second change."]})
             if failure_mode == "transport":
                 raise ConnectionError("transport unavailable")
             if failure_mode == "parse":
@@ -694,6 +966,27 @@ def test_reference_sampling_excludes_primary_and_prefers_higher_quality():
     assert probabilities[high.id] > probabilities[low.id]
 
 
+def test_reference_sampling_excludes_same_executable_anchor():
+    graph = DerivationGraph()
+    memory = TrajectoryMemory(max_trajectory_length=8)
+    primary = _add_route(graph, memory, [1.0], code_prefix="same")
+    same = _add_route(graph, memory, [0.9], code_prefix="same")
+    different = _add_route(graph, memory, [0.8], code_prefix="different")
+    primary = memory.set_value(primary.id, ValueVec(quality=0.4), 0.4)
+    same = memory.set_value(same.id, ValueVec(quality=0.9), 0.9)
+    different = memory.set_value(different.id, ValueVec(quality=0.1), 0.1)
+
+    distribution = reference_sampling_distribution(
+        primary=primary,
+        active=(primary, same, different),
+        temperature=0.2,
+        graph=graph,
+        primary_node_id=primary.compact_best_id,
+    )
+
+    assert [route.id for route, _, _ in distribution] == [different.id]
+
+
 def test_anchor_selection_keeps_endpoint_and_compact_best_available():
     method = _make_method(n_init=0, max_sample_nums=0)
     route = _add_route(
@@ -725,7 +1018,7 @@ def test_population_keeps_global_best_and_unique_executable_states():
         )
         routes.append(method._memory.create_initial(node_id=node.id))
     method._best_node = method._graph.get_node(routes[-1].endpoint_id)
-    method._best_trajectory_id = routes[-1].id
+    method._best_trajectory_id = 999999
 
     method._manage_population()
     active = method.active_trajectories()
@@ -735,6 +1028,59 @@ def test_population_keeps_global_best_and_unique_executable_states():
 
     assert len(active) == len(active_hashes) == 3
     assert routes[-1].id in {route.id for route in active}
+
+
+def test_population_reactivates_archived_global_best_route():
+    method = _make_method(
+        n_init=0,
+        max_sample_nums=0,
+        max_active_trajectories=3,
+        elite_count=1,
+        random_seed=4,
+    )
+    routes = []
+    for fitness in range(6):
+        node = method._graph.add_node(
+            code=(f"def choose(value: int) -> int:\n    return value + {fitness}\n"),
+            idea=f"route-{fitness}",
+            fitness=float(fitness),
+        )
+        routes.append(method._memory.create_initial(node_id=node.id))
+    method._best_node = method._graph.get_node(routes[-1].endpoint_id)
+    method._best_trajectory_id = routes[-1].id
+    method._memory.archive(routes[-1].id)
+
+    method._manage_population()
+
+    assert method._memory.get_trajectory(routes[-1].id).status == TrajectoryStatus.ACTIVE
+    assert routes[-1].id in {route.id for route in method.active_trajectories()}
+
+
+def test_population_rejects_missing_global_best_keeper():
+    method = _make_method(
+        n_init=0,
+        max_sample_nums=0,
+        max_active_trajectories=3,
+        elite_count=1,
+        random_seed=4,
+    )
+    for fitness in range(6):
+        node = method._graph.add_node(
+            code=(f"def choose(value: int) -> int:\n    return value + {fitness}\n"),
+            idea=f"route-{fitness}",
+            fitness=float(fitness),
+        )
+        method._memory.create_initial(node_id=node.id)
+    missing = method._graph.add_node(
+        code="def choose(value: int) -> int:\n    return value + 99\n",
+        idea="missing",
+        fitness=99.0,
+    )
+    method._best_node = missing
+    method._best_trajectory_id = 999999
+
+    with pytest.raises(RuntimeError, match="no route preserving global best"):
+        method._manage_population()
 
 
 def test_history_is_chronological_and_separates_later_attempts():
@@ -753,8 +1099,39 @@ def test_history_is_chronological_and_separates_later_attempts():
     assert "[Later Attempts From This Program]" in history.text
     assert "Step 1:" in history.text and "Step 2:" in history.text
     assert history.text.index("change-1") < history.text.index("change-2")
+    assert "Requested change:" in history.text
+    assert "Implemented Idea:" not in history.text
+    assert "Code change:" not in history.text
+    assert "route gain=-0.5" in history.text
+    assert "route gain=+0.2" in history.text
     assert history.formation_edge_ids == (route.edge_ids[0],)
     assert history.tested_after_edge_ids == (route.edge_ids[1],)
+
+
+def test_history_truncation_keeps_anchor_formation_and_later_evidence():
+    graph = DerivationGraph()
+    memory = TrajectoryMemory(max_trajectory_length=8)
+    route = _add_route(
+        graph,
+        memory,
+        [float(index) for index in range(8)],
+        code_prefix="bounded-history",
+    )
+
+    history = trajectory_history(
+        graph,
+        route,
+        base_node_id=route.node_ids[4],
+        max_steps=4,
+    )
+
+    assert history.formation_edge_ids == (route.edge_ids[2], route.edge_ids[3])
+    assert history.tested_after_edge_ids == (route.edge_ids[5], route.edge_ids[6])
+    assert "Requested change: change-3" in history.text
+    assert "Requested change: change-6" in history.text
+    assert "Requested change: change-1" not in history.text
+    assert "Requested change: change-2" not in history.text
+    assert "Requested change: change-5" not in history.text
 
 
 def test_action_and_code_share_primary_and_reference_histories():
@@ -776,13 +1153,11 @@ def test_action_and_code_share_primary_and_reference_histories():
         action="adapt the reference idea",
         task_description=method._task_description_str,
         template_function=method._function_to_evolve,
-        history=context.primary_history,
         reference_node=reference_node,
-        reference_history=context.reference_history,
     )
 
-    assert context.primary_history in code_prompt
-    assert context.reference_history in code_prompt
+    assert "[Current Program History]" not in code_prompt
+    assert "[Reference Program History]" not in code_prompt
     assert reference_node.code.rstrip() in context.prompt
     assert reference_node.code.rstrip() in code_prompt
 
@@ -838,9 +1213,7 @@ def test_dual_code_overflow_restarts_batch_with_single_context():
             action=action,
             task_description=method._task_description_str,
             template_function=method._function_to_evolve,
-            history=context.primary_history,
             reference_node=reference_node if include_reference else None,
-            reference_history=(context.reference_history if include_reference else ""),
         )
 
     single_code_tokens = [
@@ -905,7 +1278,7 @@ def test_checkpoint_preserves_stop_state_and_rejects_protocol_drift():
     assert restored._consecutive_sample_failures == 5
 
     with pytest.raises(ValueError, match="old checkpoints are not migrated"):
-        load_state(_make_method(max_sample_nums=3), dict(payload, version=8))
+        load_state(_make_method(max_sample_nums=3), dict(payload, version=9))
     with pytest.raises(ValueError, match="protocol_id"):
         load_state(
             _make_method(max_sample_nums=3),

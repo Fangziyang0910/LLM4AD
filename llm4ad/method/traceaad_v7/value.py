@@ -139,11 +139,20 @@ def score_active_trajectories(
         ) / quality_denominator
         signals: list[float] = []
         for edge_id in route.edge_ids:
-            delta = graph.get_edge(edge_id).delta_parent
-            if delta is None or abs(delta) <= w.positive_threshold:
-                signals.append(0.0)
+            # Trend follows the same comparator as route/global selection,
+            # including an exact-fitness shorter-program improvement.
+            edge = graph.get_edge(edge_id)
+            reason = edge.route_best_update_reason
+            if reason in {"strict_fitness", "tie_shorter"}:
+                signals.append(1.0)
+            elif reason == "regress":
+                signals.append(-1.0)
             else:
-                signals.append(1.0 if delta > 0 else -1.0)
+                delta = edge.delta_route_best
+                if delta is None or abs(delta) <= w.positive_threshold:
+                    signals.append(0.0)
+                else:
+                    signals.append(1.0 if delta > 0 else -1.0)
         if signals:
             trend_denominator = sum(w.discount**index for index in range(len(signals)))
             weighted = sum(
@@ -233,9 +242,23 @@ def reference_sampling_distribution(
     primary: Trajectory,
     active: tuple[Trajectory, ...],
     temperature: float,
+    graph: DerivationGraph | None = None,
+    primary_node_id: int | None = None,
 ) -> tuple[tuple[Trajectory, float, float], ...]:
-    """Sample any other active route according to its Q value."""
-    candidates = [route for route in active if route.id != primary.id]
+    """Sample a distinct active route according to its Q value."""
+    primary_node = (
+        primary.compact_best_id if primary_node_id is None else primary_node_id
+    )
+    primary_hash = None if graph is None else graph.get_node(primary_node).code_hash
+    candidates = [
+        route
+        for route in active
+        if route.id != primary.id
+        and (
+            graph is None
+            or graph.get_node(route.compact_best_id).code_hash != primary_hash
+        )
+    ]
     if not candidates:
         return ()
     scores = [

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import re
 from dataclasses import dataclass
 
@@ -15,6 +16,8 @@ from ...base import (
 from .schema import ProgramNode
 
 IDEA_MAX_CHARS = 300
+ACTION_MAX_CHARS = 600
+ACTION_OUTPUT_MODE = "json_schema"
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,18 +75,13 @@ def build_code_prompt(
     action: str,
     task_description: str,
     template_function: Function,
-    history: str,
     reference_node: ProgramNode | None = None,
-    reference_history: str = "",
 ) -> str:
     target = copy.deepcopy(template_function)
     target.body = ""
     sections = [
         "[Task]",
         task_description.strip(),
-        "",
-        "[Current Program History]",
-        history.strip(),
         "",
         "[Current Program]",
         "```python",
@@ -93,9 +91,6 @@ def build_code_prompt(
     if reference_node is not None:
         sections.extend(
             [
-                "",
-                "[Reference Program History]",
-                reference_history.strip(),
                 "",
                 "[Reference Program]",
                 "```python",
@@ -114,14 +109,11 @@ def build_code_prompt(
             "",
             "[Instruction]",
             (
-                "The histories describe what has been tried; they may help explain the "
-                "requested modification from the primary program."
-            ),
-            (
                 "When a reference program is present, the requested modification can "
-                "adapt an idea from it."
+                "use its code as implementation evidence; do not copy unrelated code."
             ),
             "The target function signature and contract remain unchanged.",
+            "Implement exactly the requested modification; do not redesign the search decision.",
             "Return one complete implementation.",
             (
                 "Imports from the task template remain available. Include any additional "
@@ -141,32 +133,69 @@ def build_code_prompt(
     return "\n".join(sections).strip()
 
 
+def action_response_format(expected_count: int) -> dict:
+    """Return the strict response schema used by the Action LLM call."""
+    if expected_count <= 0:
+        raise ValueError("expected_count must be positive")
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "traceaad_actions",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "actions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": ACTION_MAX_CHARS,
+                        },
+                        "minItems": 1,
+                        "maxItems": expected_count,
+                    }
+                },
+                "required": ["actions"],
+                "additionalProperties": False,
+            },
+        },
+    }
+
+
 def parse_actions(
     response: str,
     *,
     expected_count: int,
 ) -> tuple[list[str], list[str]]:
-    numbered: dict[int, str] = {}
-    errors: list[str] = []
-    for line in str(response).strip().splitlines():
-        match = re.match(
-            r"^(?P<number>\d+)[\.\)]\s+(?P<action>\S.*)$",
-            line.strip(),
-        )
-        if match is None:
-            continue
-        number = int(match.group("number"))
-        if number < 1 or number > expected_count:
-            errors.append(f"action_number_out_of_range_{number}")
-            continue
-        if number in numbered:
-            errors.append(f"duplicate_action_number_{number}")
-            continue
-        numbered[number] = match.group("action").strip()
-    actions = [numbered[number] for number in sorted(numbered)]
-    if not actions:
-        errors.append(f"no_valid_actions_up_to_{expected_count}")
-    return actions, errors
+    """Parse and validate a schema-constrained Action response."""
+    if expected_count <= 0:
+        raise ValueError("expected_count must be positive")
+    try:
+        payload = json.loads(str(response))
+    except (TypeError, json.JSONDecodeError):
+        return [], ["invalid_json"]
+
+    if not isinstance(payload, dict):
+        return [], ["json_root_not_object"]
+    if set(payload) != {"actions"}:
+        return [], ["json_object_must_only_contain_actions"]
+    raw_actions = payload["actions"]
+    if not isinstance(raw_actions, list):
+        return [], ["actions_not_array"]
+    if not 1 <= len(raw_actions) <= expected_count:
+        return [], [f"action_count_out_of_range_{len(raw_actions)}"]
+    actions: list[str] = []
+    for index, action in enumerate(raw_actions, start=1):
+        if not isinstance(action, str):
+            return [], [f"action_{index}_not_string"]
+        compact = " ".join(action.split())
+        if not compact:
+            return [], [f"action_{index}_empty"]
+        if len(compact) > ACTION_MAX_CHARS:
+            return [], [f"action_{index}_too_long"]
+        actions.append(compact)
+    return actions, []
 
 
 def parse_program_response(
@@ -285,8 +314,11 @@ def _extract_code_blocks(response: str) -> tuple[str, ...]:
 
 
 __all__ = [
+    "ACTION_OUTPUT_MODE",
+    "ACTION_MAX_CHARS",
     "IDEA_MAX_CHARS",
     "ParsedProgram",
+    "action_response_format",
     "build_code_prompt",
     "build_initial_prompt",
     "fitness_direction_hint",

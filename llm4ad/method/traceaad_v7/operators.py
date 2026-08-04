@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
-from .schema import OperatorName
+from .schema import OperatorName, ProgramNode
 
 
 def classify_outcome(delta: float | None, positive_threshold: float = 0.0) -> str:
@@ -18,6 +18,33 @@ def classify_outcome(delta: float | None, positive_threshold: float = 0.0) -> st
     return "plateau"
 
 
+def classify_program_outcome(
+    parent: ProgramNode | None,
+    child: ProgramNode,
+    *,
+    maximize: bool,
+    positive_threshold: float = 0.0,
+) -> str:
+    """Classify the same comparator used for program selection."""
+    del positive_threshold  # selection is exact; the threshold is for trend only
+    if parent is None:
+        return "strict_fitness"
+    delta = (
+        child.fitness - parent.fitness
+        if maximize
+        else parent.fitness - child.fitness
+    )
+    if delta is None:
+        return "unknown"
+    if delta > 0.0:
+        return "strict_fitness"
+    if delta < 0.0:
+        return "regress"
+    if child.fitness == parent.fitness and child.program_loc < parent.program_loc:
+        return "tie_shorter"
+    return "plateau"
+
+
 @dataclass(frozen=True, slots=True)
 class Operator:
     name: OperatorName
@@ -27,32 +54,34 @@ class Operator:
 TRACE_IDEATE = Operator(
     OperatorName.IDEATE,
     (
-        "For each action, propose a genuinely new algorithmic idea grounded in the "
-        "retained trajectory history. Treat later regressions and plateaus as tested "
-        "boundaries while changing the primary program along a new direction."
+        "For each action, propose one concrete algorithmic direction not already tried "
+        "in the retained history. A regression or plateau rules out repeating that "
+        "specific implementation; it does not rule out the whole underlying idea."
     ),
 )
 TRACE_REFINE = Operator(
     OperatorName.REFINE,
     (
-        "For each action, make one focused, evidence-grounded refinement to a "
-        "mechanism that has shown value or to a weakness exposed by the history."
+        "For each action, change exactly one existing mechanism. Tie it to a mechanism "
+        "that advanced the route or to one concrete weakness exposed by the history; "
+        "state the code-level change rather than a general goal."
     ),
 )
 TRACE_SYNTHESIZE = Operator(
     OperatorName.SYNTHESIZE,
     (
-        "For each action, identify a supported principle in both the primary and "
-        "reference trajectories, then make the two principles interact functionally "
-        "in the primary program. Do not concatenate or copy whole implementations."
+        "For each action, identify one result-supported principle from the primary "
+        "trajectory and one from the distinct reference trajectory, then make them "
+        "interact at one concrete program interface. Do not concatenate or copy "
+        "whole implementations."
     ),
 )
 TRACE_TRANSFER = Operator(
     OperatorName.TRANSFER,
     (
         "For each action, keep the primary program's core structure and adapt exactly "
-        "one supported idea from the reference trajectory to the primary task logic "
-        "and tested history."
+        "one result-supported principle that is absent from the primary program, "
+        "using the distinct reference trajectory as its source."
     ),
 )
 
@@ -112,6 +141,7 @@ __all__ = [
     "TRACE_SYNTHESIZE",
     "TRACE_TRANSFER",
     "classify_outcome",
+    "classify_program_outcome",
     "is_dual_operator",
     "select_operator",
 ]
