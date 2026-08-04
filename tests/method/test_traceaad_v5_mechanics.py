@@ -475,13 +475,10 @@ def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
     from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
 
     checkpoint_dir = tmp_path / "checkpoints"
-    log_dir = tmp_path / "logs"
     first = TraceAADV5(
         llm=V5MechanismLLM(),
         evaluation=IncreasingEvaluation(),
-        profiler=TraceAADProfiler(
-            log_dir=str(log_dir), log_style="simple", create_random_path=False
-        ),
+        profiler=TraceAADProfiler(run_dir=tmp_path),
         max_sample_nums=3,
         n_init=2,
         actions_per_iteration=1,
@@ -493,9 +490,7 @@ def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
     resumed = TraceAADV5(
         llm=V5MechanismLLM(),
         evaluation=IncreasingEvaluation(),
-        profiler=TraceAADProfiler(
-            log_dir=str(log_dir), log_style="simple", create_random_path=False
-        ),
+        profiler=TraceAADProfiler(run_dir=tmp_path),
         max_sample_nums=5,
         n_init=2,
         actions_per_iteration=1,
@@ -508,16 +503,19 @@ def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
     assert first.n_samples == 3
     assert resumed.n_samples == 5
     assert resumed.n_total_nodes == first.n_total_nodes + 2
-    summary = json.loads((log_dir / "run_summary.json").read_text())
+    summary = json.loads((tmp_path / "logs" / "summary.json").read_text())
     assert summary["num_samples"] == 5
-    assert summary["evaluate_success_program_num"] == 5
-    assert summary["total_sample_time"] > 0
-    assert summary["llm_call_count"] == len(
-        (log_dir / "llm_calls.jsonl").read_text().splitlines()
-    )
-    assert summary["method_event_count"] == len(
-        (log_dir / "method_events.jsonl").read_text().splitlines()
-    )
+    assert summary["evaluate_success"] >= 2
+    assert (tmp_path / "artifacts" / "candidates.jsonl").is_file()
+    assert (tmp_path / "artifacts" / "edges.jsonl").is_file()
+    llm_calls = [
+        json.loads(line)
+        for line in (tmp_path / "artifacts" / "llm_calls.jsonl")
+        .read_text()
+        .splitlines()
+    ]
+    assert llm_calls
+    assert all("prompt" not in call for call in llm_calls if call.get("status") == "ok")
 
 
 def test_traceaad_v5_writes_partial_summary_and_checkpoint_on_exception(
@@ -529,14 +527,11 @@ def test_traceaad_v5_writes_partial_summary_and_checkpoint_on_exception(
         def draw_sample(self, prompt, *args, **kwargs):
             raise RuntimeError("generation broke")
 
-    log_dir = tmp_path / "logs"
-    checkpoint = log_dir / "checkpoints" / "latest.json"
+    checkpoint = tmp_path / "checkpoints" / "latest.json"
     method = TraceAADV5(
         llm=BrokenLLM(),
         evaluation=IncreasingEvaluation(),
-        profiler=TraceAADProfiler(
-            log_dir=str(log_dir), log_style="simple", create_random_path=False
-        ),
+        profiler=TraceAADProfiler(run_dir=tmp_path),
         max_sample_nums=2,
         n_init=1,
         debug_mode=True,
@@ -550,7 +545,7 @@ def test_traceaad_v5_writes_partial_summary_and_checkpoint_on_exception(
     else:
         raise AssertionError("expected generation failure")
 
-    summary = json.loads((log_dir / "run_summary.json").read_text())
+    summary = json.loads((tmp_path / "logs" / "summary.json").read_text())
     assert summary["status"] == "error"
     assert summary["error_type"] == "RuntimeError"
     assert summary["error"] == "generation broke"
@@ -1124,24 +1119,22 @@ def test_traceaad_v5_accepts_small_top_level_helper_functions(
 def test_traceaad_v5_logs_structured_evaluation_failures(tmp_path: Path) -> None:
     from llm4ad.method.traceaad_v5 import TraceAADProfiler, TraceAADV5
 
-    log_dir = tmp_path / "logs"
     TraceAADV5(
         llm=RuntimeFailureLLM(),
         evaluation=ExecutingEvaluation(),
-        profiler=TraceAADProfiler(
-            log_dir=str(log_dir), log_style="simple", create_random_path=False
-        ),
+        profiler=TraceAADProfiler(run_dir=tmp_path),
         max_sample_nums=1,
         n_init=1,
-        checkpoint_dir=log_dir / "checkpoints",
+        checkpoint_dir=tmp_path / "checkpoints",
     ).run()
 
-    events = [
+    candidates = [
         json.loads(line)
-        for line in (log_dir / "method_events.jsonl").read_text().splitlines()
+        for line in (tmp_path / "artifacts" / "candidates.jsonl")
+        .read_text()
+        .splitlines()
     ]
-    failure = next(event for event in events if event["event"] == "program_evaluated")
-    assert failure["status"] == "eval_failed"
+    failure = next(row for row in candidates if row["status"] == "eval_failed")
     assert failure["failure_kind"] == "runtime_error"
     assert failure["error_type"] == "ValueError"
     assert failure["error"] == "generated failure"

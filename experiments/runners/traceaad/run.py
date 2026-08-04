@@ -246,7 +246,7 @@ def build_task(spec: RunSpec) -> tuple[Any, dict[str, Any]]:
 
 def build_method(
     spec: RunSpec,
-    log_dir: Path,
+    run_dir: Path,
     resume_from: Path | None = None,
 ) -> TraceAADV4 | TraceAADV5 | TraceAADV6 | TraceAADV7:
     os.environ["NO_PROXY"] = spec.no_proxy
@@ -261,6 +261,7 @@ def build_method(
         temperature=1.0,
         enable_thinking=False,
     )
+    log_dir = run_dir / "logs"
     common = {
         "llm": llm,
         "evaluation": evaluation,
@@ -272,7 +273,6 @@ def build_method(
         "softmax_temperature": 0.2,
         "max_consecutive_sample_failures": 20,
         "max_stalled_iterations": 20,
-        "checkpoint_dir": log_dir / "checkpoints",
         "checkpoint_interval": 10,
         "resume_from": resume_from,
     }
@@ -284,19 +284,17 @@ def build_method(
                 create_random_path=False,
             ),
             value_weights=V4ValueWeights(),
+            checkpoint_dir=log_dir / "checkpoints",
             **common,
         )
     if spec.version == "v5":
         return TraceAADV5(
-            profiler=TraceAADV5Profiler(
-                log_dir=str(log_dir),
-                log_style="simple",
-                create_random_path=False,
-            ),
+            profiler=TraceAADV5Profiler(run_dir=run_dir),
             value_weights=V5ValueWeights(),
             elite_count=3,
             action_max_tokens=spec.action_max_tokens,
             random_seed=spec.seed,
+            checkpoint_dir=run_dir / "checkpoints",
             **common,
         )
     if spec.version == "v6":
@@ -311,6 +309,7 @@ def build_method(
             code_max_tokens=spec.llm_output_tokens,
             context_token_limit=spec.context_token_limit,
             random_seed=spec.seed,
+            checkpoint_dir=log_dir / "checkpoints",
             **common,
         )
     return TraceAADV7(
@@ -325,6 +324,7 @@ def build_method(
         code_max_tokens=spec.llm_output_tokens,
         context_token_limit=spec.context_token_limit,
         random_seed=spec.seed,
+        checkpoint_dir=log_dir / "checkpoints",
         **common,
     )
 
@@ -423,6 +423,8 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
 def checkpoint_source(spec: RunSpec, run_dir: Path) -> Path:
     if spec.version == "v4":
         return run_dir
+    if spec.version == "v5":
+        return run_dir / "checkpoints" / "latest.json"
     return run_dir / "logs" / "checkpoints" / "latest.json"
 
 
@@ -520,14 +522,13 @@ def run_experiment(spec: RunSpec) -> Path:
         write_run_config(spec, run_dir, run_name)
 
     print(f"run_dir={run_dir}")
-    log_dir = run_dir / "logs"
     resume_source = checkpoint_source(spec, run_dir) if resumed else None
     with (run_dir / "tmux_run.log").open(
         "a", encoding="utf-8", buffering=1
     ) as log_file:
         with contextlib.redirect_stdout(log_file), contextlib.redirect_stderr(log_file):
             print(f"run_dir={run_dir}", flush=True)
-            build_method(spec, log_dir, resume_source).run()
+            build_method(spec, run_dir, resume_source).run()
     return run_dir
 
 

@@ -174,10 +174,22 @@ V5 使用四个轨迹语义算子、最长 8 节点轨迹、Action/Code 共享�
 
 方法默认完整构造当前最多 8 节点的轨迹上下文，不设置人为本地 prompt 上限。模型服务的上下文边界由实验后端配置负责；方法不把候选路线预先裁掉，也不增加独立的在线 prompt 拒绝规则。
 
-每个实验保留 `run_config.json`、samples、`method_events.jsonl`、
-`llm_calls.jsonl`、`errors.jsonl`、`run_summary.json` 和 checkpoint。Action 与 Code 的 token、耗时、解析状态分别记录。
+实验工件三分开，只保存原始事实，不在落盘时计算过程指标：
 
-checkpoint 保存派生图、active 轨迹、global best、预算进度、随机数状态和 profiler 累计信息。V5 不保存：
+```text
+<run>/
+  run_config.json
+  logs/progress.log, errors.jsonl, summary.json          # 监控
+  artifacts/candidates.jsonl, edges.jsonl, llm_calls.jsonl, decisions.jsonl  # 分析
+  checkpoints/latest.json                                # 断点续训
+```
+
+- `candidates.jsonl`：每次评价的程序、分数、算子与失败信息；
+- `edges.jsonl`：入图边的父子、算子、action、锚点与参考轨迹 id；
+- `llm_calls.jsonl`：stage / tokens / 耗时 / 成败；成功调用不存 prompt/response，失败可存截断 response；
+- `decisions.jsonl`：轨迹/算子选择、best 更新、种群收缩与停机等原始决策。
+
+checkpoint 保存派生图、轨迹记忆、global best、预算进度与随机数状态，不保存 profiler/事件计数。V5 不保存：
 
 - `global_experience`；
 - 待反思边；
@@ -191,7 +203,7 @@ checkpoint 保存派生图、active 轨迹、global best、预算进度、随机
 - 参考轨迹被使用时不增加其父代访问次数；主轨迹每次被选择并发起一次生成批次都增加 `visit_count`，解析或生成失败也计入。
 - 复杂度只使用非空 LOC，仅在 fitness 完全相同时用于择简；代码哈希和相似度不进入在线候选接受规则。
 - 代码相同不直接归因于上下文本身；不增加在线重复拒绝规则。
-- 退出 active 的路线保留在派生图和日志中，但不再直接繁衍。
+- 退出 active 的路线保留在派生图和 artifacts 中，但不再直接繁衍。
 - checkpoint 只保障恢复，不改变搜索机制；V5 不保存 `global_experience`、待反思边、反思尝试次数或更新次数。
 
 ## 10. 默认配置

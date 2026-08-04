@@ -47,14 +47,94 @@ def _load_jsonl(path: Path) -> list[dict]:
 
 
 def load_samples(run_dir: Path) -> list[dict]:
+    """Load evaluated candidates from new V5 artifacts or legacy profiler samples."""
+    candidates_path = run_dir / "artifacts" / "candidates.jsonl"
+    if candidates_path.is_file():
+        samples = [
+            row
+            for row in _load_jsonl(candidates_path)
+            if row.get("status", "ok") == "ok" or row.get("score") is not None
+        ]
+        # Keep failed rows out of scored analysis streams; valid_scored_samples
+        # already filters non-finite scores. Include all rows with scores.
+        samples = [row for row in samples if row.get("score") is not None]
+        samples.sort(key=lambda s: s.get("sample_order", 0))
+        return samples
+
     samples: list[dict] = []
     samples_dir = run_dir / "logs" / "samples"
+    if not samples_dir.is_dir():
+        return samples
     for f in sorted(samples_dir.glob("samples_*.json")):
         if "best" in f.name:
             continue
         samples.extend(json.load(open(f, encoding="utf-8")))
     samples.sort(key=lambda s: s.get("sample_order", 0))
     return samples
+
+
+def load_run_summary(run_dir: Path) -> dict:
+    logs = run_dir / "logs"
+    for name in ("summary.json", "run_summary.json"):
+        path = logs / name
+        if path.is_file():
+            return json.load(open(path, encoding="utf-8"))
+    raise FileNotFoundError(f"no summary under {logs}")
+
+
+def load_edge_events(run_dir: Path) -> list[dict]:
+    """Parent-child edges: new artifacts/edges.jsonl or legacy child_accepted."""
+    edges_path = run_dir / "artifacts" / "edges.jsonl"
+    if edges_path.is_file():
+        return _load_jsonl(edges_path)
+    events = _load_jsonl(run_dir / "logs" / "method_events.jsonl")
+    return [ev for ev in events if ev.get("event") == "child_accepted"]
+
+
+def load_decision_events(run_dir: Path) -> list[dict]:
+    decisions_path = run_dir / "artifacts" / "decisions.jsonl"
+    if decisions_path.is_file():
+        return _load_jsonl(decisions_path)
+    return _load_jsonl(run_dir / "logs" / "method_events.jsonl")
+
+
+def resolve_nodes_from_artifacts(
+    samples: list[dict], edges: list[dict], decisions: list[dict]
+) -> dict[int, Node]:
+    samples_by_order = {
+        int(s["sample_order"]): s
+        for s in samples
+        if s.get("sample_order") is not None and s.get("score") is not None
+    }
+    nodes: dict[int, Node] = {}
+    for ev in decisions:
+        if ev.get("event") != "trajectory_created":
+            continue
+        sample = samples_by_order.get(ev.get("sample_order"))
+        if sample is None:
+            continue
+        nodes[int(ev["node_id"])] = Node(
+            node_id=int(ev["node_id"]),
+            sample_order=int(sample["sample_order"]),
+            score=float(sample["score"]),
+            code=sample.get("program", ""),
+            operator="init",
+            is_init=True,
+        )
+    for ev in edges:
+        sample = samples_by_order.get(ev.get("sample_order"))
+        if sample is None:
+            continue
+        child_id = int(ev["child_id"])
+        nodes[child_id] = Node(
+            node_id=child_id,
+            sample_order=int(sample["sample_order"]),
+            score=float(sample["score"]),
+            code=sample.get("program", ""),
+            operator=ev.get("operator", ""),
+            is_init=False,
+        )
+    return nodes
 
 
 def valid_scored_samples(samples: list[dict]) -> list[dict]:
@@ -365,8 +445,7 @@ def kernel_entropy(dists: np.ndarray, weights: np.ndarray | None = None) -> floa
 
 
 def analyze_run(run_dir: Path) -> tuple[dict, list[dict], list[dict]]:
-    logs = run_dir / "logs"
-    summary = json.load(open(logs / "run_summary.json", encoding="utf-8"))
+    summary = load_run_summary(run_dir)
     config = {}
     cfg_path = run_dir / "run_config.json"
     if cfg_path.exists():
@@ -374,14 +453,25 @@ def analyze_run(run_dir: Path) -> tuple[dict, list[dict], list[dict]]:
 
     version = str(config.get("experiment_version") or run_dir.parent.name)
     task = str(config.get("task") or run_dir.parents[2].name)
-    events = _load_jsonl(logs / "method_events.jsonl")
     samples = load_samples(run_dir)
-    nodes = resolve_nodes(events, samples, version)
+    children = load_edge_events(run_dir)
+    decisions = load_decision_events(run_dir)
+    if (run_dir / "artifacts" / "edges.jsonl").is_file():
+        nodes = resolve_nodes_from_artifacts(samples, children, decisions)
+    else:
+        nodes = resolve_nodes(decisions, samples, version)
 
-    children = [ev for ev in events if ev.get("event") == "child_accepted"]
-    best_updates = [ev for ev in events if ev.get("event") == "best_updated"]
-    traj_sel = [ev for ev in events if ev.get("event") == "trajectory_selection"]
-    pop_mgmt = [ev for ev in events if ev.get("event") == "population_management"]
+    best_updates = [ev for ev in decisions if ev.get("event") == "best_updated"]
+    traj_sel = [
+        ev
+        for ev in decisions
+        if ev.get("event") in {"trajectory_selection", "trajectory_selected"}
+    ]
+    pop_mgmt = [
+        ev
+        for ev in decisions
+        if ev.get("event") in {"population_management", "population_managed"}
+    ]
 
     # Node order by sample_order for novelty computation.
     ordered = sorted(nodes.values(), key=lambda n: n.sample_order)
@@ -441,7 +531,9 @@ def analyze_run(run_dir: Path) -> tuple[dict, list[dict], list[dict]]:
         deltas.append(delta)
         pcds.append(d)
         improves += int(delta > 0)
-        outcome = ev.get("outcome") or "unknown"
+        outcome = ev.get("outcome")
+        if outcome is None:
+            outcome = "improve" if delta > 0 else "non_improve"
         outcome_counts[outcome] = outcome_counts.get(outcome, 0) + 1
         op = ev.get("operator") or "?"
         op_counts[op] = op_counts.get(op, 0) + 1
@@ -551,16 +643,32 @@ def analyze_run(run_dir: Path) -> tuple[dict, list[dict], list[dict]]:
         "outcome_mix": json.dumps(outcome_counts, ensure_ascii=False),
         "trajectory_selection_count": len(traj_sel),
         "population_management_count": len(pop_mgmt),
-        "mean_top5_mass": float(
-            np.mean([t.get("top5_probability_mass", 0.0) for t in traj_sel])
-        )
-        if traj_sel
-        else None,
-        "mean_effective_candidates": float(
-            np.mean([t.get("effective_candidate_count", 0.0) for t in traj_sel])
-        )
-        if traj_sel
-        else None,
+        "mean_top5_mass": (
+            float(
+                np.mean(
+                    [
+                        t["top5_probability_mass"]
+                        for t in traj_sel
+                        if t.get("top5_probability_mass") is not None
+                    ]
+                )
+            )
+            if any(t.get("top5_probability_mass") is not None for t in traj_sel)
+            else None
+        ),
+        "mean_effective_candidates": (
+            float(
+                np.mean(
+                    [
+                        t["effective_candidate_count"]
+                        for t in traj_sel
+                        if t.get("effective_candidate_count") is not None
+                    ]
+                )
+            )
+            if any(t.get("effective_candidate_count") is not None for t in traj_sel)
+            else None
+        ),
     }
     return run_metrics, window_rows, edge_rows
 
@@ -779,26 +887,22 @@ def make_figures(
 
 
 def best_sofar_curve(logs_dir: Path) -> list[float]:
-    sample_curve = sample_level_best_curve(load_samples(logs_dir.parent.parent))
+    run_dir = logs_dir.parent
+    sample_curve = sample_level_best_curve(load_samples(run_dir))
     if sample_curve:
         return sample_curve
 
     # Legacy fallback for methods/runs that have no profiler sample files.
-    best = float("-inf")
-    out = []
-    for line in open(logs_dir / "method_events.jsonl", encoding="utf-8"):
-        ev = json.loads(line)
-        if ev.get("event") == "program_evaluated" and ev.get("status") == "ok":
-            score = float(ev.get("score"))
-            if score > best:
-                best = score
-        out.append(best if best != float("-inf") else None)
-    # collapse per sample order: use program_evaluated sample_order
+    events_path = logs_dir / "method_events.jsonl"
+    if not events_path.is_file():
+        return []
     by_order = {}
-    for line in open(logs_dir / "method_events.jsonl", encoding="utf-8"):
+    for line in open(events_path, encoding="utf-8"):
         ev = json.loads(line)
         if ev.get("event") == "program_evaluated" and ev.get("status") == "ok":
             by_order[int(ev["sample_order"])] = float(ev["score"])
+    if not by_order:
+        return []
     cur = float("-inf")
     curve = []
     for so in range(1, max(by_order) + 1):
@@ -834,10 +938,15 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     run_dirs = []
-    for summary in sorted(
+    summary_paths = list(
         ROOT.glob("experiments/*/traceaad_v*/version*/*/logs/run_summary.json")
-    ):
+    ) + list(ROOT.glob("experiments/*/traceaad_v*/version*/*/logs/summary.json"))
+    seen: set[Path] = set()
+    for summary in sorted(summary_paths):
         run_dir = summary.parent.parent
+        if run_dir in seen:
+            continue
+        seen.add(run_dir)
         if "_eval_proxy" in run_dir.name:
             continue
         if args.run_prefix and not any(

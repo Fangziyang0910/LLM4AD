@@ -26,7 +26,7 @@ def test_unified_runner_builds_each_task_and_version(
         version=version,
         experiments_root=tmp_path,
     )
-    method = run.build_method(spec, tmp_path / "logs")
+    method = run.build_method(spec, tmp_path / "run")
 
     expected_type = {
         "v4": TraceAADV4,
@@ -144,7 +144,11 @@ def test_resume_uses_version_specific_checkpoint_source(tmp_path: Path) -> None:
         expected = (
             run_dir
             if version == "v4"
-            else run_dir / "logs" / "checkpoints" / "latest.json"
+            else (
+                run_dir / "checkpoints" / "latest.json"
+                if version == "v5"
+                else run_dir / "logs" / "checkpoints" / "latest.json"
+            )
         )
         assert run.checkpoint_source(spec, resolved) == expected
 
