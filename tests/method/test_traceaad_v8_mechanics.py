@@ -8,23 +8,25 @@ from pathlib import Path
 
 import pytest
 
-from llm4ad.base import Evaluation, LLM
+from llm4ad.base import Evaluation, LLM, TextFunctionProgramConverter
 from llm4ad.method.traceaad_artifacts import TraceAADArtifacts
 from llm4ad.method.traceaad_v8 import TraceAADV8
 from llm4ad.method.traceaad_v8.checkpoint import dump_state, load_state, save_checkpoint
 from llm4ad.method.traceaad_v8.context import node_history, select_direct_children
 from llm4ad.method.traceaad_v8.operators import TraceIdeateOp, TraceSynthesizeOp
+from llm4ad.method.traceaad_v8.prompt import parse_program_response
 from llm4ad.method.traceaad_v8.schema import OperatorName
 from llm4ad.method.traceaad_v8.tree import SearchTree
 from llm4ad.method.traceaad_v8.value import (
-    available_child_slots,
+    expansion_batch_rewards,
+    expansion_quality,
+    fitness_reference_values,
     normalize_value,
     reference_candidates,
     remaining_budget_ratio,
     sample_reference,
     select_expansion_node,
     uct_score,
-    widening_capacity,
 )
 
 TEMPLATE = """def choose(value: int) -> int:
@@ -42,12 +44,6 @@ class ScriptedLLM(LLM):
         self.calls += 1
         text = str(prompt)
         self.prompts.append(text)
-        if "[Action Contract]" in text:
-            count = 1 if "Return exactly 1 numbered" in text else 2
-            return "\n".join(
-                f"{index}. Apply distinct local rule number {self.calls + index}."
-                for index in range(1, count + 1)
-            )
         return (
             f"Idea: deterministic candidate {self.calls}\n"
             "```python\n"
@@ -79,27 +75,18 @@ class FailingEvaluation(IncreasingEvaluation):
         return 1.0 if self.calls == 1 else None
 
 
-class BrokenActionLLM(ScriptedLLM):
+class BrokenCodeLLM(ScriptedLLM):
     def draw_sample(self, prompt, *args, **kwargs):
-        if "[Action Contract]" in str(prompt):
+        if "[Improvement Direction]" in str(prompt):
             self.calls += 1
             self.prompts.append(str(prompt))
-            return "no numbered action"
+            return "not a program"
         return super().draw_sample(prompt, *args, **kwargs)
 
 
-class LongActionLLM(ScriptedLLM):
-    ACTION = "Apply a distinct local adjustment " + "x" * 800
-
+class LengthCountingLLM(ScriptedLLM):
     def count_tokens(self, prompt: str) -> int:
         return len(prompt)
-
-    def draw_sample(self, prompt, *args, **kwargs):
-        if "[Action Contract]" in str(prompt):
-            self.calls += 1
-            self.prompts.append(str(prompt))
-            return f"1. {self.ACTION}"
-        return super().draw_sample(prompt, *args, **kwargs)
 
 
 class NonNumericEvaluation(IncreasingEvaluation):
@@ -124,8 +111,12 @@ def add_child(
     *,
     code: str | None = None,
     creation_order: int | None = None,
+    batch_id: int | None = None,
+    record_visit: bool = True,
 ):
     index = tree._next_node_id
+    if record_visit:
+        tree.record_batch_visit(parent_id)
     child, edge, _ = tree.add_child(
         parent_id=parent_id,
         code=code or f"def choose(value):\n    return value + {index}\n",
@@ -134,14 +125,13 @@ def add_child(
         maximize=True,
         creation_order=index if creation_order is None else creation_order,
         operator=OperatorName.IDEATE,
-        action=f"action {index}",
         reference_node_id=None,
         reference_root_branch_id=None,
         global_best_directed_fitness=None,
         new_global_best=False,
         global_best_update_reason=None,
         iteration=0,
-        batch_id=1,
+        batch_id=index + 1 if batch_id is None else batch_id,
         sibling_seq=0,
         sample_order=index + 1,
     )
@@ -203,21 +193,20 @@ def test_subtree_max_backup_and_exact_tie_prefer_shorter_program() -> None:
 def test_uct_normalization_budget_decay_and_equal_fitness_fallback() -> None:
     tree = make_tree((2.0, 2.0))
     child = tree.get_node(tree.root.child_ids[0])
-    assert normalize_value(2.0, 2.0, 2.0) == 0.5
+    assert normalize_value(2.0, (2.0, 2.0)) == 0.5
+    assert normalize_value(9.0, (-1000.0, 9.0, 10.0)) == 0.5
     early = uct_score(
         child=child,
         parent_visits=10,
-        lower=2.0,
-        upper=2.0,
-        exploration_constant=0.5,
+        reference_values=(2.0, 2.0),
+        exploration_constant=0.1,
         budget_ratio=1.0,
     )
     late = uct_score(
         child=child,
         parent_visits=10,
-        lower=2.0,
-        upper=2.0,
-        exploration_constant=0.5,
+        reference_values=(2.0, 2.0),
+        exploration_constant=0.1,
         budget_ratio=0.1,
     )
     assert early > late > 0.5
@@ -232,8 +221,6 @@ def test_seeded_uct_tie_breaking_is_reproducible() -> None:
         total_budget=100,
         used_budget=2,
         exploration_constant=0.5,
-        actions_per_iteration=2,
-        widening_alpha=0.5,
     )
     second = select_expansion_node(
         make_tree((1.0, 1.0)),
@@ -241,56 +228,68 @@ def test_seeded_uct_tie_breaking_is_reproducible() -> None:
         total_budget=100,
         used_budget=2,
         exploration_constant=0.5,
-        actions_per_iteration=2,
-        widening_alpha=0.5,
     )
     assert first.selected_node_id == second.selected_node_id
 
 
-def test_progressive_widening_capacity_and_child_slots() -> None:
+def test_adaptive_expansion_quality_uses_batch_credit_and_failed_attempts() -> None:
     tree = make_tree((1.0,))
     node = tree.get_node(0)
-    assert widening_capacity(1) == 2
-    assert widening_capacity(9) == 3
-    assert widening_capacity(16) == 4
-    assert available_child_slots(node) == 2
-    add_child(tree, node.id, 2.0)
-    add_child(tree, node.id, 3.0)
-    assert available_child_slots(node) == 0
-    node.visit_count = 9
-    assert available_child_slots(node) == 1
+    add_child(tree, node.id, 2.0, batch_id=7)
+    add_child(tree, node.id, 3.0, batch_id=7, record_visit=False)
+    tree.record_batch_visit(node.id)  # A failed batch has no child and zero reward.
+    references = fitness_reference_values(tree)
+
+    assert node.expansion_count == 2
+    assert expansion_batch_rewards(tree, node, references) == (1.0,)
+    assert expansion_quality(tree, node, references) == pytest.approx(1 / 3)
 
 
-def test_recursive_selection_descends_then_reopens_internal_node() -> None:
+def test_recursive_selection_compares_new_branch_with_existing_children() -> None:
     tree = make_tree((1.0,))
     root_child = tree.get_node(0)
-    first, _ = add_child(tree, root_child.id, 2.0)
-    second, _ = add_child(tree, root_child.id, 3.0)
-    root_child.visit_count = 4
-    first.visit_count = 2
-    second.visit_count = 2
+    add_child(tree, root_child.id, 2.0)
+    best, _ = add_child(tree, root_child.id, 3.0)
     descended = select_expansion_node(
         tree,
         rng=random.Random(0),
         total_budget=100,
         used_budget=3,
-        exploration_constant=0.5,
-        actions_per_iteration=2,
-        widening_alpha=0.5,
+        exploration_constant=0.0,
     )
-    assert len(descended.path) == 3
-    root_child.visit_count = 9
+    assert descended.selected_node_id == best.id
+    assert descended.path == (-1, root_child.id, best.id)
+    assert descended.steps[-1].option == "expand"
+
+    second_tree = make_tree((3.0,))
+    second_root = second_tree.get_node(0)
+    add_child(second_tree, second_root.id, 1.0)
     reopened = select_expansion_node(
-        tree,
+        second_tree,
         rng=random.Random(0),
         total_budget=100,
         used_budget=3,
-        exploration_constant=0.5,
-        actions_per_iteration=2,
-        widening_alpha=0.5,
+        exploration_constant=0.0,
     )
-    assert reopened.selected_node_id == root_child.id
-    assert reopened.path == (-1, root_child.id)
+    assert reopened.selected_node_id == second_root.id
+    assert reopened.path == (-1, second_root.id)
+    assert reopened.steps[-1].option == "expand"
+
+
+def test_direct_code_parser_requires_explicit_idea() -> None:
+    template = TextFunctionProgramConverter.text_to_program(TEMPLATE)
+    assert template is not None
+    code_only = "```python\ndef choose(value: int) -> int:\n    return value + 1\n```"
+    idea_inside_code = (
+        "```python\n"
+        "def choose(value: int) -> int:\n"
+        '    \"\"\"Idea: text inside generated code.\"\"\"\n'
+        "    return value + 1\n"
+        "```"
+    )
+
+    assert parse_program_response(code_only, template, "choose") is None
+    assert parse_program_response(idea_inside_code, template, "choose") is None
 
 
 def test_internal_node_context_uses_top_four_then_recent_children() -> None:
@@ -325,13 +324,13 @@ def test_reference_is_other_root_branch_and_same_code_is_excluded() -> None:
     assert before == after
 
 
-def test_batch_visit_counts_path_once_even_when_action_parse_fails() -> None:
+def test_batch_visit_counts_path_once_even_when_code_parse_fails() -> None:
     method = TraceAADV8(
-        llm=BrokenActionLLM(),
+        llm=BrokenCodeLLM(),
         evaluation=IncreasingEvaluation(),
         max_sample_nums=3,
         n_init=1,
-        actions_per_iteration=2,
+        offspring_per_iteration=2,
         context_token_limit=24576,
         max_stalled_iterations=1,
         random_seed=0,
@@ -342,6 +341,7 @@ def test_batch_visit_counts_path_once_even_when_action_parse_fails() -> None:
     assert result.n_batches == 1
     assert method._tree.root.visit_count == 2
     assert root_child.visit_count == 2
+    assert root_child.expansion_count == 1
     assert not root_child.child_ids
 
 
@@ -351,7 +351,7 @@ def test_evaluation_failure_consumes_budget_but_adds_no_node() -> None:
         evaluation=FailingEvaluation(),
         max_sample_nums=3,
         n_init=1,
-        actions_per_iteration=2,
+        offspring_per_iteration=2,
         context_token_limit=24576,
         max_stalled_iterations=1,
         random_seed=0,
@@ -369,7 +369,7 @@ def test_non_numeric_and_nan_evaluator_results_do_not_abort_search() -> None:
         evaluation=NonNumericEvaluation(),
         max_sample_nums=4,
         n_init=1,
-        actions_per_iteration=2,
+        offspring_per_iteration=2,
         context_token_limit=24576,
         random_seed=0,
     )
@@ -380,18 +380,14 @@ def test_non_numeric_and_nan_evaluator_results_do_not_abort_search() -> None:
     assert result.best_node.fitness == 4.0
 
 
-def test_code_overflow_shrinks_context_and_regenerates_matching_action(
-    tmp_path: Path,
-) -> None:
-    llm = LongActionLLM()
-    artifacts = TraceAADArtifacts(run_dir=tmp_path)
+def test_direct_code_context_shrinks_branch_history_to_fit() -> None:
+    llm = LengthCountingLLM()
     method = TraceAADV8(
         llm=llm,
         evaluation=IncreasingEvaluation(),
-        profiler=artifacts,
         max_sample_nums=10,
         n_init=0,
-        actions_per_iteration=1,
+        offspring_per_iteration=1,
         context_token_limit=100_000,
         operators=(TraceIdeateOp,),
         random_seed=0,
@@ -403,62 +399,31 @@ def test_code_overflow_shrinks_context_and_regenerates_matching_action(
         maximize=True,
         creation_order=1,
     )
-    for order in range(2):
+    for order in range(8):
         add_child(method._tree, base.id, float(order + 2), creation_order=order + 2)
-    base.visit_count = 9
-    method._tree.root.visit_count = 9
-    method._best_node = method._tree.subtree_best(base.id)
-    method._best_node_sample_order = 3
-    method._tot_sample_nums = 3
     operator = TraceIdeateOp()
-    full = method._build_action_context(
+    full = method._build_code_context(
         base_node=base,
         operator=operator,
-        action_count=1,
+        candidate_index=0,
+        candidate_count=1,
         reference_branch_id=None,
         reference_node=None,
     )
     assert full is not None
-    full_code_tokens = method._prepare_code_requests(
-        actions=[LongActionLLM.ACTION], base_node=base, context=full
-    )[0][3]
-    narrower = None
-    for limit in range(full.prompt_tokens - 1, 0, -1):
-        candidate = method._build_action_context(
-            base_node=base,
-            operator=operator,
-            action_count=1,
-            reference_branch_id=None,
-            reference_node=None,
-            prompt_token_limit=limit,
-        )
-        if candidate is not None and len(candidate.direct_child_edge_ids) < len(
-            full.direct_child_edge_ids
-        ):
-            narrower = candidate
-            break
-    assert narrower is not None
-    narrow_code_tokens = method._prepare_code_requests(
-        actions=[LongActionLLM.ACTION], base_node=base, context=narrower
-    )[0][3]
-    method._context_token_limit = max(full.prompt_tokens, narrow_code_tokens)
-    assert method._context_token_limit < full_code_tokens
-
-    method._run_iteration(0)
-    artifacts.finish()
-    decisions = [
-        json.loads(line)
-        for line in (tmp_path / "artifacts" / "decisions.jsonl")
-        .read_text(encoding="utf-8")
-        .splitlines()
-    ]
-    assert method._tot_sample_nums > 3
-    assert any(item["event"] == "context_shrunk" for item in decisions)
-    generated = [item for item in decisions if item["event"] == "actions_generated"]
-    assert len(generated) >= 2
-    assert (
-        generated[-1]["direct_child_edge_ids"] != generated[0]["direct_child_edge_ids"]
+    method._context_token_limit = full.prompt_tokens - 1
+    narrower = method._build_code_context(
+        base_node=base,
+        operator=operator,
+        candidate_index=0,
+        candidate_count=1,
+        reference_branch_id=None,
+        reference_node=None,
     )
+    assert narrower is not None
+    assert len(narrower.direct_child_edge_ids) < len(full.direct_child_edge_ids)
+    assert "[Improvement Direction]" in narrower.prompt
+    assert "[Action Contract]" not in narrower.prompt
 
 
 def test_dual_operator_full_run_uses_cross_branch_reference_only() -> None:
@@ -467,7 +432,7 @@ def test_dual_operator_full_run_uses_cross_branch_reference_only() -> None:
         evaluation=IncreasingEvaluation(),
         max_sample_nums=4,
         n_init=0,
-        actions_per_iteration=2,
+        offspring_per_iteration=2,
         context_token_limit=24576,
         operators=(TraceIdeateOp, TraceSynthesizeOp),
         random_seed=0,
@@ -522,7 +487,6 @@ def test_minimization_direction_uses_directed_subtree_credit() -> None:
         maximize=False,
         creation_order=3,
         operator=OperatorName.IDEATE,
-        action="lower score",
         reference_node_id=None,
         reference_root_branch_id=None,
         global_best_directed_fitness=low.directed_fitness,
@@ -548,7 +512,7 @@ def test_small_scripted_run_preserves_histories_and_has_no_population(
         profiler=TraceAADArtifacts(run_dir=tmp_path),
         max_sample_nums=7,
         n_init=3,
-        actions_per_iteration=2,
+        offspring_per_iteration=2,
         context_token_limit=24576,
         checkpoint_dir=checkpoint_dir,
         checkpoint_interval=1,
@@ -561,18 +525,17 @@ def test_small_scripted_run_preserves_histories_and_has_no_population(
     assert result.n_root_children == 3
     assert result.n_total_nodes == 7
     assert result.n_edges == 4
-    assert payload["protocol_id"] == "traceaad-v8"
+    assert payload["protocol_id"] == "traceaad-v8.2-adaptive-expand"
+    assert payload["version"] == 3
     assert "memory" not in payload
     assert "population" not in payload
     assert not hasattr(method, "_memory")
-    action_prompts = [prompt for prompt in llm.prompts if "[Action Contract]" in prompt]
-    code_prompts = [
-        prompt for prompt in llm.prompts if "[Requested Modification]" in prompt
-    ]
-    assert action_prompts and code_prompts
-    assert all("[How This Program Was Reached]" in prompt for prompt in action_prompts)
+    code_prompts = [prompt for prompt in llm.prompts if "[Improvement Direction]" in prompt]
+    assert len(code_prompts) == 4
+    assert llm.calls == result.n_samples
     assert all("[How This Program Was Reached]" in prompt for prompt in code_prompts)
-    assert all("Current fitness:" in prompt for prompt in action_prompts)
+    assert all("Current fitness:" in prompt for prompt in code_prompts)
+    assert all("[Action Contract]" not in prompt for prompt in llm.prompts)
     edges = [
         json.loads(line)
         for line in (tmp_path / "artifacts" / "edges.jsonl")
@@ -586,7 +549,12 @@ def test_small_scripted_run_preserves_histories_and_has_no_population(
         .splitlines()
     ]
     assert all(edge["implemented_idea"] for edge in edges)
-    assert any(item["event"] == "actions_generated" for item in decisions)
+    assert all("action" not in edge for edge in edges)
+    assert not any(item["event"] == "actions_generated" for item in decisions)
+    selected = [item for item in decisions if item["event"] == "node_selected"]
+    assert selected
+    assert all(item["expansion_policy"] == "adaptive_new_child_uct" for item in selected)
+    assert all(item["selection_steps"][-1]["option"] == "expand" for item in selected)
 
 
 def test_checkpoint_round_trip_preserves_tree_rng_and_next_selection(
@@ -597,7 +565,7 @@ def test_checkpoint_round_trip_preserves_tree_rng_and_next_selection(
         evaluation=IncreasingEvaluation(),
         max_sample_nums=4,
         n_init=2,
-        actions_per_iteration=1,
+        offspring_per_iteration=1,
         context_token_limit=24576,
         checkpoint_dir=tmp_path,
         random_seed=11,
@@ -609,7 +577,7 @@ def test_checkpoint_round_trip_preserves_tree_rng_and_next_selection(
         evaluation=IncreasingEvaluation(),
         max_sample_nums=4,
         n_init=2,
-        actions_per_iteration=1,
+        offspring_per_iteration=1,
         context_token_limit=24576,
         checkpoint_dir=tmp_path,
         random_seed=11,
@@ -622,8 +590,7 @@ def test_checkpoint_round_trip_preserves_tree_rng_and_next_selection(
         total_budget=first._max_sample_nums,
         used_budget=first._tot_sample_nums,
         exploration_constant=first._exploration_constant,
-        actions_per_iteration=first._actions_per_iteration,
-        widening_alpha=first._widening_alpha,
+        expansion_prior_weight=first._expansion_prior_weight,
     )
     second_selection = select_expansion_node(
         second._tree,
@@ -631,8 +598,7 @@ def test_checkpoint_round_trip_preserves_tree_rng_and_next_selection(
         total_budget=second._max_sample_nums,
         used_budget=second._tot_sample_nums,
         exploration_constant=second._exploration_constant,
-        actions_per_iteration=second._actions_per_iteration,
-        widening_alpha=second._widening_alpha,
+        expansion_prior_weight=second._expansion_prior_weight,
     )
     assert dump_state(first)["tree"] == dump_state(second)["tree"]
     assert first_selection == second_selection
@@ -657,6 +623,64 @@ def test_checkpoint_rejects_corrupt_subtree_credit() -> None:
         context_token_limit=24576,
     )
     with pytest.raises(ValueError, match="subtree backup"):
+        load_state(target, payload)
+
+
+def test_checkpoint_rejects_misaligned_expansion_batch() -> None:
+    method = TraceAADV8(
+        llm=ScriptedLLM(),
+        evaluation=IncreasingEvaluation(),
+        max_sample_nums=2,
+        n_init=1,
+        offspring_per_iteration=1,
+        context_token_limit=24576,
+    )
+    method.run()
+    payload = dump_state(method)
+    payload["tree"]["nodes"][1]["batch_id"] = 999
+    target = TraceAADV8(
+        llm=ScriptedLLM(),
+        evaluation=IncreasingEvaluation(),
+        max_sample_nums=2,
+        n_init=1,
+        offspring_per_iteration=1,
+        context_token_limit=24576,
+    )
+    with pytest.raises(ValueError, match="expansion batch"):
+        load_state(target, payload)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("version", 2, "checkpoint version"),
+        ("protocol_id", "traceaad-v8.1-direct", "protocol"),
+    ],
+)
+def test_checkpoint_rejects_pre_adaptive_expansion_protocol(
+    field: str,
+    value: object,
+    message: str,
+) -> None:
+    method = TraceAADV8(
+        llm=ScriptedLLM(),
+        evaluation=IncreasingEvaluation(),
+        max_sample_nums=1,
+        n_init=1,
+        context_token_limit=24576,
+    )
+    method.run()
+    payload = dump_state(method)
+    payload[field] = value
+
+    target = TraceAADV8(
+        llm=ScriptedLLM(),
+        evaluation=IncreasingEvaluation(),
+        max_sample_nums=1,
+        n_init=1,
+        context_token_limit=24576,
+    )
+    with pytest.raises(ValueError, match=message):
         load_state(target, payload)
 
 
@@ -687,7 +711,7 @@ def test_checkpoint_resume_continues_to_the_same_budget(tmp_path: Path) -> None:
         evaluation=IncreasingEvaluation(),
         max_sample_nums=5,
         n_init=2,
-        actions_per_iteration=1,
+        offspring_per_iteration=1,
         context_token_limit=24576,
         checkpoint_dir=tmp_path,
         random_seed=5,
@@ -704,7 +728,7 @@ def test_checkpoint_resume_continues_to_the_same_budget(tmp_path: Path) -> None:
         evaluation=IncreasingEvaluation(),
         max_sample_nums=5,
         n_init=2,
-        actions_per_iteration=1,
+        offspring_per_iteration=1,
         context_token_limit=24576,
         checkpoint_dir=tmp_path,
         resume_from=tmp_path / "latest.json",

@@ -14,7 +14,7 @@ from .complexity import code_hash, nonempty_loc
 from .schema import ImprovementEdge, OperatorName, ProgramNode, PROTOCOL_ID, VirtualRoot
 from .tree import SearchTree, is_node_better
 
-CHECKPOINT_VERSION = 1
+CHECKPOINT_VERSION = 3
 
 
 def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
@@ -79,6 +79,7 @@ def _tree_from_dict(payload: Mapping[str, Any], *, maximize: bool) -> SearchTree
             child_ids=[int(child) for child in item["child_ids"]],
             depth=int(item["depth"]),
             visit_count=int(item["visit_count"]),
+            expansion_count=int(item["expansion_count"]),
             subtree_value=float(item["subtree_value"]),
             subtree_best_node_id=int(item["subtree_best_node_id"]),
             creation_order=int(item["creation_order"]),
@@ -94,7 +95,6 @@ def _tree_from_dict(payload: Mapping[str, Any], *, maximize: bool) -> SearchTree
             parent_id=int(item["parent_id"]),
             child_id=int(item["child_id"]),
             operator=OperatorName(item["operator"]),
-            action=str(item["action"]),
             implemented_idea=str(item["implemented_idea"]),
             reference_node_id=(
                 None
@@ -176,6 +176,15 @@ def validate_tree(tree: SearchTree, *, maximize: bool) -> None:
             raise ValueError(f"checkpoint node {node.id} has invalid parent or depth")
         if node.visit_count < 1:
             raise ValueError(f"checkpoint node {node.id} has invalid visit count")
+        if node.expansion_count < 0 or node.expansion_count > node.visit_count - 1:
+            raise ValueError(f"checkpoint node {node.id} has invalid expansion count")
+        successful_batches = {
+            tree.get_node(child_id).batch_id for child_id in node.child_ids
+        }
+        if None in successful_batches or len(successful_batches) > node.expansion_count:
+            raise ValueError(
+                f"checkpoint node {node.id} has inconsistent expansion batches"
+            )
         expected_directed = node.fitness if maximize else -node.fitness
         if (
             not math.isfinite(node.fitness)
@@ -202,6 +211,10 @@ def validate_tree(tree: SearchTree, *, maximize: bool) -> None:
             edge = tree.get_edge(node.incoming_edge_id)
             if edge.parent_id != parent_id or edge.child_id != node.id:
                 raise ValueError(f"checkpoint node {node.id} has a misaligned edge")
+            if node.batch_id != edge.batch_id:
+                raise ValueError(
+                    f"checkpoint node {node.id} has a misaligned expansion batch"
+                )
         best = node
         for child_id in node.child_ids:
             child_best = visit(child_id, node.id, depth + 1)

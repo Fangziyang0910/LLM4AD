@@ -107,45 +107,13 @@ def _resolve_method(run_dir: Path) -> str:
     return run_dir.parent.name
 
 
-def _load_summary(run_dir: Path) -> dict[str, Any]:
-    summary_path = run_dir / "logs" / "run_summary.json"
-    if not summary_path.exists():
-        raise RuntimeError(f"run is not finished: missing {summary_path}")
-    summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    if summary.get("status") != "finished" or summary.get("search_aborted"):
-        raise RuntimeError(f"run is not a completed search: {run_dir}")
-    return summary
-
-
 def _load_best_sample(
     run_dir: Path,
     max_sample_order: int | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    _load_summary(run_dir)
-    samples_dir = run_dir / "logs" / "samples"
-    records: list[dict[str, Any]] = []
-    for path in sorted(samples_dir.glob("samples_*.json")):
-        if path.name == "samples_best.json":
-            continue
-        data = json.loads(path.read_text(encoding="utf-8"))
-        if not isinstance(data, list):
-            continue
-        records.extend(
-            record
-            for record in data
-            if (
-                isinstance(record, dict)
-                and isinstance(record.get("score"), (int, float))
-                and isinstance(record.get("sample_order"), int)
-                and (
-                    max_sample_order is None
-                    or record["sample_order"] <= max_sample_order
-                )
-            )
-        )
-    if not records:
-        raise RuntimeError(f"no valid samples found under {samples_dir}")
-    return max(records, key=lambda record: float(record["score"])), records
+    from experiments.eval_artifacts import pick_best_sample
+
+    return pick_best_sample(run_dir, max_sample_order=max_sample_order)
 
 
 def _evaluate_program(program: str, task_kwargs: dict[str, Any]) -> tuple[float, float]:

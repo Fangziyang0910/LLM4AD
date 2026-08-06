@@ -12,6 +12,7 @@
 
 ## 分析报告
 
+- [TraceAAD V8 与 V8.2 同期对比](TraceAAD-V8-V8.2同期对比.md)：对齐 sample 预算比较 V8 / V8.2 训练 best-so-far 与树深度；中期快照，非终局 held-out。
 - [TraceAAD V5 机制全面分析与 V7 设计](TraceAAD-V5机制全面分析与V7设计.md)：基于 held-out、V4–V6 和跨方法过程证据，分析 V5 的机制边界，并提出可证伪的 V7 设计假设与实验计划。
 - [TraceAAD 版本机制分析](TraceAAD版本机制诊断.md)：重建 V1-V6 的机制变更与实验谱系，分析 V5 相对优势的来源、MCTS-AHD 领先的条件，以及上下文、算子、状态管理、轨迹利用和路线评分的证据边界。
 - [TraceAAD v4–v6 轨迹过程分析](TraceAAD-v4-v6-轨迹过程分析.md)：对照 LLM 优化器轨迹论文的方法，对 v4/v5/v6 现有 run 做突破统计、LRR/PCD、新颖性与语义几何的离线分析。

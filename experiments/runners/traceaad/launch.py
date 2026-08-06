@@ -33,6 +33,9 @@ def build_launch_plan(args: argparse.Namespace) -> tuple[LaunchItem, ...]:
     method_name = f"traceaad_{args.version}"
     experiment_version = f"version{args.version.removeprefix('v')}"
     prefix = args.session_prefix or f"{alias}_{method_name}_{batch}"
+    n_init = args.n_init
+    if n_init is None:
+        n_init = 10 if args.version in {"v8", "v8_3"} else 30
     items = []
     for repeat in range(1, args.repeats + 1):
         run_name = f"{batch}_{alias}_{args.version}_rep{repeat}"
@@ -56,7 +59,7 @@ def build_launch_plan(args: argparse.Namespace) -> tuple[LaunchItem, ...]:
             "--budget",
             str(args.budget),
             "--n-init",
-            str(args.n_init),
+            str(n_init),
             "--seed",
             str(repeat),
             "--repeat",
@@ -137,7 +140,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--batch")
     parser.add_argument("--session-prefix")
     parser.add_argument("--budget", type=int, default=1000)
-    parser.add_argument("--n-init", type=int, default=30)
+    parser.add_argument("--n-init", type=int)
     parser.add_argument("--eval-workers", type=int)
     parser.add_argument("--output-tokens", type=int)
     parser.add_argument("--action-max-tokens", type=int)
@@ -151,9 +154,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> None:
     args = build_parser().parse_args(argv)
-    for name in ("repeats", "budget", "n_init"):
+    for name in ("repeats", "budget"):
         if getattr(args, name) <= 0:
             raise ValueError(f"{name} must be positive")
+    if args.n_init is not None and args.n_init <= 0:
+        raise ValueError("n_init must be positive")
     for name in (
         "eval_workers",
         "output_tokens",

@@ -30,20 +30,18 @@ from ..traceaad_artifacts import TraceAADArtifacts
 from .checkpoint import CHECKPOINT_VERSION, load_checkpoint, save_checkpoint
 from .complexity import code_hash, nonempty_loc
 from .context import (
-    build_action_prompt,
     build_code_prompt,
     formation_history,
     node_history,
 )
 from .operators import DEFAULT_OPERATORS, DUAL_OPERATORS, Operator
-from .prompt import build_initial_prompt, parse_actions, parse_program_response
+from .prompt import build_initial_prompt, parse_program_response
 from .schema import OperatorName, PROTOCOL_ID, ProgramNode
 from .tree import SearchTree, is_node_better
 from .value import (
     reference_candidates,
     sample_reference,
     select_expansion_node,
-    widening_capacity,
 )
 
 
@@ -105,7 +103,6 @@ class _PromptContext:
 
 @dataclass(frozen=True, slots=True)
 class _EvaluatedCandidate:
-    action: str
     seq: int
     generated: _GeneratedProgram
     fitness: float | None
@@ -133,17 +130,16 @@ class TraceAADV8:
         profiler: TraceAADArtifacts | None = None,
         max_sample_nums: int | None = 100,
         *,
-        n_init: int = 30,
-        actions_per_iteration: int = 2,
+        n_init: int = 10,
+        offspring_per_iteration: int = 2,
         ancestor_history_limit: int = 8,
         direct_child_limit: int = 8,
         direct_child_top_count: int = 4,
         reference_temperature: float = 0.2,
-        exploration_constant: float = 0.5,
-        widening_alpha: float = 0.5,
+        exploration_constant: float = 0.1,
+        expansion_prior_weight: float = 1.0,
         maximize: bool = True,
         operators: tuple[type[Operator], ...] = DEFAULT_OPERATORS,
-        action_max_tokens: int = 1024,
         code_max_tokens: int = 8192,
         context_token_limit: int | None = None,
         random_seed: int | None = None,
@@ -156,8 +152,8 @@ class TraceAADV8:
     ) -> None:
         if n_init < 0:
             raise ValueError("n_init must be non-negative")
-        if actions_per_iteration <= 0:
-            raise ValueError("actions_per_iteration must be positive")
+        if offspring_per_iteration <= 0:
+            raise ValueError("offspring_per_iteration must be positive")
         if ancestor_history_limit <= 0:
             raise ValueError("ancestor_history_limit must be positive")
         if direct_child_limit <= 0 or direct_child_top_count <= 0:
@@ -168,10 +164,10 @@ class TraceAADV8:
             raise ValueError("reference_temperature must be positive")
         if exploration_constant < 0:
             raise ValueError("exploration_constant must be non-negative")
-        if not 0 < widening_alpha <= 1:
-            raise ValueError("widening_alpha must be in (0, 1]")
-        if action_max_tokens <= 0 or code_max_tokens <= 0:
-            raise ValueError("output token limits must be positive")
+        if expansion_prior_weight <= 0:
+            raise ValueError("expansion_prior_weight must be positive")
+        if code_max_tokens <= 0:
+            raise ValueError("code_max_tokens must be positive")
         if context_token_limit is None or context_token_limit <= 0:
             raise ValueError("context_token_limit must be explicitly positive")
         if checkpoint_interval <= 0:
@@ -185,15 +181,14 @@ class TraceAADV8:
         self._task_description_str = evaluation.task_description
         self._max_sample_nums = max_sample_nums
         self._n_init = int(n_init)
-        self._actions_per_iteration = int(actions_per_iteration)
+        self._offspring_per_iteration = int(offspring_per_iteration)
         self._ancestor_history_limit = int(ancestor_history_limit)
         self._direct_child_limit = int(direct_child_limit)
         self._direct_child_top_count = int(direct_child_top_count)
         self._reference_temperature = float(reference_temperature)
         self._exploration_constant = float(exploration_constant)
-        self._widening_alpha = float(widening_alpha)
+        self._expansion_prior_weight = float(expansion_prior_weight)
         self._maximize = bool(maximize)
-        self._action_max_tokens = int(action_max_tokens)
         self._code_max_tokens = int(code_max_tokens)
         self._context_token_limit = int(context_token_limit)
         self._random_seed = random_seed
@@ -280,16 +275,21 @@ class TraceAADV8:
             "checkpoint_schema_version": CHECKPOINT_VERSION,
             "max_sample_nums": self._max_sample_nums,
             "n_init": self._n_init,
-            "actions_per_iteration": self._actions_per_iteration,
+            "offspring_per_iteration": self._offspring_per_iteration,
+            "generation_protocol": "direct_code",
+            "quality_normalization": "global_midrank_percentile",
+            "expansion_policy": "adaptive_new_child_uct",
+            "expansion_reward": "batch_subtree_best_midrank",
+            "failed_expansion_reward": 0.0,
+            "root_expansion": False,
             "ancestor_history_limit": self._ancestor_history_limit,
             "direct_child_limit": self._direct_child_limit,
             "direct_child_top_count": self._direct_child_top_count,
             "reference_temperature": self._reference_temperature,
             "exploration_constant": self._exploration_constant,
-            "widening_alpha": self._widening_alpha,
+            "expansion_prior_weight": self._expansion_prior_weight,
             "maximize": self._maximize,
             "operators": [str(operator.name) for operator in self._operators],
-            "action_max_tokens": self._action_max_tokens,
             "code_max_tokens": self._code_max_tokens,
             "context_token_limit": self._context_token_limit,
             "max_consecutive_sample_failures": self._max_consecutive_sample_failures,
@@ -439,8 +439,7 @@ class TraceAADV8:
             total_budget=self._max_sample_nums,
             used_budget=self._tot_sample_nums,
             exploration_constant=self._exploration_constant,
-            actions_per_iteration=self._actions_per_iteration,
-            widening_alpha=self._widening_alpha,
+            expansion_prior_weight=self._expansion_prior_weight,
         )
         base_node = self._tree.get_node(selection.selected_node_id)
         candidates = reference_candidates(self._tree, base_node.id)
@@ -462,39 +461,43 @@ class TraceAADV8:
             if reference is not None:
                 reference_branch_id, reference_node = reference
 
-        predicted_visits = base_node.visit_count + 1
-        capacity = widening_capacity(
-            predicted_visits,
-            actions_per_iteration=self._actions_per_iteration,
-            alpha=self._widening_alpha,
-        )
-        action_count = min(
-            self._actions_per_iteration,
-            max(0, capacity - len(base_node.child_ids)),
-        )
-        if action_count <= 0:
-            raise AssertionError("selected V8 node has no progressive-widening slot")
-        context = self._build_action_context(
-            base_node=base_node,
-            operator=operator,
-            action_count=action_count,
-            reference_branch_id=reference_branch_id,
-            reference_node=reference_node,
-        )
-        if context is None and operator.name in DUAL_OPERATORS:
+        offspring_count = self._offspring_per_iteration
+        if self._max_sample_nums is not None:
+            offspring_count = min(
+                offspring_count,
+                self._max_sample_nums - self._tot_sample_nums,
+            )
+        if offspring_count <= 0:
+            return
+        contexts = [
+            self._build_code_context(
+                base_node=base_node,
+                operator=operator,
+                candidate_index=seq,
+                candidate_count=offspring_count,
+                reference_branch_id=reference_branch_id,
+                reference_node=reference_node,
+            )
+            for seq in range(offspring_count)
+        ]
+        if any(context is None for context in contexts) and operator.name in DUAL_OPERATORS:
             previous = operator.name
             operator = self._rng.choice(
                 [item for item in self._operators if item.name not in DUAL_OPERATORS]
             )
             reference_branch_id = None
             reference_node = None
-            context = self._build_action_context(
-                base_node=base_node,
-                operator=operator,
-                action_count=action_count,
-                reference_branch_id=None,
-                reference_node=None,
-            )
+            contexts = [
+                self._build_code_context(
+                    base_node=base_node,
+                    operator=operator,
+                    candidate_index=seq,
+                    candidate_count=offspring_count,
+                    reference_branch_id=None,
+                    reference_node=None,
+                )
+                for seq in range(offspring_count)
+            ]
             self._record_decision(
                 "operator_fallback",
                 attempt_id=attempt_id,
@@ -502,15 +505,19 @@ class TraceAADV8:
                 to_operator=operator.name,
                 reason="dual_context_overflow",
             )
-        if context is None:
+        if any(context is None for context in contexts):
             self._record_decision(
                 "context_overflow",
-                stage="action",
+                stage="direct_code",
                 attempt_id=attempt_id,
                 node_id=base_node.id,
             )
             return
+        code_contexts = [context for context in contexts if context is not None]
+        context = code_contexts[0]
 
+        expansion_count_before = base_node.expansion_count
+        child_count_before = len(base_node.child_ids)
         path = self._tree.record_batch_visit(base_node.id)
         self._batch_count += 1
         batch_id = self._batch_count
@@ -522,18 +529,20 @@ class TraceAADV8:
             selected_node_id=base_node.id,
             selection_steps=[
                 {
-                    "parent_id": step.parent_id,
-                    "child_id": step.child_id,
-                    "z": step.normalized_value,
-                    "g": step.subtree_value,
-                    "n": step.visit_count,
-                    "uct": step.uct,
+                    "decision_node_id": step.decision_node_id,
+                    "option": step.option,
+                    "target_node_id": step.target_node_id,
+                    "quality": step.quality,
+                    "raw_value": step.raw_value,
+                    "option_visits": step.option_visits,
+                    "score": step.score,
                 }
                 for step in selection.steps
             ],
-            widening_capacity=capacity,
-            child_count=len(base_node.child_ids),
-            child_slots=action_count,
+            expansion_policy="adaptive_new_child_uct",
+            expansion_count_before=expansion_count_before,
+            child_count_before=child_count_before,
+            requested_children=offspring_count,
             operator=operator.name,
             reference_root_branch_id=reference_branch_id,
             reference_node_id=None if reference_node is None else reference_node.id,
@@ -542,109 +551,20 @@ class TraceAADV8:
             reference_formation_edge_ids=context.reference_edge_ids,
             batch_visit=True,
         )
-        actions = self._generate_actions(
-            context,
-            operator=operator,
-            iteration=attempt_id,
-            expected_count=action_count,
-        )
-        code_requests = self._prepare_code_requests(
-            actions=actions,
-            base_node=base_node,
-            context=context,
-        )
-        while any(item[3] > self._context_token_limit for item in code_requests):
-            overflow = max(
-                item[3] - self._context_token_limit for item in code_requests
-            )
-            narrower_limit = min(
-                context.prompt_tokens - 1,
-                self._context_token_limit - overflow,
-            )
-            narrower = self._build_action_context(
-                base_node=base_node,
-                operator=operator,
-                action_count=action_count,
-                reference_branch_id=context.reference_branch_id,
-                reference_node=context.reference_node,
-                prompt_token_limit=narrower_limit,
-            )
-            if narrower is None and context.used_dual:
-                previous = operator.name
-                operator = self._rng.choice(
-                    [
-                        item
-                        for item in self._operators
-                        if item.name not in DUAL_OPERATORS
-                    ]
-                )
-                narrower = self._build_action_context(
-                    base_node=base_node,
-                    operator=operator,
-                    action_count=action_count,
-                    reference_branch_id=None,
-                    reference_node=None,
-                )
-                self._record_decision(
-                    "operator_fallback",
-                    attempt_id=attempt_id,
-                    from_operator=previous,
-                    to_operator=operator.name,
-                    reason="dual_code_context_overflow_after_shrink",
-                )
-            if narrower is None:
-                self._record_decision(
-                    "context_overflow",
-                    stage="code_after_context_shrink",
-                    attempt_id=attempt_id,
-                    node_id=base_node.id,
-                )
-                return
-            context = narrower
-            self._record_decision(
-                "context_shrunk",
-                attempt_id=attempt_id,
-                operator=operator.name,
-                prompt_tokens=context.prompt_tokens,
-                current_formation_edge_ids=context.current_edge_ids,
-                direct_child_edge_ids=context.direct_child_edge_ids,
-                reference_formation_edge_ids=context.reference_edge_ids,
-            )
-            actions = self._generate_actions(
-                context,
-                operator=operator,
-                iteration=attempt_id,
-                expected_count=action_count,
-            )
-            code_requests = self._prepare_code_requests(
-                actions=actions,
-                base_node=base_node,
-                context=context,
-            )
 
         global_best_before = self._best_node
         evaluated: list[_EvaluatedCandidate] = []
-        for seq, action, prompt, prompt_tokens in code_requests:
+        for seq, code_context in enumerate(code_contexts):
             if not self._has_budget() or is_search_aborted(self):
                 break
-            if prompt_tokens > self._context_token_limit:
-                self._record_decision(
-                    "context_overflow",
-                    stage="code",
-                    attempt_id=attempt_id,
-                    seq=seq,
-                    prompt_tokens=prompt_tokens,
-                )
-                continue
             generated = self._draw_program(
-                prompt,
-                stage="code",
+                code_context.prompt,
+                stage="direct_code",
                 iteration=attempt_id,
                 seq=seq,
                 operator=operator.name,
-                action=action,
                 max_tokens=self._code_max_tokens,
-                prompt_tokens=prompt_tokens,
+                prompt_tokens=code_context.prompt_tokens,
                 parent_node_id=base_node.id,
                 batch_id=batch_id,
                 reference_node_id=(
@@ -662,7 +582,6 @@ class TraceAADV8:
                 operator=operator.name,
                 sample_time=generated.sample_time,
                 parent_node_id=base_node.id,
-                action=action,
                 iteration=attempt_id,
                 batch_id=batch_id,
                 sibling_seq=seq,
@@ -673,9 +592,7 @@ class TraceAADV8:
                 ),
                 reference_root_branch_id=context.reference_branch_id,
             )
-            evaluated.append(
-                _EvaluatedCandidate(action, seq, generated, fitness, sample_order)
-            )
+            evaluated.append(_EvaluatedCandidate(seq, generated, fitness, sample_order))
 
         valid = [item for item in evaluated if item.fitness is not None]
         winner_index = self._batch_global_winner(valid, global_best_before)
@@ -696,7 +613,6 @@ class TraceAADV8:
                 maximize=self._maximize,
                 creation_order=item.sample_order,
                 operator=operator.name,
-                action=item.action,
                 reference_node_id=None
                 if context.reference_node is None
                 else context.reference_node.id,
@@ -724,7 +640,6 @@ class TraceAADV8:
                         "batch_id": edge.batch_id,
                         "seq": edge.sibling_seq,
                         "operator": edge.operator,
-                        "action": edge.action,
                         "implemented_idea": edge.implemented_idea,
                         "reference_program_id": edge.reference_node_id,
                         "reference_root_branch_id": edge.reference_root_branch_id,
@@ -753,23 +668,16 @@ class TraceAADV8:
                 operator=operator.name,
             )
 
-    def _build_action_context(
+    def _build_code_context(
         self,
         *,
         base_node: ProgramNode,
         operator: Operator,
-        action_count: int,
+        candidate_index: int,
+        candidate_count: int,
         reference_branch_id: int | None,
         reference_node: ProgramNode | None,
-        prompt_token_limit: int | None = None,
     ) -> _PromptContext | None:
-        token_limit = (
-            self._context_token_limit
-            if prompt_token_limit is None
-            else min(self._context_token_limit, prompt_token_limit)
-        )
-        if token_limit <= 0:
-            return None
         dual = reference_node is not None
         variants: list[tuple[int, int]] = []
         if dual:
@@ -803,19 +711,20 @@ class TraceAADV8:
                     max_edges=reference_limit,
                 )
             )
-            prompt = build_action_prompt(
+            prompt = build_code_prompt(
                 current_node=base_node,
                 current_history=current.text,
                 operator_constraint=operator.prompt_constraint,
                 task_description=self._task_description_str,
                 template_function=self._function_to_evolve,
-                action_count=action_count,
                 maximize=self._maximize,
+                candidate_index=candidate_index,
+                candidate_count=candidate_count,
                 reference_node=reference_node,
                 reference_history="" if reference is None else reference.text,
             )
             prompt_tokens = self._count_tokens(prompt)
-            if prompt_tokens <= token_limit:
+            if prompt_tokens <= self._context_token_limit:
                 return _PromptContext(
                     current_node_id=base_node.id,
                     prompt=prompt,
@@ -832,108 +741,6 @@ class TraceAADV8:
                 )
         return None
 
-    def _prepare_code_requests(
-        self,
-        *,
-        actions: list[str],
-        base_node: ProgramNode,
-        context: _PromptContext,
-    ) -> list[tuple[int, str, str, int]]:
-        requests = []
-        for seq, action in enumerate(actions):
-            prompt = build_code_prompt(
-                current_node=base_node,
-                current_history=context.current_history,
-                action=action,
-                task_description=self._task_description_str,
-                template_function=self._function_to_evolve,
-                reference_node=context.reference_node,
-                reference_history=context.reference_history,
-            )
-            requests.append((seq, action, prompt, self._count_tokens(prompt)))
-        return requests
-
-    def _generate_actions(
-        self,
-        context: _PromptContext,
-        *,
-        operator: Operator,
-        iteration: int,
-        expected_count: int,
-    ) -> list[str]:
-        start = time.time()
-        try:
-            response = self._llm.draw_sample(
-                context.prompt,
-                max_tokens=self._action_max_tokens,
-            )
-            sample_time = time.time() - start
-            reset_sample_failures(self)
-        except Exception as exc:
-            record_sample_failure(
-                self,
-                exc,
-                stage="action",
-                operator=operator.name,
-                sample_order=self._tot_sample_nums + 1,
-                counts_budget=False,
-                iteration=iteration,
-                parent_node_id=context.current_node_id,
-                reference_node_id=(
-                    None
-                    if context.reference_node is None
-                    else context.reference_node.id
-                ),
-                reference_root_branch_id=context.reference_branch_id,
-            )
-            self._record_decision(
-                "action_generation_failed",
-                iteration=iteration,
-                operator=operator.name,
-                parent_node_id=context.current_node_id,
-                reference_node_id=(
-                    None
-                    if context.reference_node is None
-                    else context.reference_node.id
-                ),
-                reference_root_branch_id=context.reference_branch_id,
-                failure_kind="transport",
-            )
-            return []
-        actions, errors = parse_actions(response, expected_count=expected_count)
-        self._record_decision(
-            "actions_generated",
-            iteration=iteration,
-            operator=operator.name,
-            parent_node_id=context.current_node_id,
-            actions=actions,
-            parse_errors=errors,
-            current_formation_edge_ids=context.current_edge_ids,
-            direct_child_edge_ids=context.direct_child_edge_ids,
-            reference_formation_edge_ids=context.reference_edge_ids,
-            reference_node_id=(
-                None if context.reference_node is None else context.reference_node.id
-            ),
-            reference_root_branch_id=context.reference_branch_id,
-        )
-        if self._artifacts is not None:
-            self._artifacts.record_llm_call(
-                stage="action",
-                operator=operator.name,
-                sample_order=self._tot_sample_nums + 1,
-                iteration=iteration,
-                seq=0,
-                sample_time=sample_time,
-                prompt_tokens=context.prompt_tokens,
-                response_tokens=self._count_tokens(response),
-                token_count_mode=self._token_count_mode,
-                n_actions=len(actions),
-                parse_errors=errors,
-                response=response,
-                status="ok" if actions else "parse_failed",
-            )
-        return actions
-
     def _draw_program(
         self,
         prompt: str,
@@ -943,7 +750,6 @@ class TraceAADV8:
         seq: int,
         operator: str | OperatorName,
         max_tokens: int,
-        action: str | None = None,
         prompt_tokens: int | None = None,
         parent_node_id: int | None = None,
         batch_id: int | None = None,
@@ -966,7 +772,6 @@ class TraceAADV8:
                 counts_budget=False,
                 iteration=iteration,
                 seq=seq,
-                action=action,
                 parent_node_id=parent_node_id,
                 batch_id=batch_id,
                 reference_node_id=reference_node_id,
@@ -978,7 +783,6 @@ class TraceAADV8:
                 iteration=iteration,
                 seq=seq,
                 operator=str(operator),
-                action=action,
                 parent_node_id=parent_node_id,
                 batch_id=batch_id,
                 reference_node_id=reference_node_id,
@@ -997,7 +801,6 @@ class TraceAADV8:
                 sample_order=sample_order,
                 iteration=iteration,
                 seq=seq,
-                action=action,
                 sample_time=elapsed,
                 prompt_tokens=self._count_tokens(prompt)
                 if prompt_tokens is None
@@ -1015,7 +818,6 @@ class TraceAADV8:
                 iteration=iteration,
                 seq=seq,
                 operator=str(operator),
-                action=action,
                 parent_node_id=parent_node_id,
                 batch_id=batch_id,
                 reference_node_id=reference_node_id,
@@ -1032,7 +834,6 @@ class TraceAADV8:
         operator: str | OperatorName,
         sample_time: float,
         parent_node_id: int | None = None,
-        action: str | None = None,
         iteration: int | None = None,
         batch_id: int | None = None,
         sibling_seq: int | None = None,
@@ -1069,7 +870,6 @@ class TraceAADV8:
                 "evaluate_time": eval_time,
                 "sample_time": sample_time,
                 "parent_node_id": parent_node_id,
-                "action": action,
                 "iteration": iteration,
                 "batch_id": batch_id,
                 "sibling_seq": sibling_seq,

@@ -59,6 +59,11 @@ from llm4ad.method.traceaad_v8 import (
 )
 from llm4ad.method.traceaad_v8 import TraceAADV8
 from llm4ad.method.traceaad_v8.operators import DEFAULT_OPERATORS as V8_OPERATORS
+from llm4ad.method.traceaad_v8_3 import (
+    DEFAULT_OPERATORS as V83_OPERATORS,
+    PROTOCOL_ID as V83_PROTOCOL_ID,
+    TraceAADV8_3,
+)
 from llm4ad.task.optimization.cvrp_aco import CVRPACOEvaluation
 from llm4ad.task.optimization.generated_data_config import (
     get_generated_task_kwargs,
@@ -70,7 +75,7 @@ from llm4ad.tools.env import resolve_llm_api_key
 from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
 
 TaskName = Literal["tsp_construct", "cvrp_aco", "op_aco", "online_bin_packing"]
-VersionName = Literal["v4", "v5", "v6", "v7", "v8"]
+VersionName = Literal["v4", "v5", "v6", "v7", "v8", "v8_3"]
 BackendName = Literal["local", "server1", "zhong"]
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -81,10 +86,11 @@ TASKS: tuple[TaskName, ...] = (
     "op_aco",
     "online_bin_packing",
 )
-VERSIONS: tuple[VersionName, ...] = ("v4", "v5", "v6", "v7", "v8")
+VERSIONS: tuple[VersionName, ...] = ("v4", "v5", "v6", "v7", "v8", "v8_3")
 V6_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V6_OPERATORS]
 V7_OPERATOR_NAMES = [str(operator.name) for operator in V7_OPERATORS]
 V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
+V83_OPERATOR_NAMES = [str(operator.name) for operator in V83_OPERATORS]
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,8 +127,8 @@ class RunSpec:
     base_url: str
     model: str
     no_proxy: str
+    n_init: int
     budget: int = 1000
-    n_init: int = 30
     eval_workers: int | None = None
     output_tokens: int | None = None
     action_max_tokens: int = 1024
@@ -161,7 +167,7 @@ def make_run_spec(
     model: str | None = None,
     no_proxy: str | None = None,
     budget: int = 1000,
-    n_init: int = 30,
+    n_init: int | None = None,
     eval_workers: int | None = None,
     output_tokens: int | None = None,
     action_max_tokens: int = 1024,
@@ -181,7 +187,7 @@ def make_run_spec(
         model=model or profile.model,
         no_proxy=no_proxy or profile.no_proxy,
         budget=budget,
-        n_init=n_init,
+        n_init=(10 if version in {"v8", "v8_3"} else 30) if n_init is None else n_init,
         eval_workers=eval_workers,
         output_tokens=output_tokens,
         action_max_tokens=action_max_tokens,
@@ -246,7 +252,7 @@ def build_method(
     spec: RunSpec,
     run_dir: Path,
     resume_from: Path | None = None,
-) -> TraceAADV4 | TraceAADV5 | TraceAADV6 | TraceAADV7 | TraceAADV8:
+) -> TraceAADV4 | TraceAADV5 | TraceAADV6 | TraceAADV7 | TraceAADV8 | TraceAADV8_3:
     os.environ["NO_PROXY"] = spec.no_proxy
     os.environ["no_proxy"] = spec.no_proxy
     evaluation, _ = build_task(spec)
@@ -259,19 +265,38 @@ def build_method(
         temperature=1.0,
         enable_thinking=False,
     )
+    artifacts = TraceAADArtifacts(run_dir=run_dir)
+    if spec.version == "v8_3":
+        return TraceAADV8_3(
+            llm=llm,
+            evaluation=evaluation,
+            profiler=artifacts,
+            max_sample_nums=spec.budget,
+            n_init=spec.n_init,
+            max_depth=10,
+            widening_alpha=0.5,
+            exploration_constant=0.1,
+            beta=1.0,
+            rho=0.25,
+            kappa=0.1,
+            trajectory_window=8,
+            reference_temperature=1.0,
+            context_token_limit=spec.context_token_limit,
+            retry_count=3,
+            max_consecutive_sample_failures=20,
+            random_seed=spec.seed,
+        )
     common = {
         "llm": llm,
         "evaluation": evaluation,
         "max_sample_nums": spec.budget,
         "n_init": spec.n_init,
-        "actions_per_iteration": 2,
         "max_consecutive_sample_failures": 20,
         "max_stalled_iterations": 20,
         "checkpoint_interval": 10,
         "resume_from": resume_from,
         "checkpoint_dir": run_dir / "checkpoints",
     }
-    artifacts = TraceAADArtifacts(run_dir=run_dir)
     if spec.version == "v8":
         return TraceAADV8(
             profiler=artifacts,
@@ -279,15 +304,16 @@ def build_method(
             direct_child_limit=8,
             direct_child_top_count=4,
             reference_temperature=0.2,
-            exploration_constant=0.5,
-            widening_alpha=0.5,
-            action_max_tokens=spec.action_max_tokens,
+            exploration_constant=0.1,
+            expansion_prior_weight=1.0,
+            offspring_per_iteration=2,
             code_max_tokens=spec.llm_output_tokens,
             context_token_limit=spec.context_token_limit,
             random_seed=spec.seed,
             **common,
         )
     population_common = {
+        "actions_per_iteration": 2,
         "max_trajectory_length": 8,
         "max_active_trajectories": 30,
         "softmax_temperature": 0.2,
@@ -381,19 +407,24 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
             "checkpoint_schema_version": checkpoint_version,
             "max_sample_nums": spec.budget,
             "n_init": spec.n_init,
-            "actions_per_iteration": 2,
+            "offspring_per_iteration": 2,
+            "generation_protocol": "direct_code",
+            "quality_normalization": "global_midrank_percentile",
+            "expansion_policy": "adaptive_new_child_uct",
+            "expansion_reward": "batch_subtree_best_midrank",
+            "failed_expansion_reward": 0.0,
+            "root_expansion": False,
             "ancestor_history_limit": 8,
             "direct_child_limit": 8,
             "direct_child_top_count": 4,
             "reference_temperature": 0.2,
-            "exploration_constant": 0.5,
-            "widening_alpha": 0.5,
+            "exploration_constant": 0.1,
+            "expansion_prior_weight": 1.0,
             "maximize": True,
             "operators": operator_names,
             "max_consecutive_sample_failures": 20,
             "max_stalled_iterations": 20,
             "checkpoint_interval": 10,
-            "action_max_tokens": spec.action_max_tokens,
             "code_max_tokens": spec.llm_output_tokens,
             "context_token_limit": spec.context_token_limit,
             "random_seed": spec.seed,
@@ -482,17 +513,49 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     else:
         weights = None
     method_params: dict[str, Any]
-    if spec.version == "v8":
+    if spec.version == "v8_3":
+        method_params = {
+            "protocol_id": V83_PROTOCOL_ID,
+            "maximize": True,
+            "max_sample_nums": spec.budget,
+            "n_init": spec.n_init,
+            "max_depth": 10,
+            "widening_alpha": 0.5,
+            "generation_protocol": "call1_design_idea_code_then_call2_description",
+            "quality_normalization": "global_midrank_percentile",
+            "expansion_policy": "progressive_widening_then_recursive_descend_or_new_child",
+            "expansion_reward": "direct_child_plus_parent_development_gain",
+            "failed_expansion_reward": 0.0,
+            "root_expansion": False,
+            "exploration_constant": 0.1,
+            "beta": 1.0,
+            "rho": 0.25,
+            "kappa": 0.1,
+            "trajectory_window": 8,
+            "reference_temperature": 1.0,
+            "max_consecutive_sample_failures": 20,
+            "retry_count": 3,
+            "context_token_limit": spec.context_token_limit,
+            "random_seed": spec.seed,
+            "operators": V83_OPERATOR_NAMES,
+        }
+    elif spec.version == "v8":
         method_params = {
             "max_sample_nums": spec.budget,
             "n_init": spec.n_init,
-            "actions_per_iteration": 2,
+            "offspring_per_iteration": 2,
+            "generation_protocol": "direct_code",
+            "quality_normalization": "global_midrank_percentile",
+            "expansion_policy": "adaptive_new_child_uct",
+            "expansion_reward": "batch_subtree_best_midrank",
+            "failed_expansion_reward": 0.0,
+            "root_expansion": False,
             "ancestor_history_limit": 8,
             "direct_child_limit": 8,
             "direct_child_top_count": 4,
             "reference_temperature": 0.2,
-            "exploration_constant": 0.5,
-            "widening_alpha": 0.5,
+            "exploration_constant": 0.1,
+            "expansion_prior_weight": 1.0,
             "max_consecutive_sample_failures": 20,
             "max_stalled_iterations": 20,
             "checkpoint_interval": 10,
@@ -553,7 +616,6 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
                 "checkpoint_schema_version": V8_CHECKPOINT_VERSION,
                 "maximize": True,
                 "operators": V8_OPERATOR_NAMES,
-                "action_max_tokens": spec.action_max_tokens,
                 "code_max_tokens": spec.llm_output_tokens,
                 "context_token_limit": spec.context_token_limit,
                 "random_seed": spec.seed,
@@ -616,7 +678,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model")
     parser.add_argument("--no-proxy")
     parser.add_argument("--budget", type=int, default=1000)
-    parser.add_argument("--n-init", type=int, default=30)
+    parser.add_argument("--n-init", type=int)
     parser.add_argument("--eval-workers", type=int)
     parser.add_argument("--output-tokens", type=int)
     parser.add_argument("--action-max-tokens", type=int, default=1024)

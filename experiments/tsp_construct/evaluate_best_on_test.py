@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 import argparse
-import glob
 import json
 import math
 import multiprocessing
@@ -25,6 +24,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from experiments.eval_artifacts import load_run_summary, load_scored_samples
 from llm4ad.base.evaluate import SecureEvaluator
 from llm4ad.task.optimization.tsp_construct import TSPEvaluation
 
@@ -46,40 +46,11 @@ def _resolve_method(run_dir: Path) -> str:
     return run_dir.parent.name
 
 
-def _load_summary(run_dir: Path) -> dict[str, Any]:
-    summary_path = run_dir / "logs" / "run_summary.json"
-    if not summary_path.exists():
-        raise RuntimeError(f"run is not finished: missing {summary_path}")
-    summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    if summary.get("status") != "finished" or summary.get("search_aborted"):
-        raise RuntimeError(f"run is not a completed search: {run_dir}")
-    return summary
-
-
-def _load_samples(run_dir: str | Path) -> list[dict[str, Any]]:
-    run_dir = Path(run_dir)
-    files = [f for f in sorted(glob.glob(str(run_dir / "logs" / "samples" / "samples_*.json"))) if "best" not in f]
-    out: list[dict[str, Any]] = []
-    for f in files:
-        try:
-            with Path(f).open(encoding="utf-8") as sample_file:
-                data = json.load(sample_file)
-        except (OSError, json.JSONDecodeError, TypeError) as error:
-            print(f"warning: skipping unreadable sample artifact {f}: {error}", file=sys.stderr)
-            continue
-        if not isinstance(data, list):
-            continue
-        for x in data:
-            if isinstance(x, dict) and isinstance(x.get("score"), (int, float)):
-                out.append(x)
-    return out
-
-
 def pick_sample(run_dir: str | Path, sample_order: int | None) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    _load_summary(Path(run_dir))
-    samples = _load_samples(run_dir)
+    load_run_summary(Path(run_dir))
+    samples = load_scored_samples(Path(run_dir))
     if not samples:
-        raise RuntimeError(f"no valid samples under {run_dir}/logs/samples/")
+        raise RuntimeError(f"no valid samples under {run_dir}")
     if sample_order is None:
         return max(samples, key=lambda x: float(x["score"])), samples
     for x in samples:

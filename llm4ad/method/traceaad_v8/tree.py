@@ -77,7 +77,6 @@ class SearchTree:
         maximize: bool,
         creation_order: int,
         operator: OperatorName,
-        action: str,
         reference_node_id: int | None,
         reference_root_branch_id: int | None,
         global_best_directed_fitness: float | None,
@@ -121,7 +120,6 @@ class SearchTree:
             parent_id=parent_id,
             child_id=child.id,
             operator=operator,
-            action=action,
             implemented_idea=idea,
             reference_node_id=reference_node_id,
             reference_root_branch_id=reference_root_branch_id,
@@ -174,6 +172,7 @@ class SearchTree:
             child_ids=[],
             depth=depth,
             visit_count=1,
+            expansion_count=0,
             subtree_value=directed,
             subtree_best_node_id=node_id,
             creation_order=creation_order,
@@ -212,6 +211,7 @@ class SearchTree:
         self.root.visit_count += 1
         for node_id in path[1:]:
             self.get_node(node_id).visit_count += 1
+        self.get_node(selected_node_id).expansion_count += 1
         return path
 
     def backup_from(self, node_id: int) -> list[dict[str, int | float | None]]:

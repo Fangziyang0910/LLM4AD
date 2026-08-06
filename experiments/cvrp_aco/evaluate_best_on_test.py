@@ -17,6 +17,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from experiments.eval_artifacts import load_run_summary, load_scored_samples  # noqa: E402
 from llm4ad.task.optimization.cvrp_aco import CVRPACOEvaluation, load_split_instances  # noqa: E402
 
 
@@ -40,39 +41,9 @@ def _resolve_method(run_dir: Path) -> str:
     return run_dir.parent.name
 
 
-def _load_samples(run_dir: Path) -> list[dict[str, Any]]:
-    samples_dir = run_dir / "logs" / "samples"
-    records: list[dict[str, Any]] = []
-    for path in sorted(samples_dir.glob("samples_*.json")):
-        if path.name == "samples_best.json":
-            continue
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as error:
-            raise RuntimeError(f"Cannot read sample artifact {path}: {error}") from error
-        if not isinstance(data, list):
-            raise RuntimeError(f"Expected a list in sample artifact {path}")
-        for record in data:
-            if isinstance(record, dict) and isinstance(record.get("score"), (int, float)):
-                records.append(record)
-    return records
-
-
-def _load_summary(run_dir: Path) -> dict[str, Any]:
-    summary_path = run_dir / "logs" / "run_summary.json"
-    if not summary_path.exists():
-        raise RuntimeError(f"run is not finished: missing {summary_path}")
-    summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    if summary.get("status") != "finished":
-        raise RuntimeError(f"run is not finished: {run_dir} status={summary.get('status')!r}")
-    if summary.get("search_aborted"):
-        raise RuntimeError(f"run was aborted: {run_dir}")
-    return summary
-
-
 def _pick_best(run_dir: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    _load_summary(run_dir)
-    records = _load_samples(run_dir)
+    load_run_summary(run_dir)
+    records = load_scored_samples(run_dir)
     if not records:
         raise RuntimeError(f"no valid samples found under {run_dir}")
     return max(records, key=lambda record: float(record["score"])), records

@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Final, TypeAlias
 
-PROTOCOL_ID: Final[str] = "traceaad-v8"
+PROTOCOL_ID: Final[str] = "traceaad-v8.2-adaptive-expand"
 
 NodeId: TypeAlias = int
 EdgeId: TypeAlias = int
@@ -44,6 +44,7 @@ class ProgramNode:
     child_ids: list[NodeId]
     depth: int
     visit_count: int
+    expansion_count: int
     subtree_value: float
     subtree_best_node_id: NodeId
     creation_order: int
@@ -57,7 +58,6 @@ class ImprovementEdge:
     parent_id: NodeId
     child_id: NodeId
     operator: OperatorName
-    action: str
     implemented_idea: str
     reference_node_id: NodeId | None
     reference_root_branch_id: NodeId | None
@@ -76,12 +76,13 @@ class ImprovementEdge:
 
 @dataclass(frozen=True, slots=True)
 class SelectionStep:
-    parent_id: int
-    child_id: NodeId
-    normalized_value: float
-    subtree_value: float
-    visit_count: int
-    uct: float
+    decision_node_id: int
+    option: str
+    target_node_id: NodeId | None
+    quality: float
+    raw_value: float | None
+    option_visits: int
+    score: float
 
 
 __all__ = [

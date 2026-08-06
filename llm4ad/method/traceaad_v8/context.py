@@ -104,8 +104,7 @@ def node_history(
                         f"{format_fitness(best.fitness)}; depth to subtree best "
                         f"{best.depth - child.depth}"
                     ),
-                    f"  Requested Action: {_one_line(edge.action, 360)}",
-                    f"  Immediate result: {_one_line(child.idea, 300)}",
+                    f"  Implemented change: {_one_line(child.idea, 360)}",
                 ]
             )
     return RenderedHistory(
@@ -118,15 +117,16 @@ def node_history(
     )
 
 
-def build_action_prompt(
+def build_code_prompt(
     *,
     current_node: ProgramNode,
     current_history: str,
     operator_constraint: str,
     task_description: str,
     template_function: Function,
-    action_count: int,
     maximize: bool,
+    candidate_index: int,
+    candidate_count: int,
     reference_node: ProgramNode | None = None,
     reference_history: str = "",
 ) -> str:
@@ -163,84 +163,19 @@ def build_action_prompt(
         [
             "",
             "[Improvement Direction]",
-            operator_constraint,
-            "",
-            "[Target Function]",
-            str(target).rstrip(),
-            "",
-            "[Action Contract]",
-            (
-                f"Return exactly {action_count} numbered, single-line, self-contained "
-                "modification actions and nothing else."
-            ),
-            "Each action must specify one concrete executable change.",
-            (
-                "Each action must differ substantively from relevant direct attempts "
-                "already shown and must alter algorithmic behavior."
-            ),
-            (
-                "Use only the target function arguments and local computation; preserve "
-                "the function signature and task contract."
-            ),
-            (
-                "When a reference is shown, state what knowledge comes from that branch "
-                "and how it is adapted according to the improvement direction."
-            ),
-        ]
-    )
-    return "\n".join(sections).strip()
-
-
-def build_code_prompt(
-    *,
-    current_node: ProgramNode,
-    current_history: str,
-    action: str,
-    task_description: str,
-    template_function: Function,
-    reference_node: ProgramNode | None = None,
-    reference_history: str = "",
-) -> str:
-    target = copy.deepcopy(template_function)
-    target.body = ""
-    sections = [
-        "[Task]",
-        task_description.strip(),
-        "",
-        current_history.strip(),
-        "",
-        "[Current Program]",
-        f"Current fitness: {format_fitness(current_node.fitness)}",
-        "```python",
-        current_node.code.rstrip(),
-        "```",
-    ]
-    if reference_node is not None:
-        sections.extend(
-            [
-                "",
-                "[Reference Root Branch History]",
-                reference_history.strip(),
-                "",
-                "[Reference Program]",
-                "```python",
-                reference_node.code.rstrip(),
-                "```",
-            ]
-        )
-    sections.extend(
-        [
-            "",
-            "[Requested Modification]",
-            action.strip(),
+            operator_constraint.strip(),
             "",
             "[Target Function]",
             str(target).rstrip(),
             "",
             "[Instruction]",
-            "Implement the requested modification from the current program.",
-            "Use the exact same histories as evidence and do not repeat tested changes.",
-            "Use a reference only in the way specified by the requested modification.",
+            (
+                f"Generate candidate {candidate_index + 1} of {candidate_count} by directly "
+                "improving the current program."
+            ),
+            "Use the histories as evidence and do not repeat tested changes.",
+            "Choose one concrete algorithmic change and implement it completely.",
+            "When a reference is shown, adapt it only according to the improvement direction.",
             "Keep the target function signature and contract unchanged.",
             "Return exactly one complete implementation.",
             "Imports from the current program remain available; small top-level helpers are allowed.",
@@ -265,8 +200,7 @@ def _render_formation_edge(tree: SearchTree, edge_id: int, position: int) -> lis
             f"{format_fitness(parent.fitness)} -> {format_fitness(child.fitness)}; "
             f"global breakthrough={'yes' if edge.new_global_best else 'no'}"
         ),
-        f"  Requested Action: {_one_line(edge.action, 360)}",
-        f"  Implemented Idea: {_one_line(edge.implemented_idea, 300)}",
+        f"  Implemented change: {_one_line(edge.implemented_idea, 360)}",
         (
             f"  Code change: {edge.code_change_ratio:.0%}; "
             f"LOC {parent.program_loc} -> {child.program_loc}"
@@ -281,7 +215,6 @@ def _one_line(text: str, limit: int) -> str:
 
 __all__ = [
     "RenderedHistory",
-    "build_action_prompt",
     "build_code_prompt",
     "formation_history",
     "node_history",

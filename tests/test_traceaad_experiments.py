@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from experiments.runners.traceaad import launch, run
+from experiments.runners.traceaad import launch, run, schedule
 from llm4ad.method.traceaad_v4 import TraceAADV4
 from llm4ad.method.traceaad_v5 import TraceAADV5
 from llm4ad.method.traceaad_v6 import PROTOCOL_ID as V6_PROTOCOL_ID
@@ -14,6 +14,7 @@ from llm4ad.method.traceaad_v7 import PROTOCOL_ID as V7_PROTOCOL_ID
 from llm4ad.method.traceaad_v7 import TraceAADV7
 from llm4ad.method.traceaad_v8 import PROTOCOL_ID as V8_PROTOCOL_ID
 from llm4ad.method.traceaad_v8 import TraceAADV8
+from llm4ad.method.traceaad_v8_3 import TraceAADV8_3
 
 
 @pytest.mark.parametrize("task", run.TASKS)
@@ -36,6 +37,7 @@ def test_unified_runner_builds_each_task_and_version(
         "v6": TraceAADV6,
         "v7": TraceAADV7,
         "v8": TraceAADV8,
+        "v8_3": TraceAADV8_3,
     }[version]
     assert isinstance(method, expected_type)
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
@@ -45,9 +47,19 @@ def test_unified_runner_builds_each_task_and_version(
         assert method._llm.max_tokens == 16384
     else:
         assert method._llm.max_tokens == 8192
-        assert method._action_max_tokens == 1024
+        if version in {"v8", "v8_3"}:
+            assert spec.n_init == 10
+            if version == "v8":
+                assert not hasattr(method, "_action_max_tokens")
+                assert method._offspring_per_iteration == 2
+            else:
+                assert not hasattr(method, "_action_max_tokens")
+                assert method._n_init == 10
+        else:
+            assert spec.n_init == 30
+            assert method._action_max_tokens == 1024
         assert not hasattr(method, "_global_experience")
-        if version in {"v6", "v7", "v8"}:
+        if version in {"v6", "v7", "v8", "v8_3"}:
             assert method._context_token_limit == 24576
             assert not hasattr(method, "_dual_probability")
 
@@ -139,9 +151,17 @@ def test_v8_runner_records_tree_protocol_without_population_controls(
     params = payload["method_params"]
     assert payload["experiment_version"] == "version8"
     assert params["protocol_id"] == V8_PROTOCOL_ID
-    assert params["checkpoint_schema_version"] == 1
-    assert params["exploration_constant"] == 0.5
-    assert params["widening_alpha"] == 0.5
+    assert params["checkpoint_schema_version"] == 3
+    assert params["n_init"] == 10
+    assert params["exploration_constant"] == 0.1
+    assert params["expansion_prior_weight"] == 1.0
+    assert params["offspring_per_iteration"] == 2
+    assert params["generation_protocol"] == "direct_code"
+    assert params["quality_normalization"] == "global_midrank_percentile"
+    assert params["expansion_policy"] == "adaptive_new_child_uct"
+    assert params["expansion_reward"] == "batch_subtree_best_midrank"
+    assert params["failed_expansion_reward"] == 0.0
+    assert params["root_expansion"] is False
     assert params["direct_child_top_count"] == 4
     assert params["operators"] == [
         "trace_ideate",
@@ -152,6 +172,8 @@ def test_v8_runner_records_tree_protocol_without_population_controls(
     assert "max_active_trajectories" not in params
     assert "value_weights" not in params
     assert "elite_count" not in params
+    assert "actions_per_iteration" not in params
+    assert "action_max_tokens" not in params
 
 
 def test_resume_uses_version_specific_checkpoint_source(tmp_path: Path) -> None:
@@ -248,6 +270,133 @@ def test_batch_launcher_builds_independent_repeat_commands() -> None:
     assert plan[0].run_name == "20260729_230434_obp_v4_rep1"
     assert "--repeat" in plan[0].command
     assert "--run-name" in plan[0].command
+
+
+def test_batch_launcher_uses_version_specific_initialization_defaults() -> None:
+    v8_args = launch.build_parser().parse_args(
+        ["--task", "tsp_construct", "--version", "v8", "--dry-run"]
+    )
+    v7_args = launch.build_parser().parse_args(
+        ["--task", "tsp_construct", "--version", "v7", "--dry-run"]
+    )
+
+    v8_command = launch.build_launch_plan(v8_args)[0].command
+    v7_command = launch.build_launch_plan(v7_args)[0].command
+    assert v8_command[v8_command.index("--n-init") + 1] == "10"
+    assert v7_command[v7_command.index("--n-init") + 1] == "30"
+
+
+def test_v82_scheduler_builds_four_tasks_by_three_repeats(tmp_path: Path) -> None:
+    state = schedule.build_state(
+        batch="20260804_220000",
+        budget=1000,
+        n_init=10,
+        context_token_limit=24576,
+        experiments_root=tmp_path,
+    )
+    jobs = state["jobs"]
+
+    assert len(jobs) == 12
+    assert [(job["task"], job["repeat"]) for job in jobs[:4]] == [
+        (task, 1) for task in run.TASKS
+    ]
+    assert {job["seed"] for job in jobs} == {1, 2, 3}
+    assert len({job["session"] for job in jobs}) == 12
+    assert all("v82_20260804_220000" in job["run_name"] for job in jobs)
+
+
+def test_v82_scheduler_counts_inherited_worker_command_once() -> None:
+    zhong = (
+        "python -m experiments.runners.traceaad.run --task op_aco "
+        "--backend zhong"
+    )
+    server1 = (
+        "python -m experiments.runners.reevo.run --task tsp_construct "
+        "--backend server1"
+    )
+    rows = [
+        (100, 1, zhong),
+        (101, 100, zhong),
+        (102, 101, zhong),
+        (200, 1, server1),
+        (300, 1, "python -c from multiprocessing.spawn import spawn_main"),
+    ]
+
+    assert schedule.count_backend_usage(rows) == {
+        "zhong": 1,
+        "server1": 1,
+        "local": 0,
+    }
+
+
+def test_v82_scheduler_assigns_only_available_slots(tmp_path: Path) -> None:
+    state = schedule.build_state(
+        batch="assignment",
+        budget=1000,
+        n_init=10,
+        context_token_limit=24576,
+        experiments_root=tmp_path,
+    )
+    assigned = schedule.assign_pending(
+        state,
+        {"zhong": 2, "server1": 2, "local": 1},
+    )
+
+    assert [job["backend"] for job in assigned] == [
+        "zhong",
+        "zhong",
+        "server1",
+        "server1",
+        "local",
+    ]
+    assert len(assigned) == 5
+
+
+def test_v82_scheduler_state_reload_prevents_duplicate_assignment(
+    tmp_path: Path,
+) -> None:
+    state_path = tmp_path / "scheduler.json"
+    state = schedule.build_state(
+        batch="resume",
+        budget=1000,
+        n_init=10,
+        context_token_limit=24576,
+        experiments_root=tmp_path,
+    )
+    assigned = schedule.assign_pending(
+        state,
+        {"zhong": 1, "server1": 0, "local": 0},
+    )
+    assigned[0]["status"] = "running"
+    schedule.save_state(state, state_path)
+
+    restored = schedule.load_state(state_path)
+    next_jobs = schedule.assign_pending(
+        restored,
+        {"zhong": 1, "server1": 0, "local": 0},
+    )
+
+    assert next_jobs[0]["run_name"] != assigned[0]["run_name"]
+
+
+def test_v82_scheduler_reads_terminal_summary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    state = schedule.build_state(
+        batch="finished",
+        budget=1000,
+        n_init=10,
+        context_token_limit=24576,
+        experiments_root=tmp_path,
+    )
+    job = state["jobs"][0]
+    summary = Path(job["run_dir"]) / "logs" / "summary.json"
+    summary.parent.mkdir(parents=True)
+    summary.write_text('{"status": "finished"}\n', encoding="utf-8")
+    monkeypatch.setattr(schedule, "_session_exists", lambda _session: False)
+
+    assert schedule.reconcile_job(job)
+    assert job["status"] == "finished"
 
 
 def test_old_task_specific_traceaad_runners_are_removed() -> None:
