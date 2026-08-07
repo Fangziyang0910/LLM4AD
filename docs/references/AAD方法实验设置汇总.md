@@ -8,7 +8,7 @@
 
 **预算口径**：方法比较以**启发式/程序评估次数（eval）**为主标准。表中「评估预算」统一写成 `N eval`；数字来自论文原文，或由代数×算子×种群等可核对公式推出。推不出评估次数时，才写 token / LLM query / 墙钟等原文指标。
 
-**Tasks 口径**：下表与各节「Tasks」均统计**主文实验 + 附录实验**中出现的问题/设定；同问题不同嵌入框架（如 TSP-构造 / TSP-GLS / TSP-ACO）分开列出。仅规模外推或同库更多实例、不构成新题时，写在括号内。
+**Tasks 口径**：下表与各节「Tasks」均统计**主文实验 + 附录实验**中出现的问题/设定；同问题不同嵌入框架（如 TSP-构造 / TSP-GLS / TSP-ACO）分开列出。仅做跨规模测试或增加同库实例、不构成新题时，写在括号内。
 
 ## 总览
 
@@ -76,7 +76,7 @@
   - **主文**：TSP-GLS；TSP/CVRP/OP/MKP/Offline BPP（ACO）；DPP（GA 交叉/变异）；TSP-构造（TSPLIB）；TSP/CVRP（NCO attention reshape，POMO/LEHD）
   - **附录**：无新题（设置、问题定义、生成启发式）
   - **合计**：TSP；CVRP；OP；MKP；Offline BPP；DPP
-- **配置**: gpt-3.5-turbo；temperature=1（初始化 +0.3）；种群 10；初始代 30；最大评估 **100**；交叉率 1、变异率 0.5；每 COP 设置 3 次；验证最优启发式在 64 held-out 实例上测试
+- **配置**: gpt-3.5-turbo；temperature=1（初始化 +0.3）；种群 10；初始代 30；最大评估 **100**；交叉率 1、变异率 0.5；每 COP 设置 3 次；在 64 个独立测试实例上评价最优启发式
 - **对比方法**: KGLS、EoH、NeuOpt、GNNGLS、NeuralGLS；ACO 专家启发式与 DeepACO；DevFormer；GHPP；POMO/LEHD
 - **指标**: gap%、目标值、时间；ACO 进化曲线
 - **备注**: 强调样本效率（≤100 eval）；白盒/黑盒 prompt
@@ -124,7 +124,7 @@
   - **主文**：TSP/KP（构造）；TSP/CVRP/MKP/OP/Offline BPP（ACO）
   - **附录**：Online BPP（构造）；TSP-GLS
   - **合计**：TSP；KP；Online BPP；Offline BPP；CVRP；MKP；OP
-- **配置**: GPT-4o-mini、GPT-5-nano；temperature=1.0；N_a=2, N_w=2, N_p=6, I_max=3；主文评估预算 **n_e=500**；60s；3 次；单 run 训练上限约 6h
+- **配置**: GPT-4o-mini、GPT-5-nano；temperature=1.0；N_a=2, N_w=2, N_p=6, I_max=3；主文评估预算 **n_e=500**；60s；3 次；单 run 搜索上限约 6h
 - **对比方法**: 手工/NCO；FunSearch、EoH、ReEvo、HSEvo、MCTS-AHD
 - **指标**: Obj、Gap%、MRGI；进化曲线
 - **备注**: 策略–世界模型–批评者 + entailment graph；training-free
@@ -244,7 +244,7 @@
   - **主文**：TSP-GLS；FSSP-GLS
   - **附录**：无新题（测 TSPLib / Taillard 与提示细节）
   - **合计**：TSP；FSSP
-- **配置**: GPT-4；base temp=0.0，optimizer=1.0；MCTS：10 iterations，width=5，depth=5，exploration=2.5；训练评估用 TSP200 + 800 GLS iterations
+- **配置**: GPT-4；base temp=0.0，optimizer=1.0；MCTS：10 iterations，width=5，depth=5，exploration=2.5；搜索评估用 TSP200 + 800 GLS iterations
 - **对比方法**: OR-Tools、AM、POMO、LEHD、GNNGLS、KGLS、NeuralGLS、NeuOpt、EoH、ReEvo；FSSP 手工与 PFSPNet；搜索消融 MC/Beam/Greedy
 - **指标**: Opt. gap%；相对 makespan；Time
 - **备注**: 状态=启发式，动作=改进建议的 MCTS 规划
@@ -268,7 +268,7 @@
   - **主文**：TSP-构造；TSP-GLS；TSP-KGLS；Online BPP；CVRP-ACO；Offline BPP-ACO
   - **附录**：Acrobot；QAP；同题测 TSPLib / TSP200-Cluster
   - **合计**：TSP；Online BPP；CVRP；Offline BPP；Acrobot；QAP
-- **配置**: GPT-4o-mini；外环 T=10；启发式与 meta-optimizer 种群各 10；评估预算 **1000**；TSP 跨尺度训练 20/50/100/200，泛化 500/1000；3 次
+- **配置**: GPT-4o-mini；外环 T=10；启发式与 meta-optimizer 种群各 10；评估预算 **1000**；TSP 在 20/50/100/200 上搜索，在 500/1000 上做跨规模测试；3 次
 - **对比方法**: Concorde、OR-Tools、Nearest Neighbor、First/Best Fit；FunSearch、EoH、ReEvo、HSEvo、MCTS-AHD
 - **指标**: Gap%、Obj
 - **备注**: 强调跨尺度泛化与双层 meta-optimizer
@@ -403,10 +403,10 @@
 2. **少数方法原文未给 eval**：HSEvo 主报 425K tokens；InstSpecHH 主报 800 LLM queries/子类；CORAL 主报 100 iter 或 3h；AlphaEvolve / AutoEP 无统一启发式 eval 口径。其余表内数字均可由论文直接读出或由明确公式推出（如 EoH/MEoH：代数×5 算子×种群；RedAHD：≤1000；PoH 表内 60）。
 3. **嵌入框架不同**：同一 TSP 可嵌构造、GLS 或 ACO，绝对 gap 不可直接比。
 4. **LLM 底座不同**：GPT-3.5 / 4o-mini / DeepSeek / Qwen / Gemini 等；部分工作还有微调。
-5. **训练/测试划分**：有的在测试集上直接演化（如 OR-Library），有的严格 held-out，有的强调 OOD 规模外推。
+5. **搜索/测试划分**：有的在测试集上直接演化（如 OR-Library），有的使用严格独立测试，有的强调跨规模测试。
 6. **重复与聚合**：3 次均值、10 次最优、单次报告并存。
 
-本仓库正式比较已固定：**评估预算 = 1000 eval**；主表外部对照为 **EoH、ReEvo、MCTS-AHD、PathWise、CALM**；主实验 task 为 **Online BPP、TSP-构造、CVRP-ACO、OP-ACO**（见 [实验配置](../experiments/配置.md)）。其中 CALM 当前阶段跑 **w/o GRPO** 搜索框架，微调阶段再补 **w/ GRPO**。任务协议取舍：OBP 保持多容量现状；TSP-构造维持降采样（同标准重跑）；CVRP-ACO held-out 含 **CVRP200×64**；OP-ACO 保持现状。统一比较时再固定嵌入框架 × LLM，并另报 LLM 调用与 token 作为成本辅指标。
+本仓库正式比较已固定：**评估预算 = 1000 eval**；主表外部对照为 **EoH、ReEvo、MCTS-AHD、PathWise、CALM**；主实验 task 为 **Online BPP、TSP-构造、CVRP-ACO、OP-ACO**（见 [实验配置](../experiments/配置.md)）。其中 CALM 当前阶段跑 **w/o GRPO** 搜索框架，微调阶段再补 **w/ GRPO**。任务协议取舍：OBP 保持多容量现状；TSP-构造维持降采样（同标准重跑）；CVRP-ACO 测试含 **CVRP200×64**；OP-ACO 保持现状。统一比较时再固定嵌入框架 × LLM，并另报 LLM 调用与 token 作为成本辅指标。
 
 ## 入口
 

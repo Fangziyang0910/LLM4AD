@@ -58,7 +58,7 @@ TraceAAD 将当前程序及其有界祖先历史作为搜索个体。单轨迹�
 - ShinkaEvolve：`../../../papers/ShinkaEvolve/sections/03_method.tex`
 - PathWise：`../../../papers/PathWise/example_paper.tex`
 
-相关研究问题见[轨迹上下文与搜索评分](../research/RQ-003-轨迹上下文与搜索评分.md)、[算子调度](../research/RQ-004-算子调度.md)和[受控多样性](../research/RQ-005-LLM局部改进与受控多样性.md)。
+相关研究问题见[轨迹上下文与搜索评分](../research/RQ-003-轨迹上下文与搜索评分.md)、[算子、种群与多样性](../knowledge/研究认识.md)。
 
 ## 证据边界
 
