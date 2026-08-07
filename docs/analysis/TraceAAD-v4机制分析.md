@@ -1,10 +1,10 @@
-# TraceAAD V4 机制审计
+# TraceAAD V4 机制分析
 
-状态：2026-07-24 冻结快照；不定义当前方法。
+状态：2026-07-24 冻结快照；V4 为历史版本，不定义当前方法。
 
 ## 范围
 
-审计覆盖 TSP Construct、CVRP-ACO、Knapsack Construct、Online Bin Packing 和 OP-ACO 的 15 个 V4 run。OBP 与 OP-ACO 已完成 1000 次评估，其余为当时的运行中快照。分析单位包括候选程序、父子边、轨迹选择和种群管理周期。
+分析覆盖 TSP Construct、CVRP-ACO、Knapsack Construct、Online Bin Packing 和 OP-ACO 的 15 个 V4 run。OBP 与 OP-ACO 已完成 1000 次评估，其余为当时的运行中快照。分析单位包括候选程序、父子边、轨迹选择和种群管理周期。
 
 ## 结论
 
@@ -30,6 +30,6 @@ V4 确实以轨迹参与生成与搜索：历史进入 Action/Code，路线质�
 - `2M` 候选数量明显大于可分配的繁殖机会。
 - 程序持续增长，缺少简约控制。
 
-这些问题分别进入[程序膨胀](../../research/RQ-001-程序膨胀.md)、[轨迹上下文与搜索评分](../../research/RQ-003-轨迹上下文与搜索评分.md)和[算子调度](../../research/RQ-004-算子调度.md)。当前实现见 [V4 方法规范](../../methods/TraceAAD-v4完整机制设计.md)。
+这些问题分别进入 `docs/research/RQ-001-程序膨胀.md`、`docs/research/RQ-003-轨迹上下文与搜索评分.md` 和 `docs/knowledge/研究认识.md`。V4 机制规范见 `docs/methods/TraceAAD-v4完整机制设计.md`。
 
 因果解释仍需受控消融；过程关联不能单独证明组件有效。
