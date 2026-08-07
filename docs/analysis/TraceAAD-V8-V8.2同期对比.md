@@ -12,14 +12,14 @@
 
 | 项目 | V8 | V8.2 |
 | --- | --- | --- |
-| 批次 | `v8_20260804_173300` | `v82_20260804_203128` |
+| 批次 | `20260804_173300` | `20260804_203128` |
 | 协议 | TraceAAD V8 / V8.1 主体（direct-code） | `traceaad-v8.2-adaptive-expand` |
 | 预算 | 1000 sample | 1000 sample |
 | 任务 | TSP / OBP / OP / CVRP | 同左 |
 | 重复 | 每任务 3 | 进行中：TSP/OP/CVRP 各 2，OBP 1；另有 pending |
 | 证据时点 | 2026-08-04 约 22:50（checkpoint） | 同左 |
 
-比较量是 checkpoint 树节点的 `fitness` best-so-far（`maximize=true`，越大越好）。对齐方式：取双方都已达到的 sample 数 `T`，比较 `creation_order ≤ T` 时的全局最优。工件路径：`experiments/<task>/traceaad_v8/version8/<run>/checkpoints/latest.json`。
+比较量是 checkpoint 树节点的 `fitness` best-so-far（`maximize=true`，越大越好）。对齐方式：取双方都已达到的 sample 数 `T`，比较 `creation_order ≤ T` 时的全局最优。工件路径：`experiments/<task>/traceaad_v8/<run>/checkpoints/latest.json`。
 
 ### 2.2 证据强度
 
@@ -29,7 +29,7 @@
 
 ## 三、快照时的绝对进度
 
-### 3.1 V8（`v8_20260804_173300`）
+### 3.1 V8（`20260804_173300`）
 
 | 任务 | rep1 | rep2 | rep3 |
 | --- | ---: | ---: | ---: |
@@ -38,7 +38,7 @@
 | OP | 827，**14.7240** | 619，14.6020 | 651，14.4560 |
 | CVRP | 625，−9.0303 | 389，−9.0705 | 630，**−8.7459** |
 
-### 3.2 V8.2（`v82_20260804_203128`）
+### 3.2 V8.2（`20260804_203128`）
 
 | 任务 | rep1 | rep2 |
 | --- | ---: | ---: |
@@ -127,7 +127,7 @@ V8.2 在 OBP 上前中期持续落后，接近 350 sample 才追上均值；此�
 
 **决定（中期）.** 本快照支持继续跑完 V8.2 全预算与剩余 repeat，用终局搜索曲线和测试再做正式版本比较；中期不把 V8.2 记为已证实优于 V8。
 
-**终局（2026-08-05）.** V8.2 批次 `v82_20260804_203128` 四任务 × 三重复与测试（`eval_best_v82_20260805`）已完成，正式数字见 [实验总汇](../experiments/实验总汇.md)。十方法同场时 V8 与 V8.2 平均名次并列（3.867）；任务上呈现分化（TSP/OP/OBP-C100 上 V8.2 更好，CVRP/OBP-C500 上 V8 更好），仍不构成统计显著性结论。
+**终局（2026-08-05）.** V8.2 批次 `20260804_203128` 四任务 × 三重复与测试（`eval_best_20260804_203128`）已完成，正式数字见 [实验总汇](../experiments/实验总汇.md)。十方法同场时 V8 与 V8.2 平均名次并列（3.867）；任务上呈现分化（TSP/OP/OBP-C100 上 V8.2 更好，CVRP/OBP-C500 上 V8 更好），仍不构成统计显著性结论。
 
 **下一步。**
 
@@ -138,8 +138,8 @@ V8.2 在 OBP 上前中期持续落后，接近 350 sample 才追上均值；此�
 
 ## 八、工件索引
 
-- V8 runs：`experiments/<task>/traceaad_v8/version8/v8_20260804_173300_*`
-- V8.2 runs：`experiments/<task>/traceaad_v8/version8/v82_20260804_203128_*`
-- V8.2 测试：`experiments/<task>/traceaad_v8/eval_best_v82_20260805/`
+- V8 runs：`experiments/<task>/traceaad_v8/20260804_173300_*`
+- V8.2 runs：`experiments/<task>/traceaad_v8/20260804_203128_*`
+- V8.2 测试：`experiments/<task>/traceaad_v8/eval_best_20260804_203128/`
 - V8.2 scheduler：tmux `traceaad_v82_scheduler_20260804_203128`
 - 方法规范：[V8 初版](../methods/TraceAAD-v8完整机制设计.md)、[V8.2](../methods/TraceAAD-v8.2完整机制设计.md)

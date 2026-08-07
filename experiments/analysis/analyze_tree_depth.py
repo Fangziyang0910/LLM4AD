@@ -23,8 +23,8 @@ from pathlib import Path
 import numpy as np
 
 REPO = Path(__file__).resolve().parents[2]
-OUT_DIR = REPO / "docs" / "analysis" / "version_diagnosis"
-GLOB = "experiments/*/traceaad_v8/version8/*/artifacts/edges.jsonl"
+OUT_DIR = REPO / "docs" / "analysis" / "tree_depth"
+GLOB = "experiments/*/traceaad_v8/*/artifacts/edges.jsonl"
 
 DEEP_THRESHOLD = 4
 

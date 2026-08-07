@@ -14,7 +14,7 @@ search trajectory analysis) and computes them from existing run logs:
   run-clustered standard errors (statsmodels, when available).
 
 Semantic distance is proxied by code-token Jaccard distance (see
-llm4ad/method/traceaad_v6/similarity.py).  This is a proxy for the paper's
+llm4ad/method/traceaad_v5/similarity.py).  This is a proxy for the paper's
 task-specific semantic distance and is explicitly marked in the report.
 """
 
@@ -363,7 +363,7 @@ def resolve_nodes(
         return nodes
 
     # v5/v6: code_hash -> sample_order
-    from llm4ad.method.traceaad_v6.complexity import code_hash
+    from llm4ad.method.traceaad_v5.complexity import code_hash
 
     samples_by_hash: dict[str, dict] = {}
     for s in samples:
@@ -403,7 +403,7 @@ _TOKEN_CACHE: dict[str, frozenset[str]] = {}
 
 
 def _tokens(code: str) -> frozenset[str]:
-    from llm4ad.method.traceaad_v6.similarity import code_tokens
+    from llm4ad.method.traceaad_v5.similarity import code_tokens
 
     cached = _TOKEN_CACHE.get(code)
     if cached is None:

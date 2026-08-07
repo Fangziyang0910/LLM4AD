@@ -31,7 +31,6 @@ def build_launch_plan(args: argparse.Namespace) -> tuple[LaunchItem, ...]:
     batch = args.batch or datetime.now().strftime("%Y%m%d_%H%M%S")
     alias = TASK_ALIASES[args.task]
     method_name = f"traceaad_{args.version}"
-    experiment_version = f"version{args.version.removeprefix('v')}"
     prefix = args.session_prefix or f"{alias}_{method_name}_{batch}"
     n_init = args.n_init
     if n_init is None:
@@ -39,13 +38,7 @@ def build_launch_plan(args: argparse.Namespace) -> tuple[LaunchItem, ...]:
     items = []
     for repeat in range(1, args.repeats + 1):
         run_name = f"{batch}_{alias}_{args.version}_rep{repeat}"
-        run_dir = (
-            EXPERIMENTS_ROOT
-            / args.task
-            / method_name
-            / experiment_version
-            / run_name
-        )
+        run_dir = EXPERIMENTS_ROOT / args.task / method_name / run_name
         command = [
             sys.executable,
             "-m",

@@ -44,7 +44,7 @@ import numpy as np
 from scipy import stats
 
 REPO = Path(__file__).resolve().parents[2]
-OUT_DIR = REPO / "docs" / "analysis" / "version_diagnosis"
+OUT_DIR = REPO / "docs" / "analysis" / "scale_generalization"
 
 BASELINE = "MCTS-AHD"
 
@@ -94,25 +94,25 @@ METHODS: dict[str, dict[str, list[str]]] = {
         "online_bin_packing": ["eoh/eval_best_eoh_paper_20260730"],
     },
     "ReEvo": {
-        "tsp_construct": ["reevo/eval_best_fair1000_20260730"],
-        "cvrp_aco": ["reevo/eval_best_fair1000_20260730", "reevo/eval_best_20260804_test200"],
-        "op_aco": ["reevo/eval_best_fair1000_20260730"],
-        "online_bin_packing": ["reevo/eval_best_fair1000_20260730"],
+        "tsp_construct": ["reevo/eval_best_20260730"],
+        "cvrp_aco": ["reevo/eval_best_20260730", "reevo/eval_best_20260804_test200"],
+        "op_aco": ["reevo/eval_best_20260730"],
+        "online_bin_packing": ["reevo/eval_best_20260730"],
     },
     "Pathwise": {
-        "tsp_construct": ["pathwise/eval_best_fair1000_20260730"],
-        "cvrp_aco": ["pathwise/eval_best_fair1000_20260730", "pathwise/eval_best_20260804_test200"],
-        "op_aco": ["pathwise/eval_best_fair1000_20260730"],
-        "online_bin_packing": ["pathwise/eval_best_fair1000_20260730"],
+        "tsp_construct": ["pathwise/eval_best_20260730"],
+        "cvrp_aco": ["pathwise/eval_best_20260730", "pathwise/eval_best_20260804_test200"],
+        "op_aco": ["pathwise/eval_best_20260730"],
+        "online_bin_packing": ["pathwise/eval_best_20260730"],
     },
     "V4": {
-        "tsp_construct": ["traceaad_v4/version4/eval_best_20260723_181743"],
+        "tsp_construct": ["traceaad_v4/eval_best_20260723_181743"],
         "cvrp_aco": [
-            "traceaad_v4/version4/eval_best_20260723_204526",
-            "traceaad_v4/version4/eval_best_20260804_test200",
+            "traceaad_v4/eval_best_20260723_204526",
+            "traceaad_v4/eval_best_20260804_test200",
         ],
-        "op_aco": ["traceaad_v4/version4/eval_best_20260723_204526"],
-        "online_bin_packing": ["traceaad_v4/version4/eval_best_20260729_230434"],
+        "op_aco": ["traceaad_v4/eval_best_20260723_204526"],
+        "online_bin_packing": ["traceaad_v4/eval_best_20260729_230434"],
     },
     "V5": {
         "tsp_construct": ["traceaad_v5/eval_best_20260728_151736"],

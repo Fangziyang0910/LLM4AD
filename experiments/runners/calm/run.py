@@ -269,7 +269,7 @@ def run_experiment(spec: RunSpec) -> Path:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Run one fair-budget CALM (w/o GRPO) experiment."
+        description="Run one CALM (w/o GRPO) experiment at 1000-eval budget."
     )
     parser.add_argument("--task", choices=TASKS, required=True)
     parser.add_argument("--backend", choices=tuple(BACKENDS), default="local")

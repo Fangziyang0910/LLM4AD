@@ -43,6 +43,8 @@
 ## 实验
 
 - 实验入口在 `experiments/runners/`，工件按 `experiments/<task>/<method>/` 组织。模型、预算和关键超参必须显式可追溯。
+- 模型统一为 **Qwen3.6-27B**：zhong / server1 / local 三个服务源是同一模型（仅量化与服务端差异），实验中不区分、不记录具体服务源或量化版本，只写 `Qwen3.6-27B`。
+- 四任务三重复（12 路）默认按 **zhong 6 + server1 4 + local 2** 启动；启动实验只需 `tmux new-session` + `experiments.runners.<method>.run`，不写调度脚本。
 - 原始工件（配置、日志、checkpoint、评估 JSON、生成程序）只留本地，不进 Git。Git 只跟踪实验入口、评估绘图代码和 `docs/experiments/` 的凝练结果。
 - 正式长跑前先做最小冒烟：确认模型调用、评估方向与 profiler 一致、分数有区分度、搜索更新有效。长实验用可恢复、可观察的后台会话。
 - 搜索结果、测试结果和过程证据分开报告，不只看单个最好分数。

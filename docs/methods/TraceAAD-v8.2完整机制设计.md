@@ -605,7 +605,7 @@ V8 checkpoint 至少保存：
 | 复杂度 | fitness 完全同分时非空 LOC 择短 |
 | 在线重复过滤 | 无 |
 | 在线全局经验 | 无 |
-| 实验目录 | `traceaad_v8/version8/` |
+| 实验目录 | `traceaad_v8/` |
 
 ## 19. 在版本谱系中的位置
 

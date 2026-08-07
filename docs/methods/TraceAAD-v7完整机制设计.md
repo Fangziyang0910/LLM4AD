@@ -311,7 +311,7 @@ checkpoint 不自动迁移。
 | runner context input limit | 24576 |
 | 在线全局经验 | 无 |
 | checkpoint schema | 11 |
-| 默认实验目录 | `traceaad_v7/version7/` |
+| 默认实验目录 | `traceaad_v7/` |
 
 ## 在版本谱系中的位置
 

@@ -15,7 +15,7 @@ V8.3 能完整保存算法改进树并把局部来时路提供给模型，正式
 
 ### 2.1 原始 V8.3 的根锁定与 sibling 爆炸
 
-正式批次 `v83_20260805_final` 完成 4 任务 × 3 重复 × 1000 次 evaluator。15 个测试设置的平均名次：V8 `4.067`、V8.2 `4.133`、V4 `4.600`、V5 `5.100`、V8.3 `7.667`。
+正式批次 `20260805_final` 完成 4 任务 × 3 重复 × 1000 次 evaluator。15 个测试设置的平均名次：V8 `4.067`、V8.2 `4.133`、V4 `4.600`、V5 `5.100`、V8.3 `7.667`。
 
 过程工件显示多个 run 几乎锁定单一根分支：CVRP repeat 3、OP repeat 1、TSP repeat 2 的单一根分支分别被选中约 `990/990`、`989/989`、`990/990` 次。被锁定的中间节点又反复产生 243、558、629、681 个直接 sibling。
 
@@ -71,5 +71,5 @@ V8.3 能完整保存算法改进树并把局部来时路提供给模型，正式
 ## 6. 证据入口
 
 - 正式结果汇总：[实验总汇](../experiments/实验总汇.md)
-- 原始 V8.3 工件：`experiments/<task>/traceaad_v8_3/version8_3/`
+- 原始 V8.3 工件：`experiments/<task>/traceaad_v8_3/`
 - MCTS-AHD 宽化实现：`llm4ad/method/mcts_ahd/mcts_ahd.py` 的 `_should_progressively_widen`

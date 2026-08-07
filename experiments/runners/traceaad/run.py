@@ -114,10 +114,6 @@ class RunSpec:
         return f"traceaad_{self.version}"
 
     @property
-    def experiment_version(self) -> str:
-        return f"version{self.version.removeprefix('v')}"
-
-    @property
     def experiment_root(self) -> Path:
         return self.experiments_root / self.task / self.method_name
 
@@ -296,7 +292,7 @@ def resolve_run_dir(spec: RunSpec) -> tuple[Path, str, bool]:
         return run_dir, run_dir.name, True
 
     run_name = spec.run_name or datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = spec.experiment_root / spec.experiment_version / run_name
+    run_dir = spec.experiment_root / run_name
     run_dir.mkdir(parents=True, exist_ok=False)
     return run_dir, run_name, False
 
@@ -474,7 +470,6 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         "run_dir": str(run_dir),
         "task": spec.task,
         "method": spec.method_name,
-        "experiment_version": spec.experiment_version,
         "timestamp": run_name,
         "repeat": spec.repeat,
         "backend": spec.backend,

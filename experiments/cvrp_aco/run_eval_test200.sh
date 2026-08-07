@@ -33,9 +33,9 @@ run_method mcts_ahd \
 
 run_method pathwise \
   "experiments/cvrp_aco/pathwise/eval_best_${TAG}" \
-  experiments/cvrp_aco/pathwise/fair1000_20260730_1755_cvrp_pw_rep1 \
-  experiments/cvrp_aco/pathwise/fair1000_20260730_1755_cvrp_pw_rep2 \
-  experiments/cvrp_aco/pathwise/fair1000_20260730_1755_cvrp_pw_rep3
+  experiments/cvrp_aco/pathwise/20260730_1755_cvrp_pw_rep1 \
+  experiments/cvrp_aco/pathwise/20260730_1755_cvrp_pw_rep2 \
+  experiments/cvrp_aco/pathwise/20260730_1755_cvrp_pw_rep3
 
 run_method eoh \
   "experiments/cvrp_aco/eoh/eval_best_${TAG}" \
@@ -45,15 +45,15 @@ run_method eoh \
 
 run_method reevo \
   "experiments/cvrp_aco/reevo/eval_best_${TAG}" \
-  experiments/cvrp_aco/reevo/fair1000_20260730_1755_cvrp_reevo_rep1 \
-  experiments/cvrp_aco/reevo/fair1000_20260730_1755_cvrp_reevo_rep2 \
-  experiments/cvrp_aco/reevo/fair1000_20260730_1755_cvrp_reevo_rep3
+  experiments/cvrp_aco/reevo/20260730_1755_cvrp_reevo_rep1 \
+  experiments/cvrp_aco/reevo/20260730_1755_cvrp_reevo_rep2 \
+  experiments/cvrp_aco/reevo/20260730_1755_cvrp_reevo_rep3
 
 run_method shinka_evo \
   "experiments/cvrp_aco/shinka_evo/eval_best_${TAG}" \
-  experiments/cvrp_aco/shinka_evo/fair1000_20260730_1755_cvrp_shinka_rep1 \
-  experiments/cvrp_aco/shinka_evo/fair1000_20260730_1755_cvrp_shinka_rep2_retry2 \
-  experiments/cvrp_aco/shinka_evo/fair1000_20260730_1755_cvrp_shinka_rep3_retry2
+  experiments/cvrp_aco/shinka_evo/20260730_1755_cvrp_shinka_rep1 \
+  experiments/cvrp_aco/shinka_evo/20260730_1755_cvrp_shinka_rep2_retry2 \
+  experiments/cvrp_aco/shinka_evo/20260730_1755_cvrp_shinka_rep3_retry2
 
 run_method traceaad_v4 \
   "experiments/cvrp_aco/traceaad_v4/version4/eval_best_${TAG}" \

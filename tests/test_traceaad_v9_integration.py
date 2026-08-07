@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from experiments.runners.traceaad import launch, run, schedule
+from experiments.runners.traceaad import launch, run
 from llm4ad.method.traceaad_v9 import (
     CHECKPOINT_VERSION as V9_CHECKPOINT_VERSION,
     PROTOCOL_ID as V9_PROTOCOL_ID,
@@ -55,7 +55,6 @@ def test_v9_run_config_has_independent_protocol_identity(tmp_path: Path) -> None
 
     assert not resumed
     assert payload["method"] == "traceaad_v9"
-    assert payload["experiment_version"] == "version9"
     assert params["protocol_id"] == V9_PROTOCOL_ID
     assert params["checkpoint_schema_version"] == V9_CHECKPOINT_VERSION
     assert params["history_protocol"] == "matched_history"
@@ -96,26 +95,11 @@ def test_v9_resume_rejects_changed_core_configuration(tmp_path: Path) -> None:
         run.resolve_run_dir(changed)
 
 
-def test_v9_launch_and_scheduler_preserve_version_identity(tmp_path: Path) -> None:
+def test_v9_launch_preserves_version_identity(tmp_path: Path) -> None:
     args = launch.build_parser().parse_args(
         ["--task", "tsp_construct", "--version", "v9", "--dry-run"]
     )
     plan = launch.build_launch_plan(args)
     assert plan[0].command[plan[0].command.index("--version") + 1] == "v9"
     assert plan[0].command[plan[0].command.index("--n-init") + 1] == "10"
-
-    state = schedule.build_state(
-        batch="v9_test",
-        budget=17,
-        n_init=10,
-        context_token_limit=24576,
-        version="v9",
-        experiments_root=tmp_path,
-    )
-    assert state["protocol_id"] == V9_PROTOCOL_ID
-    jobs = state["jobs"]
-    assert isinstance(jobs, list)
-    assert len(jobs) == 12
-    assert all(job["version"] == "v9" for job in jobs)
-    assert all(str(job["run_name"]).startswith("v9_v9_test_") for job in jobs)
-    assert all(str(job["session"]).startswith("traceaad_v9_v9_test_") for job in jobs)
+    assert plan[0].run_name == f"{args.batch or ''}_tspc_v9_rep1" or plan[0].run_name.endswith("_tspc_v9_rep1")

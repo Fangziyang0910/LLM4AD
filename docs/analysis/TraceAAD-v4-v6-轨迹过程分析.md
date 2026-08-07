@@ -14,9 +14,9 @@
 
 ### 2.1 数据来源与重建
 
-分析脚本为 [experiments/analysis/analyze_traceaad_process.py](../../experiments/analysis/analyze_traceaad_process.py)。数据日期为 2026-08-02，共 36 个已完成 run（4 任务 × 3 版本 × 3 重复）。这 36 个 run 是已删除的[跨方法轨迹过程分析]的 `version4/version5/version6` 子集；run 级指标与图表可由上述脚本从原始实验日志重新生成。
+分析脚本为 [experiments/analysis/analyze_traceaad_process.py](../../experiments/analysis/analyze_traceaad_process.py)。数据日期为 2026-08-02，共 36 个已完成 run（4 任务 × 3 版本 × 3 重复）。这 36 个 run 是已删除的[跨方法轨迹过程分析]的 `version4/version6` 子集；run 级指标与图表可由上述脚本从原始实验日志重新生成。
 
-36 个 run 覆盖 `tsp_construct`、`cvrp_aco`、`op_aco`、`online_bin_packing` × `version4/version5/version6` × 3 重复，全部完成 1000 次评估，状态为 `finished`。模型统一为 Qwen3.6-27B（NVFP4），temperature 1.0；同任务内评估配置一致（task_eval 字段相同），因此可作为受控的方法版本比较。
+36 个 run 覆盖 `tsp_construct`、`cvrp_aco`、`op_aco`、`online_bin_packing` × `version4/version6` × 3 重复，全部完成 1000 次评估，状态为 `finished`。模型统一为 Qwen3.6-27B（NVFP4），temperature 1.0；同任务内评估配置一致（task_eval 字段相同），因此可作为受控的方法版本比较。
 
 事件流 `method_events.jsonl` 提供 `program_evaluated`、`best_updated`、`child_accepted`、`operator_batch`、`trajectory_selection`、`population_management`；`samples/samples_*.json` 提供程序代码与分数。v5/v6 的节点与样本通过 `code_hash` 逐一映射；v4 使用已验证的 `profiler_sample_order` 对应 `sample_order`，init 节点按成功样本顺序对应。
 

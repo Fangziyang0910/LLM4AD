@@ -193,7 +193,7 @@ def launch_item(item: LaunchItem) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Launch CALM (w/o GRPO) fair-budget runs in tmux."
+        description="Launch CALM (w/o GRPO) runs at 1000-eval budget in tmux."
     )
     parser.add_argument("--batch", default=datetime.now().strftime("%Y%m%d_%H%M%S"))
     parser.add_argument("--session-prefix", default="calm")
