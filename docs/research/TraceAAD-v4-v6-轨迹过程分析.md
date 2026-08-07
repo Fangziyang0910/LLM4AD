@@ -14,7 +14,7 @@
 
 ### 2.1 数据来源与重建
 
-分析脚本为 [experiments/analysis/analyze_traceaad_process.py](../../experiments/analysis/analyze_traceaad_process.py)。数据日期为 2026-08-02，共 36 个已完成 run（4 任务 × 3 版本 × 3 重复），原始文件为 `docs/research/traceaad_v4-v6_analysis/run_metrics.csv`。
+分析脚本为 [experiments/analysis/analyze_traceaad_process.py](../../experiments/analysis/analyze_traceaad_process.py)。数据日期为 2026-08-02，共 36 个已完成 run（4 任务 × 3 版本 × 3 重复）。这 36 个 run 是[跨方法轨迹过程分析](跨方法轨迹过程分析.md)的 `version4/version5/version6` 子集，run 级指标见 `cross_method_analysis/run_metrics.csv`；本版本专属的中间量与图表可由上述脚本重新生成。
 
 36 个 run 覆盖 `tsp_construct`、`cvrp_aco`、`op_aco`、`online_bin_packing` × `version4/version5/version6` × 3 重复，全部完成 1000 次评估，状态为 `finished`。模型统一为 Qwen3.6-27B（NVFP4），temperature 1.0；同任务内评估配置一致（task_eval 字段相同），因此可作为受控的方法版本比较。
 
@@ -82,7 +82,7 @@
 
 **观察。** v6 的新颖性最高、局部精炼率最低；v5 的 H_spatial 最低，但最终性能仍低于 v4。H_fitness 与 H_spatial 几乎相同。该结果可能表示窗口内高质量候选与全体候选的分布接近，也可能来自窗口熵接近上界造成的低区分度。
 
-曲线图：`traceaad_v4-v6_analysis/fig_best_sofar.png`（各任务 best-so-far 曲线）、`fig_h_spatial.png`（局部化动态）。
+对应的 best-so-far 曲线与局部化动态图见 `cross_method_analysis/fig_best_sofar.png` 与 `fig_h_spatial.png` 中的 version4/5/6 系列。
 
 ### 3.4 窗口级回归（并发 + 滞后）
 
@@ -115,7 +115,7 @@ R²：并发 0.071，滞后 0.059。**观察。** 论文的“新颖性×空间�
 
 ### 4.2 待验证假设
 
-**假设 B。** v6 更大的语义步长来自更激进的 ideate/refine，并降低父代精炼可靠性。双轨迹算子占比低，不能解释总体差异。可按算子分组重算 LRR/PCD；本分析已保存 edge 表，可直接分组。
+**假设 B。** v6 更大的语义步长来自更激进的 ideate/refine，并降低父代精炼可靠性。双轨迹算子占比低，不能解释总体差异。可按算子分组重算 LRR/PCD；edge 表由分析脚本重新生成后即可直接分组。
 
 **假设 C。** 论文提出的“局部化条件下新颖性才有生产力”需要真正的代内种群快照才能检验，当前窗口代理不足。需要在日志中加入 active pool 快照，再重算熵与交互。
 

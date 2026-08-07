@@ -1,9 +1,11 @@
 # TraceAAD V8.3-credit：基于路线信用的轨迹驱动 MCTS 设计
 
-> 状态：本文保留 V8.3-credit 修正版的详细机制设计。当前实现已进入正式训练，四任务
-> 三重复与 held-out 尚未全部完成；在完成前不将其结果写入正式结果汇总。
+> 状态：本文定义 V8.3-credit 修正版的机制。实现位于 `llm4ad/method/traceaad_v8_3/`，
+> 机制测试 `tests/method/test_traceaad_v8_3_mechanics.py`（13 项）已通过，小预算冒烟已通过。
+> 正式训练批次 `v83_20260806_credit_*` 中，TSP / OBP / OP 的三重复与对应 held-out 已完成，
+> CVRP 三重复训练尚未完成；全部完成前不将结果写入正式结果汇总。
 >
-> 版本日期：2026-08-05。本文定义 V8.3-credit 修正版的科学主张、运行协议、
+> 版本日期：2026-08-06。本文定义 V8.3-credit 修正版的科学主张、运行协议、
 > 数据结构、搜索流程和实现不变量。实验结果与临时运行记录不写入本文。
 > 原始正式 V8.3 及其已完成结果由
 > [V8.3 正式版完整机制设计](TraceAAD-v8.3正式版完整机制设计.md)独立定义。
@@ -203,10 +205,12 @@ TreeNode = {
     algorithm: AlgorithmRecord,
     parent_id,
     child_ids,
+    depth,
     visit_count,
     expansion_attempts,
     credit_sum,
     credit_count,
+    creation_order,
 }
 ```
 
@@ -214,14 +218,16 @@ TreeNode = {
 
 - `parent_id`：唯一结构父节点；
 - `child_ids`：已经从该节点产生的有效子节点，按创建顺序保存；
-- `visit_count`：MCTS 选择路径经过该节点的次数；
+- `depth`：结构深度，虚拟根的直接子节点为 1；
+- `visit_count`：MCTS 选择路径经过该节点的次数；新节点入树时取 $N=1$；
 - `expansion_attempts`：该节点被选中并尝试生成新子代的次数，包括失败尝试；
-- `credit_sum / credit_count`：从该路线继续搜索时已经观察到的直接扩展回报总和与次数。
+- `credit_sum / credit_count`：从该路线继续搜索时已经观察到的直接扩展回报总和与次数；
+- `creation_order`：入树顺序，用于局部探索脉络在子树最好同分时选择更晚创建的分支。
 
 `expansion_attempts` 不是子节点数量。一个节点可能有 3 次扩展尝试、2 个有效子节点和
 1 次失败。
 
-节点深度、有向 fitness 和子树价值都从结构和算法记录中计算，不属于核心节点字段。
+有向 fitness 和子树最好价值从节点记录与树结构按需计算，不缓存为独立核心字段。
 
 ### 6.3 修改边
 
@@ -267,8 +273,8 @@ $$
 每轮搜索从虚拟根开始。虚拟根和程序节点都遵循 MCTS-AHD 的 progressive widening
 顺序。对当前节点 $n$，当直接子代数低于
 $\max(1,\lfloor N(n)^\alpha\rfloor)$ 时，本轮直接把 $n$ 作为新子代的父节点；
-这一步不与 `descend` 进行价值竞争。宽度达到后，才在已有子节点中按 UCT 选择
-`descend(c)` 并继续向下。叶节点没有可下降的子节点，因此必然扩展。
+这一步不与 `descend` 进行价值竞争。宽度达到后，才在已有子节点中按第 7.6 节的
+概率 UCB 选择 `descend(c)` 并继续向下。叶节点没有可下降的子节点，因此必然扩展。
 
 虚拟根的 `new_child` 使用 `e1` 生成新的独立根方案；程序节点的扩展仍从五个
 算子中等概率选择。这样路线数量由访问次数渐进增加，避免成功 sibling 使某个
@@ -457,7 +463,7 @@ fitness 及系统根据优化方向计算的「改进 / 持平 / 退步」结果
 避开已尝试且效果不佳的方向，然后输出一条简洁、可执行的
 `design_idea` 和与之一致的完整代码。
 
-父代和子代的完整代码、访问次数、扩展次数、UCT 项、轨迹先验、路线信用、
+父代和子代的完整代码、访问次数、扩展次数、UCB 探索项、轨迹先验、路线信用、
 节点排名和 global best 不进入该基础上下文。这些量服务于搜索调度，不是 LLM 完成下一次
 算法修改所必需的设计信息。
 
@@ -651,7 +657,7 @@ Call 2 with retry:
     parse description
 
 if generation or parsing fails:
-    record generation_failed
+    record generation_failed with zero route credit
     do not evaluate and do not add tree state
     continue with the next search iteration
 
@@ -659,13 +665,14 @@ evaluate code
 record evaluator count and evaluation_time
 
 if evaluation fails:
-    record eval_failed
+    record eval_failed with zero route credit
     do not add tree state
 else:
     create one AlgorithmRecord
     create one TreeNode
-    create one TreeEdge
-    update ancestor subtree values and global best
+    create one TreeEdge and freeze parent/child quality snapshots
+    record the direct expansion reward along the selection path
+    update global best
 ```
 
 一次扩展最多增加一个有效子节点。失败尝试仍增加选择路径访问和
@@ -695,7 +702,7 @@ else:
 
 树保存算法、拓扑和 MCTS 状态。每次扩展另外记录足以还原本次科研过程的最小信息：
 
-- 待扩展节点和完整选择路径；
+- 待扩展节点、完整选择路径，以及各选择步的轨迹先验、路线信用、探索项、分数与抽样概率；
 - 实际算子和参考节点；
 - 实际局部探索脉络和 Call 1 prompt；
 - 两次 LLM 调用结果；
@@ -731,9 +738,9 @@ else:
 19. 参考候选是除当前节点外的全树有效节点，不按出身、关系或历史使用情况进一步过滤；
 20. `trace_crossover` 在候选集中按标准化有向 fitness softmax 抽取一个参考节点，
     默认 $\tau_{\mathrm{ref}}=1.0$，全部同分时退化为均匀抽样；
-21. 成功新节点以 $N=1$ 入树并以自身有向 fitness 初始化 $G$，祖先 $G$ 按自身与所有子代的最好值执行 max-backup；该后代回传只用于已有子代的 `descend` 价值；
-22. 每次成功扩展在边创建时冻结直接子节点的 $F(c)$ 和父节点 $F(n)$，`new_child` 回报只使用这两个快照和 $[F(c)-F(n)]_+$，后续后代或全局秩变化都不 retroactively 改写该回报；
-23. 失败尝试不改变 $G$，但保留已增加的访问和 $A$，并以零回报保留在扩展信用记录中；
+21. 成功新节点以 $N=1$ 入树；子树最好有向 fitness $G$ 仅按需计算，用于局部探索脉络中的代表性分支展示，不参与节点选择；选择使用轨迹先验、路线经验信用与概率 UCB；
+22. 每次成功扩展在边创建时冻结直接子节点的 $F(c)$ 和父节点 $F(n)$，单次扩展回报只使用这两个快照和 $[F(c)-F(n)]_+$，后续后代或全局秩变化都不 retroactively 改写该回报；
+23. 失败尝试不创建节点或边，但保留已增加的访问和 $A$，并以零回报写入本轮选择路径上的路线信用；
 24. 当 $|\operatorname{Children}(n)|<\max(1,\lfloor N(n)^\alpha\rfloor)$ 时无条件触发该节点扩展，达到宽度后才允许 `descend`；
 25. 连续 20 次尝试未产生有效算法时停止，产生任意有效算法后该计数清零。
 
@@ -760,7 +767,8 @@ record_outcome(path, reward)
 
 `SearchTree` 是结构与路线信用的唯一来源。轨迹从父子关系重建，路线信用保存在节点；
 边上的 `parent_quality` 与 `child_quality` 是创建时冻结的直接回报快照，属于边事实而
-不是当前全树秩的动态缓存。
+不是当前全树秩的动态缓存。`subtree_value` 仅供局部探索脉络按需读取子树最好原始
+fitness，不参与节点选择。
 
 ### 12.3 `Selector`
 
@@ -807,7 +815,7 @@ EvaluationResult = {
 - 深度大于 3 的节点只展示最近 3 个形成步骤，较浅节点展示全部来时路；
 - 人工构造多个直接子节点时，代表分支按「子树最好、最近未改进、最近其余」确定选出且不重复；
 - 直接子节点本身退步但后代刷新分支最好时，上下文同时展示直接结果与后续最好结果；
-- 局部脉络中只有当前节点完整代码，且不包含 UCT、访问计数、节点排名或 global best；
+- 局部脉络中只有当前节点完整代码，且不包含 UCB 探索项、访问计数、节点排名或 global best；
 - 生成、解析和评估失败保留在运行记录中，不进入简约局部探索脉络；
 - 五个算子共享相同的任务、当前节点、局部脉络和输出协议，只替换算子特定提示；
 - `trace_tune` 生成包含必要结构调整的候选时，不会因超出「只改参数」而被判定失效；
@@ -833,5 +841,5 @@ EvaluationResult = {
 - 人工构造的小树上，宽度不足会触发横向扩展，宽度满足后概率 UCB 会继续下降；
 - 同层高价值节点的抽样概率更高但小于 1，较弱节点仍能在重复抽样中被选中。
 
-V8.3 在完成这些实现验证和重复实验前，只代表确定的机制设计，不代表已经获得性能
-收益。
+机制测试与小预算冒烟已完成；正式四任务三重复与完整 held-out 尚未全部结束。
+在全部完成并写入正式结果汇总前，本文只定义机制，不代表已经获得性能收益。

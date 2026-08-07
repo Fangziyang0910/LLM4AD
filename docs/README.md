@@ -6,7 +6,6 @@
 
 | 内容 | 入口 |
 | --- | --- |
-| 临时想法与待澄清问题 | [inbox.md](inbox.md) |
 | 活跃研究问题 | [research/](research/README.md) |
 | LLM 自动算法设计研究认识 | [knowledge/LLM自动算法设计.md](knowledge/LLM自动算法设计.md) |
 | TraceAAD 研究认识 | [knowledge/研究认识.md](knowledge/研究认识.md) |
@@ -20,11 +19,10 @@
 ## 信息流
 
 ```text
-inbox → research → knowledge / methods / experiments / results
-                       ↘ archive
+research → knowledge / methods / experiments / results
+               ↘ archive
 ```
 
-- 新想法先进入 `inbox.md`；形成明确问题后转入 `research/`。
 - 一个研究问题在同一篇笔记中维护假设、设计、观察、分析和决定。
 - 稳定认识进入 `knowledge/`，采用的机制进入 `methods/`，固定协议进入 `experiments/`，完成结果进入 `results/`。
 - `worklog/` 只记录时间和链接；冻结材料进入 `archive/`。

@@ -2,7 +2,7 @@
 
 > 本文定义正式 TraceAAD V6 的机制；实现位于 `llm4ad/method/traceaad_v6/`。
 > 质量门控 V6 的完整机制见 [V6 质量门控版完整机制设计](TraceAAD-v6质量门控版完整机制设计.md)，
-> 差异与历史实验见 [V6 开发复盘](../archive/development/TraceAAD-V6开发复盘.md)。
+> 差异与历史实验见本文 §13 开发谱系与阶段结论。
 > V4、V5 由各自文档和实现独立定义。
 
 ## 科学动机与可证伪设计假设
@@ -139,7 +139,7 @@ active frontier 目标规模为 $M=30$。有效子程序产生新的 active 轨�
 - 原子 checkpoint、随机数状态、global best 与完整图状态（`checkpoints/`）；
 - 严格的配置一致性检查。
 
-当前协议标识为 `traceaad-v6`，checkpoint schema version 为 8。checkpoint 核对完整搜索配置以及任务/模型非秘密身份，**不**保存 profiler 事件计数。运行工件与其他 TraceAAD 版本共用 `TraceAADArtifacts` 三分开契约。质量门控版 V6 的旧 checkpoint 不允许静默续跑到当前协议；旧实验位于 [`archive/traceaad-v6-development/`](../../archive/traceaad-v6-development/)，见 [V6 开发复盘](../archive/development/TraceAAD-V6开发复盘.md)。
+当前协议标识为 `traceaad-v6`，checkpoint schema version 为 8。checkpoint 核对完整搜索配置以及任务/模型非秘密身份，**不**保存 profiler 事件计数。运行工件与其他 TraceAAD 版本共用 `TraceAADArtifacts` 三分开契约。质量门控版 V6 的旧 checkpoint 不允许静默续跑到当前协议；旧实验位于 [`archive/traceaad-v6-development/`](../../archive/traceaad-v6-development/)，见本文 §13。
 
 ### 11. 默认协议
 
@@ -166,7 +166,26 @@ V6 的预期结果由训练搜索得到的算法质量、重复实验稳定性�
 
 需要由候选、轨迹和种群事件直接统计或重放计算的指标包括：父子改善、route/global-best 更新、后半程突破、算子条件结果、active 代码重复率、程序 LOC、代码变化、有效候选率和达到目标质量的 evaluator 调用数。任何新门控或调度规则都需要独立消融证明其提高最终算法质量，不能只因为它改善某个过程指标就进入主协议。
 
-### 13. 相关文档
+### 13. 开发谱系与阶段结论
+
+质量门控版 V6 加入成熟度、路线信用、差异门槛、固定双轨迹比例、精确 endpoint 去重和多层 survivor 等代理，试图实现"先局部、后多样"。完整四任务实验后，过程上仍是大步长、低局部可靠性和较低突破率，没有稳定超过 V4。随后收敛到当前正式 V6：删除未经验证的质量代理，只保留真实历史、`Q+UCB`、四算子等概率、global-best route 与 Q-softmax 生存。
+
+| 阶段 | Git commit / 批次 | 说明 |
+| --- | --- | --- |
+| 质量门控 V6 正式比较结果入档 | `d4cf664` | 批次 `v6_20260801_183249` 的 held-out 曾进入结果页 |
+| 简约协议重构 | `fde9129` | 实现切到当前 V6 |
+| V6 四任务完成 | 批次 `v6_20260802_170400` | 训练 + held-out 见[实验总汇](../results/实验总汇.md) |
+
+阶段结论：
+
+- 成熟度、路线信用、差异参考和状态化算子调度依赖手工代理；质量门控正式运行中双轨迹占比约 14%，ideate/refine 仍放大代码步长，LRR 最低、regress 最高，未实现"围绕优质区域可靠局部改进"。
+- V6 在 TSP 三尺度 held-out 均值最好，说明删代理并非处处失败；但 OBP 两个重复训练 best 停在 seed，active 出现大量重复 endpoint，capacity=100 明显退化。
+- 删除未经验证的质量门槛符合举证责任；删除精确 endpoint 去重则不同。相同代码是否重复是可直接判断的事实，不是主观质量代理。后续最小消融应单独恢复精确去重，不恢复成熟度/信用/语义差异门槛。
+- 八方法同场时 V6 平均名次第 4；单版本对外部方法时平均名次第 3，相对优势弱于 V5/V4。正式比较与单版本上场结论见[实验总汇 §4](../results/实验总汇.md)。
+
+质量门控 V6 只作机制诊断与过程对照，不进入正式结果表；原始工件见 `archive/traceaad-v6-development/<task>/quality_gate/`。
+
+### 14. 相关文档
 
 - [TraceAAD V4 完整机制设计](TraceAAD-v4完整机制设计.md)
 - [TraceAAD V5 完整机制设计](TraceAAD-v5完整机制设计.md)

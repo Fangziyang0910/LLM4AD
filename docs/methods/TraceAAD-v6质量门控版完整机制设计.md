@@ -203,6 +203,6 @@ V6 协议。
 
 相关证据：
 
-- [V6 开发复盘](../archive/development/TraceAAD-V6开发复盘.md)
+- [正式 V6 方法规范](TraceAAD-v6完整机制设计.md)
 - [V6 历史归档 README](../../archive/traceaad-v6-development/README.md)
 - [V4-V6 轨迹过程分析](../research/TraceAAD-v4-v6-轨迹过程分析.md)
