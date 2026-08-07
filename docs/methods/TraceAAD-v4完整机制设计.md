@@ -195,3 +195,8 @@ V4 的实现位于 `llm4ad/method/traceaad_v4/`，实验统一由
 - [程序膨胀](../research/RQ-001-程序膨胀.md)；
 - [TraceAAD V4 机制审计](../archive/audits/TraceAAD-v4机制审计.md)；
 - [TraceAAD V5 方法设计](TraceAAD-v5完整机制设计.md)。
+
+V4 之前的初代版本：
+
+- [V2](TraceAAD-v2完整机制设计.md)：岛模型、多算子信用分配与精英课程
+- [V3](TraceAAD-v3完整机制设计.md)：去除附属层、回到轨迹主干
