@@ -1,6 +1,6 @@
 """评估当前 held-out 结果协议的分辨率。
 
-从 `docs/results/实验总汇.md` 解析 11 方法 × 15 held-out 规模的
+从 `docs/experiments/实验总汇.md` 解析 11 方法 × 15 held-out 规模的
 "均值 ± 样本标准差"（n=3），回答三个问题：
 
 1. 各方法 15 规模平均名次的抽样不确定性有多大？
@@ -25,8 +25,8 @@ from pathlib import Path
 import numpy as np
 
 REPO = Path(__file__).resolve().parents[2]
-SUMMARY = REPO / "docs" / "results" / "实验总汇.md"
-OUT_DIR = REPO / "docs" / "research" / "version_diagnosis"
+SUMMARY = REPO / "docs" / "experiments" / "实验总汇.md"
+OUT_DIR = REPO / "docs" / "analysis" / "version_diagnosis"
 
 N_REP = 3
 N_BOOT = 20000

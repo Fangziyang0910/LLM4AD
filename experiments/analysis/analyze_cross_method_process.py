@@ -662,7 +662,7 @@ def best_sofar_curve(logs_dir: Path) -> list[float]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--out", default=ROOT / "docs" / "research" / "cross_method_analysis"
+        "--out", default=ROOT / "docs" / "analysis" / "cross_method_analysis"
     )
     parser.add_argument("--no-regress", action="store_true")
     parser.add_argument(

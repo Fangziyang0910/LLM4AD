@@ -44,7 +44,7 @@ import numpy as np
 from scipy import stats
 
 REPO = Path(__file__).resolve().parents[2]
-OUT_DIR = REPO / "docs" / "research" / "version_diagnosis"
+OUT_DIR = REPO / "docs" / "analysis" / "version_diagnosis"
 
 BASELINE = "MCTS-AHD"
 

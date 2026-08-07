@@ -1,6 +1,6 @@
 # LLM4AD — Active Algorithm Development Platform
 
-本仓库是 [LLM4AD](https://github.com/Optima-CityU/llm4ad) 的分支，作为我们课题组的 **active platform**，用于统一运行和对比各类 LLM 驱动的自动启发式设计方法。当前重点对比 **MCTS-AHD / PathWise / TraceAAD** 在组合优化（routing 类等）任务上的表现。
+本仓库是 [LLM4AD](https://github.com/Optima-CityU/llm4ad) 的分支，作为我们课题组的 **active platform**，用于统一运行和对比各类 LLM 驱动的自动启发式设计方法。当前主线方法为 **TraceAAD**（V9-Core），对照方法包括 MCTS-AHD / PathWise / EoH / ReEvo 等，任务为组合优化（TSP / CVRP / OP / OBP）。
 
 > 本仓库的协作规则见仓库根目录 `AGENTS.md`。相关论文位于上级目录 `../papers/`，原始参考代码位于 `../reference_code/`，两者默认只读。
 
@@ -24,27 +24,32 @@ LLM4AD/
 
 ## 运行实验
 
-TraceAAD 使用统一参数化入口：
+统一参数化入口，运行目录与工件布局见各方法 runner：
 
 ```bash
 uv run python -m experiments.runners.traceaad.run \
-  --task tsp_construct --version v5 --backend local
+  --task tsp_construct --version v9 --backend local
 
 uv run python -m experiments.runners.traceaad.launch \
-  --task tsp_construct --version v5 --backend local --repeats 3
+  --task tsp_construct --version v9 --backend local --repeats 3
 ```
 
-`launch` 自动建立独立 tmux 与 run 名称。每次运行仍在对应
-`experiments/<task>/traceaad_<version>/<version>/` 下保存 `run_config.json`、
+`launch` 自动建立独立 tmux 与 run 名称。每次运行在对应
+`experiments/<task>/<method>/<version>/<run_name>/` 下保存 `run_config.json`、
 `tmux_run.log` 和 `logs/`，不需要手写配置或批次脚本。这些原始工件只保存在
-实验机器本地，不进入 Git。其它方法入口见 `experiments/runners/`。完整参数见
-`python -m experiments.runners.traceaad.run --help`，布局细则见
-`experiments/README.md`。
+实验机器本地，不进入 Git。其它方法入口见 `experiments/runners/`（EoH / ReEvo /
+PathWise / ShinkaEvolve / CALM），公平预算统一调度：
+
+```bash
+uv run python -m experiments.runners.fair1000.launch --watch
+```
+
+完整参数见 `python -m experiments.runners.traceaad.run --help`。
 
 ## 当前实验矩阵
 
 当前覆盖统一见 `docs/experiments/覆盖.md`。定稿结果见
-`docs/results/<task>/结果汇总.md`，运行过程和研究记录见当周
+`docs/experiments/<task>/结果汇总.md`，运行过程和研究记录见当周
 `docs/worklog/YYYY-Www.md`。
 
 ## 配置要点
