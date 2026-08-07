@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Iterator
 
 from llm4ad.method.traceaad_v8 import PROTOCOL_ID as V8_PROTOCOL_ID
-from llm4ad.method.traceaad_v8_3 import PROTOCOL_ID as V83_PROTOCOL_ID
+from llm4ad.method.traceaad_v9 import PROTOCOL_ID as V9_PROTOCOL_ID
 
 from . import run
 
@@ -41,16 +41,8 @@ BACKEND_URL_MARKERS: dict[run.BackendName, str] = {
 TERMINAL_STATUSES = {"finished", "failed", "stalled", "launch_failed"}
 FAILED_SUMMARY_STATUSES = {"error", "aborted", "interrupted"}
 DEFAULT_STATE_DIR = run.EXPERIMENTS_ROOT / ".traceaad_v8_scheduler"
-PROTOCOL_IDS = {"v8": V8_PROTOCOL_ID, "v8_3": V83_PROTOCOL_ID}
+PROTOCOL_IDS = {"v8": V8_PROTOCOL_ID, "v9": V9_PROTOCOL_ID}
 PROTOCOL_ID = V8_PROTOCOL_ID
-
-
-def _v83_backend(task: run.TaskName, repeat: int) -> run.BackendName:
-    if task in {"tsp_construct", "cvrp_aco"}:
-        return "zhong"
-    if task == "op_aco" or repeat == 1:
-        return "server1"
-    return "local"
 
 
 def _now() -> str:
@@ -172,7 +164,7 @@ def build_state(
     for repeat in range(1, 4):
         for task in run.TASKS:
             short = TASK_SHORT[task]
-            tag = "v82" if version == "v8" else "v83"
+            tag = "v82" if version == "v8" else "v9"
             run_name = f"{tag}_{batch}_{short}_rep{repeat}"
             jobs.append(
                 {
@@ -180,9 +172,7 @@ def build_state(
                     "repeat": repeat,
                     "seed": repeat,
                     "backend": None,
-                    "preferred_backend": (
-                        _v83_backend(task, repeat) if version == "v8_3" else None
-                    ),
+                    "preferred_backend": None,
                     "version": version,
                     "session": f"traceaad_{tag}_{batch}_{short}_r{repeat}",
                     "run_name": run_name,
@@ -224,15 +214,33 @@ def save_state(state: dict[str, object], path: Path) -> None:
     temporary.replace(path)
 
 
-def load_state(path: Path) -> dict[str, object]:
+def load_state(
+    path: Path,
+    *,
+    expected_version: run.VersionName | None = None,
+) -> dict[str, object]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if payload.get("schema") != STATE_SCHEMA:
         raise ValueError(f"unsupported scheduler state schema: {payload.get('schema')}")
-    if payload.get("protocol_id") not in PROTOCOL_IDS.values():
-        raise ValueError("scheduler state belongs to a different V8 protocol")
+    protocol_id = payload.get("protocol_id")
+    if protocol_id not in PROTOCOL_IDS.values():
+        raise ValueError("scheduler state belongs to a different TraceAAD tree protocol")
+    state_version = next(
+        version for version, value in PROTOCOL_IDS.items() if value == protocol_id
+    )
+    if expected_version is not None and state_version != expected_version:
+        raise ValueError(
+            "scheduler state protocol does not match requested version: "
+            f"state={state_version} requested={expected_version}"
+        )
     jobs = payload.get("jobs")
     if not isinstance(jobs, list) or len(jobs) != 12:
         raise ValueError("scheduler state must contain exactly 12 jobs")
+    if any(
+        not isinstance(job, dict) or job.get("version") != state_version
+        for job in jobs
+    ):
+        raise ValueError("scheduler job version does not match state protocol")
     return payload
 
 
@@ -264,6 +272,10 @@ def reconcile_job(job: dict[str, object]) -> bool:
     if summary_status == "finished":
         job["status"] = "finished"
         job["terminal_at"] = job.get("terminal_at") or _now()
+    elif summary_status == "stalled":
+        job["status"] = "stalled"
+        job["terminal_at"] = job.get("terminal_at") or _now()
+        job["error"] = job.get("error") or "run summary status=stalled"
     elif summary_status in FAILED_SUMMARY_STATUSES:
         job["status"] = "failed"
         job["terminal_at"] = job.get("terminal_at") or _now()
@@ -435,7 +447,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Fill backend slots with 12 TraceAAD tree-method runs."
     )
     parser.add_argument("--batch", default=datetime.now().strftime("%Y%m%d_%H%M%S"))
-    parser.add_argument("--version", choices=("v8", "v8_3"), default="v8_3")
+    parser.add_argument("--version", choices=tuple(PROTOCOL_IDS), default="v8")
     parser.add_argument("--budget", type=int, default=1000)
     parser.add_argument("--n-init", type=int, default=10)
     parser.add_argument("--context-token-limit", type=int, default=24576)
@@ -478,7 +490,7 @@ def main(argv: list[str] | None = None) -> None:
 
     def load_or_build() -> dict[str, object]:
         if state_path.exists():
-            return load_state(state_path)
+            return load_state(state_path, expected_version=args.version)
         return build_state(
             batch=args.batch,
             budget=args.budget,

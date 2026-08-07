@@ -22,35 +22,6 @@ from llm4ad.method.traceaad_v5 import (
 from llm4ad.method.traceaad_v5 import (
     ValueWeights as V5ValueWeights,
 )
-from llm4ad.method.traceaad_v6 import (
-    CHECKPOINT_VERSION as V6_CHECKPOINT_VERSION,
-)
-from llm4ad.method.traceaad_v6 import (
-    PROTOCOL_ID as V6_PROTOCOL_ID,
-)
-from llm4ad.method.traceaad_v6 import (
-    TraceAADV6,
-)
-from llm4ad.method.traceaad_v6 import (
-    ValueWeights as V6ValueWeights,
-)
-from llm4ad.method.traceaad_v6.operators import DEFAULT_OPERATORS as V6_OPERATORS
-from llm4ad.method.traceaad_v7 import (
-    CHECKPOINT_VERSION as V7_CHECKPOINT_VERSION,
-)
-from llm4ad.method.traceaad_v7 import (
-    PROTOCOL_ID as V7_PROTOCOL_ID,
-)
-from llm4ad.method.traceaad_v7 import (
-    TraceAADV7,
-)
-from llm4ad.method.traceaad_v7 import (
-    ValueWeights as V7ValueWeights,
-)
-from llm4ad.method.traceaad_v7.operators import DEFAULT_OPERATORS as V7_OPERATORS
-from llm4ad.method.traceaad_v7.prompt import (
-    ACTION_OUTPUT_MODE as V7_ACTION_OUTPUT_MODE,
-)
 from llm4ad.method.traceaad_v8 import (
     CHECKPOINT_VERSION as V8_CHECKPOINT_VERSION,
 )
@@ -59,12 +30,12 @@ from llm4ad.method.traceaad_v8 import (
 )
 from llm4ad.method.traceaad_v8 import TraceAADV8
 from llm4ad.method.traceaad_v8.operators import DEFAULT_OPERATORS as V8_OPERATORS
-from llm4ad.method.traceaad_v8_3 import (
-    DEFAULT_OPERATORS as V83_OPERATORS,
-    PROTOCOL_ID as V83_PROTOCOL_ID,
-    SearchWeights as V83SearchWeights,
-    TraceAADV8_3,
+from llm4ad.method.traceaad_v9 import (
+    CHECKPOINT_VERSION as V9_CHECKPOINT_VERSION,
+    PROTOCOL_ID as V9_PROTOCOL_ID,
+    TraceAADV9,
 )
+from llm4ad.method.traceaad_v9.operators import DEFAULT_OPERATORS as V9_OPERATORS
 from llm4ad.task.optimization.cvrp_aco import CVRPACOEvaluation
 from llm4ad.task.optimization.generated_data_config import (
     get_generated_task_kwargs,
@@ -76,7 +47,7 @@ from llm4ad.tools.env import resolve_llm_api_key
 from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
 
 TaskName = Literal["tsp_construct", "cvrp_aco", "op_aco", "online_bin_packing"]
-VersionName = Literal["v4", "v5", "v6", "v7", "v8", "v8_3"]
+VersionName = Literal["v4", "v5", "v8", "v9"]
 BackendName = Literal["local", "server1", "zhong"]
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -87,11 +58,9 @@ TASKS: tuple[TaskName, ...] = (
     "op_aco",
     "online_bin_packing",
 )
-VERSIONS: tuple[VersionName, ...] = ("v4", "v5", "v6", "v7", "v8", "v8_3")
-V6_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V6_OPERATORS]
-V7_OPERATOR_NAMES = [str(operator.name) for operator in V7_OPERATORS]
+VERSIONS: tuple[VersionName, ...] = ("v4", "v5", "v8", "v9")
 V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
-V83_OPERATOR_NAMES = [str(operator.name) for operator in V83_OPERATORS]
+V9_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V9_OPERATORS]
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,7 +125,7 @@ class RunSpec:
     def llm_output_tokens(self) -> int:
         if self.output_tokens is not None:
             return self.output_tokens
-        return 16384 if self.version in {"v4", "v7"} else 8192
+        return 16384 if self.version == "v4" else 8192
 
 
 def make_run_spec(
@@ -188,7 +157,7 @@ def make_run_spec(
         model=model or profile.model,
         no_proxy=no_proxy or profile.no_proxy,
         budget=budget,
-        n_init=(10 if version in {"v8", "v8_3"} else 30) if n_init is None else n_init,
+        n_init=(10 if version in {"v8", "v9"} else 30) if n_init is None else n_init,
         eval_workers=eval_workers,
         output_tokens=output_tokens,
         action_max_tokens=action_max_tokens,
@@ -253,7 +222,7 @@ def build_method(
     spec: RunSpec,
     run_dir: Path,
     resume_from: Path | None = None,
-) -> TraceAADV4 | TraceAADV5 | TraceAADV6 | TraceAADV7 | TraceAADV8 | TraceAADV8_3:
+) -> TraceAADV4 | TraceAADV5 | TraceAADV8 | TraceAADV9:
     os.environ["NO_PROXY"] = spec.no_proxy
     os.environ["no_proxy"] = spec.no_proxy
     evaluation, _ = build_task(spec)
@@ -267,21 +236,6 @@ def build_method(
         enable_thinking=False,
     )
     artifacts = TraceAADArtifacts(run_dir=run_dir)
-    if spec.version == "v8_3":
-        search_weights = V83SearchWeights()
-        return TraceAADV8_3(
-            llm=llm,
-            evaluation=evaluation,
-            profiler=artifacts,
-            max_sample_nums=spec.budget,
-            n_init=spec.n_init,
-            search_weights=search_weights,
-            reference_temperature=1.0,
-            context_token_limit=spec.context_token_limit,
-            retry_count=3,
-            max_consecutive_sample_failures=20,
-            random_seed=spec.seed,
-        )
     common = {
         "llm": llm,
         "evaluation": evaluation,
@@ -293,8 +247,9 @@ def build_method(
         "resume_from": resume_from,
         "checkpoint_dir": run_dir / "checkpoints",
     }
-    if spec.version == "v8":
-        return TraceAADV8(
+    if spec.version in {"v8", "v9"}:
+        method_type = TraceAADV8 if spec.version == "v8" else TraceAADV9
+        return method_type(
             profiler=artifacts,
             ancestor_history_limit=8,
             direct_child_limit=8,
@@ -321,34 +276,11 @@ def build_method(
             **population_common,
             **common,
         )
-    if spec.version == "v5":
-        return TraceAADV5(
-            profiler=artifacts,
-            value_weights=V5ValueWeights(),
-            elite_count=3,
-            action_max_tokens=spec.action_max_tokens,
-            random_seed=spec.seed,
-            **population_common,
-            **common,
-        )
-    if spec.version == "v6":
-        return TraceAADV6(
-            profiler=artifacts,
-            value_weights=V6ValueWeights(),
-            action_max_tokens=spec.action_max_tokens,
-            code_max_tokens=spec.llm_output_tokens,
-            context_token_limit=spec.context_token_limit,
-            random_seed=spec.seed,
-            **population_common,
-            **common,
-        )
-    return TraceAADV7(
+    return TraceAADV5(
         profiler=artifacts,
-        value_weights=V7ValueWeights(),
+        value_weights=V5ValueWeights(),
         elite_count=3,
         action_max_tokens=spec.action_max_tokens,
-        code_max_tokens=spec.llm_output_tokens,
-        context_token_limit=spec.context_token_limit,
         random_seed=spec.seed,
         **population_common,
         **common,
@@ -378,74 +310,47 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     actual = {key: payload.get(key) for key in expected}
     if actual != expected:
         raise ValueError(f"resume config mismatch: expected {expected}, found {actual}")
-    if spec.version not in {"v6", "v7", "v8"}:
+    if spec.version not in {"v8", "v9"}:
         return
     _, task_kwargs = build_task(spec)
     normalized_task_kwargs = json.loads(json.dumps(task_kwargs, sort_keys=True))
-    if spec.version == "v6":
-        protocol_id = V6_PROTOCOL_ID
-        checkpoint_version = V6_CHECKPOINT_VERSION
-        operator_names = V6_OPERATOR_NAMES
-        weights = V6ValueWeights()
-    elif spec.version == "v7":
-        protocol_id = V7_PROTOCOL_ID
-        checkpoint_version = V7_CHECKPOINT_VERSION
-        operator_names = V7_OPERATOR_NAMES
-        weights = V7ValueWeights()
-    else:
+    if spec.version == "v8":
         protocol_id = V8_PROTOCOL_ID
         checkpoint_version = V8_CHECKPOINT_VERSION
         operator_names = V8_OPERATOR_NAMES
-        weights = None
-    if spec.version == "v8":
-        expected_method_params = {
-            "protocol_id": protocol_id,
-            "checkpoint_schema_version": checkpoint_version,
-            "max_sample_nums": spec.budget,
-            "n_init": spec.n_init,
-            "offspring_per_iteration": 2,
-            "generation_protocol": "direct_code",
-            "quality_normalization": "global_midrank_percentile",
-            "expansion_policy": "adaptive_new_child_uct",
-            "expansion_reward": "batch_subtree_best_midrank",
-            "failed_expansion_reward": 0.0,
-            "root_expansion": False,
-            "ancestor_history_limit": 8,
-            "direct_child_limit": 8,
-            "direct_child_top_count": 4,
-            "reference_temperature": 0.2,
-            "exploration_constant": 0.1,
-            "expansion_prior_weight": 1.0,
-            "maximize": True,
-            "operators": operator_names,
-            "max_consecutive_sample_failures": 20,
-            "max_stalled_iterations": 20,
-            "checkpoint_interval": 10,
-            "code_max_tokens": spec.llm_output_tokens,
-            "context_token_limit": spec.context_token_limit,
-            "random_seed": spec.seed,
-        }
     else:
-        expected_method_params = {
-            "protocol_id": protocol_id,
-            "checkpoint_schema_version": checkpoint_version,
-            "max_sample_nums": spec.budget,
-            "n_init": spec.n_init,
-            "actions_per_iteration": 2,
-            "max_trajectory_length": 8,
-            "max_active_trajectories": 30,
-            "softmax_temperature": 0.2,
-            "maximize": True,
-            "operators": operator_names,
-            "max_consecutive_sample_failures": 20,
-            "max_stalled_iterations": 20,
-            "checkpoint_interval": 10,
-            "value_weights": asdict(weights),
-            "action_max_tokens": spec.action_max_tokens,
-            "code_max_tokens": spec.llm_output_tokens,
-            "context_token_limit": spec.context_token_limit,
-            "random_seed": spec.seed,
-        }
+        protocol_id = V9_PROTOCOL_ID
+        checkpoint_version = V9_CHECKPOINT_VERSION
+        operator_names = V9_OPERATOR_NAMES
+    expected_method_params = {
+        "protocol_id": protocol_id,
+        "checkpoint_schema_version": checkpoint_version,
+        "max_sample_nums": spec.budget,
+        "n_init": spec.n_init,
+        "offspring_per_iteration": 2,
+        "generation_protocol": "direct_code",
+        "quality_normalization": "global_midrank_percentile",
+        "expansion_policy": "adaptive_new_child_uct",
+        "expansion_reward": "batch_subtree_best_midrank",
+        "failed_expansion_reward": 0.0,
+        "root_expansion": False,
+        "ancestor_history_limit": 8,
+        "direct_child_limit": 8,
+        "direct_child_top_count": 4,
+        "reference_temperature": 0.2,
+        "exploration_constant": 0.1,
+        "expansion_prior_weight": 1.0,
+        "maximize": True,
+        "operators": operator_names,
+        "max_consecutive_sample_failures": 20,
+        "max_stalled_iterations": 20,
+        "checkpoint_interval": 10,
+        "code_max_tokens": spec.llm_output_tokens,
+        "context_token_limit": spec.context_token_limit,
+        "random_seed": spec.seed,
+    }
+    if spec.version == "v9":
+        expected_method_params["history_protocol"] = "matched_history"
     expected_protocol = {
         "backend": spec.backend,
         "task_eval": normalized_task_kwargs,
@@ -457,9 +362,6 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         },
         "method_params": expected_method_params,
     }
-    if spec.version == "v7":
-        expected_protocol["method_params"]["elite_count"] = 3
-        expected_protocol["method_params"]["action_output_mode"] = V7_ACTION_OUTPUT_MODE
     actual_protocol = {
         "backend": payload.get("backend"),
         "task_eval": payload.get("task_eval"),
@@ -502,38 +404,17 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         weights = V4ValueWeights()
     elif spec.version == "v5":
         weights = V5ValueWeights()
-    elif spec.version == "v6":
-        weights = V6ValueWeights()
-    elif spec.version == "v7":
-        weights = V7ValueWeights()
     else:
         weights = None
     method_params: dict[str, Any]
-    if spec.version == "v8_3":
-        search_weights = V83SearchWeights()
+    if spec.version in {"v8", "v9"}:
         method_params = {
-            "protocol_id": V83_PROTOCOL_ID,
-            "maximize": True,
-            "max_sample_nums": spec.budget,
-            "n_init": spec.n_init,
-            "generation_protocol": "call1_design_idea_code_then_call2_description",
-            "quality_normalization": "global_midrank_percentile",
-            "trajectory_prior": "endpoint_path_best_and_recent_trend",
-            "credit_assignment": "direct_reward_mean_on_selected_route",
-            "expansion_policy": "progressive_widening_then_softmax_ucb",
-            "expansion_reward": "frozen_child_quality_plus_positive_parent_gain",
-            "failed_expansion_reward": 0.0,
-            "root_expansion": True,
-            "search_weights": asdict(search_weights),
-            "reference_temperature": 1.0,
-            "max_consecutive_sample_failures": 20,
-            "retry_count": 3,
-            "context_token_limit": spec.context_token_limit,
-            "random_seed": spec.seed,
-            "operators": V83_OPERATOR_NAMES,
-        }
-    elif spec.version == "v8":
-        method_params = {
+            "protocol_id": V8_PROTOCOL_ID
+            if spec.version == "v8"
+            else V9_PROTOCOL_ID,
+            "checkpoint_schema_version": V8_CHECKPOINT_VERSION
+            if spec.version == "v8"
+            else V9_CHECKPOINT_VERSION,
             "max_sample_nums": spec.budget,
             "n_init": spec.n_init,
             "offspring_per_iteration": 2,
@@ -553,6 +434,8 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
             "max_stalled_iterations": 20,
             "checkpoint_interval": 10,
         }
+        if spec.version == "v9":
+            method_params["history_protocol"] = "matched_history"
     else:
         method_params = {
             "max_sample_nums": spec.budget,
@@ -574,41 +457,13 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
                 "random_seed": spec.seed,
             }
         )
-    if spec.version == "v6":
+    if spec.version in {"v8", "v9"}:
         method_params.update(
             {
-                "protocol_id": V6_PROTOCOL_ID,
-                "checkpoint_schema_version": V6_CHECKPOINT_VERSION,
                 "maximize": True,
-                "operators": V6_OPERATOR_NAMES,
-                "action_max_tokens": spec.action_max_tokens,
-                "code_max_tokens": spec.llm_output_tokens,
-                "context_token_limit": spec.context_token_limit,
-                "random_seed": spec.seed,
-            }
-        )
-    if spec.version == "v7":
-        method_params.update(
-            {
-                "protocol_id": V7_PROTOCOL_ID,
-                "checkpoint_schema_version": V7_CHECKPOINT_VERSION,
-                "maximize": True,
-                "operators": V7_OPERATOR_NAMES,
-                "elite_count": 3,
-                "action_max_tokens": spec.action_max_tokens,
-                "action_output_mode": V7_ACTION_OUTPUT_MODE,
-                "code_max_tokens": spec.llm_output_tokens,
-                "context_token_limit": spec.context_token_limit,
-                "random_seed": spec.seed,
-            }
-        )
-    if spec.version == "v8":
-        method_params.update(
-            {
-                "protocol_id": V8_PROTOCOL_ID,
-                "checkpoint_schema_version": V8_CHECKPOINT_VERSION,
-                "maximize": True,
-                "operators": V8_OPERATOR_NAMES,
+                "operators": V8_OPERATOR_NAMES
+                if spec.version == "v8"
+                else V9_OPERATOR_NAMES,
                 "code_max_tokens": spec.llm_output_tokens,
                 "context_token_limit": spec.context_token_limit,
                 "random_seed": spec.seed,

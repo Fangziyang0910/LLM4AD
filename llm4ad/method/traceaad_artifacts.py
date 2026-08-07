@@ -123,6 +123,8 @@ class TraceAADArtifacts:
             self._llm_calls_path = None
             self._decisions_path = None
 
+        self._restore_existing_artifacts()
+
     # --- monitor ---------------------------------------------------------
 
     def log_progress(self, message: str) -> None:
@@ -237,7 +239,8 @@ class TraceAADArtifacts:
 
     def sync_after_resume(self, *, total_samples: int, best_score: Any = None, best_sample_order: int | None = None) -> None:
         """Align counters after loading a search checkpoint."""
-        self._num_samples = int(total_samples)
+        self._restore_existing_artifacts()
+        self._num_samples = max(self._num_samples, int(total_samples))
         if best_score is not None:
             self._best_score = float(best_score)
             self._best_sample_order = best_sample_order
@@ -300,7 +303,93 @@ class TraceAADArtifacts:
                 record["response"] = _truncate(str(response), _RESPONSE_TRUNCATE)
             if payload.get("parse_errors"):
                 record["parse_errors"] = payload["parse_errors"]
+            for key in (
+                "failure_kind",
+                "error_type",
+                "error",
+                "counts_budget",
+                "consecutive_failures",
+            ):
+                if payload.get(key) is not None:
+                    value = payload[key]
+                    record[key] = (
+                        _truncate(str(value), _ERROR_TRUNCATE)
+                        if key == "error"
+                        else value
+                    )
         return {key: value for key, value in record.items() if value is not None}
+
+    def _restore_existing_artifacts(self) -> None:
+        """Rebuild cumulative counters when a run directory is resumed."""
+        summary_path = self._summary_path
+        if summary_path is not None and summary_path.is_file():
+            try:
+                summary = json.loads(summary_path.read_text(encoding="utf-8"))
+                started_at = summary.get("started_at")
+                if isinstance(started_at, str):
+                    self._started_at = datetime.fromisoformat(started_at)
+            except (OSError, TypeError, ValueError, json.JSONDecodeError):
+                pass
+
+        candidate_rows = self._read_jsonl(self._candidates_path)
+        edge_rows = self._read_jsonl(self._edges_path)
+        llm_rows = self._read_jsonl(self._llm_calls_path)
+        decision_rows = self._read_jsonl(self._decisions_path)
+        error_rows = self._read_jsonl(self._errors_path)
+
+        self._candidate_count = len(candidate_rows)
+        self._edge_count = len(edge_rows)
+        self._llm_call_count = len(llm_rows)
+        self._decision_count = len(decision_rows)
+        self._error_count = len(error_rows)
+
+        successful = [
+            row
+            for row in candidate_rows
+            if row.get("status") == "ok" or row.get("score") is not None
+        ]
+        self._evaluate_success = len(successful)
+        self._evaluate_failed = max(0, len(candidate_rows) - len(successful))
+        sample_orders = [
+            int(row["sample_order"])
+            for row in candidate_rows
+            if isinstance(row.get("sample_order"), int)
+        ]
+        if sample_orders:
+            self._num_samples = max(self._num_samples, max(sample_orders))
+
+        scores = []
+        for row in successful:
+            try:
+                score = float(row["score"])
+            except (KeyError, TypeError, ValueError, OverflowError):
+                continue
+            scores.append((score, row.get("sample_order")))
+        if scores and self._best_score is None:
+            self._best_score, sample_order = max(scores, key=lambda item: item[0])
+            self._best_sample_order = (
+                sample_order if isinstance(sample_order, int) else None
+            )
+
+    @staticmethod
+    def _read_jsonl(path: Path | None) -> list[dict[str, Any]]:
+        if path is None or not path.is_file():
+            return []
+        rows: list[dict[str, Any]] = []
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            return rows
+        for line in lines:
+            if not line.strip():
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(payload, dict):
+                rows.append(payload)
+        return rows
 
     def _append_jsonl(self, path: Path | None, payload: Mapping[str, Any]) -> None:
         if path is None:

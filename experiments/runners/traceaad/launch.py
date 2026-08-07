@@ -35,7 +35,7 @@ def build_launch_plan(args: argparse.Namespace) -> tuple[LaunchItem, ...]:
     prefix = args.session_prefix or f"{alias}_{method_name}_{batch}"
     n_init = args.n_init
     if n_init is None:
-        n_init = 10 if args.version in {"v8", "v8_3"} else 30
+        n_init = 10 if args.version in {"v8", "v9"} else 30
     items = []
     for repeat in range(1, args.repeats + 1):
         run_name = f"{batch}_{alias}_{args.version}_rep{repeat}"

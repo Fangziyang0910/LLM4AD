@@ -8,14 +8,9 @@ import pytest
 from experiments.runners.traceaad import launch, run, schedule
 from llm4ad.method.traceaad_v4 import TraceAADV4
 from llm4ad.method.traceaad_v5 import TraceAADV5
-from llm4ad.method.traceaad_v6 import PROTOCOL_ID as V6_PROTOCOL_ID
-from llm4ad.method.traceaad_v6 import TraceAADV6
-from llm4ad.method.traceaad_v7 import PROTOCOL_ID as V7_PROTOCOL_ID
-from llm4ad.method.traceaad_v7 import TraceAADV7
 from llm4ad.method.traceaad_v8 import PROTOCOL_ID as V8_PROTOCOL_ID
 from llm4ad.method.traceaad_v8 import TraceAADV8
-from llm4ad.method.traceaad_v8_3 import PROTOCOL_ID as V83_PROTOCOL_ID
-from llm4ad.method.traceaad_v8_3 import TraceAADV8_3
+from llm4ad.method.traceaad_v9 import TraceAADV9
 
 
 @pytest.mark.parametrize("task", run.TASKS)
@@ -35,34 +30,27 @@ def test_unified_runner_builds_each_task_and_version(
     expected_type = {
         "v4": TraceAADV4,
         "v5": TraceAADV5,
-        "v6": TraceAADV6,
-        "v7": TraceAADV7,
         "v8": TraceAADV8,
-        "v8_3": TraceAADV8_3,
+        "v9": TraceAADV9,
     }[version]
     assert isinstance(method, expected_type)
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
     assert spec.experiment_version == f"version{version.removeprefix('v')}"
 
-    if version in {"v4", "v7"}:
+    if version == "v4":
         assert method._llm.max_tokens == 16384
     else:
         assert method._llm.max_tokens == 8192
-        if version in {"v8", "v8_3"}:
+        if version in {"v8", "v9"}:
             assert spec.n_init == 10
-            if version == "v8":
-                assert not hasattr(method, "_action_max_tokens")
-                assert method._offspring_per_iteration == 2
-            else:
-                assert not hasattr(method, "_action_max_tokens")
-                assert method._n_init == 10
+            assert not hasattr(method, "_action_max_tokens")
+            assert method._offspring_per_iteration == 2
+            assert method._context_token_limit == 24576
+            assert not hasattr(method, "_dual_probability")
         else:
             assert spec.n_init == 30
             assert method._action_max_tokens == 1024
         assert not hasattr(method, "_global_experience")
-        if version in {"v6", "v7", "v8", "v8_3"}:
-            assert method._context_token_limit == 24576
-            assert not hasattr(method, "_dual_probability")
 
 
 def test_runner_writes_one_reproducible_config_per_run(tmp_path: Path) -> None:
@@ -90,51 +78,6 @@ def test_runner_writes_one_reproducible_config_per_run(tmp_path: Path) -> None:
     assert payload["method_params"]["random_seed"] == 3
     assert "api_key" not in payload["llm"]
     assert payload["llm"]["api_key_configured"] is False
-
-
-def test_v6_runner_records_protocol(tmp_path: Path) -> None:
-    spec = run.make_run_spec(
-        task="tsp_construct",
-        version="v6",
-        experiments_root=tmp_path,
-    )
-    run_dir, run_name, _ = run.resolve_run_dir(spec)
-    run.write_run_config(spec, run_dir, run_name)
-    payload = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
-
-    assert payload["method_params"]["protocol_id"] == V6_PROTOCOL_ID
-    assert payload["method_params"]["checkpoint_schema_version"] == 8
-    assert payload["method_params"]["maximize"] is True
-    assert payload["method_params"]["operators"] == [
-        "trace_ideate",
-        "trace_refine",
-        "trace_synthesize",
-        "trace_transfer",
-    ]
-    assert "dual_probability" not in payload["method_params"]
-
-
-def test_v7_runner_records_protocol_and_minimal_population_controls(
-    tmp_path: Path,
-) -> None:
-    spec = run.make_run_spec(
-        task="tsp_construct",
-        version="v7",
-        experiments_root=tmp_path,
-    )
-    run_dir, run_name, _ = run.resolve_run_dir(spec)
-    run.write_run_config(spec, run_dir, run_name)
-    payload = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
-
-    params = payload["method_params"]
-    assert params["protocol_id"] == V7_PROTOCOL_ID
-    assert params["checkpoint_schema_version"] == 11
-    assert params["code_max_tokens"] == 16384
-    assert params["action_output_mode"] == "json_schema"
-    assert params["elite_count"] == 3
-    assert params["value_weights"]["search_quality"] == 0.8
-    assert params["value_weights"]["search_trend"] == 0.2
-    assert "diversity_count" not in params
 
 
 def test_v8_runner_records_tree_protocol_without_population_controls(
@@ -177,29 +120,6 @@ def test_v8_runner_records_tree_protocol_without_population_controls(
     assert "action_max_tokens" not in params
 
 
-def test_v83_runner_records_route_credit_protocol(tmp_path: Path) -> None:
-    spec = run.make_run_spec(
-        task="tsp_construct",
-        version="v8_3",
-        experiments_root=tmp_path,
-    )
-    run_dir, run_name, _ = run.resolve_run_dir(spec)
-    run.write_run_config(spec, run_dir, run_name)
-    payload = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
-
-    params = payload["method_params"]
-    assert params["protocol_id"] == V83_PROTOCOL_ID
-    assert params["trajectory_prior"] == "endpoint_path_best_and_recent_trend"
-    assert params["credit_assignment"] == "direct_reward_mean_on_selected_route"
-    assert params["expansion_policy"] == "progressive_widening_then_softmax_ucb"
-    assert params["search_weights"]["exploration_constant"] == 0.25
-    assert params["search_weights"]["selection_temperature"] == 0.2
-    assert params["search_weights"]["widening_alpha"] == 0.5
-    assert "max_depth" not in params
-    assert "beta" not in params
-    assert "kappa" not in params
-
-
 def test_resume_uses_version_specific_checkpoint_source(tmp_path: Path) -> None:
     for version in run.VERSIONS:
         run_dir = tmp_path / version
@@ -222,29 +142,6 @@ def test_resume_uses_version_specific_checkpoint_source(tmp_path: Path) -> None:
         assert resolved == run_dir
         expected = run_dir / "checkpoints" / "latest.json"
         assert run.checkpoint_source(spec, resolved) == expected
-
-
-def test_v6_resume_rejects_changed_experiment_configuration(tmp_path: Path) -> None:
-    run_dir = tmp_path / "v6"
-    run_dir.mkdir()
-    original = run.make_run_spec(
-        task="tsp_construct",
-        version="v6",
-        budget=100,
-        seed=3,
-        experiments_root=tmp_path,
-    )
-    run.write_run_config(original, run_dir, run_dir.name)
-    changed = run.make_run_spec(
-        task="tsp_construct",
-        version="v6",
-        budget=101,
-        seed=3,
-        resume_from=run_dir,
-        experiments_root=tmp_path,
-    )
-    with pytest.raises(ValueError, match="resume config mismatch"):
-        run.resolve_run_dir(changed)
 
 
 def test_v8_resume_rejects_changed_experiment_configuration(tmp_path: Path) -> None:
@@ -300,14 +197,14 @@ def test_batch_launcher_uses_version_specific_initialization_defaults() -> None:
     v8_args = launch.build_parser().parse_args(
         ["--task", "tsp_construct", "--version", "v8", "--dry-run"]
     )
-    v7_args = launch.build_parser().parse_args(
-        ["--task", "tsp_construct", "--version", "v7", "--dry-run"]
+    v5_args = launch.build_parser().parse_args(
+        ["--task", "tsp_construct", "--version", "v5", "--dry-run"]
     )
 
     v8_command = launch.build_launch_plan(v8_args)[0].command
-    v7_command = launch.build_launch_plan(v7_args)[0].command
+    v5_command = launch.build_launch_plan(v5_args)[0].command
     assert v8_command[v8_command.index("--n-init") + 1] == "10"
-    assert v7_command[v7_command.index("--n-init") + 1] == "30"
+    assert v5_command[v5_command.index("--n-init") + 1] == "30"
 
 
 def test_v82_scheduler_builds_four_tasks_by_three_repeats(tmp_path: Path) -> None:
@@ -327,34 +224,6 @@ def test_v82_scheduler_builds_four_tasks_by_three_repeats(tmp_path: Path) -> Non
     assert {job["seed"] for job in jobs} == {1, 2, 3}
     assert len({job["session"] for job in jobs}) == 12
     assert all("v82_20260804_220000" in job["run_name"] for job in jobs)
-
-
-def test_v83_scheduler_preserves_fixed_model_source_assignment(tmp_path: Path) -> None:
-    state = schedule.build_state(
-        batch="fixed_sources",
-        budget=1000,
-        n_init=10,
-        context_token_limit=24576,
-        version="v8_3",
-        experiments_root=tmp_path,
-    )
-    jobs = state["jobs"]
-    assignments = {
-        (job["task"], job["repeat"]): job["preferred_backend"] for job in jobs
-    }
-
-    assert list(assignments.values()).count("zhong") == 6
-    assert list(assignments.values()).count("server1") == 4
-    assert list(assignments.values()).count("local") == 2
-    assert all(
-        assignments[(task, repeat)] == "zhong"
-        for task in ("tsp_construct", "cvrp_aco")
-        for repeat in range(1, 4)
-    )
-    assert all(assignments[("op_aco", repeat)] == "server1" for repeat in range(1, 4))
-    assert assignments[("online_bin_packing", 1)] == "server1"
-    assert assignments[("online_bin_packing", 2)] == "local"
-    assert assignments[("online_bin_packing", 3)] == "local"
 
 
 def test_v82_scheduler_counts_inherited_worker_command_once() -> None:
@@ -445,6 +314,48 @@ def test_v82_scheduler_reads_terminal_summary(
 
     assert schedule.reconcile_job(job)
     assert job["status"] == "finished"
+
+
+def test_scheduler_rejects_cross_version_state_reload(tmp_path: Path) -> None:
+    state = schedule.build_state(
+        batch="protocol_guard",
+        budget=1000,
+        n_init=10,
+        context_token_limit=24576,
+        version="v9",
+        experiments_root=tmp_path,
+    )
+    path = tmp_path / "scheduler.json"
+    schedule.save_state(state, path)
+
+    with pytest.raises(ValueError, match="does not match requested version"):
+        schedule.load_state(path, expected_version="v8")
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["jobs"][0]["version"] = "v8"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="job version"):
+        schedule.load_state(path)
+
+
+def test_scheduler_reconciles_stalled_terminal_summary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    state = schedule.build_state(
+        batch="stalled",
+        budget=1000,
+        n_init=10,
+        context_token_limit=24576,
+        experiments_root=tmp_path,
+    )
+    job = state["jobs"][0]
+    summary = Path(job["run_dir"]) / "logs" / "summary.json"
+    summary.parent.mkdir(parents=True)
+    summary.write_text('{"status": "stalled"}\n', encoding="utf-8")
+    monkeypatch.setattr(schedule, "_session_exists", lambda _session: True)
+
+    assert schedule.reconcile_job(job)
+    assert job["status"] == "stalled"
 
 
 def test_old_task_specific_traceaad_runners_are_removed() -> None:
