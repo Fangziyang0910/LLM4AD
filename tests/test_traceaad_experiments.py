@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from experiments.runners.traceaad import launch, run, schedule
+from experiments.runners.traceaad import launch, run
 from llm4ad.method.traceaad_v4 import TraceAADV4
 from llm4ad.method.traceaad_v5 import TraceAADV5
 from llm4ad.method.traceaad_v8 import PROTOCOL_ID as V8_PROTOCOL_ID
@@ -35,7 +35,6 @@ def test_unified_runner_builds_each_task_and_version(
     }[version]
     assert isinstance(method, expected_type)
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
-    assert spec.experiment_version == f"version{version.removeprefix('v')}"
 
     if version == "v4":
         assert method._llm.max_tokens == 16384
@@ -71,7 +70,6 @@ def test_runner_writes_one_reproducible_config_per_run(tmp_path: Path) -> None:
     assert not resumed
     assert payload["task"] == "online_bin_packing"
     assert payload["method"] == "traceaad_v5"
-    assert payload["experiment_version"] == "version5"
     assert payload["repeat"] == 3
     assert payload["backend"] == "local"
     assert payload["method_params"]["max_sample_nums"] == 17
@@ -93,7 +91,6 @@ def test_v8_runner_records_tree_protocol_without_population_controls(
     payload = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
 
     params = payload["method_params"]
-    assert payload["experiment_version"] == "version8"
     assert params["protocol_id"] == V8_PROTOCOL_ID
     assert params["checkpoint_schema_version"] == 3
     assert params["n_init"] == 10
@@ -205,157 +202,6 @@ def test_batch_launcher_uses_version_specific_initialization_defaults() -> None:
     v5_command = launch.build_launch_plan(v5_args)[0].command
     assert v8_command[v8_command.index("--n-init") + 1] == "10"
     assert v5_command[v5_command.index("--n-init") + 1] == "30"
-
-
-def test_v82_scheduler_builds_four_tasks_by_three_repeats(tmp_path: Path) -> None:
-    state = schedule.build_state(
-        batch="20260804_220000",
-        budget=1000,
-        n_init=10,
-        context_token_limit=24576,
-        experiments_root=tmp_path,
-    )
-    jobs = state["jobs"]
-
-    assert len(jobs) == 12
-    assert [(job["task"], job["repeat"]) for job in jobs[:4]] == [
-        (task, 1) for task in run.TASKS
-    ]
-    assert {job["seed"] for job in jobs} == {1, 2, 3}
-    assert len({job["session"] for job in jobs}) == 12
-    assert all("v82_20260804_220000" in job["run_name"] for job in jobs)
-
-
-def test_v82_scheduler_counts_inherited_worker_command_once() -> None:
-    zhong = "python -m experiments.runners.traceaad.run --task op_aco --backend zhong"
-    server1 = (
-        "python -m experiments.runners.reevo.run --task tsp_construct --backend server1"
-    )
-    rows = [
-        (100, 1, zhong),
-        (101, 100, zhong),
-        (102, 101, zhong),
-        (200, 1, server1),
-        (300, 1, "python -c from multiprocessing.spawn import spawn_main"),
-    ]
-
-    assert schedule.count_backend_usage(rows) == {
-        "zhong": 1,
-        "server1": 1,
-        "local": 0,
-    }
-
-
-def test_v82_scheduler_assigns_only_available_slots(tmp_path: Path) -> None:
-    state = schedule.build_state(
-        batch="assignment",
-        budget=1000,
-        n_init=10,
-        context_token_limit=24576,
-        experiments_root=tmp_path,
-    )
-    assigned = schedule.assign_pending(
-        state,
-        {"zhong": 2, "server1": 2, "local": 1},
-    )
-
-    assert [job["backend"] for job in assigned] == [
-        "zhong",
-        "zhong",
-        "server1",
-        "server1",
-        "local",
-    ]
-    assert len(assigned) == 5
-
-
-def test_v82_scheduler_state_reload_prevents_duplicate_assignment(
-    tmp_path: Path,
-) -> None:
-    state_path = tmp_path / "scheduler.json"
-    state = schedule.build_state(
-        batch="resume",
-        budget=1000,
-        n_init=10,
-        context_token_limit=24576,
-        experiments_root=tmp_path,
-    )
-    assigned = schedule.assign_pending(
-        state,
-        {"zhong": 1, "server1": 0, "local": 0},
-    )
-    assigned[0]["status"] = "running"
-    schedule.save_state(state, state_path)
-
-    restored = schedule.load_state(state_path)
-    next_jobs = schedule.assign_pending(
-        restored,
-        {"zhong": 1, "server1": 0, "local": 0},
-    )
-
-    assert next_jobs[0]["run_name"] != assigned[0]["run_name"]
-
-
-def test_v82_scheduler_reads_terminal_summary(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    state = schedule.build_state(
-        batch="finished",
-        budget=1000,
-        n_init=10,
-        context_token_limit=24576,
-        experiments_root=tmp_path,
-    )
-    job = state["jobs"][0]
-    summary = Path(job["run_dir"]) / "logs" / "summary.json"
-    summary.parent.mkdir(parents=True)
-    summary.write_text('{"status": "finished"}\n', encoding="utf-8")
-    monkeypatch.setattr(schedule, "_session_exists", lambda _session: False)
-
-    assert schedule.reconcile_job(job)
-    assert job["status"] == "finished"
-
-
-def test_scheduler_rejects_cross_version_state_reload(tmp_path: Path) -> None:
-    state = schedule.build_state(
-        batch="protocol_guard",
-        budget=1000,
-        n_init=10,
-        context_token_limit=24576,
-        version="v9",
-        experiments_root=tmp_path,
-    )
-    path = tmp_path / "scheduler.json"
-    schedule.save_state(state, path)
-
-    with pytest.raises(ValueError, match="does not match requested version"):
-        schedule.load_state(path, expected_version="v8")
-
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    payload["jobs"][0]["version"] = "v8"
-    path.write_text(json.dumps(payload), encoding="utf-8")
-    with pytest.raises(ValueError, match="job version"):
-        schedule.load_state(path)
-
-
-def test_scheduler_reconciles_stalled_terminal_summary(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    state = schedule.build_state(
-        batch="stalled",
-        budget=1000,
-        n_init=10,
-        context_token_limit=24576,
-        experiments_root=tmp_path,
-    )
-    job = state["jobs"][0]
-    summary = Path(job["run_dir"]) / "logs" / "summary.json"
-    summary.parent.mkdir(parents=True)
-    summary.write_text('{"status": "stalled"}\n', encoding="utf-8")
-    monkeypatch.setattr(schedule, "_session_exists", lambda _session: True)
-
-    assert schedule.reconcile_job(job)
-    assert job["status"] == "stalled"
 
 
 def test_old_task_specific_traceaad_runners_are_removed() -> None:

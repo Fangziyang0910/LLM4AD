@@ -1,34 +1,22 @@
+"""Run one TraceAAD experiment with an explicit task and version."""
+
 from __future__ import annotations
 
 import argparse
-import contextlib
 import json
-import os
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 from llm4ad.method.traceaad_artifacts import TraceAADArtifacts
-from llm4ad.method.traceaad_v4 import (
-    TraceAADV4,
-)
-from llm4ad.method.traceaad_v4 import (
-    ValueWeights as V4ValueWeights,
-)
-from llm4ad.method.traceaad_v5 import (
-    TraceAADV5,
-)
-from llm4ad.method.traceaad_v5 import (
-    ValueWeights as V5ValueWeights,
-)
+from llm4ad.method.traceaad_v4 import TraceAADV4, ValueWeights as V4ValueWeights
+from llm4ad.method.traceaad_v5 import TraceAADV5, ValueWeights as V5ValueWeights
 from llm4ad.method.traceaad_v8 import (
     CHECKPOINT_VERSION as V8_CHECKPOINT_VERSION,
-)
-from llm4ad.method.traceaad_v8 import (
     PROTOCOL_ID as V8_PROTOCOL_ID,
+    TraceAADV8,
 )
-from llm4ad.method.traceaad_v8 import TraceAADV8
 from llm4ad.method.traceaad_v8.operators import DEFAULT_OPERATORS as V8_OPERATORS
 from llm4ad.method.traceaad_v9 import (
     CHECKPOINT_VERSION as V9_CHECKPOINT_VERSION,
@@ -36,64 +24,33 @@ from llm4ad.method.traceaad_v9 import (
     TraceAADV9,
 )
 from llm4ad.method.traceaad_v9.operators import DEFAULT_OPERATORS as V9_OPERATORS
-from llm4ad.task.optimization.cvrp_aco import CVRPACOEvaluation
-from llm4ad.task.optimization.generated_data_config import (
-    get_generated_task_kwargs,
-)
-from llm4ad.task.optimization.online_bin_packing import OBPEvaluation
-from llm4ad.task.optimization.op_aco import OPACOEvaluation
-from llm4ad.task.optimization.tsp_construct import TSPEvaluation
-from llm4ad.tools.env import resolve_llm_api_key
-from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
 
-TaskName = Literal["tsp_construct", "cvrp_aco", "op_aco", "online_bin_packing"]
+from .._common import (
+    BACKENDS,
+    EXPERIMENTS_ROOT,
+    TASKS,
+    TaskName,
+    build_llm_client,
+    build_task,
+    llm_payload,
+    resolve_backend,
+    resolve_run_dir as resolve_run_dir_file,
+    run_in_tmux_log,
+    write_run_config as write_run_config_file,
+)
+
 VersionName = Literal["v4", "v5", "v8", "v9"]
-BackendName = Literal["local", "server1", "zhong"]
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-EXPERIMENTS_ROOT = REPO_ROOT / "experiments"
-TASKS: tuple[TaskName, ...] = (
-    "tsp_construct",
-    "cvrp_aco",
-    "op_aco",
-    "online_bin_packing",
-)
 VERSIONS: tuple[VersionName, ...] = ("v4", "v5", "v8", "v9")
 V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
 V9_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V9_OPERATORS]
 
 
 @dataclass(frozen=True, slots=True)
-class BackendProfile:
-    base_url: str
-    model: str
-    no_proxy: str
-
-
-BACKENDS: dict[BackendName, BackendProfile] = {
-    "local": BackendProfile(
-        base_url="http://127.0.0.1:8001/v1",
-        model="Qwen3.6-27B",
-        no_proxy="127.0.0.1,localhost,::1",
-    ),
-    "server1": BackendProfile(
-        base_url="http://222.201.145.8:8080/v1",
-        model="qwen3.6-27b-awq",
-        no_proxy="222.201.145.8,localhost,127.0.0.1,::1",
-    ),
-    "zhong": BackendProfile(
-        base_url="http://183.36.243.124:9000/v1",
-        model="/home/fzy/models/Qwen3.6-27B-NVFP4",
-        no_proxy="183.36.243.124,localhost,127.0.0.1,::1",
-    ),
-}
-
-
-@dataclass(frozen=True, slots=True)
 class RunSpec:
     task: TaskName
     version: VersionName
-    backend: BackendName
+    backend: str
     base_url: str
     model: str
     no_proxy: str
@@ -128,7 +85,7 @@ def make_run_spec(
     *,
     task: TaskName,
     version: VersionName,
-    backend: BackendName = "local",
+    backend: str = "local",
     base_url: str | None = None,
     model: str | None = None,
     no_proxy: str | None = None,
@@ -144,14 +101,14 @@ def make_run_spec(
     resume_from: Path | None = None,
     experiments_root: Path = EXPERIMENTS_ROOT,
 ) -> RunSpec:
-    profile = BACKENDS[backend]
+    profile = resolve_backend(backend, base_url, model, no_proxy)
     spec = RunSpec(
         task=task,
         version=version,
         backend=backend,
-        base_url=base_url or profile.base_url,
-        model=model or profile.model,
-        no_proxy=no_proxy or profile.no_proxy,
+        base_url=profile.base_url,
+        model=profile.model,
+        no_proxy=profile.no_proxy,
         budget=budget,
         n_init=(10 if version in {"v8", "v9"} else 30) if n_init is None else n_init,
         eval_workers=eval_workers,
@@ -164,11 +121,6 @@ def make_run_spec(
         resume_from=None if resume_from is None else resume_from.resolve(),
         experiments_root=experiments_root.resolve(),
     )
-    _validate_spec(spec)
-    return spec
-
-
-def _validate_spec(spec: RunSpec) -> None:
     if spec.budget <= 0:
         raise ValueError("budget must be positive")
     if spec.n_init <= 0:
@@ -183,53 +135,21 @@ def _validate_spec(spec: RunSpec) -> None:
         raise ValueError("context_token_limit must be positive")
     if spec.resume_from is not None and spec.run_name is not None:
         raise ValueError("run_name cannot be combined with resume_from")
-
-
-def build_task(spec: RunSpec) -> tuple[Any, dict[str, Any]]:
-    if spec.task == "tsp_construct":
-        kwargs = get_generated_task_kwargs(spec.task, "train")
-        return TSPEvaluation(**kwargs), {"split": "train", **kwargs}
-    if spec.task == "online_bin_packing":
-        kwargs = get_generated_task_kwargs(spec.task, "train")
-        return OBPEvaluation(**kwargs), {"split": "train", **kwargs}
-    if spec.task == "cvrp_aco":
-        kwargs = {
-            "split": "train",
-            "timeout_seconds": 120,
-            "n_ants": 30,
-            "n_iterations": 100,
-            "aco_seed": 1234,
-            "n_workers": spec.eval_workers or 10,
-        }
-        return CVRPACOEvaluation(**kwargs), kwargs
-
-    kwargs = {
-        "split": "train",
-        "timeout_seconds": 60,
-        "n_ants": 20,
-        "n_iterations": 50,
-        "aco_seed": 1234,
-        "n_workers": spec.eval_workers or 5,
-    }
-    return OPACOEvaluation(**kwargs), kwargs
+    return spec
 
 
 def build_method(
     spec: RunSpec,
     run_dir: Path,
     resume_from: Path | None = None,
-) -> TraceAADV4 | TraceAADV5 | TraceAADV8 | TraceAADV9:
-    os.environ["NO_PROXY"] = spec.no_proxy
-    os.environ["no_proxy"] = spec.no_proxy
-    evaluation, _ = build_task(spec)
-    llm = OpenAIAPI(
+):
+    evaluation, _ = build_task(spec.task, spec.eval_workers)
+    llm = build_llm_client(
         base_url=spec.base_url,
-        api_key=resolve_llm_api_key(base_url=spec.base_url),
         model=spec.model,
-        timeout=600,
+        no_proxy=spec.no_proxy,
         max_tokens=spec.llm_output_tokens,
         temperature=1.0,
-        enable_thinking=False,
     )
     artifacts = TraceAADArtifacts(run_dir=run_dir)
     common = {
@@ -290,10 +210,7 @@ def resolve_run_dir(spec: RunSpec) -> tuple[Path, str, bool]:
             raise FileNotFoundError(f"resume run directory does not exist: {run_dir}")
         _validate_resume_config(spec, run_dir)
         return run_dir, run_dir.name, True
-
-    run_name = spec.run_name or datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = spec.experiment_root / run_name
-    run_dir.mkdir(parents=True, exist_ok=False)
+    run_dir, run_name = resolve_run_dir_file(spec.experiment_root, spec.run_name)
     return run_dir, run_name, False
 
 
@@ -308,7 +225,7 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         raise ValueError(f"resume config mismatch: expected {expected}, found {actual}")
     if spec.version not in {"v8", "v9"}:
         return
-    _, task_kwargs = build_task(spec)
+    _, task_kwargs = build_task(spec.task, spec.eval_workers)
     normalized_task_kwargs = json.loads(json.dumps(task_kwargs, sort_keys=True))
     if spec.version == "v8":
         protocol_id = V8_PROTOCOL_ID
@@ -395,14 +312,14 @@ def checkpoint_source(spec: RunSpec, run_dir: Path) -> Path:
 
 
 def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
-    _, task_kwargs = build_task(spec)
+    _, task_kwargs = build_task(spec.task, spec.eval_workers)
     if spec.version == "v4":
         weights = V4ValueWeights()
     elif spec.version == "v5":
         weights = V5ValueWeights()
     else:
         weights = None
-    method_params: dict[str, Any]
+    method_params: dict[str, object]
     if spec.version in {"v8", "v9"}:
         method_params = {
             "protocol_id": V8_PROTOCOL_ID
@@ -465,32 +382,26 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
                 "random_seed": spec.seed,
             }
         )
-    payload = {
-        "created_at": datetime.now().isoformat(timespec="seconds"),
-        "run_dir": str(run_dir),
-        "task": spec.task,
-        "method": spec.method_name,
-        "timestamp": run_name,
-        "repeat": spec.repeat,
-        "backend": spec.backend,
-        "llm": {
-            "base_url": spec.base_url,
-            "model": spec.model,
-            "timeout": 600,
-            "max_tokens": spec.llm_output_tokens,
-            "temperature": 1.0,
-            "enable_thinking": False,
-            "api_key_configured": (
-                resolve_llm_api_key(base_url=spec.base_url) != "EMPTY"
+    write_run_config_file(
+        run_dir,
+        {
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+            "run_dir": str(run_dir),
+            "task": spec.task,
+            "method": spec.method_name,
+            "timestamp": run_name,
+            "repeat": spec.repeat,
+            "backend": spec.backend,
+            "llm": llm_payload(
+                base_url=spec.base_url,
+                model=spec.model,
+                no_proxy=spec.no_proxy,
+                max_tokens=spec.llm_output_tokens,
+                temperature=1.0,
             ),
-            "no_proxy": spec.no_proxy,
+            "task_eval": task_kwargs,
+            "method_params": method_params,
         },
-        "task_eval": task_kwargs,
-        "method_params": method_params,
-    }
-    (run_dir / "run_config.json").write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
     )
 
 
@@ -501,12 +412,12 @@ def run_experiment(spec: RunSpec) -> Path:
 
     print(f"run_dir={run_dir}")
     resume_source = checkpoint_source(spec, run_dir) if resumed else None
-    with (run_dir / "tmux_run.log").open(
-        "a", encoding="utf-8", buffering=1
-    ) as log_file:
-        with contextlib.redirect_stdout(log_file), contextlib.redirect_stderr(log_file):
-            print(f"run_dir={run_dir}", flush=True)
-            build_method(spec, run_dir, resume_source).run()
+    run_in_tmux_log(
+        run_dir,
+        run_dir / "logs",
+        [],
+        lambda: build_method(spec, run_dir, resume_source).run(),
+    )
     return run_dir
 
 

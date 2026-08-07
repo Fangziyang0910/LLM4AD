@@ -5,7 +5,6 @@ from unittest.mock import patch
 
 from llm4ad.base import Evaluation, Function, LLM
 from llm4ad.method.shinka_evo import ShinkaArchive, ShinkaEvo, ShinkaEvoProfiler, ShinkaLLMBandit, ShinkaProgram
-from llm4ad.method.shinka_evo.sampler import ShinkaSampler
 
 
 def code_block(value: int, *, name="heuristic_v2", args="y") -> str:

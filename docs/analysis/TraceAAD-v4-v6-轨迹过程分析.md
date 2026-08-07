@@ -14,7 +14,7 @@
 
 ### 2.1 数据来源与重建
 
-分析脚本为 [experiments/analysis/analyze_traceaad_process.py](../../experiments/analysis/analyze_traceaad_process.py)。数据日期为 2026-08-02，共 36 个已完成 run（4 任务 × 3 版本 × 3 重复）。这 36 个 run 是已删除的[跨方法轨迹过程分析]的 `version4/version6` 子集；run 级指标与图表可由上述脚本从原始实验日志重新生成。
+分析脚本为 [experiments/analysis/analyze_process.py](../../experiments/analysis/analyze_process.py)（`--scope traceaad`）。数据日期为 2026-08-02，共 36 个已完成 run（4 任务 × 3 版本 × 3 重复）。这 36 个 run 是已删除的[跨方法轨迹过程分析]的 `version4/version6` 子集；run 级指标与图表可由上述脚本从原始实验日志重新生成。
 
 36 个 run 覆盖 `tsp_construct`、`cvrp_aco`、`op_aco`、`online_bin_packing` × `version4/version6` × 3 重复，全部完成 1000 次评估，状态为 `finished`。模型统一为 Qwen3.6-27B（NVFP4），temperature 1.0；同任务内评估配置一致（task_eval 字段相同），因此可作为受控的方法版本比较。
 
@@ -82,7 +82,7 @@
 
 **观察。** v6 的新颖性最高、局部精炼率最低；v5 的 H_spatial 最低，但最终性能仍低于 v4。H_fitness 与 H_spatial 几乎相同。该结果可能表示窗口内高质量候选与全体候选的分布接近，也可能来自窗口熵接近上界造成的低区分度。
 
-对应的 best-so-far 曲线与局部化动态图可由 `analyze_traceaad_process.py` 重新生成（原输出目录 `cross_method_analysis/` 已删除）。
+对应的 best-so-far 曲线与局部化动态图可由 `analyze_process.py --scope traceaad` 重新生成（原输出目录 `cross_method_analysis/` 已删除）。
 
 ### 3.4 窗口级回归（并发 + 滞后）
 

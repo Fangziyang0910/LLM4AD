@@ -3,7 +3,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
-EVAL="uv run python experiments/cvrp_aco/evaluate_best_on_test.py"
+EVAL="uv run python experiments/evaluate_best.py"
 WORKERS="${WORKERS:-16}"
 TAG="${TAG:-20260804_test200}"
 
@@ -13,7 +13,7 @@ run_method() {
   shift 2
   echo "=== ${method} -> ${out} ==="
   mkdir -p "$out"
-  $EVAL "$@" --output-dir "$out" --splits test_200 --workers "$WORKERS" \
+  $EVAL "$@" --output-dir "$out" --units test_200 --workers "$WORKERS" \
     >"${out}/eval.log" 2>&1
   python3 - <<PY
 import json
@@ -21,7 +21,7 @@ from pathlib import Path
 p = Path("${out}") / "results.json"
 d = json.loads(p.read_text())
 s = d["results_by_split"]["test_200"]["summary"]
-print(f"${method}: mean={s['mean']:.6f} std={s['sample_std']}")
+print(f"${method}: mean={s['mean_eval_objective']:.6f} std={s['sample_std_eval_objective']}")
 PY
 }
 

@@ -88,9 +88,15 @@ def pick_best_sample(
     run_dir: Path,
     *,
     max_sample_order: int | None = None,
+    sample_order: int | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     load_run_summary(run_dir)
     records = load_scored_samples(run_dir, max_sample_order=max_sample_order)
     if not records:
         raise RuntimeError(f"no valid samples found under {run_dir}")
+    if sample_order is not None:
+        for record in records:
+            if record.get("sample_order") == sample_order:
+                return record, records
+        raise RuntimeError(f"sample_order={sample_order} not found among {len(records)} valid samples")
     return max(records, key=lambda record: float(record["score"])), records

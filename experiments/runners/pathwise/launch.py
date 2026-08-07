@@ -1,4 +1,4 @@
-"""Launch ShinkaEvolve runs into free LLM backend slots in tmux."""
+"""Launch PathWise runs into free LLM backend slots in tmux."""
 
 from __future__ import annotations
 
@@ -12,17 +12,17 @@ from .._common import (
     watch_and_fill,
 )
 
-MODULE = "experiments.runners.shinka_evo.run"
-METHOD = "shinka_evo"
-SESSION_PREFIX = "shinka"
-METHOD_LABEL = "ShinkaEvolve"
+MODULE = "experiments.runners.pathwise.run"
+METHOD = "pathwise"
+SESSION_PREFIX = "pathwise"
+METHOD_LABEL = "PathWise"
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Launch four-task, three-repeat ShinkaEvolve experiments into "
-            "free LLM backend slots."
+            "Launch four-task, three-repeat PathWise experiments into free "
+            "LLM backend slots."
         )
     )
     add_launch_parser_args(parser, watch=True, session_prefix=SESSION_PREFIX)

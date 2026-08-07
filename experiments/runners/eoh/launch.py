@@ -8,15 +8,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from . import run
-
-REPO_ROOT = Path(__file__).resolve().parents[3]
-TASK_SHORT = {
-    "tsp_construct": "tsp",
-    "cvrp_aco": "cvrp",
-    "op_aco": "op",
-    "online_bin_packing": "obp",
-}
+from .._common import (
+    REPO_ROOT,
+    TASK_SHORT,
+    TASKS,
+    BackendName,
+    TaskName,
+)
 
 # Every task has runs on both servers; each server receives exactly six runs.
 BACKEND_ASSIGNMENT = {
@@ -37,9 +35,9 @@ BACKEND_ASSIGNMENT = {
 
 @dataclass(frozen=True, slots=True)
 class LaunchItem:
-    task: run.TaskName
+    task: TaskName
     repeat: int
-    backend: run.BackendName
+    backend: BackendName
     session: str
     run_name: str
     run_dir: Path
@@ -49,7 +47,7 @@ class LaunchItem:
 def build_launch_plan(args: argparse.Namespace) -> list[LaunchItem]:
     plan = []
     for repeat in range(1, args.repeats + 1):
-        for task in run.TASKS:
+        for task in TASKS:
             backend = BACKEND_ASSIGNMENT[(repeat, task)]
             short = TASK_SHORT[task]
             run_name = f"{args.batch}_{short}_eoh_rep{repeat}"

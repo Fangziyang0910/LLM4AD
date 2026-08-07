@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from experiments.analysis.analyze_traceaad_process import (
+from experiments.analysis.analyze_process import (
     best_update_event_stats,
     sample_level_best_curve,
     sample_level_best_stats,

@@ -2,7 +2,6 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import numpy as np
 
 from llm4ad.base import Evaluation, Function, LLM
 from llm4ad.method.hsevo.hsevo import HSEvo

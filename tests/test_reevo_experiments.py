@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from experiments.runners import _common
 from experiments.runners.reevo import launch, run
 from llm4ad.method.reevo import ReEvo
 
@@ -53,7 +54,7 @@ def test_reevo_launcher_builds_twelve_runs() -> None:
     args = launch.build_parser().parse_args(
         ["--batch", "20260730_010203", "--dry-run"]
     )
-    plan = launch.build_launch_plan(args)
+    plan = launch.build_launch_plan(args, module=launch.MODULE, method=launch.METHOD)
 
     assert len(plan) == 12
     assert {item.task for item in plan} == set(run.TASKS)
@@ -65,7 +66,7 @@ def test_reevo_launcher_builds_twelve_runs() -> None:
 
 def test_reevo_free_slot_assignment_prefers_remote_backends(monkeypatch) -> None:
     pending = [
-        launch.LaunchItem(
+        _common.LaunchItem(
             task="tsp_construct",
             repeat=1,
             backend=None,
@@ -73,8 +74,9 @@ def test_reevo_free_slot_assignment_prefers_remote_backends(monkeypatch) -> None
             run_name="batch_tsp_reevo_rep1",
             run_dir=Path("/tmp/batch_tsp_reevo_rep1"),
             seed=0,
+            module=launch.MODULE,
         ),
-        launch.LaunchItem(
+        _common.LaunchItem(
             task="cvrp_aco",
             repeat=1,
             backend=None,
@@ -82,8 +84,9 @@ def test_reevo_free_slot_assignment_prefers_remote_backends(monkeypatch) -> None
             run_name="batch_cvrp_reevo_rep1",
             run_dir=Path("/tmp/batch_cvrp_reevo_rep1"),
             seed=0,
+            module=launch.MODULE,
         ),
-        launch.LaunchItem(
+        _common.LaunchItem(
             task="op_aco",
             repeat=1,
             backend=None,
@@ -91,12 +94,13 @@ def test_reevo_free_slot_assignment_prefers_remote_backends(monkeypatch) -> None
             run_name="batch_op_reevo_rep1",
             run_dir=Path("/tmp/batch_op_reevo_rep1"),
             seed=0,
+            module=launch.MODULE,
         ),
     ]
     monkeypatch.setattr(
-        launch,
+        _common,
         "free_slots",
         lambda: {"zhong": 1, "server1": 1, "local": 0},
     )
-    assigned = launch.assign_backends(pending)
+    assigned = _common.assign_backends(pending)
     assert [item.backend for item in assigned] == ["zhong", "server1"]

@@ -1,6 +1,6 @@
 # TraceAAD V8 分析
 
-> 版本规范:[docs/methods/TraceAAD-v8完整机制设计.md](../methods/TraceAAD-v8完整机制设计.md)
+> 版本规范:[docs/methods/TraceAAD-v8.2完整机制设计.md](../methods/TraceAAD-v8.2完整机制设计.md)(第 19 节为 V8 初版配置差异)
 > 状态:2026-08-07 冻结;历史版本,不定义当前方法。
 
 ## 1. 版本定位

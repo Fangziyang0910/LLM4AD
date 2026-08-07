@@ -3,7 +3,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 from llm4ad.base import Evaluation, Function, LLM
-from llm4ad.method.reevo.population import Population
 from llm4ad.method.reevo.prompt import ReEvoPrompt
 from llm4ad.method.reevo.reevo import ReEvo
 

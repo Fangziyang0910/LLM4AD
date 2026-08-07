@@ -2,10 +2,8 @@ import json
 
 import numpy as np
 
-from experiments.online_bin_packing.evaluate_best_on_test import (
-    _load_best_sample,
-    task_kwargs_for_scale,
-)
+from experiments.eval_artifacts import pick_best_sample
+from experiments.evaluate_best import _obp_task_kwargs_for_scale
 from llm4ad.task.optimization.generated_data_config import (
     get_generated_task_kwargs,
 )
@@ -66,7 +64,7 @@ def test_obp_protocol_exposes_separate_fixed_multiscale_test_set():
 def test_obp_test_evaluation_selects_the_fixed_held_out_scale():
     eval_kwargs = get_generated_task_kwargs("online_bin_packing", "eval")
 
-    selected = task_kwargs_for_scale(eval_kwargs, n_items=10000, capacity=500)
+    selected = _obp_task_kwargs_for_scale(eval_kwargs, n_items=10000, capacity=500)
 
     assert selected["seed"] == 2025
     assert selected["dataset_specs"] == [
@@ -110,7 +108,7 @@ def test_obp_best_sample_can_be_truncated_at_the_formal_budget(tmp_path):
         encoding="utf-8",
     )
 
-    best, records = _load_best_sample(run_dir, max_sample_order=1000)
+    best, records = pick_best_sample(run_dir, max_sample_order=1000)
 
     assert len(records) == 1
     assert best["sample_order"] == 1

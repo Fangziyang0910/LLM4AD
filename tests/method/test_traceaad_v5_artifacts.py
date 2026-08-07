@@ -376,7 +376,7 @@ def test_runner_v5_wires_run_dir_artifacts_and_checkpoint_paths(
 
 
 def test_analysis_loader_reads_new_v5_artifact_layout(tmp_path: Path) -> None:
-    from experiments.analysis.analyze_traceaad_process import (
+    from experiments.analysis.analyze_process import (
         load_edge_events,
         load_run_summary,
         load_samples,
