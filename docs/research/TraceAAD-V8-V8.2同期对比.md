@@ -142,4 +142,4 @@ V8.2 在 OBP 上前中期持续落后，接近 350 sample 才追上均值；此�
 - V8.2 runs：`experiments/<task>/traceaad_v8/version8/v82_20260804_203128_*`
 - V8.2 held-out：`experiments/<task>/traceaad_v8/eval_best_v82_20260805/`
 - V8.2 scheduler：tmux `traceaad_v82_scheduler_20260804_203128`
-- 方法规范：[TraceAAD-v8完整机制设计.md](../methods/TraceAAD-v8完整机制设计.md)
+- 方法规范：[V8 初版](../methods/TraceAAD-v8完整机制设计.md)、[V8.2](../methods/TraceAAD-v8.2完整机制设计.md)

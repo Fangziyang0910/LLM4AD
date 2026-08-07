@@ -28,7 +28,11 @@ class SearchTree:
 
     def children(self, node_id: int) -> tuple[TreeNode, ...]:
         """Return valid direct children in creation order."""
-        ids = self.root.child_ids if node_id == self.root.id else self.get_node(node_id).child_ids
+        ids = (
+            self.root.child_ids
+            if node_id == self.root.id
+            else self.get_node(node_id).child_ids
+        )
         return tuple(self.get_node(child_id) for child_id in ids)
 
     def ancestors(self, node_id: int) -> tuple[TreeNode, ...]:
@@ -39,16 +43,26 @@ class SearchTree:
         """Return the best original fitness in a node's single-parent subtree."""
         node = self.get_node(node_id)
         values = [node.algorithm.fitness]
-        values.extend(self.subtree_value(child_id, maximize=maximize) for child_id in node.child_ids)
+        values.extend(
+            self.subtree_value(child_id, maximize=maximize)
+            for child_id in node.child_ids
+        )
         return max(values) if maximize else min(values)
 
-    def add_initial(self, algorithm: AlgorithmRecord, creation_order: int | None = None) -> TreeNode:
+    def add_initial(
+        self,
+        algorithm: AlgorithmRecord,
+        creation_order: int | None = None,
+        *,
+        count_visit: bool = True,
+    ) -> TreeNode:
         if creation_order is None:
             creation_order = len(self._nodes)
         node = self._new_node(algorithm, self.root.id, 1, creation_order)
         self._nodes[node.id] = node
         self.root.child_ids.append(node.id)
-        self.root.visit_count += 1
+        if count_visit:
+            self.root.visit_count += 1
         return node
 
     def add_child(
@@ -108,8 +122,22 @@ class SearchTree:
         self.root.visit_count += 1
         for current in path[1:]:
             self.get_node(current).visit_count += 1
-        self.get_node(node_id).expansion_attempts += 1
+        # A root widening attempt targets the virtual root itself and has no
+        # program node on which to store direct expansion credit.
+        if node_id != self.root.id:
+            self.get_node(node_id).expansion_attempts += 1
         return path
+
+    def record_outcome(self, path: tuple[int, ...], reward: float) -> None:
+        """Assign one expansion outcome to every program route actually used."""
+        if not math.isfinite(reward) or not 0.0 <= reward <= 1.0:
+            raise ValueError("route reward must be finite and within [0, 1]")
+        if not path or path[0] != self.root.id:
+            raise ValueError("route-credit path must start at the virtual root")
+        for node_id in path[1:]:
+            node = self.get_node(node_id)
+            node.credit_sum += reward
+            node.credit_count += 1
 
 
 __all__ = ["SearchTree"]

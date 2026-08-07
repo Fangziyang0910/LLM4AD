@@ -1,6 +1,8 @@
 # TraceAAD V6 开发复盘
 
-状态：开发阶段结束。正式版本见 [V6 方法规范](../../methods/TraceAAD-v6完整机制设计.md)；质量门控历史实验已迁入 [`archive/traceaad-v6-development/`](../../../archive/traceaad-v6-development/)。
+状态：开发阶段结束。正式版本见 [V6 方法规范](../../methods/TraceAAD-v6完整机制设计.md)；
+历史质量门控版本见 [V6 质量门控版完整机制设计](../../methods/TraceAAD-v6质量门控版完整机制设计.md)，
+原始实验已迁入 [`archive/traceaad-v6-development/`](../../../archive/traceaad-v6-development/)。
 
 ## 从质量门控到正式 V6
 

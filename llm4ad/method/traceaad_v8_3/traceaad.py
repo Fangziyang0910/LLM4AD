@@ -9,7 +9,14 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-from ...base import Evaluation, Function, LLM, Program, SecureEvaluator, TextFunctionProgramConverter
+from ...base import (
+    Evaluation,
+    Function,
+    LLM,
+    Program,
+    SecureEvaluator,
+    TextFunctionProgramConverter,
+)
 from ..traceaad_artifacts import TraceAADArtifacts
 from .context import LocalContext, build_local_context
 from .operators import DEFAULT_OPERATORS, Operator
@@ -24,6 +31,8 @@ from .prompt import (
 from .schema import AlgorithmRecord, OperatorName, SelectionResult, TreeNode
 from .tree import SearchTree
 from .value import (
+    SearchWeights,
+    expansion_reward,
     node_fitness,
     reference_candidates,
     sample_reference,
@@ -97,13 +106,7 @@ class TraceAADV8_3:
         max_sample_nums: int | None = 100,
         *,
         n_init: int = 10,
-        max_depth: int = 10,
-        widening_alpha: float = 0.5,
-        exploration_constant: float = 0.1,
-        beta: float = 1.0,
-        rho: float = 0.25,
-        kappa: float = 0.1,
-        trajectory_window: int = 8,
+        search_weights: SearchWeights | None = None,
         reference_temperature: float = 1.0,
         maximize: bool = True,
         context_token_limit: int | None = None,
@@ -120,20 +123,6 @@ class TraceAADV8_3:
             raise ValueError("n_init must be non-negative")
         if max_sample_nums is not None and max_sample_nums < 0:
             raise ValueError("max_sample_nums must be non-negative or None")
-        if max_depth < 2:
-            raise ValueError("max_depth must be at least two")
-        if not 0 < widening_alpha <= 1:
-            raise ValueError("widening_alpha must be in (0, 1]")
-        if exploration_constant < 0:
-            raise ValueError("exploration_constant must be non-negative")
-        if beta <= 0:
-            raise ValueError("beta must be positive")
-        if not 0 <= rho <= 1:
-            raise ValueError("rho must be between zero and one")
-        if kappa < 0:
-            raise ValueError("kappa must be non-negative")
-        if trajectory_window <= 0:
-            raise ValueError("trajectory_window must be positive")
         if reference_temperature <= 0:
             raise ValueError("reference_temperature must be positive")
         if context_token_limit is not None and context_token_limit <= 0:
@@ -153,10 +142,14 @@ class TraceAADV8_3:
         template = (
             copy.deepcopy(evaluation.template_program)
             if isinstance(evaluation.template_program, Program)
-            else TextFunctionProgramConverter.text_to_program(evaluation.template_program)
+            else TextFunctionProgramConverter.text_to_program(
+                evaluation.template_program
+            )
         )
         if template is None or len(template.functions) != 1:
-            raise ValueError("TraceAAD V8.3 requires exactly one evolvable template function")
+            raise ValueError(
+                "TraceAAD V8.3 requires exactly one evolvable template function"
+            )
 
         self._llm = llm
         self._evaluation = evaluation
@@ -167,13 +160,9 @@ class TraceAADV8_3:
         self._task_description_str = evaluation.task_description
         self._max_sample_nums = max_sample_nums
         self._n_init = int(n_init)
-        self._max_depth = int(max_depth)
-        self._widening_alpha = float(widening_alpha)
-        self._exploration_constant = float(exploration_constant)
-        self._beta = float(beta)
-        self._rho = float(rho)
-        self._kappa = float(kappa)
-        self._trajectory_window = int(trajectory_window)
+        self._search_weights = (
+            SearchWeights() if search_weights is None else search_weights
+        )
         self._reference_temperature = float(reference_temperature)
         self._maximize = bool(maximize)
         self._context_token_limit = context_token_limit
@@ -238,7 +227,9 @@ class TraceAADV8_3:
             if self._artifacts is not None:
                 self._artifacts.write_summary(
                     status="finished",
-                    best_score=None if self._best_node is None else self._best_node.algorithm.fitness,
+                    best_score=None
+                    if self._best_node is None
+                    else self._best_node.algorithm.fitness,
                     method_sample_count=self._tot_sample_nums,
                     n_total_nodes=len(self._tree.nodes()),
                     n_valid_nodes=len(self._tree.nodes()),
@@ -354,17 +345,12 @@ class TraceAADV8_3:
         selection = select_expansion_node(
             self._tree,
             maximize=self._maximize,
-            total_budget=self._max_sample_nums,
-            used_budget=self._tot_sample_nums,
-            exploration_constant=self._exploration_constant,
-            beta=self._beta,
-            rho=self._rho,
-            kappa=self._kappa,
-            window=self._trajectory_window,
+            weights=self._search_weights,
             rng=self._rng,
-            max_depth=self._max_depth,
-            widening_alpha=self._widening_alpha,
         )
+        if selection.node_id == self._tree.root.id:
+            self._search_root_attempt(selection)
+            return
         node = self._tree.get_node(selection.node_id)
         path = self._tree.record_selection(node.id)
         candidates = reference_candidates(self._tree, node.id)
@@ -451,6 +437,14 @@ class TraceAADV8_3:
         # global-rank changes can alter the expansion arm's historical credit.
         edge.parent_quality = node_fitness(self._tree, node, self._maximize)
         edge.child_quality = node_fitness(self._tree, child, self._maximize)
+        reward = expansion_reward(
+            self._tree,
+            node,
+            child,
+            self._maximize,
+            self._search_weights,
+        )
+        self._tree.record_outcome(path, reward)
         best_updated = self._update_best(child)
         self._consecutive_failures = 0
         self._record_attempt(
@@ -481,6 +475,87 @@ class TraceAADV8_3:
                 sample_order=self._tot_sample_nums,
             )
 
+    def _search_root_attempt(self, selection: SelectionResult) -> None:
+        """Expand the virtual root when its MCTS-AHD width quota is unmet."""
+        path = self._tree.record_selection(self._tree.root.id)
+        references = self._initial_references(min(2, len(self._tree.nodes())))
+        prompt = build_initial_prompt(
+            task_description=self._task_description_str,
+            target_function=self._function_to_evolve,
+            operator="e1",
+            references=references,
+            maximize=self._maximize,
+        )
+        result = self._generate(prompt, phase="search", operator="e1")
+        if result is None:
+            trace = self._generation_trace
+            self._consecutive_failures += 1
+            self._record_attempt(
+                selection=selection,
+                phase="search",
+                selected_node_id=None,
+                selection_path=path,
+                operator="e1",
+                context="root widening",
+                call1_prompt=prompt,
+                call1_response=trace.get("call1_response"),
+                description_prompt=trace.get("description_prompt"),
+                description_response=trace.get("description_response"),
+                status="generation_failed",
+                failure_reason="call_failed_or_parse_failed",
+            )
+            return
+        fitness, evaluation_time, reason = self._evaluate(result.program)
+        if fitness is None:
+            self._consecutive_failures += 1
+            self._record_attempt(
+                selection=selection,
+                phase="search",
+                selected_node_id=None,
+                selection_path=path,
+                operator="e1",
+                context="root widening",
+                call1_prompt=result.call1_prompt,
+                call1_response=result.call1_response,
+                description_prompt=result.description_prompt,
+                description_response=result.description_response,
+                status="eval_failed",
+                failure_reason=reason,
+                evaluation_time=evaluation_time,
+            )
+            return
+        child = self._tree.add_initial(
+            AlgorithmRecord(
+                design_idea=result.idea,
+                code=str(result.program),
+                description=result.description,
+                fitness=fitness,
+                evaluation_time=evaluation_time,
+            ),
+            creation_order=self._tot_sample_nums,
+            count_visit=False,
+        )
+        best_updated = self._update_best(child)
+        self._consecutive_failures = 0
+        self._record_attempt(
+            selection=selection,
+            phase="search",
+            selected_node_id=None,
+            selection_path=path,
+            operator="e1",
+            context="root widening",
+            call1_prompt=result.call1_prompt,
+            call1_response=result.call1_response,
+            description_prompt=result.description_prompt,
+            description_response=result.description_response,
+            status="root_node_created",
+            fitness=fitness,
+            evaluation_time=evaluation_time,
+            node_id=child.id,
+            global_best_updated=best_updated,
+            global_best_fitness=self._best_node.algorithm.fitness,
+        )
+
     def _failed_attempt(
         self,
         selection: SelectionResult,
@@ -498,6 +573,7 @@ class TraceAADV8_3:
         description_response: str | None = None,
         evaluation_time: float | None = None,
     ) -> None:
+        self._tree.record_outcome(path, 0.0)
         self._consecutive_failures += 1
         self._record_attempt(
             selection=selection,
@@ -516,7 +592,9 @@ class TraceAADV8_3:
             evaluation_time=evaluation_time,
         )
 
-    def _generate(self, prompt: str, *, phase: str, operator: str | OperatorName) -> _Generated | None:
+    def _generate(
+        self, prompt: str, *, phase: str, operator: str | OperatorName
+    ) -> _Generated | None:
         started = time.monotonic()
         self._generation_trace = {
             "call1_prompt": prompt,
@@ -530,10 +608,14 @@ class TraceAADV8_3:
             try:
                 call1_response = str(self._llm.draw_sample(prompt))
             except Exception as exc:
-                self._record_llm_call(phase, operator, prompt, None, "request_failed", exc)
+                self._record_llm_call(
+                    phase, operator, prompt, None, "request_failed", exc
+                )
                 continue
             self._generation_trace["call1_response"] = call1_response
-            parsed = parse_call1(call1_response, self._template_program, self._function_to_evolve.name)
+            parsed = parse_call1(
+                call1_response, self._template_program, self._function_to_evolve.name
+            )
             self._record_llm_call(
                 phase,
                 operator,
@@ -559,7 +641,14 @@ class TraceAADV8_3:
             try:
                 description_response = str(self._llm.draw_sample(description_prompt))
             except Exception as exc:
-                self._record_llm_call(phase, "description", description_prompt, None, "request_failed", exc)
+                self._record_llm_call(
+                    phase,
+                    "description",
+                    description_prompt,
+                    None,
+                    "request_failed",
+                    exc,
+                )
                 continue
             self._generation_trace["description_response"] = description_response
             description = parse_description(description_response)
@@ -589,7 +678,9 @@ class TraceAADV8_3:
     def _evaluate(self, program: Program) -> tuple[float | None, float, str | None]:
         if not self._has_budget():
             return None, 0.0, "evaluator_budget_exhausted"
-        outcome, evaluation_time = self._evaluator.evaluate_program_record_time_with_details(program)
+        outcome, evaluation_time = (
+            self._evaluator.evaluate_program_record_time_with_details(program)
+        )
         # An evaluator invocation counts immediately, including a failed result.
         self._tot_sample_nums += 1
         result = outcome.result
@@ -629,38 +720,43 @@ class TraceAADV8_3:
         # important direct branches until the mandatory current code fits.
         # Keep at least the newest formation step and the best direct branch
         # whenever any non-mandatory context can fit.
-        variants = [(formation, branches) for formation in (3, 2, 1) for branches in (3, 2, 1)]
+        variants = [
+            (formation, branches) for formation in (3, 2, 1) for branches in (3, 2, 1)
+        ]
         variants.extend((0, branches) for branches in (3, 2, 1, 0))
         for formation_limit, branch_limit in variants:
-                local: LocalContext = build_local_context(
-                    self._tree,
-                    node,
-                    maximize=self._maximize,
-                    max_formation_edges=formation_limit,
-                    max_direct_children=branch_limit,
+            local: LocalContext = build_local_context(
+                self._tree,
+                node,
+                maximize=self._maximize,
+                max_formation_edges=formation_limit,
+                max_direct_children=branch_limit,
+            )
+            reference_payload = None
+            if reference is not None:
+                reference_payload = (
+                    reference.algorithm.design_idea,
+                    reference.algorithm.description,
+                    reference.algorithm.code,
+                    reference.algorithm.fitness,
                 )
-                reference_payload = None
-                if reference is not None:
-                    reference_payload = (
-                        reference.algorithm.design_idea,
-                        reference.algorithm.description,
-                        reference.algorithm.code,
-                        reference.algorithm.fitness,
-                    )
-                prompt = build_search_prompt(
-                    task_description=self._task_description_str,
-                    current_code=node.algorithm.code,
-                    current_description=node.algorithm.description,
-                    current_fitness=node.algorithm.fitness,
-                    history=local.text,
-                    operator_name=str(operator.name),
-                    operator_instruction=operator.instruction,
-                    target_function=self._function_to_evolve,
-                    reference=reference_payload,
-                    maximize=self._maximize,
-                )
-                if self._context_token_limit is None or self._count_tokens(prompt) <= self._context_token_limit:
-                    return prompt, local.text
+            prompt = build_search_prompt(
+                task_description=self._task_description_str,
+                current_code=node.algorithm.code,
+                current_description=node.algorithm.description,
+                current_fitness=node.algorithm.fitness,
+                history=local.text,
+                operator_name=str(operator.name),
+                operator_instruction=operator.instruction,
+                target_function=self._function_to_evolve,
+                reference=reference_payload,
+                maximize=self._maximize,
+            )
+            if (
+                self._context_token_limit is None
+                or self._count_tokens(prompt) <= self._context_token_limit
+            ):
+                return prompt, local.text
         return None
 
     def _initial_references(self, count: int) -> tuple[tuple[str, str], ...]:
@@ -668,7 +764,9 @@ class TraceAADV8_3:
         if count > len(nodes):
             count = len(nodes)
         chosen = self._rng.sample(nodes, count)
-        return tuple((node.algorithm.design_idea, node.algorithm.code) for node in chosen)
+        return tuple(
+            (node.algorithm.design_idea, node.algorithm.code) for node in chosen
+        )
 
     def _update_best(self, node: TreeNode) -> bool:
         if self._best_node is None:
@@ -676,13 +774,18 @@ class TraceAADV8_3:
             return True
         current = self._best_node.algorithm.fitness
         candidate = node.algorithm.fitness
-        if (self._maximize and candidate > current) or (not self._maximize and candidate < current):
+        if (self._maximize and candidate > current) or (
+            not self._maximize and candidate < current
+        ):
             self._best_node = node
             return True
         return False
 
     def _has_budget(self) -> bool:
-        return self._max_sample_nums is None or self._tot_sample_nums < self._max_sample_nums
+        return (
+            self._max_sample_nums is None
+            or self._tot_sample_nums < self._max_sample_nums
+        )
 
     def _count_tokens(self, prompt: str) -> int:
         counter = getattr(self._llm, "count_tokens", None)
@@ -712,7 +815,9 @@ class TraceAADV8_3:
             error=None if exc is None else str(exc),
         )
 
-    def _record_attempt(self, *, selection: SelectionResult | None = None, **values: Any) -> None:
+    def _record_attempt(
+        self, *, selection: SelectionResult | None = None, **values: Any
+    ) -> None:
         self._next_attempt += 1
         if selection is not None and "selection_steps" not in values:
             values["selection_steps"] = selection.steps
@@ -731,14 +836,23 @@ class TraceAADV8_3:
                 failure_reason=record.failure_reason,
                 fitness=record.fitness,
                 node_id=record.node_id,
-                selection_steps=[] if selection is None else [{
-                    "decision_node_id": step.decision_node_id,
-                    "option": step.option,
-                    "target_node_id": step.target_node_id,
-                    "score": step.score,
-                    "quality": step.quality,
-                    "exploration": step.exploration,
-                } for step in selection.steps],
+                selection_steps=[]
+                if selection is None
+                else [
+                    {
+                        "decision_node_id": step.decision_node_id,
+                        "option": step.option,
+                        "target_node_id": step.target_node_id,
+                        "score": step.score,
+                        "quality": step.quality,
+                        "exploration": step.exploration,
+                        "probability": step.probability,
+                        "prior": step.prior,
+                        "credit_mean": step.credit_mean,
+                        "credit_count": step.credit_count,
+                    }
+                    for step in selection.steps
+                ],
                 global_best_updated=record.global_best_updated,
                 global_best_fitness=record.global_best_fitness,
             )

@@ -1,7 +1,8 @@
 # TraceAAD V6：简约的轨迹进化
 
 > 本文定义正式 TraceAAD V6 的机制；实现位于 `llm4ad/method/traceaad_v6/`。
-> 质量门控 V6 的机制差异与历史实验见 [V6 开发复盘](../archive/development/TraceAAD-V6开发复盘.md)。
+> 质量门控 V6 的完整机制见 [V6 质量门控版完整机制设计](TraceAAD-v6质量门控版完整机制设计.md)，
+> 差异与历史实验见 [V6 开发复盘](../archive/development/TraceAAD-V6开发复盘.md)。
 > V4、V5 由各自文档和实现独立定义。
 
 ## 科学动机与可证伪设计假设

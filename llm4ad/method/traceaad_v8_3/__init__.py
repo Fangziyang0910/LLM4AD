@@ -13,6 +13,7 @@ from .schema import (
 )
 from .traceaad import AttemptRecord, TraceAADRunResult, TraceAADV8_3, TraceAADV83
 from .tree import SearchTree
+from .value import SearchWeights
 
 __all__ = [
     "AlgorithmRecord",
@@ -22,6 +23,7 @@ __all__ = [
     "OperatorName",
     "PROTOCOL_ID",
     "SearchTree",
+    "SearchWeights",
     "SelectionResult",
     "SelectionStep",
     "TraceAADRunResult",

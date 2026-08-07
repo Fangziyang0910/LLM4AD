@@ -14,6 +14,7 @@ from llm4ad.method.traceaad_v7 import PROTOCOL_ID as V7_PROTOCOL_ID
 from llm4ad.method.traceaad_v7 import TraceAADV7
 from llm4ad.method.traceaad_v8 import PROTOCOL_ID as V8_PROTOCOL_ID
 from llm4ad.method.traceaad_v8 import TraceAADV8
+from llm4ad.method.traceaad_v8_3 import PROTOCOL_ID as V83_PROTOCOL_ID
 from llm4ad.method.traceaad_v8_3 import TraceAADV8_3
 
 
@@ -176,6 +177,29 @@ def test_v8_runner_records_tree_protocol_without_population_controls(
     assert "action_max_tokens" not in params
 
 
+def test_v83_runner_records_route_credit_protocol(tmp_path: Path) -> None:
+    spec = run.make_run_spec(
+        task="tsp_construct",
+        version="v8_3",
+        experiments_root=tmp_path,
+    )
+    run_dir, run_name, _ = run.resolve_run_dir(spec)
+    run.write_run_config(spec, run_dir, run_name)
+    payload = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
+
+    params = payload["method_params"]
+    assert params["protocol_id"] == V83_PROTOCOL_ID
+    assert params["trajectory_prior"] == "endpoint_path_best_and_recent_trend"
+    assert params["credit_assignment"] == "direct_reward_mean_on_selected_route"
+    assert params["expansion_policy"] == "progressive_widening_then_softmax_ucb"
+    assert params["search_weights"]["exploration_constant"] == 0.25
+    assert params["search_weights"]["selection_temperature"] == 0.2
+    assert params["search_weights"]["widening_alpha"] == 0.5
+    assert "max_depth" not in params
+    assert "beta" not in params
+    assert "kappa" not in params
+
+
 def test_resume_uses_version_specific_checkpoint_source(tmp_path: Path) -> None:
     for version in run.VERSIONS:
         run_dir = tmp_path / version
@@ -305,14 +329,38 @@ def test_v82_scheduler_builds_four_tasks_by_three_repeats(tmp_path: Path) -> Non
     assert all("v82_20260804_220000" in job["run_name"] for job in jobs)
 
 
-def test_v82_scheduler_counts_inherited_worker_command_once() -> None:
-    zhong = (
-        "python -m experiments.runners.traceaad.run --task op_aco "
-        "--backend zhong"
+def test_v83_scheduler_preserves_fixed_model_source_assignment(tmp_path: Path) -> None:
+    state = schedule.build_state(
+        batch="fixed_sources",
+        budget=1000,
+        n_init=10,
+        context_token_limit=24576,
+        version="v8_3",
+        experiments_root=tmp_path,
     )
+    jobs = state["jobs"]
+    assignments = {
+        (job["task"], job["repeat"]): job["preferred_backend"] for job in jobs
+    }
+
+    assert list(assignments.values()).count("zhong") == 6
+    assert list(assignments.values()).count("server1") == 4
+    assert list(assignments.values()).count("local") == 2
+    assert all(
+        assignments[(task, repeat)] == "zhong"
+        for task in ("tsp_construct", "cvrp_aco")
+        for repeat in range(1, 4)
+    )
+    assert all(assignments[("op_aco", repeat)] == "server1" for repeat in range(1, 4))
+    assert assignments[("online_bin_packing", 1)] == "server1"
+    assert assignments[("online_bin_packing", 2)] == "local"
+    assert assignments[("online_bin_packing", 3)] == "local"
+
+
+def test_v82_scheduler_counts_inherited_worker_command_once() -> None:
+    zhong = "python -m experiments.runners.traceaad.run --task op_aco --backend zhong"
     server1 = (
-        "python -m experiments.runners.reevo.run --task tsp_construct "
-        "--backend server1"
+        "python -m experiments.runners.reevo.run --task tsp_construct --backend server1"
     )
     rows = [
         (100, 1, zhong),

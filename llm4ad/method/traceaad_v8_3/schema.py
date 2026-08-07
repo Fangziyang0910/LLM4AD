@@ -34,6 +34,8 @@ class TreeNode:
     depth: int = 1
     visit_count: int = 1
     expansion_attempts: int = 0
+    credit_sum: float = 0.0
+    credit_count: int = 0
     creation_order: int = 0
 
 
@@ -65,6 +67,10 @@ class SelectionStep:
     score: float
     quality: float
     exploration: float
+    probability: float
+    prior: float
+    credit_mean: float
+    credit_count: int
 
 
 @dataclass(frozen=True, slots=True)

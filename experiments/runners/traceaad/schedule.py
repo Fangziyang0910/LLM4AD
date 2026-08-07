@@ -1,4 +1,4 @@
-"""Fill free LLM backend slots with the 12-run TraceAAD V8.2 batch."""
+"""Fill configured LLM backend slots with a 12-run TraceAAD tree batch."""
 
 from __future__ import annotations
 
@@ -43,6 +43,14 @@ FAILED_SUMMARY_STATUSES = {"error", "aborted", "interrupted"}
 DEFAULT_STATE_DIR = run.EXPERIMENTS_ROOT / ".traceaad_v8_scheduler"
 PROTOCOL_IDS = {"v8": V8_PROTOCOL_ID, "v8_3": V83_PROTOCOL_ID}
 PROTOCOL_ID = V8_PROTOCOL_ID
+
+
+def _v83_backend(task: run.TaskName, repeat: int) -> run.BackendName:
+    if task in {"tsp_construct", "cvrp_aco"}:
+        return "zhong"
+    if task == "op_aco" or repeat == 1:
+        return "server1"
+    return "local"
 
 
 def _now() -> str:
@@ -155,7 +163,9 @@ def build_state(
     experiments_root: Path = run.EXPERIMENTS_ROOT,
 ) -> dict[str, object]:
     if version not in PROTOCOL_IDS:
-        raise ValueError(f"scheduler only supports tree versions: {sorted(PROTOCOL_IDS)}")
+        raise ValueError(
+            f"scheduler only supports tree versions: {sorted(PROTOCOL_IDS)}"
+        )
     if not re.fullmatch(r"[A-Za-z0-9_.-]+", batch):
         raise ValueError("batch may contain only letters, numbers, '.', '_' and '-'")
     jobs = []
@@ -170,6 +180,9 @@ def build_state(
                     "repeat": repeat,
                     "seed": repeat,
                     "backend": None,
+                    "preferred_backend": (
+                        _v83_backend(task, repeat) if version == "v8_3" else None
+                    ),
                     "version": version,
                     "session": f"traceaad_{tag}_{batch}_{short}_r{repeat}",
                     "run_name": run_name,
@@ -291,10 +304,16 @@ def assign_pending(
     for job in jobs:
         if job["status"] != "pending":
             continue
-        backend = next(
-            (name for name in BACKEND_ORDER if available.get(name, 0) > 0),
-            None,
-        )
+        preferred = job.get("preferred_backend")
+        if preferred in BACKEND_ORDER:
+            backend = preferred if available.get(preferred, 0) > 0 else None
+            if backend is None:
+                continue
+        else:
+            backend = next(
+                (name for name in BACKEND_ORDER if available.get(name, 0) > 0),
+                None,
+            )
         if backend is None:
             break
         available[backend] -= 1
@@ -423,8 +442,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--poll-interval", type=int, default=30)
     parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIR)
     parser.add_argument("--zhong-capacity", type=int, default=6)
-    parser.add_argument("--server1-capacity", type=int, default=6)
-    parser.add_argument("--local-capacity", type=int, default=3)
+    parser.add_argument("--server1-capacity", type=int, default=4)
+    parser.add_argument("--local-capacity", type=int, default=2)
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser
@@ -443,7 +462,10 @@ def main(argv: list[str] | None = None) -> None:
     for name in ("zhong_capacity", "server1_capacity", "local_capacity"):
         if getattr(args, name) < 0:
             raise ValueError(f"{name} must be non-negative")
-    if not any(getattr(args, name) > 0 for name in ("zhong_capacity", "server1_capacity", "local_capacity")):
+    if not any(
+        getattr(args, name) > 0
+        for name in ("zhong_capacity", "server1_capacity", "local_capacity")
+    ):
         raise ValueError("at least one backend capacity must be positive")
     capacity: dict[run.BackendName, int] = {
         "zhong": args.zhong_capacity,

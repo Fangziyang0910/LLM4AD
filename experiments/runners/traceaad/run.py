@@ -62,6 +62,7 @@ from llm4ad.method.traceaad_v8.operators import DEFAULT_OPERATORS as V8_OPERATOR
 from llm4ad.method.traceaad_v8_3 import (
     DEFAULT_OPERATORS as V83_OPERATORS,
     PROTOCOL_ID as V83_PROTOCOL_ID,
+    SearchWeights as V83SearchWeights,
     TraceAADV8_3,
 )
 from llm4ad.task.optimization.cvrp_aco import CVRPACOEvaluation
@@ -267,19 +268,14 @@ def build_method(
     )
     artifacts = TraceAADArtifacts(run_dir=run_dir)
     if spec.version == "v8_3":
+        search_weights = V83SearchWeights()
         return TraceAADV8_3(
             llm=llm,
             evaluation=evaluation,
             profiler=artifacts,
             max_sample_nums=spec.budget,
             n_init=spec.n_init,
-            max_depth=10,
-            widening_alpha=0.5,
-            exploration_constant=0.1,
-            beta=1.0,
-            rho=0.25,
-            kappa=0.1,
-            trajectory_window=8,
+            search_weights=search_weights,
             reference_temperature=1.0,
             context_token_limit=spec.context_token_limit,
             retry_count=3,
@@ -514,24 +510,21 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         weights = None
     method_params: dict[str, Any]
     if spec.version == "v8_3":
+        search_weights = V83SearchWeights()
         method_params = {
             "protocol_id": V83_PROTOCOL_ID,
             "maximize": True,
             "max_sample_nums": spec.budget,
             "n_init": spec.n_init,
-            "max_depth": 10,
-            "widening_alpha": 0.5,
             "generation_protocol": "call1_design_idea_code_then_call2_description",
             "quality_normalization": "global_midrank_percentile",
-            "expansion_policy": "progressive_widening_then_recursive_descend_or_new_child",
-            "expansion_reward": "direct_child_plus_parent_development_gain",
+            "trajectory_prior": "endpoint_path_best_and_recent_trend",
+            "credit_assignment": "direct_reward_mean_on_selected_route",
+            "expansion_policy": "progressive_widening_then_softmax_ucb",
+            "expansion_reward": "frozen_child_quality_plus_positive_parent_gain",
             "failed_expansion_reward": 0.0,
-            "root_expansion": False,
-            "exploration_constant": 0.1,
-            "beta": 1.0,
-            "rho": 0.25,
-            "kappa": 0.1,
-            "trajectory_window": 8,
+            "root_expansion": True,
+            "search_weights": asdict(search_weights),
             "reference_temperature": 1.0,
             "max_consecutive_sample_failures": 20,
             "retry_count": 3,
