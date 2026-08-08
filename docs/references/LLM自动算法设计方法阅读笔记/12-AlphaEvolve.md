@@ -1,0 +1,39 @@
+# AlphaEvolve
+
+- 论文：AlphaEvolve；本地来源：[`main.tex`](../../../../papers/AlphaEvolve/main.tex) 及 `methods.tex`、`results.tex`、`ablations.tex`、`appendix.tex`；设计对象：可执行程序中的可演化函数。
+
+## 1. 核心问题与方法
+
+AlphaEvolve 将强 LLM 与自动 evaluator 组成异步演化系统：候选程序在数据库中按质量与多样性管理，模型依据父程序、反馈和任务说明提出 patch；评估器验证并回传指标。论文覆盖算法、硬件/系统和科学计算等任务，强调人类提供问题框架、系统自动改进其中可验证部分。
+
+## 2. 论文宣称的机制贡献（逐项）
+
+- 演化数据库保存高质量且多样的程序上下文。
+- 多模型/异步生成与 evaluator 形成可扩展闭环。
+- 自动验证使发现可以在真实工程约束下累积。
+
+## 3. 实验究竟支持了什么
+
+|机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
+|---|---|---|---|
+|系统在多个案例中产生文中报告的改进|`results.tex` 各领域结果表/图与 `discovered_program.tex`|间接支持|多案例整体展示不能隔离数据库、模型、评估或人类脚手架。|
+|演化组件提高成功率/效率|`ablations.tex` 的组件消融|部分支持|仅对该消融中被单独替换的组件，且需固定计算资源。|
+|程序/反馈上下文有用|`ablations.tex`，Fig. `ablations_rewrite`|部分支持|该图在矩阵分解与 kissing-number 任务上比较设置，曲线为三个随机种子均值；具体被移除的组件须以图例定义为限。|
+|发现可泛化|跨任务结果|间接支持|任务共享不同 evaluator 与人类框架，不构成同一统计总体。|
+
+## 4. 机制的底层逻辑
+
+阅读分析：AlphaEvolve 把 LLM 的一次性编码能力放到累计的、可执行的反馈循环里；数据库充当外部记忆，patch 保持父代可用部分。真正的因果闭环是 verifier/evaluator，而“多领域”并不消除 evaluator 设计、人工任务分解和计算预算的强影响。
+
+## 5. 对 LLM4AD / TraceAAD 可学习之处
+
+- 可学习点：保留失败/成功 patch 与具体评估反馈。前提：反馈可安全压缩。风险：长上下文掩盖关键信号。最小验证：固定 context token，比较只给分数与给结构化反馈。
+- 可学习点：将多样性库作为检索而不是全量提示。前提：检索相关性可测。风险：索引偏好旧解。最小验证：随机检索、质量检索、多样检索三路等预算比较。
+
+## 6. 证据边界
+
+结果横跨异质任务，评价口径和可用专家知识不同；案例成功不等于一个共享的 effect size。组件消融的解释须严格限于 `ablations.tex` 中实际控制的变量；没有报告之处不可假定独立重复或显著性。
+
+## 7. 论文内定位
+
+入口：[`main.tex`](../../../../papers/AlphaEvolve/main.tex)，方法：[`methods.tex`](../../../../papers/AlphaEvolve/methods.tex)，结果：[`results.tex`](../../../../papers/AlphaEvolve/results.tex)，消融：[`ablations.tex`](../../../../papers/AlphaEvolve/ablations.tex)，补充：`appendix.tex`、`discovered_program*.tex`。

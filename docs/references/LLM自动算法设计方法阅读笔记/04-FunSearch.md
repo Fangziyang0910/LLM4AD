@@ -1,0 +1,39 @@
+# FunSearch
+
+- 论文：*Mathematical discoveries from program search with large language models*；本地来源：[`s41586-023-06924-6.pdf`](../../../../papers/Mathematical_discoveries_from_program_search_with_large_language_models/s41586-023-06924-6.pdf)；设计对象：数学构造或算法骨架中一个可执行的关键函数。
+
+## 1. 核心问题与方法
+
+FunSearch 不让 LLM 直接回答数学对象，而搜索生成该对象的程序。系统由预训练代码模型和确定性 evaluator 构成：从 island 内按分数抽取多个程序组成 prompt，模型改写被指定函数，evaluator 执行并将新候选存回按岛分隔的程序库；异步并行扩展评估。论文把固定算法骨架与可演化的 `priority` 函数分开，用于 cap set 和 online bin packing。
+
+## 2. 论文宣称的机制贡献（逐项）
+
+- evaluator 防止 LLM 虚构，把创造性提案转为可验证程序搜索。
+- island 群体维持并行探索；函数空间搜索偏向短、可泛化的规则。
+- 代码可被人检查和化简，从而将搜索结果转为数学洞见。
+
+## 3. 实验究竟支持了什么
+
+|机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
+|---|---|---|---|
+|找到 cap-set 新构造|主文 Fig. 4、Fig. 5；Methods/补充 A、B|直接支持|正文报告 n=8 构造及 capacity 下界改进，结论受所述验证程序约束。|
+|发现有效 bin-packing 启发式|Table 1、Fig. 6、补充 E.4–E.5|直接支持|在 OR-Library 与 Weibull 设置中优于文中 first/best fit 比较。|
+|island、程序空间等组件均必要|Methods 指向补充 A 的组件消融|部分支持|存在设计消融说明，但主结果不能各自归因。|
+|短程序天然更泛化|对程序可解释性的论述与实例|间接支持|未给出普遍复杂度—泛化因果检验。|
+
+## 4. 机制的底层逻辑
+
+阅读分析：将不可证实的自然语言推测限制在一个可执行函数，把正确性与性能交给 evaluator，是其最关键的闭环。岛屿避免单一分数谱系吞没全部上下文；多例 prompt 让模型从局部成功模式继续。可是 evaluator 只覆盖其测试集时，仍会诱发针对该测试集的程序；程序短也只降低审查成本，并不自动保证理论正确。
+
+## 5. 对 LLM4AD / TraceAAD 可学习之处
+
+- 可学习点：固定任务骨架，只开放关键决策函数。前提：骨架不排除真正有效的算法族。风险：搜索空间被先验锁死。最小验证：少量不同骨架下比较最优及跨实例分数。
+- 可学习点：将候选、父代、分数和 evaluator 输出构成可回溯库。前提：评估确定且保存版本。风险：训练实例泄漏。最小验证：搜索后对未参与选择的实例重测。
+
+## 6. 证据边界
+
+cap set、admissible set 与 bin packing 的有效性口径不同；部分结果采用多次运行取报告结果，且非所有任务给统一重复/显著性协议。异步硬件规模、模型、提示和 evaluator 共同构成方法条件，不能直接外推到低预算通用 AAD。
+
+## 7. 论文内定位
+
+PDF 主文 Fig. 1–6、Table 1；Methods（LLM、program database、islands、distributed system）；Supplementary Information Appendix A（方法/消融）、B（发现）、C（程序）、E.4–E.5（bin packing）。

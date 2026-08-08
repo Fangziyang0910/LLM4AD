@@ -1,0 +1,39 @@
+# CDEoH
+
+- 论文：*CDEoH: Category-Driven Automatic Algorithm Design With Large Language Models*；本地来源：[`main.tex`](../../../../papers/CDEoH_Category_Driven_Automatic_Algorithm_Design_With_Large_Language_Models/main.tex)；设计对象：启发式/算法代码。
+
+## 1. 核心问题与方法
+
+CDEoH 以类别驱动 LLM 演化：先将候选或设计思想归入类别，再围绕类别安排生成与选择，意在避免种群只围绕单一代码局部改写。代码仍由 evaluator 决定保留，类别是组织搜索和 prompt 上下文的中间结构。
+
+## 2. 论文宣称的机制贡献（逐项）
+
+- 类别化提供可控的多样性搜索单元。
+- 类别内开发与类别间探索可协同。
+- 语言模型能把类别语义转成不同算法候选。
+
+## 3. 实验究竟支持了什么
+
+|机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
+|---|---|---|---|
+|CDEoH 的主性能比较|§Experiments，`tab:obp_results`、`tab:tsp_results`|间接支持|这是整法与比较方法的结果，对论文任务集成立。|
+|类别与 reflection 的作用|§Ablation Study，`tab:ablation_results`|部分支持|表明确比较 category mechanism 与 reflection mechanism；结论限其 OBP 配置。|
+|类别带来行为多样性|类别案例/分布图|间接支持|类别名称或文本距离不等于算法行为差异。|
+|类别边界正确且稳定|未见独立标注或鲁棒性证据|未验证|类别划分本身可能是 prompt 先验。|
+
+## 4. 机制的底层逻辑
+
+阅读分析：类别能将“历史”压缩成可选择的路线，降低模型在长种群文本中迷失的概率；而类别过粗会混合不兼容想法，过细会稀释评估预算。真正起作用的应是类别是否预测后续变异的互补性，而不只是对候选贴标签。
+
+## 5. 对 LLM4AD / TraceAAD 可学习之处
+
+- 可学习点：对轨迹按可观察的改进思想聚合。前提：聚合可回看原始证据。风险：LLM 自标类别循环确认。最小验证：冻结类别器，检查类别间行为距离和收益差异。
+- 可学习点：类别作为检索索引而非硬约束。前提：允许跨类回退。风险：错过跨类组合。最小验证：同预算比较软检索与硬分配。
+
+## 6. 证据边界
+
+类别生成、类别数量、类别更新频率和模型提示是耦合变量；若论文未给等预算消融、独立种子和测试实例重评，不能主张类别机制在所有优化问题稳定有效。
+
+## 7. 论文内定位
+
+入口：[`main.tex`](../../../../papers/CDEoH_Category_Driven_Automatic_Algorithm_Design_With_Large_Language_Models/main.tex)。使用 §Method 的 `fig:Method`、`fig:Line_Chart`、§Experiments 的 `tab:obp_results`、`tab:tsp_results`、`tab:ablation_results`。
