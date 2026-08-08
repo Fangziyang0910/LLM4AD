@@ -2,11 +2,11 @@
 
 本文记录论文库中由 LLM 参与自动算法设计（AAD）、自动启发式设计（AHD）以及更广义程序与算法发现的方法。纳入标准是：方法的产物为可复用的启发式、求解器程序或算法，而不是只为单个实例输出一个解。
 
-当前共收录 **41 个方法**：31 个直接 AAD/AHD 方法，10 个更广义的程序与算法发现方法。综述、benchmark、机制分析、端到端实例求解、奖励函数设计和一般黑盒优化不在本文范围内。完整论文元数据见[论文库文献汇总](论文库文献汇总.md)，实验任务与预算见[AAD 方法实验设置汇总](AAD方法实验设置汇总.md)。
+当前共收录 **59 个方法**：44 个直接 AAD/AHD 方法，15 个更广义的程序与算法发现方法。综述、benchmark、纯机制分析、端到端实例求解、奖励函数设计和一般黑盒优化不在本文范围内；因此 [Mutation Without Variation](LLM自动算法设计方法阅读笔记/49-Mutation-Without-Variation.md) 有阅读笔记，但不计入方法数。完整论文元数据见[论文库文献汇总](论文库文献汇总.md)，实验任务与预算见[AAD 方法实验设置汇总](AAD方法实验设置汇总.md)。
 
 每篇论文的机制主张、实验支持、证据边界和可学习之处，见[逐篇阅读笔记](LLM自动算法设计方法阅读笔记/README.md)。其中真正把算法设计反馈用于模型参数更新的方法，另见[自动算法设计与模型训练结合的方法](自动算法设计与模型训练方法.md)；研究 LLM 作为变异、交叉或局部改进算子时搜索行为的论文，见[LLM 作为进化算子的机制分析](LLM作为进化算子的机制分析论文.md)。
 
-2026-08-08 对 arXiv、OpenAlex、OpenReview、NeurIPS Proceedings 和 ACL Anthology 的补充检索，发现了一批尚未进入本地论文库的轨迹／训练型工作，见[全网补充检索：轨迹与训练型 LLM 自动算法设计](全网补充检索-轨迹与训练型自动算法设计.md)。该清单是待补收候选，不计入本文 41 个已完成逐篇核对的方法。
+2026-08-08 对 arXiv、OpenAlex、OpenReview、NeurIPS Proceedings 和 ACL Anthology 的补充检索最终保留 19 篇工作并完成逐篇阅读，检索过程和收录边界见[全网补充检索：轨迹与训练型 LLM 自动算法设计](全网补充检索-轨迹与训练型自动算法设计.md)。其中 18 篇贡献方法并计入本文，另 1 篇是纯 mutation-chain 机制分析。
 
 ## 机制分类
 
@@ -14,12 +14,12 @@
 
 | 主导机制 | 解决的主要问题 | 直接 AAD/AHD | 广义算法发现 | 合计 |
 | --- | --- | ---: | ---: | ---: |
-| 语义进化与种群搜索 | 如何生成、组合和保留候选程序 | 8 | 6 | 14 |
-| 反思、记忆与历史上下文 | 如何把评价结果和改进历史用于下一次生成 | 5 | 2 | 7 |
-| 树搜索、规划与预算分配 | 如何选择下一条路线并分配有限评价预算 | 7 | 0 | 7 |
-| 表示扩展与系统级合成 | 如何从单函数设计扩展到集合、组件或完整求解器 | 6 | 0 | 6 |
-| 模型学习、智能体与协作 | 如何让模型或智能体系统随设计过程共同改进 | 5 | 2 | 7 |
-| **合计** |  | **31** | **10** | **41** |
+| 语义进化与种群搜索 | 如何生成、组合和保留候选程序 | 11 | 8 | 19 |
+| 反思、记忆与历史上下文 | 如何把评价结果和改进历史用于下一次生成 | 9 | 2 | 11 |
+| 树搜索、规划与预算分配 | 如何选择下一条路线并分配有限评价预算 | 9 | 0 | 9 |
+| 表示扩展与系统级合成 | 如何从单函数设计扩展到集合、组件或完整求解器 | 7 | 0 | 7 |
+| 模型学习、智能体与协作 | 如何让模型或智能体系统随设计过程共同改进 | 8 | 5 | 13 |
+| **合计** |  | **44** | **15** | **59** |
 
 ## 一、语义进化与种群搜索
 
@@ -41,6 +41,11 @@
 | [AlphaEvolve](../../../papers/AlphaEvolve/) | 广义算法发现 | 以多模型编码智能体、程序数据库和自动评价持续演化可执行程序。 |
 | [ShinkaEvolve](../../../papers/ShinkaEvolve/) | 广义算法发现 | 用程序库、搜索组、历史 patch 和经验摘要组织开放式程序进化。 |
 | [Evolutionary Discovery of RL Algorithms via LLMs](../../../papers/Evolutionary_Discovery_of_RL_Algorithms_via_LLMs/) | 广义算法发现 | 直接演化可执行的强化学习更新规则与训练流程。 |
+| [SMCEvolve](../../../papers/SMCEvolve_Principled_Scientific_Discovery_via_Sequential_Monte_Carlo_Evolution/) | 广义算法发现 | 将程序进化视为 SMC，以自适应重采样、mutation mixture 和 ESS 停止控制搜索。 |
+| [RelayEvolve](../../../papers/Relay_Dont_Route_Adaptive_Population_Handoff/) | 直接 AAD/AHD | 用路线级 Relay Gain 调度 cheap-model 探索，并把精选种群整体交给强模型。 |
+| [BehaveSim](../../../papers/Rethinking_Code_Similarity_for_Automated_Algorithm_Design/) | 直接 AAD/AHD | 用执行轨迹与 DTW 构造行为相似度，按真实求解行为组织多岛种群。 |
+| [TurboEvolve](../../../papers/TurboEvolve_Fast_and_Robust_LLM_Driven_Program_Evolution/) | 广义算法发现 | 用 multi-offspring、adaptive K 与 seed-pool island injection 提高样本效率。 |
+| [PartEvo](../../../papers/PartEvo_Partition_to_Evolve/) | 直接 AAD/AHD | 用 feature-assisted niche construction 和跨 niche 协作分配语言空间搜索预算。 |
 
 ## 二、反思、记忆与历史上下文
 
@@ -55,6 +60,10 @@
 | [MeEvo](../../../papers/MeEvo_Metacognitive_Evolution_for_Automatic_Heuristic_Design/) | 直接 AAD/AHD | 联合自然进化与元认知进化，兼顾候选探索和设计知识继承。 |
 | [DeltaEvolve](../../../papers/DeltaEvolve_Accelerating_Scientific_Discovery_through_Momentum_Driven_Evolution/) | 广义算法发现 | 用程序变化的语义增量及其结果构造动量式上下文，避免反复传入全量历史。 |
 | [PhyloEvolve](../../../papers/PhyloEvolve_LLM-Powered_Evolutionary_Code_Optimization_on_a_Phylogenetic_Tree/) | 广义算法发现 | 用谱系树保存程序的完整演化关系，使后续生成利用祖先历史。 |
+| [Back to the Beginning of Heuristic Design](../../../papers/Back_to_the_Beginning_of_Heuristic_Design_Bridging_Code_and_Knowledge_with_LLMs/) | 直接 AAD/AHD | 将知识设为主要搜索对象，再实例化为代码验证，并可与 code-first 搜索双向交互。 |
+| [MEMOIR](../../../papers/Memory_Guided_Tree_Search_with_Cross_Branch_Knowledge_Transfer/) | 直接 AAD/AHD | 分离 branch-local 调试历史与 global 路线摘要，并在分支终止时反思压缩。 |
+| [AutoSND](../../../papers/AutoSND_Execution_Evidence_to_Structural_Policies/) | 直接 AAD/AHD | 把执行证据编译为可约束下一阶段搜索的结构政策。 |
+| [GeoEvolve](../../../papers/GeoEvolve_Automating_Geospatial_Model_Discovery/) | 直接 AAD/AHD | 以内外双循环把代码诊断、GeoKnowRAG 和地理模型进化连接起来。 |
 
 ## 三、树搜索、规划与预算分配
 
@@ -69,6 +78,8 @@
 | [CogMCTS](../../../papers/CogMCTS_Cognitive-Guided_MCTS_for_Iterative_Heuristic_Evolution/) | 直接 AAD/AHD | 在 MCTS 中加入记忆与认知经验，指导节点扩展和路线切换。 |
 | [RefineEvo](../../../papers/RefineEvo_Planning-Guided_Heuristic_Evolution_with_Bidirectional_Experience/) | 直接 AAD/AHD | 用规划确定改进方向，并同时积累成功与失败经验。 |
 | [Compute Allocation / BaSE](../../../papers/Compute_Allocation_in_Evolutionary_Search_From_Depth_Breadth_to_Multi_Armed_Bandits/) | 直接 AAD/AHD | 将深挖与广搜视为多臂老虎机，动态分配 LLM 调用和评价预算。 |
+| [EvoStage](../../../papers/EvoStage_Evolutionary_Stagewise_Algorithm_Design/) | 直接 AAD/AHD | 将算法设计拆成可执行阶段，用中间反馈纠正后续设计方向。 |
+| [DyACE](../../../papers/DyACE_Dynamic_Algorithm_Coevolution/) | 直接 AAD/AHD | 从 solver search trajectory 提取状态特征，在线共演化启发式与解种群。 |
 
 ## 四、表示扩展与系统级合成
 
@@ -82,6 +93,7 @@
 | [InstSpecHH](../../../papers/LLM_Driven_Instance_Specific_Heuristic_Generation_and_Selection/) | 直接 AAD/AHD | 为不同实例子类生成专用启发式，并在运行前选择匹配的启发式。 |
 | [A2DEPT](../../../papers/A2DEPT_Large_Language_Model_Driven_Automated_Algorithm_Design_via_Evolutionary_Program_T/) | 直接 AAD/AHD | 用进化程序树表示和重组算法组件，搜索超越固定单函数模板的结构。 |
 | [BEAM](../../../papers/BEAM_Bi-level_Memory-adaptive_Algorithmic_Evolution/) | 直接 AAD/AHD | 在组件层和求解器层进行双层记忆自适应进化，逐步合成完整算法。 |
+| [DGA²D](../../../papers/DGA2D_Directed_Graph_Guided_Automated_Algorithm_Design/) | 直接 AAD/AHD | 用有向算子图和 first-order transition credit 组合并双层演化完整 pipeline。 |
 
 ## 五、模型学习、智能体与协作
 
@@ -96,6 +108,12 @@
 | [RoCo](../../../papers/RoCo_Role_Based_LLMs_Collaboration_for_Automatic_Heuristic_Design/) | 直接 AAD/AHD | 由 explorer、exploiter、critic 等角色协作提出、检查和改进启发式。 |
 | [CORAL](../../../papers/CORAL_Towards_Autonomous_Multi_Agent_Evolution_for_Open_Ended_Discovery/) | 广义算法发现 | 多个长驻智能体通过共享持久记忆、反思和协作进行开放式程序发现。 |
 | [Beyond Inference-Time Search](../../../papers/Beyond_Inference-Time_Search_RL_Synthesizes_Reusable_Solvers/) | 广义算法发现 | 用强化学习把在线搜索经验内化到代码模型，使其直接合成面向问题类的可复用求解器。 |
+| [Self-Developing](../../../papers/Can_Large_Language_Models_Invent_Algorithms_to_Improve_Themselves/) | 广义算法发现 | 生成模型合并算法，并用算法成败的偏好对迭代 DPO 更新 algorithm factory。 |
+| [AlgoPilot](../../../papers/AlgoPilot_Fully_Autonomous_Program_Synthesis_Without_Human_Written_Programs/) | 广义算法发现 | 以随机程序轨迹训练 TLM，再用其软奖励引导 RL 形成可恢复的排序轨迹。 |
+| [LLaMEA-SAGE](../../../papers/LLaMEA_SAGE_Guiding_Automated_Algorithm_Design_with_Structural_Feedback/) | 直接 AAD/AHD | 从 archive 训练结构—性能 surrogate，以 SHAP 解释指导 LLM 变异。 |
+| [Latent Heuristic Search](../../../papers/Latent_Heuristic_Search_Continuous_Optimization_for_Automated_Algorithm_Design/) | 直接 AAD/AHD | 训练程序 latent manifold 与 surrogate，在冻结代码 LLM 前提下做连续梯度搜索。 |
+| [GAE](../../../papers/GAE_Graph_Augmented_Evolution_for_Scientific_Discovery/) | 广义算法发现 | 联合训练程序图 GNN、SAC meta-controller 与在线 GRPO mutation policy。 |
+| [Teacher-Aware Evolution](../../../papers/Teacher_Aware_Evolution_of_Heuristic_Programs/) | 直接 AAD/AHD | 查询独立 learned teacher 的动作偏好，为程序进化提供密集行为反馈。 |
 
 ## 阅读这组方法时的统一问题
 

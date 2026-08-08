@@ -6,7 +6,7 @@
 
 ## 一、核心机制论文
 
-核心集合包含 **8 个研究方向、9 篇论文**。其中 ELM 与 *Evolving Code with a Large Language Model* 属于同一技术谱系，不能当成两份独立机制复现。
+核心集合包含 **12 个研究方向、13 篇论文**。其中 ELM 与 *Evolving Code with a Large Language Model* 属于同一技术谱系，不能当成两份独立机制复现。
 
 | 机制问题 | 论文 | 主要分析对象 | 最值得保留的结论 | 证据边界 |
 | --- | --- | --- | --- | --- |
@@ -18,6 +18,10 @@
 | LLM 算子诱导怎样的适应度景观 | [Fitness Landscape of LLM-Assisted Automated Algorithm Search](../../../papers/Fitness-Landscape-LLM-Assisted-Automated-Algorithm-Search/) | 算法节点、生成转移边、六任务×六模型、四种相似度 | LLM 算法搜索景观高度多峰且崎岖，任务和模型会改变景观结构；文本／结构相似度与性能关系并不固定 | 图景依赖采样到的候选和距离定义，只能描述被具体模型与 prompt 访问的经验景观，而非完整算法空间 |
 | 不同变异提示产生怎样的算法行为 | [Behaviour Space Analysis of LLM-driven Meta-heuristic Discovery](../../../papers/Behaviour_Space_Analysis_of_LLM_driven_Meta_heuristic_Discovery/) | 六种 mutation prompt、探索／利用／收敛／停滞指标、CEG 与轨迹网络 | prompt 策略会明显改变搜索动力学；在该实验中，简化加随机扰动的 \((1+1)\) 变体表现最好，高性能算法呈现更强局部利用、更快收敛和较少停滞 | 只使用 GPT o4-mini、LLaMEA 和十个 BBOB 函数；行为—性能关系主要是观察关联，不是普遍因果规律 |
 | 什么使一个 LLM 成为好的持续优化算子 | [What Makes an LLM a Good Optimizer?](../../../papers/What_Makes_an_LLM_a_Good_Optimizer_Trajectory_Analysis/) | 15 个 LLM×8 个任务的完整进化轨迹、局部改进、突破率、新颖性、语义移动 | 强算子更像可靠的局部精炼器：持续产生小步改进并逐渐局部化。平均新颖性本身不预测最终结果；只有搜索仍围绕高质量区域时，新颖性才有帮助 | 轨迹统计揭示关联结构，不单独证明怎样修改 prompt 就能获得该能力 |
+| 没有选择压力时，LLM 变异会自行走向哪里 | [Mutation Without Variation](LLM自动算法设计方法阅读笔记/49-Mutation-Without-Variation.md) | 受限 DSL 中的纯 mutation chains、结构 attractor、重复访问、自环与短周期 | 即使移除 fitness selection，LLM 变异也会快速汇聚到少数结构骨架；这揭示的是算子自身的生成偏置，而非选择器造成的坍缩 | 直接证据限于受限 genotype 空间，不能推出行为或 held-out fitness 必然坍缩 |
+| 文本相似度能否代表算法行为多样性 | [BehaveSim](LLM自动算法设计方法阅读笔记/54-BehaveSim.md) | 候选在问题实例上的执行轨迹、DTW 行为距离、代码／文本相似度 | 代码近似与行为近似会错位；用执行轨迹定义 niche 更接近搜索真正需要保留的功能差异 | 轨迹设计和实例采样会决定距离，完整方法收益不能全部归因于 BehaveSim |
+| 变异、接受与重采样如何共同控制退化 | [SMCEvolve](LLM自动算法设计方法阅读笔记/48-SMCEvolve.md) | mutation mixture、Metropolis-style acceptance、父代重采样与自动收敛控制 | 把 LLM 程序进化写成序贯蒙特卡洛后，可以显式区分“提出什么变化”和“哪些变化进入后续分布”；受控消融支持多个环节共同作用 | 理论目标分布依赖近似的 LLM proposal，整法优势不能说明每个概率组件都精确校准 |
+| 每次生成多少子代、如何语言化采样 | [TurboEvolve](LLM自动算法设计方法阅读笔记/58-TurboEvolve.md) | verbalized multi-offspring sampling、自适应 offspring 数、多岛与 seed injection | 一次提示生成多个带自述意图的子代，为同一父代提供相关但可比较的局部方向；预算控制应随搜索状态变化 | 缺少固定 offspring 数和 verbalization-off 的完全匹配消融，当前主要是合理机制与联合系统证据 |
 
 ## 二、这组论文共同解释了什么
 
@@ -45,6 +49,14 @@ Understanding the Importance of Evolutionary Search 表明，直接多次采样�
 
 这只能支持“需要持续搜索状态”，不能由此推出复杂种群、树、记忆或信用控制器各自有效。验证新增控制器时仍需固定 LLM、prompt、evaluator 和总预算，与简单 \((1+1)\)、随机父代或等概率基线比较。
 
+### 5. 代码多样性、行为多样性与路线多样性必须分层
+
+Mutation Without Variation 表明，纯 LLM 变异在结构空间里也会反复访问少数骨架；BehaveSim 则表明，相似代码仍可能产生不同求解轨迹，反之亦然。因此“去重”至少要区分文本／AST、执行行为和 lineage 三层。对搜索真正有价值的不是表面新代码，而是能带来不同决策过程、不同后续可改进方向或更好 held-out 结果的候选。
+
+### 6. 生成算子不能脱离接受与预算机制单独评价
+
+SMCEvolve 把 proposal、acceptance 和 resampling 分开，TurboEvolve 把单父代的 offspring 数变成状态相关资源决策。它们共同说明：相同 LLM 生成能力，在不同接受门槛、父代权重和每步采样量下会形成不同的有效算子。机制实验应同时报告提出分布、有效率、接受率、严格改进率和单位预算收益。
+
 ## 三、邻近但可迁移的机制研究
 
 这些论文不直接研究“生成算法代码”的完整 AAD 过程，但研究了同一种 LLM 搜索算子能力，可作为机制边界证据。
@@ -69,13 +81,17 @@ Understanding the Importance of Evolutionary Search 表明，直接多次采样�
 
 若目标是为 TraceAAD 理解和设计“LLM 单步生成算子”，推荐按以下顺序阅读：
 
-1. **What Makes an LLM a Good Optimizer?**：先建立局部精炼、突破率、新颖性和长期结果的经验关系；
-2. **Controlling the Mutation in LLMs**：理解目标变化幅度与实际输出之间并不等价；
-3. **ELM**：理解 LLM 变异相对随机 GP 的先验优势从哪里来；
-4. **Language Model Crossover**：理解多父代上下文怎样形成语义继承；
-5. **Understanding the Importance of Evolutionary Search**：区分 LLM 单步能力与持续搜索循环的贡献；
-6. **Fitness Landscape**：理解模型和任务共同诱导的经验搜索地形；
-7. **Behaviour Space Analysis**：把代码候选进一步映射为探索、利用、收敛和停滞行为；
-8. **Code Evolution Graphs**：补充代码结构、复杂度和模型风格的诊断视角。
+1. **Mutation Without Variation**：先隔离算子本身，理解没有选择压力时仍会出现的结构 attractor；
+2. **What Makes an LLM a Good Optimizer?**：建立局部精炼、突破率、新颖性和长期结果的经验关系；
+3. **Controlling the Mutation in LLMs**：理解目标变化幅度与实际输出之间并不等价；
+4. **ELM**：理解 LLM 变异相对随机 GP 的先验优势从哪里来；
+5. **Language Model Crossover**：理解多父代上下文怎样形成语义继承；
+6. **BehaveSim**：区分代码差异与真实执行行为差异；
+7. **Understanding the Importance of Evolutionary Search**：区分 LLM 单步能力与持续搜索循环的贡献；
+8. **SMCEvolve**：理解 proposal、acceptance 与 resampling 的耦合；
+9. **Fitness Landscape**：理解模型和任务共同诱导的经验搜索地形；
+10. **Behaviour Space Analysis**：把代码候选进一步映射为探索、利用、收敛和停滞行为；
+11. **Code Evolution Graphs**：补充代码结构、复杂度和模型风格的诊断视角；
+12. **TurboEvolve**：考察 multi-offspring 与状态化预算，但将其视作待加强消融的系统证据。
 
 这组工作的共同价值是把“LLM 很会生成代码”拆成可测的机制变量：父代保留、实际修改幅度、可执行率、严格局部改进、突破频率、语义移动、行为变化、复杂度增长和 held-out 结果。对 TraceAAD，最关键的实验单元仍应是完整的“父代与历史 → Idea + Code → 实际变化 → evaluator 结果”，而不是只比较最终 best 或代码文本相似度。

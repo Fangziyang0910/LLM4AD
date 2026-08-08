@@ -1,6 +1,6 @@
 # LLM 自动算法设计方法阅读笔记
 
-本目录逐篇记录[LLM 自动算法设计方法汇总](../LLM自动算法设计方法汇总.md)中的 41 个方法。每篇笔记只依据本地论文正文与附录，分开记录论文宣称、实验事实和本文分析。
+本目录逐篇记录 60 篇 LLM 自动算法设计、广义程序发现与机制分析论文，覆盖 59 个方法和 1 篇纯进化算子分析。每篇笔记只依据本地论文正文或附录，分开记录论文宣称、实验事实和本文分析。
 
 ## 证据口径
 
@@ -86,9 +86,37 @@
 40. [CORAL](40-CORAL.md)
 41. [Beyond Inference-Time Search](41-Beyond-Inference-Time-Search.md)
 
+### 模型训练与学习型搜索增强
+
+42. [Self-Developing](42-Self-Developing.md)
+43. [AlgoPilot](43-AlgoPilot.md)
+44. [LLaMEA-SAGE](44-LLaMEA-SAGE.md)
+46. [Latent Heuristic Search](46-Latent-Heuristic-Search.md)
+50. [GAE](50-GAE.md)
+57. [Teacher-Aware Evolution](57-Teacher-Aware-Evolution.md)
+
+### 知识、轨迹与结构反馈
+
+45. [Back to the Beginning of Heuristic Design](45-Back-to-the-Beginning.md)
+47. [MEMOIR](47-MEMOIR.md)
+52. [AutoSND](52-AutoSND.md)
+56. [DyACE](56-DyACE.md)
+59. [GeoEvolve](59-GeoEvolve.md)
+
+### 种群组织、信用与预算机制
+
+48. [SMCEvolve](48-SMCEvolve.md)
+49. [Mutation Without Variation](49-Mutation-Without-Variation.md)
+51. [DGA²D](51-DGA2D.md)
+53. [RelayEvolve](53-RelayEvolve.md)
+54. [BehaveSim](54-BehaveSim.md)
+55. [EvoStage](55-EvoStage.md)
+58. [TurboEvolve](58-TurboEvolve.md)
+60. [PartEvo](60-PartEvo.md)
+
 ## 跨论文认识
 
-41 篇笔记共记录 161 项“主张—证据”判断：27 项直接支持、49 项部分支持、68 项间接支持、16 项未验证、1 项反向或混合证据。这里统计的是判断条目而不是论文篇数；同一论文可以同时包含直接消融证据和未经验证的机制解释。
+60 篇笔记共记录 246 项“主张—证据”判断：60 项直接支持、72 项部分支持、83 项间接支持、25 项未验证、6 项反向或混合证据。这里统计的是判断条目而不是论文篇数；同一论文可以同时包含直接消融证据和未经验证的机制解释。
 
 ### 1. 最稳定的共同基础是可执行外部反馈
 
@@ -117,6 +145,18 @@ MEoH、HSEvo、QUBE、CDEoH、EoH-S、ShinkaEvolve 和 RoCo 分别用 Pareto、�
 ### 7. 把搜索经验写入模型，需要与在线搜索分开证明
 
 [CALM](35-CALM.md)、[EvoTune](36-EvoTune.md)、[Fine-tuning LLM for AAD](37-Fine-tuning-LLM-for-AAD.md)、[AHD Agent](38-AHD-Agent.md) 和 [Beyond Inference-Time Search](41-Beyond-Inference-Time-Search.md) 分别用 GRPO、搜索反馈训练、DPO、agentic RL 或 solver synthesis 内化设计能力。底层逻辑是参数学习可以摊销未来搜索成本，但也可能只记住任务模板、可执行格式或 evaluator 偏好。可学习之处是将训练成本与在线搜索成本分开，并用冻结模型、固定代码和未见实例检验能力是否真正转移。
+
+### 8. 历史应按作用范围分层，且不是越长越好
+
+[MEMOIR](47-MEMOIR.md) 的受控消融支持分离 branch-local 调试事实与 global 跨路线知识，并显示失败记录本身有价值；[DGA²D](51-DGA2D.md) 则显示 first-order transition credit 优于 zero-order，但 second-order 和 full-path 更差。底层逻辑是历史粒度存在偏差—方差权衡：过短会混淆上下文，过长会切碎样本并注入噪声。对 TraceAAD 更直接的学习点是保留完整 lineage 作为可重放真相源，但只把与当前决定相关的局部事实或终止路线摘要送入生成上下文。
+
+### 9. 算子本身会收敛，多样性要测行为而不只测代码
+
+[Mutation Without Variation](49-Mutation-Without-Variation.md) 在移除选择压力后仍观察到结构 attractor、自环和短周期；[BehaveSim](54-BehaveSim.md) 与 [PartEvo](60-PartEvo.md) 分别说明执行轨迹和有意义特征构造的 niche 比随机或静态表面差异更能组织搜索。可学习之处是同时监测 lineage 重访、程序骨架和 held-out 行为距离，并验证多样路线是否真的贡献突破。
+
+### 10. 外部知识只有与当前失败证据对齐时才稳定有用
+
+[GeoEvolve](59-GeoEvolve.md) 让代码诊断触发领域文献检索；其静态知识 prompt 在部分指标退化，而动态检索完整系统更好。[AutoSND](52-AutoSND.md) 进一步把执行证据编译成结构政策。可学习之处是保存“失败状态—查询—证据块—代码修改—结果”的闭环 provenance，不把增加上下文长度本身当成知识机制。
 
 ### 当前最可靠的研究顺序
 
