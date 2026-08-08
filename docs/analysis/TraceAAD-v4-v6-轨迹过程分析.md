@@ -26,7 +26,7 @@
 
 ### 2.2 指标定义与代理假设
 
-对照 [LLM优化器轨迹分析](../references/LLM优化器轨迹分析.md) 中的方法，逐项落地如下：
+对照 [What Makes an LLM a Good Optimizer?](../../papers/What_Makes_an_LLM_a_Good_Optimizer_Trajectory_Analysis/) 论文中的方法，逐项落地如下：
 
 | 论文分析 | 本分析的落地方式 | 代理/差异 |
 | --- | --- | --- |

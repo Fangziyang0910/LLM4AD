@@ -410,4 +410,4 @@
 
 ## 入口
 
-论文根目录：`/home/fang/code/LLM4AD/papers/`。机制层面的搜索组织比较见 [AAD 搜索机制综合](AAD搜索机制综合.md)。
+论文根目录：`/home/fang/code/LLM4AD/papers/`。机制层面的逐方法阅读笔记见 [LLM自动算法设计方法阅读笔记](LLM自动算法设计方法阅读笔记/)。
