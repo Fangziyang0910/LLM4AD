@@ -1,4 +1,4 @@
-"""TraceAAD V9.1: trajectory-guided search with MCTS-aligned semantics."""
+"""TraceAAD V9.1: trajectory-centred budget allocation."""
 
 from __future__ import annotations
 
@@ -35,13 +35,13 @@ from .context import (
     node_history,
 )
 from .operators import DEFAULT_OPERATORS, DUAL_OPERATORS, Operator
-from .prompt import build_initial_prompt, parse_program_response
+from .prompt import build_bootstrap_prompt, build_initial_prompt, parse_program_response
 from .schema import OperatorName, PROTOCOL_ID, ProgramNode
 from .tree import SearchTree, is_node_better
 from .value import (
     reference_candidates,
     sample_reference,
-    select_expansion_node,
+    select_trajectory,
 )
 
 
@@ -93,7 +93,6 @@ class _PromptContext:
     current_edge_ids: tuple[int, ...]
     direct_child_edge_ids: tuple[int, ...]
     reference_edge_ids: tuple[int, ...]
-    reference_branch_id: int | None
     reference_node: ProgramNode | None
 
     @property
@@ -121,7 +120,7 @@ class TraceAADRunResult:
 
 
 class TraceAADV91:
-    """TraceAAD generation on an MCTS-AHD-aligned complete tree."""
+    """Allocate finite search budget to complete, evidenced trajectories."""
 
     def __init__(
         self,
@@ -131,13 +130,14 @@ class TraceAADV91:
         max_sample_nums: int | None = 1000,
         *,
         n_init: int = 4,
-        offspring_per_iteration: int = 1,
+        verification_batch_size: int = 2,
+        quality_pool_size: int = 10,
+        trajectory_confidence_z: float = 1.0,
+        trajectory_recent_window: int = 4,
+        reference_pool_size: int = 4,
         ancestor_history_limit: int = 8,
         direct_child_limit: int = 8,
         direct_child_top_count: int = 4,
-        reference_temperature: float = 0.2,
-        exploration_constant: float = 0.1,
-        alpha: float = 0.5,
         maximize: bool = True,
         operators: tuple[type[Operator], ...] = DEFAULT_OPERATORS,
         code_max_tokens: int = 8192,
@@ -155,25 +155,25 @@ class TraceAADV91:
             or not isinstance(max_sample_nums, int)
             or max_sample_nums <= 0
         ):
-            raise ValueError(
-                "max_sample_nums must be a positive integer or None"
-            )
+            raise ValueError("max_sample_nums must be a positive integer or None")
         if n_init <= 0:
             raise ValueError("n_init must be positive")
-        if offspring_per_iteration != 1:
-            raise ValueError("TraceAAD V9.1 requires one candidate per expansion")
+        if verification_batch_size <= 0:
+            raise ValueError("verification_batch_size must be positive")
+        if quality_pool_size <= 0:
+            raise ValueError("quality_pool_size must be positive")
+        if trajectory_confidence_z < 0:
+            raise ValueError("trajectory_confidence_z must be non-negative")
+        if trajectory_recent_window <= 0:
+            raise ValueError("trajectory_recent_window must be positive")
+        if reference_pool_size <= 0:
+            raise ValueError("reference_pool_size must be positive")
         if ancestor_history_limit <= 0:
             raise ValueError("ancestor_history_limit must be positive")
         if direct_child_limit <= 0 or direct_child_top_count <= 0:
             raise ValueError("direct-child history limits must be positive")
         if direct_child_top_count > direct_child_limit:
             raise ValueError("direct_child_top_count cannot exceed direct_child_limit")
-        if reference_temperature <= 0:
-            raise ValueError("reference_temperature must be positive")
-        if exploration_constant < 0:
-            raise ValueError("exploration_constant must be non-negative")
-        if alpha <= 0:
-            raise ValueError("alpha must be positive")
         if code_max_tokens <= 0:
             raise ValueError("code_max_tokens must be positive")
         if context_token_limit is None or context_token_limit <= 0:
@@ -189,13 +189,14 @@ class TraceAADV91:
         self._task_description_str = evaluation.task_description
         self._max_sample_nums = max_sample_nums
         self._n_init = int(n_init)
-        self._offspring_per_iteration = int(offspring_per_iteration)
+        self._verification_batch_size = int(verification_batch_size)
+        self._quality_pool_size = int(quality_pool_size)
+        self._trajectory_confidence_z = float(trajectory_confidence_z)
+        self._trajectory_recent_window = int(trajectory_recent_window)
+        self._reference_pool_size = int(reference_pool_size)
         self._ancestor_history_limit = int(ancestor_history_limit)
         self._direct_child_limit = int(direct_child_limit)
         self._direct_child_top_count = int(direct_child_top_count)
-        self._reference_temperature = float(reference_temperature)
-        self._exploration_constant = float(exploration_constant)
-        self._alpha = float(alpha)
         self._maximize = bool(maximize)
         self._code_max_tokens = int(code_max_tokens)
         self._context_token_limit = int(context_token_limit)
@@ -223,8 +224,24 @@ class TraceAADV91:
         self._operators = tuple(operator_type() for operator_type in operators)
         if not self._operators:
             raise ValueError("at least one TraceAAD V9.1 operator is required")
+        if len({operator.name for operator in self._operators}) != len(self._operators):
+            raise ValueError("TraceAAD V9.1 operator names must be unique")
         if not any(operator.name not in DUAL_OPERATORS for operator in self._operators):
-            raise ValueError("TraceAAD V9.1 requires at least one single-track operator")
+            raise ValueError(
+                "TraceAAD V9.1 requires at least one single-track operator"
+            )
+        if (
+            len({operator.name for operator in self._operators})
+            < self._verification_batch_size
+        ):
+            raise ValueError("verification batch requires distinct operator types")
+        if (
+            sum(operator.name not in DUAL_OPERATORS for operator in self._operators)
+            < self._verification_batch_size
+        ):
+            raise ValueError(
+                "verification batch requires enough single-track operators for bootstrap"
+            )
 
         self._best_node: ProgramNode | None = None
         self._best_node_sample_order: int | None = None
@@ -284,18 +301,20 @@ class TraceAADV91:
             "history_protocol": "matched_history",
             "max_sample_nums": self._max_sample_nums,
             "n_init": self._n_init,
-            "offspring_per_iteration": self._offspring_per_iteration,
+            "verification_batch_size": self._verification_batch_size,
+            "quality_pool_size": self._quality_pool_size,
+            "trajectory_confidence_z": self._trajectory_confidence_z,
+            "trajectory_recent_window": self._trajectory_recent_window,
+            "reference_pool_size": self._reference_pool_size,
             "generation_protocol": "direct_code",
-            "quality_normalization": "mcts_minmax_q",
-            "expansion_policy": "progressive_widening_uct",
-            "expansion_reward": "child_continuation_value",
-            "root_expansion": True,
-            "alpha": self._alpha,
+            "quality_policy": "raw_directed_fitness_top_k",
+            "budget_policy": "trajectory_wilson_upper",
+            "verification_reward": "trajectory_historical_best_advance",
+            "credit_scope": "selected_trajectory_only",
+            "root_expansion": False,
             "ancestor_history_limit": self._ancestor_history_limit,
             "direct_child_limit": self._direct_child_limit,
             "direct_child_top_count": self._direct_child_top_count,
-            "reference_temperature": self._reference_temperature,
-            "exploration_constant": self._exploration_constant,
             "maximize": self._maximize,
             "operators": [str(operator.name) for operator in self._operators],
             "code_max_tokens": self._code_max_tokens,
@@ -390,14 +409,41 @@ class TraceAADV91:
             and self._has_budget()
             and not is_search_aborted(self)
         ):
-            prompt = build_initial_prompt(
-                task_description=self._task_description_str,
-                template_function=self._function_to_evolve,
-                maximize=self._maximize,
-                diversity_hint=self._init_diversity_hint(
-                    len(self._tree.root.child_ids)
-                ),
+            existing_roots = tuple(
+                self._tree.get_node(node_id) for node_id in self._tree.root.child_ids
             )
+            bootstrap_roots = existing_roots
+            if not existing_roots:
+                prompt = build_initial_prompt(
+                    task_description=self._task_description_str,
+                    template_function=self._function_to_evolve,
+                    maximize=self._maximize,
+                    diversity_hint="Provide a simple, complete, and valid algorithm.",
+                )
+            else:
+                ranked_roots = tuple(
+                    sorted(
+                        existing_roots,
+                        key=lambda node: (
+                            -node.directed_fitness,
+                            node.program_loc,
+                            node.id,
+                        ),
+                    )
+                )
+                for history_count in range(len(ranked_roots), 0, -1):
+                    bootstrap_roots = ranked_roots[:history_count]
+                    prompt = build_bootstrap_prompt(
+                        task_description=self._task_description_str,
+                        template_function=self._function_to_evolve,
+                        maximize=self._maximize,
+                        prior_trajectories=tuple(
+                            (node.id, node.idea, node.fitness, node.code)
+                            for node in bootstrap_roots
+                        ),
+                    )
+                    if self._count_tokens(prompt) <= self._context_token_limit:
+                        break
             if self._count_tokens(prompt) > self._context_token_limit:
                 self._record_decision("context_overflow", stage="init")
                 break
@@ -430,6 +476,7 @@ class TraceAADV91:
                 fitness=fitness,
                 maximize=self._maximize,
                 creation_order=sample_order,
+                bootstrap_reference_node_ids=tuple(node.id for node in bootstrap_roots),
             )
             self._update_best_from_tree(
                 sample_order=sample_order, iteration=None, operator="init"
@@ -439,106 +486,90 @@ class TraceAADV91:
                 node_id=node.id,
                 sample_order=sample_order,
                 root_child_count=len(self._tree.root.child_ids),
+                bootstrap_reference_node_ids=list(node.bootstrap_reference_node_ids),
             )
 
-    def _init_diversity_hint(self, slot: int) -> str:
-        if slot == 0:
-            return "Provide a simple, complete, and valid algorithm."
-        ideas = [node.idea.strip() for node in self._tree.nodes() if node.idea.strip()][
-            -6:
-        ]
-        if not ideas:
-            return "Use a clearly different algorithmic idea from a trivial baseline."
-        return "Use an idea clearly different from: " + "; ".join(
-            f"'{idea[:100]}'" for idea in ideas
-        )
-
     def _run_iteration(self, attempt_id: int) -> None:
-        selection = select_expansion_node(
+        selection = select_trajectory(
             self._tree,
-            rng=self._rng,
-            total_budget=self._max_sample_nums,
-            used_budget=self._tot_sample_nums,
-            exploration_constant=self._exploration_constant,
-            alpha=self._alpha,
+            pool_size=self._quality_pool_size,
+            confidence_z=self._trajectory_confidence_z,
         )
-        if selection.selected_node_id == self._tree.root.id:
-            self._run_root_expansion(attempt_id, selection.path, selection.steps)
-            return
         base_node = self._tree.get_node(selection.selected_node_id)
-        candidates = reference_candidates(self._tree, base_node.id)
+        candidates = reference_candidates(
+            self._tree,
+            base_node.id,
+            pool_size=self._reference_pool_size,
+        )
         eligible = [
             operator
             for operator in self._operators
             if operator.name not in DUAL_OPERATORS or candidates
         ]
-        operator = self._rng.choice(eligible)
-        reference_branch_id: int | None = None
-        reference_node: ProgramNode | None = None
-        if operator.name in DUAL_OPERATORS:
-            reference = sample_reference(
-                self._tree,
-                base_node.id,
-                temperature=self._reference_temperature,
-                rng=self._rng,
-            )
-            if reference is not None:
-                reference_branch_id, reference_node = reference
-
-        offspring_count = self._offspring_per_iteration
+        candidate_count = self._verification_batch_size
         if self._max_sample_nums is not None:
-            offspring_count = min(
-                offspring_count,
+            candidate_count = min(
+                candidate_count,
                 self._max_sample_nums - self._tot_sample_nums,
             )
-        if offspring_count <= 0:
+        if candidate_count <= 0:
             return
-        contexts = [
-            self._build_code_context(
+        chosen_operators = self._rng.sample(eligible, candidate_count)
+        contexts: list[tuple[Operator, _PromptContext]] = []
+        for seq, chosen_operator in enumerate(chosen_operators):
+            reference_node = (
+                sample_reference(
+                    self._tree,
+                    base_node.id,
+                    pool_size=self._reference_pool_size,
+                    rng=self._rng,
+                )
+                if chosen_operator.name in DUAL_OPERATORS
+                else None
+            )
+            context = self._build_code_context(
                 base_node=base_node,
-                operator=operator,
+                operator=chosen_operator,
                 candidate_index=seq,
-                candidate_count=offspring_count,
-                reference_branch_id=reference_branch_id,
+                candidate_count=candidate_count,
                 reference_node=reference_node,
             )
-            for seq in range(offspring_count)
-        ]
-        if any(context is None for context in contexts) and operator.name in DUAL_OPERATORS:
-            previous = operator.name
-            operator = self._rng.choice(
-                [item for item in self._operators if item.name not in DUAL_OPERATORS]
-            )
-            reference_branch_id = None
-            reference_node = None
-            contexts = [
-                self._build_code_context(
-                    base_node=base_node,
-                    operator=operator,
-                    candidate_index=seq,
-                    candidate_count=offspring_count,
-                    reference_branch_id=None,
-                    reference_node=None,
+            if context is None and chosen_operator.name in DUAL_OPERATORS:
+                fallbacks = [
+                    item
+                    for item in self._operators
+                    if item.name not in DUAL_OPERATORS
+                    and item.name not in {used.name for used, _ in contexts}
+                    and item.name
+                    not in {later.name for later in chosen_operators[seq + 1 :]}
+                ]
+                if fallbacks:
+                    previous = chosen_operator
+                    chosen_operator = self._rng.choice(fallbacks)
+                    context = self._build_code_context(
+                        base_node=base_node,
+                        operator=chosen_operator,
+                        candidate_index=seq,
+                        candidate_count=candidate_count,
+                        reference_node=None,
+                    )
+                    self._record_decision(
+                        "operator_fallback",
+                        attempt_id=attempt_id,
+                        from_operator=previous.name,
+                        to_operator=chosen_operator.name,
+                        reason="dual_context_overflow",
+                    )
+            if context is None:
+                self._record_decision(
+                    "context_overflow",
+                    stage="direct_code",
+                    attempt_id=attempt_id,
+                    node_id=base_node.id,
+                    operator=chosen_operator.name,
                 )
-                for seq in range(offspring_count)
-            ]
-            self._record_decision(
-                "operator_fallback",
-                attempt_id=attempt_id,
-                from_operator=previous,
-                to_operator=operator.name,
-                reason="dual_context_overflow",
-            )
-        if any(context is None for context in contexts):
-            self._record_decision(
-                "context_overflow",
-                stage="direct_code",
-                attempt_id=attempt_id,
-                node_id=base_node.id,
-            )
-            return
-        code_contexts = [context for context in contexts if context is not None]
-        context = code_contexts[0]
+                return
+            contexts.append((chosen_operator, context))
 
         current_program = TextFunctionProgramConverter.text_to_program(base_node.code)
         if current_program is None:
@@ -549,44 +580,46 @@ class TraceAADV91:
             except ValueError:
                 current_program = self._template_program
 
-        expansion_count_before = base_node.expansion_count
-        child_count_before = len(base_node.child_ids)
         self._batch_count += 1
         batch_id = self._batch_count
         self._record_decision(
-            "node_selected",
+            "trajectory_selected",
             attempt_id=attempt_id,
             batch_id=batch_id,
-            selected_path=selection.path,
             selected_node_id=base_node.id,
-            selection_steps=[
+            selected_trajectory_node_ids=self._tree.ancestor_node_ids(base_node.id),
+            quality_pool_ids=selection.quality_pool_ids,
+            quality_rank=selection.quality_rank,
+            allocation_mode=selection.mode,
+            endpoint_directed_fitness=base_node.directed_fitness,
+            trajectory_best_value=base_node.trajectory_best_value,
+            verification_count_before=base_node.verification_count,
+            route_advance_count_before=base_node.route_advance_count,
+            route_advance_rate=selection.route_advance_rate,
+            wilson_upper=selection.wilson_upper,
+            recent_advance_rate=selection.recent_advance_rate,
+            requested_candidates=candidate_count,
+            candidates=[
                 {
-                    "decision_node_id": step.decision_node_id,
-                    "option": step.option,
-                    "target_node_id": step.target_node_id,
-                    "quality": step.quality,
-                    "raw_value": step.raw_value,
-                    "option_visits": step.option_visits,
-                    "score": step.score,
+                    "seq": seq,
+                    "operator": operator.name,
+                    "reference_node_id": (
+                        None
+                        if context.reference_node is None
+                        else context.reference_node.id
+                    ),
+                    "current_formation_edge_ids": context.current_edge_ids,
+                    "direct_child_edge_ids": context.direct_child_edge_ids,
+                    "reference_formation_edge_ids": context.reference_edge_ids,
                 }
-                for step in selection.steps
+                for seq, (operator, context) in enumerate(contexts)
             ],
-            expansion_policy="progressive_widening_uct",
-            expansion_count_before=expansion_count_before,
-            child_count_before=child_count_before,
-            requested_children=offspring_count,
-            operator=operator.name,
-            reference_root_branch_id=reference_branch_id,
-            reference_node_id=None if reference_node is None else reference_node.id,
-            current_formation_edge_ids=context.current_edge_ids,
-            direct_child_edge_ids=context.direct_child_edge_ids,
-            reference_formation_edge_ids=context.reference_edge_ids,
-            batch_visit=False,
         )
 
         global_best_before = self._best_node
         evaluated: list[_EvaluatedCandidate] = []
-        for seq, code_context in enumerate(code_contexts):
+        evaluated_contexts: dict[int, tuple[Operator, _PromptContext]] = {}
+        for seq, (operator, code_context) in enumerate(contexts):
             if not self._has_budget() or is_search_aborted(self):
                 break
             generated = self._draw_program(
@@ -601,10 +634,9 @@ class TraceAADV91:
                 batch_id=batch_id,
                 reference_node_id=(
                     None
-                    if context.reference_node is None
-                    else context.reference_node.id
+                    if code_context.reference_node is None
+                    else code_context.reference_node.id
                 ),
-                reference_root_branch_id=context.reference_branch_id,
                 template_program=current_program,
                 signature_template=self._template_program,
             )
@@ -621,12 +653,12 @@ class TraceAADV91:
                 sibling_seq=seq,
                 reference_node_id=(
                     None
-                    if context.reference_node is None
-                    else context.reference_node.id
+                    if code_context.reference_node is None
+                    else code_context.reference_node.id
                 ),
-                reference_root_branch_id=context.reference_branch_id,
             )
             evaluated.append(_EvaluatedCandidate(seq, generated, fitness, sample_order))
+            evaluated_contexts[seq] = (operator, code_context)
 
         valid = [item for item in evaluated if item.fitness is not None]
         winner_index = self._batch_global_winner(valid, global_best_before)
@@ -639,7 +671,8 @@ class TraceAADV91:
                     nonempty_loc(str(item.generated.program)),
                     global_best_before,
                 )
-            child, edge, backup_changes = self._tree.add_child(
+            operator, context = evaluated_contexts[item.seq]
+            child, edge = self._tree.add_child(
                 parent_id=base_node.id,
                 code=str(item.generated.program),
                 idea=item.generated.idea,
@@ -650,7 +683,6 @@ class TraceAADV91:
                 reference_node_id=None
                 if context.reference_node is None
                 else context.reference_node.id,
-                reference_root_branch_id=context.reference_branch_id,
                 global_best_directed_fitness=None
                 if global_best_before is None
                 else global_best_before.directed_fitness,
@@ -661,12 +693,9 @@ class TraceAADV91:
                 sibling_seq=item.seq,
                 sample_order=item.sample_order,
             )
-            successful_path = self._tree.record_successful_visit(base_node.id)
             if self._artifacts is not None:
                 self._artifacts.record_edge(
-                    **{**edge.__dict__}
-                    if hasattr(edge, "__dict__")
-                    else {
+                    **{
                         "edge_id": edge.id,
                         "parent_id": edge.parent_id,
                         "child_id": edge.child_id,
@@ -677,9 +706,10 @@ class TraceAADV91:
                         "operator": edge.operator,
                         "implemented_idea": edge.implemented_idea,
                         "reference_program_id": edge.reference_node_id,
-                        "reference_root_branch_id": edge.reference_root_branch_id,
                         "delta_parent": edge.delta_parent,
                         "delta_global_best": edge.delta_global_best,
+                        "trajectory_best_before": edge.trajectory_best_before,
+                        "advances_parent_trajectory": edge.advances_parent_trajectory,
                         "outcome": edge.outcome,
                         "delta_loc": edge.delta_loc,
                         "code_change_ratio": edge.code_change_ratio,
@@ -688,12 +718,40 @@ class TraceAADV91:
                     }
                 )
             self._record_decision(
-                "subtree_backup",
+                "trajectory_candidate_recorded",
                 batch_id=batch_id,
                 child_id=child.id,
-                successful_path=successful_path,
-                changes=backup_changes,
+                selected_node_id=base_node.id,
+                advances_parent_trajectory=edge.advances_parent_trajectory,
             )
+        route_advanced = any(
+            self._tree.get_edge(
+                self._tree.get_node(child_id).incoming_edge_id
+            ).advances_parent_trajectory  # type: ignore[arg-type]
+            for child_id in base_node.child_ids
+            if self._tree.get_node(child_id).batch_id == batch_id
+        )
+        self._tree.record_verification(
+            base_node.id,
+            valid_candidate_count=len(valid),
+            route_advanced=route_advanced,
+            global_advanced=winner_index is not None,
+            batch_id=batch_id,
+            recent_window=self._trajectory_recent_window,
+        )
+        self._record_decision(
+            "trajectory_verification_completed",
+            attempt_id=attempt_id,
+            batch_id=batch_id,
+            selected_node_id=base_node.id,
+            attempted_candidates=len(contexts),
+            evaluated_candidates=len(evaluated),
+            valid_candidates=len(valid),
+            route_advanced=route_advanced,
+            global_advanced=winner_index is not None,
+            verification_count_after=base_node.verification_count,
+            route_advance_count_after=base_node.route_advance_count,
+        )
         if valid:
             winner_sample = (
                 None if winner_index is None else valid[winner_index].sample_order
@@ -701,94 +759,8 @@ class TraceAADV91:
             self._update_best_from_tree(
                 sample_order=winner_sample,
                 iteration=attempt_id,
-                operator=operator.name,
+                operator="trajectory_verification",
             )
-
-    def _run_root_expansion(
-        self,
-        attempt_id: int,
-        selected_path: tuple[int, ...],
-        selection_steps,
-    ) -> None:
-        """Expand the virtual root with one fresh initial Idea + Code."""
-        slot = len(self._tree.root.child_ids)
-        prompt = build_initial_prompt(
-            task_description=self._task_description_str,
-            template_function=self._function_to_evolve,
-            maximize=self._maximize,
-            diversity_hint=self._init_diversity_hint(slot),
-        )
-        if self._count_tokens(prompt) > self._context_token_limit:
-            self._record_decision(
-                "context_overflow",
-                stage="root_expansion",
-                attempt_id=attempt_id,
-            )
-            return
-        self._batch_count += 1
-        batch_id = self._batch_count
-        self._record_decision(
-            "node_selected",
-            attempt_id=attempt_id,
-            batch_id=batch_id,
-            selected_path=selected_path,
-            selected_node_id=self._tree.root.id,
-            selection_steps=[
-                {
-                    "decision_node_id": step.decision_node_id,
-                    "option": step.option,
-                    "target_node_id": step.target_node_id,
-                    "quality": step.quality,
-                    "raw_value": step.raw_value,
-                    "option_visits": step.option_visits,
-                    "score": step.score,
-                }
-                for step in selection_steps
-            ],
-            expansion_policy="progressive_widening_uct",
-            expansion_count_before=0,
-            child_count_before=slot,
-            requested_children=1,
-            operator="init",
-            batch_visit=False,
-        )
-        generated = self._draw_program(
-            prompt,
-            stage="root_expansion",
-            iteration=attempt_id,
-            seq=0,
-            operator="init",
-            max_tokens=self._code_max_tokens,
-        )
-        if generated is None:
-            return
-        fitness, sample_order = self._evaluate_detailed(
-            generated.program,
-            idea=generated.idea,
-            operator="init",
-            sample_time=generated.sample_time,
-        )
-        if fitness is None:
-            return
-        node = self._tree.add_initial(
-            code=str(generated.program),
-            idea=generated.idea,
-            fitness=fitness,
-            maximize=self._maximize,
-            creation_order=sample_order,
-        )
-        self._update_best_from_tree(
-            sample_order=sample_order,
-            iteration=attempt_id,
-            operator="init",
-        )
-        self._record_decision(
-            "initial_node_created",
-            node_id=node.id,
-            sample_order=sample_order,
-            root_child_count=len(self._tree.root.child_ids),
-            root_expansion=True,
-        )
 
     def _build_code_context(
         self,
@@ -797,7 +769,6 @@ class TraceAADV91:
         operator: Operator,
         candidate_index: int,
         candidate_count: int,
-        reference_branch_id: int | None,
         reference_node: ProgramNode | None,
     ) -> _PromptContext | None:
         dual = reference_node is not None
@@ -858,7 +829,6 @@ class TraceAADV91:
                     reference_edge_ids=()
                     if reference is None
                     else reference.formation_edge_ids,
-                    reference_branch_id=reference_branch_id,
                     reference_node=reference_node,
                 )
         return None
@@ -878,7 +848,6 @@ class TraceAADV91:
         parent_node_id: int | None = None,
         batch_id: int | None = None,
         reference_node_id: int | None = None,
-        reference_root_branch_id: int | None = None,
     ) -> _GeneratedProgram | None:
         sample_order = self._tot_sample_nums + 1
         start = time.time()
@@ -919,7 +888,6 @@ class TraceAADV91:
                 parent_node_id=parent_node_id,
                 batch_id=batch_id,
                 reference_node_id=reference_node_id,
-                reference_root_branch_id=reference_root_branch_id,
             )
             self._record_decision(
                 "code_generation_failed",
@@ -930,14 +898,11 @@ class TraceAADV91:
                 parent_node_id=parent_node_id,
                 batch_id=batch_id,
                 reference_node_id=reference_node_id,
-                reference_root_branch_id=reference_root_branch_id,
             )
             return None
         parsed = parse_program_response(
             response,
-            self._template_program
-            if template_program is None
-            else template_program,
+            self._template_program if template_program is None else template_program,
             self._function_to_evolve.name,
             signature_template=signature_template,
         )
@@ -966,7 +931,6 @@ class TraceAADV91:
                 parent_node_id=parent_node_id,
                 batch_id=batch_id,
                 reference_node_id=reference_node_id,
-                reference_root_branch_id=reference_root_branch_id,
             )
             return None
         return _GeneratedProgram(parsed.idea, parsed.program, elapsed)
@@ -983,7 +947,6 @@ class TraceAADV91:
         batch_id: int | None = None,
         sibling_seq: int | None = None,
         reference_node_id: int | None = None,
-        reference_root_branch_id: int | None = None,
     ) -> tuple[float | None, int]:
         if not self._has_budget():
             return None, self._tot_sample_nums
@@ -1019,7 +982,6 @@ class TraceAADV91:
                 "batch_id": batch_id,
                 "sibling_seq": sibling_seq,
                 "reference_node_id": reference_node_id,
-                "reference_root_branch_id": reference_root_branch_id,
                 "status": "ok" if valid_score is not None else "eval_failed",
             }
             if valid_score is None:
@@ -1096,8 +1058,7 @@ class TraceAADV91:
         iteration: int | None,
         operator: str | OperatorName,
     ) -> None:
-        best_id = self._tree.root.subtree_best_node_id
-        best = None if best_id is None else self._tree.get_node(best_id)
+        best = self._tree.best_node()
         if best is None or not is_node_better(best, self._best_node):
             return
         old = self._best_node

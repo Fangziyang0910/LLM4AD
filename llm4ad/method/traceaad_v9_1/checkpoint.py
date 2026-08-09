@@ -1,4 +1,4 @@
-"""Strict checkpoint persistence for TraceAAD V9.1."""
+"""Strict checkpoint persistence for trajectory-centred TraceAAD V9.1."""
 
 from __future__ import annotations
 
@@ -12,9 +12,9 @@ from typing import Any, Mapping
 
 from .complexity import code_hash, nonempty_loc
 from .schema import ImprovementEdge, OperatorName, ProgramNode, PROTOCOL_ID, VirtualRoot
-from .tree import SearchTree, is_node_better
+from .tree import SearchTree
 
-CHECKPOINT_VERSION = 2
+CHECKPOINT_VERSION = 3
 
 
 def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
@@ -38,8 +38,6 @@ def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
 def _tree_to_dict(tree: SearchTree) -> dict[str, Any]:
     return {
         "root": asdict(tree.root),
-        "q_min": tree.q_min,
-        "q_max": tree.q_max,
         "next_node_id": tree._next_node_id,
         "next_edge_id": tree._next_edge_id,
         "nodes": [asdict(node) for node in tree.nodes()],
@@ -49,25 +47,10 @@ def _tree_to_dict(tree: SearchTree) -> dict[str, Any]:
 
 def _tree_from_dict(payload: Mapping[str, Any], *, maximize: bool) -> SearchTree:
     tree = SearchTree()
-    tree.q_min = None if payload.get("q_min") is None else float(payload["q_min"])
-    tree.q_max = None if payload.get("q_max") is None else float(payload["q_max"])
-    if (tree.q_min is None) != (tree.q_max is None):
-        raise ValueError("checkpoint quality bounds must be both present or absent")
-    if tree.q_min is not None and tree.q_min > tree.q_max:
-        raise ValueError("checkpoint quality bounds are reversed")
     root = payload["root"]
     tree.root = VirtualRoot(
         id=int(root["id"]),
         child_ids=[int(item) for item in root["child_ids"]],
-        visit_count=int(root["visit_count"]),
-        subtree_value=(
-            None if root["subtree_value"] is None else float(root["subtree_value"])
-        ),
-        subtree_best_node_id=(
-            None
-            if root["subtree_best_node_id"] is None
-            else int(root["subtree_best_node_id"])
-        ),
     )
     for item in payload["nodes"]:
         node = ProgramNode(
@@ -86,13 +69,24 @@ def _tree_from_dict(payload: Mapping[str, Any], *, maximize: bool) -> SearchTree
             ),
             child_ids=[int(child) for child in item["child_ids"]],
             depth=int(item["depth"]),
-            visit_count=int(item["visit_count"]),
-            expansion_count=int(item["expansion_count"]),
-            subtree_value=float(item["subtree_value"]),
-            subtree_best_node_id=int(item["subtree_best_node_id"]),
             creation_order=int(item["creation_order"]),
             batch_id=None if item["batch_id"] is None else int(item["batch_id"]),
             operator=str(item["operator"]),
+            bootstrap_reference_node_ids=[
+                int(node_id) for node_id in item["bootstrap_reference_node_ids"]
+            ],
+            trajectory_best_value=float(item["trajectory_best_value"]),
+            trajectory_best_node_id=int(item["trajectory_best_node_id"]),
+            verification_count=int(item["verification_count"]),
+            valid_candidate_count=int(item["valid_candidate_count"]),
+            route_advance_count=int(item["route_advance_count"]),
+            global_advance_count=int(item["global_advance_count"]),
+            recent_advances=[bool(value) for value in item["recent_advances"]],
+            last_verification_batch_id=(
+                None
+                if item["last_verification_batch_id"] is None
+                else int(item["last_verification_batch_id"])
+            ),
         )
         if node.id in tree._nodes:
             raise ValueError(f"checkpoint contains duplicate node id {node.id}")
@@ -109,17 +103,14 @@ def _tree_from_dict(payload: Mapping[str, Any], *, maximize: bool) -> SearchTree
                 if item["reference_node_id"] is None
                 else int(item["reference_node_id"])
             ),
-            reference_root_branch_id=(
-                None
-                if item["reference_root_branch_id"] is None
-                else int(item["reference_root_branch_id"])
-            ),
             delta_parent=float(item["delta_parent"]),
             delta_global_best=(
                 None
                 if item["delta_global_best"] is None
                 else float(item["delta_global_best"])
             ),
+            trajectory_best_before=float(item["trajectory_best_before"]),
+            advances_parent_trajectory=bool(item["advances_parent_trajectory"]),
             outcome=str(item["outcome"]),
             delta_loc=int(item["delta_loc"]),
             code_change_ratio=float(item["code_change_ratio"]),
@@ -142,20 +133,15 @@ def _tree_from_dict(payload: Mapping[str, Any], *, maximize: bool) -> SearchTree
 def validate_tree(tree: SearchTree, *, maximize: bool) -> None:
     if tree.root.id != -1:
         raise ValueError("checkpoint virtual root id must be -1")
-    if tree.root.visit_count < len(tree.root.child_ids):
-        raise ValueError("checkpoint root visits are inconsistent with initialization")
     if len(set(tree.root.child_ids)) != len(tree.root.child_ids):
         raise ValueError("checkpoint root contains duplicate children")
     if tree._nodes and tree._next_node_id <= max(tree._nodes):
         raise ValueError("checkpoint next_node_id does not advance past nodes")
     if tree._edges and tree._next_edge_id <= max(tree._edges):
         raise ValueError("checkpoint next_edge_id does not advance past edges")
-    directed_values = [node.directed_fitness for node in tree.nodes()]
-    if directed_values:
-        if tree.q_min != min(directed_values) or tree.q_max != max(directed_values):
-            raise ValueError("checkpoint quality bounds do not match valid nodes")
-    elif tree.q_min is not None or tree.q_max is not None:
-        raise ValueError("empty checkpoint tree must not have quality bounds")
+    creation_orders = [node.creation_order for node in tree.nodes()]
+    if len(set(creation_orders)) != len(creation_orders):
+        raise ValueError("checkpoint contains duplicate evaluator sample orders")
 
     incoming_children: set[int] = set()
     for edge in tree.edges():
@@ -169,15 +155,16 @@ def validate_tree(tree: SearchTree, *, maximize: bool) -> None:
             and edge.reference_node_id not in tree._nodes
         ):
             raise ValueError(f"checkpoint edge {edge.id} has unknown reference node")
-        if (
-            edge.reference_root_branch_id is not None
-            and edge.reference_root_branch_id not in tree.root.child_ids
-        ):
-            raise ValueError(f"checkpoint edge {edge.id} has unknown reference branch")
 
     seen: set[int] = set()
 
-    def visit(node_id: int, parent_id: int, depth: int) -> ProgramNode:
+    def visit(
+        node_id: int,
+        parent_id: int,
+        depth: int,
+        path_best_value: float | None,
+        path_best_id: int | None,
+    ) -> None:
         if node_id in seen:
             raise ValueError(
                 "checkpoint tree contains a cycle or duplicate structural child"
@@ -188,17 +175,6 @@ def validate_tree(tree: SearchTree, *, maximize: bool) -> None:
         node = tree.get_node(node_id)
         if node.parent_id != parent_id or node.depth != depth:
             raise ValueError(f"checkpoint node {node.id} has invalid parent or depth")
-        if node.visit_count < 1:
-            raise ValueError(f"checkpoint node {node.id} has invalid visit count")
-        if node.expansion_count < 0 or node.expansion_count > node.visit_count - 1:
-            raise ValueError(f"checkpoint node {node.id} has invalid expansion count")
-        successful_batches = {
-            tree.get_node(child_id).batch_id for child_id in node.child_ids
-        }
-        if None in successful_batches or len(successful_batches) > node.expansion_count:
-            raise ValueError(
-                f"checkpoint node {node.id} has inconsistent expansion batches"
-            )
         expected_directed = node.fitness if maximize else -node.fitness
         if (
             not math.isfinite(node.fitness)
@@ -211,10 +187,61 @@ def validate_tree(tree: SearchTree, *, maximize: bool) -> None:
             raise ValueError(f"checkpoint node {node.id} has invalid code metadata")
         if len(set(node.child_ids)) != len(node.child_ids):
             raise ValueError(f"checkpoint node {node.id} contains duplicate children")
+        expected_value = (
+            node.directed_fitness if path_best_value is None else path_best_value
+        )
+        expected_id = node.id if path_best_id is None else path_best_id
+        if (
+            path_best_value is not None
+            and node.directed_fitness > path_best_value + 1e-6
+        ):
+            expected_value, expected_id = node.directed_fitness, node.id
+        if (
+            node.trajectory_best_value != expected_value
+            or node.trajectory_best_node_id != expected_id
+        ):
+            raise ValueError(f"checkpoint node {node.id} has invalid trajectory best")
+        counts = (
+            node.verification_count,
+            node.valid_candidate_count,
+            node.route_advance_count,
+            node.global_advance_count,
+        )
+        if any(value < 0 for value in counts):
+            raise ValueError(f"checkpoint node {node.id} has negative evidence counts")
+        if (
+            node.route_advance_count > node.verification_count
+            or node.global_advance_count > node.verification_count
+        ):
+            raise ValueError(
+                f"checkpoint node {node.id} has inconsistent advance counts"
+            )
+        if node.valid_candidate_count < node.route_advance_count:
+            raise ValueError(
+                f"checkpoint node {node.id} has inconsistent valid-candidate count"
+            )
+        if len(node.recent_advances) > node.verification_count:
+            raise ValueError(f"checkpoint node {node.id} has excess recent evidence")
+        if (node.verification_count == 0) != (node.last_verification_batch_id is None):
+            raise ValueError(f"checkpoint node {node.id} has inconsistent last batch")
+        if (
+            node.last_verification_batch_id is not None
+            and node.last_verification_batch_id <= 0
+        ):
+            raise ValueError(f"checkpoint node {node.id} has invalid last batch")
         if parent_id == tree.root.id:
-            if node.incoming_edge_id is not None:
-                raise ValueError("checkpoint root child must not have an incoming edge")
+            if node.incoming_edge_id is not None or node.batch_id is not None:
+                raise ValueError(
+                    "checkpoint initial trajectory has expansion provenance"
+                )
+            for reference_id in node.bootstrap_reference_node_ids:
+                if reference_id not in tree.root.child_ids or reference_id >= node.id:
+                    raise ValueError(
+                        f"checkpoint node {node.id} has invalid bootstrap history"
+                    )
         else:
+            if node.bootstrap_reference_node_ids:
+                raise ValueError(f"checkpoint child {node.id} has bootstrap provenance")
             if (
                 node.incoming_edge_id is None
                 or node.incoming_edge_id not in tree._edges
@@ -223,40 +250,36 @@ def validate_tree(tree: SearchTree, *, maximize: bool) -> None:
                     f"checkpoint node {node.id} has no valid incoming edge"
                 )
             edge = tree.get_edge(node.incoming_edge_id)
-            if edge.parent_id != parent_id or edge.child_id != node.id:
-                raise ValueError(f"checkpoint node {node.id} has a misaligned edge")
-            if node.batch_id != edge.batch_id:
+            if (
+                edge.parent_id != parent_id
+                or edge.child_id != node.id
+                or node.batch_id != edge.batch_id
+            ):
                 raise ValueError(
-                    f"checkpoint node {node.id} has a misaligned expansion batch"
+                    f"checkpoint node {node.id} has misaligned edge provenance"
                 )
-        best = node
+            parent = tree.get_node(parent_id)
+            if edge.trajectory_best_before != parent.trajectory_best_value:
+                raise ValueError(
+                    f"checkpoint edge {edge.id} has invalid trajectory baseline"
+                )
+            expected_advance = (
+                node.directed_fitness > parent.trajectory_best_value + 1e-6
+            )
+            if edge.advances_parent_trajectory != expected_advance:
+                raise ValueError(
+                    f"checkpoint edge {edge.id} has invalid trajectory outcome"
+                )
         for child_id in node.child_ids:
-            child_best = visit(child_id, node.id, depth + 1)
-            if is_node_better(child_best, best):
-                best = child_best
-        if (
-            node.subtree_value != best.directed_fitness
-            or node.subtree_best_node_id != best.id
-        ):
-            raise ValueError(f"checkpoint node {node.id} has invalid subtree backup")
-        return best
+            visit(child_id, node.id, depth + 1, expected_value, expected_id)
 
-    root_best: ProgramNode | None = None
     for root_child_id in tree.root.child_ids:
-        candidate = visit(root_child_id, tree.root.id, 1)
-        if is_node_better(candidate, root_best):
-            root_best = candidate
+        visit(root_child_id, tree.root.id, 1, None, None)
     if seen != set(tree._nodes):
         raise ValueError("checkpoint contains disconnected program nodes")
     if len(incoming_children) != max(0, len(tree._nodes) - len(tree.root.child_ids)):
         raise ValueError("checkpoint structural edge count is inconsistent")
-    expected_value = None if root_best is None else root_best.directed_fitness
-    expected_id = None if root_best is None else root_best.id
-    if (
-        tree.root.subtree_value != expected_value
-        or tree.root.subtree_best_node_id != expected_id
-    ):
-        raise ValueError("checkpoint virtual root has invalid subtree backup")
+
     dual = {OperatorName.SYNTHESIZE, OperatorName.TRANSFER}
     for edge in tree.edges():
         has_reference = edge.reference_node_id is not None
@@ -264,26 +287,19 @@ def validate_tree(tree: SearchTree, *, maximize: bool) -> None:
             raise ValueError(
                 f"checkpoint edge {edge.id} has invalid reference provenance"
             )
-        if not has_reference:
-            if edge.reference_root_branch_id is not None:
+        if has_reference:
+            parent = tree.get_node(edge.parent_id)
+            reference = tree.get_node(edge.reference_node_id)  # type: ignore[arg-type]
+            if tree.same_lineage(parent.id, reference.id):
                 raise ValueError(
-                    f"checkpoint edge {edge.id} has a stray reference branch"
+                    f"checkpoint edge {edge.id} references the same lineage"
                 )
-            continue
-        if edge.reference_root_branch_id is None:
-            raise ValueError(f"checkpoint edge {edge.id} has no reference branch")
-        reference = tree.get_node(edge.reference_node_id)
-        parent = tree.get_node(edge.parent_id)
-        if tree.root_branch_id(reference.id) != edge.reference_root_branch_id:
-            raise ValueError(
-                f"checkpoint edge {edge.id} has a misaligned reference branch"
-            )
-        if tree.root_branch_id(parent.id) == edge.reference_root_branch_id:
-            raise ValueError(
-                f"checkpoint edge {edge.id} references its own root branch"
-            )
-        if reference.code_hash == parent.code_hash:
-            raise ValueError(f"checkpoint edge {edge.id} references identical code")
+            if parent.code_hash == reference.code_hash:
+                raise ValueError(f"checkpoint edge {edge.id} references identical code")
+            if reference.id >= edge.child_id:
+                raise ValueError(
+                    f"checkpoint edge {edge.id} references future evidence"
+                )
 
 
 def dump_state(method) -> dict[str, Any]:
@@ -318,32 +334,46 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     tree = _tree_from_dict(payload["tree"], maximize=method._maximize)
     best_id = payload["best_node_id"]
     best = None if best_id is None else tree.get_node(int(best_id))
-    expected_best = (
-        None
-        if tree.root.subtree_best_node_id is None
-        else tree.get_node(tree.root.subtree_best_node_id)
-    )
+    expected_best = tree.best_node()
     if (best is None) != (expected_best is None) or (
         best is not None and expected_best is not None and best.id != expected_best.id
     ):
-        raise ValueError("checkpoint global best is inconsistent with the tree")
-    method._tree = tree
-    method._best_node = best
-    method._best_node_sample_order = (
+        raise ValueError("checkpoint global best is inconsistent with the trajectories")
+    best_node_sample_order = (
         None
         if payload["best_node_sample_order"] is None
         else int(payload["best_node_sample_order"])
     )
-    method._tot_sample_nums = int(payload["total_samples"])
-    if method._tot_sample_nums < len(tree.nodes()):
+    total_samples = int(payload["total_samples"])
+    if total_samples < len(tree.nodes()):
         raise ValueError("checkpoint sample count is smaller than its valid-node count")
     if (
-        method._best_node_sample_order is not None
-        and not 1 <= method._best_node_sample_order <= method._tot_sample_nums
+        best_node_sample_order is not None
+        and not 1 <= best_node_sample_order <= total_samples
     ):
         raise ValueError("checkpoint best sample order is outside the evaluator budget")
+    batch_count = int(payload["batch_count"])
+    for node in tree.nodes():
+        if (
+            node.valid_candidate_count
+            > node.verification_count * method._verification_batch_size
+        ):
+            raise ValueError(
+                f"checkpoint node {node.id} exceeds verification batch capacity"
+            )
+        if (
+            node.last_verification_batch_id is not None
+            and node.last_verification_batch_id > batch_count
+        ):
+            raise ValueError(f"checkpoint node {node.id} references a future batch")
+    if best is not None and best_node_sample_order != best.creation_order:
+        raise ValueError("checkpoint best sample order does not identify the best node")
+    method._tree = tree
+    method._best_node = best
+    method._best_node_sample_order = best_node_sample_order
+    method._tot_sample_nums = total_samples
     method._next_attempt_id = int(payload["next_attempt_id"])
-    method._batch_count = int(payload["batch_count"])
+    method._batch_count = batch_count
     method._stalled_iterations = int(payload["stalled_iterations"])
     method._consecutive_sample_failures = int(payload["consecutive_sample_failures"])
     method._search_aborted = bool(payload["search_aborted"])
@@ -359,9 +389,9 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
 
 
 def _as_tuple(value):
-    if isinstance(value, list):
-        return tuple(_as_tuple(item) for item in value)
-    return value
+    return (
+        tuple(_as_tuple(item) for item in value) if isinstance(value, list) else value
+    )
 
 
 def save_checkpoint(method, directory: str | Path | None = None) -> Path | None:

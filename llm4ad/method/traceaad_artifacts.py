@@ -297,6 +297,8 @@ class TraceAADArtifacts:
             record["n_actions"] = len(payload["parsed_actions"])
         if "program_parse_success" in payload:
             record["program_parse_success"] = payload["program_parse_success"]
+        if payload.get("store_prompt") and payload.get("prompt") is not None:
+            record["prompt"] = str(payload["prompt"])
         if status not in (None, "ok"):
             response = payload.get("response")
             if response is not None:

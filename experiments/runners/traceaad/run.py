@@ -30,6 +30,21 @@ from llm4ad.method.traceaad_v9_1 import (
     TraceAADV91,
 )
 from llm4ad.method.traceaad_v9_1.operators import DEFAULT_OPERATORS as V91_OPERATORS
+from llm4ad.method.traceaad_v9_2 import (
+    CHECKPOINT_VERSION as V92_CHECKPOINT_VERSION,
+    PROTOCOL_ID as V92_PROTOCOL_ID,
+    TraceAADV92,
+)
+from llm4ad.method.traceaad_v9_2.schema import GENERATION_OPERATOR as V92_OPERATOR
+from llm4ad.method.traceaad_v9_2.traceaad import (
+    DOWNSTREAM_DEPTH as V92_DOWNSTREAM_DEPTH,
+    DOWNSTREAM_QUOTA as V92_DOWNSTREAM_QUOTA,
+    FORMATION_QUOTA as V92_FORMATION_QUOTA,
+    INITIAL_ANCHOR_COUNT as V92_INITIAL_ANCHOR_COUNT,
+    INITIAL_ROUTE_POOL_SIZE as V92_INITIAL_ROUTE_POOL_SIZE,
+    QUALITY_POOL_SIZE as V92_QUALITY_POOL_SIZE,
+    WINDOW_SIZE as V92_WINDOW_SIZE,
+)
 
 from .._common import (
     BACKENDS,
@@ -45,9 +60,9 @@ from .._common import (
     write_run_config as write_run_config_file,
 )
 
-VersionName = Literal["v4", "v5", "v8", "v9", "v9_1"]
+VersionName = Literal["v4", "v5", "v8", "v9", "v9_1", "v9_2"]
 
-VERSIONS: tuple[VersionName, ...] = ("v4", "v5", "v8", "v9", "v9_1")
+VERSIONS: tuple[VersionName, ...] = ("v4", "v5", "v8", "v9", "v9_1", "v9_2")
 V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
 V9_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V9_OPERATORS]
 V91_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V91_OPERATORS]
@@ -117,7 +132,15 @@ def make_run_spec(
         model=profile.model,
         no_proxy=profile.no_proxy,
         budget=budget,
-        n_init=(4 if version == "v9_1" else 10 if version in {"v8", "v9"} else 30)
+        n_init=(
+            V92_INITIAL_ROUTE_POOL_SIZE
+            if version == "v9_2"
+            else 4
+            if version == "v9_1"
+            else 10
+            if version in {"v8", "v9"}
+            else 30
+        )
         if n_init is None
         else n_init,
         eval_workers=eval_workers,
@@ -134,6 +157,8 @@ def make_run_spec(
         raise ValueError("budget must be positive")
     if spec.n_init <= 0:
         raise ValueError("n_init must be positive")
+    if spec.version == "v9_2" and spec.n_init != V92_INITIAL_ROUTE_POOL_SIZE:
+        raise ValueError("TraceAAD V9.2 requires exactly eight initial routes")
     if spec.eval_workers is not None and spec.eval_workers <= 0:
         raise ValueError("eval_workers must be positive")
     if spec.llm_output_tokens <= 0:
@@ -161,6 +186,21 @@ def build_method(
         temperature=1.0,
     )
     artifacts = TraceAADArtifacts(run_dir=run_dir)
+    if spec.version == "v9_2":
+        return TraceAADV92(
+            llm=llm,
+            evaluation=evaluation,
+            profiler=artifacts,
+            max_sample_nums=spec.budget,
+            initial_route_pool_size=spec.n_init,
+            initial_anchor_count=V92_INITIAL_ANCHOR_COUNT,
+            code_max_tokens=spec.llm_output_tokens,
+            context_token_limit=spec.context_token_limit,
+            max_consecutive_sample_failures=20,
+            checkpoint_interval=10,
+            resume_from=resume_from,
+            checkpoint_dir=run_dir / "checkpoints",
+        )
     common = {
         "llm": llm,
         "evaluation": evaluation,
@@ -184,17 +224,25 @@ def build_method(
             "ancestor_history_limit": 8,
             "direct_child_limit": 8,
             "direct_child_top_count": 4,
-            "reference_temperature": 0.2,
-            "exploration_constant": 0.1,
             "code_max_tokens": spec.llm_output_tokens,
             "context_token_limit": spec.context_token_limit,
             "random_seed": spec.seed,
-            "offspring_per_iteration": 1 if spec.version == "v9_1" else 2,
         }
         if spec.version == "v9_1":
-            tree_kwargs["alpha"] = 0.5
+            tree_kwargs.update(
+                verification_batch_size=2,
+                quality_pool_size=10,
+                trajectory_confidence_z=1.0,
+                trajectory_recent_window=4,
+                reference_pool_size=4,
+            )
         else:
-            tree_kwargs["expansion_prior_weight"] = 1.0
+            tree_kwargs.update(
+                offspring_per_iteration=2,
+                reference_temperature=0.2,
+                exploration_constant=0.1,
+                expansion_prior_weight=1.0,
+            )
         return method_type(
             profiler=artifacts,
             **tree_kwargs,
@@ -244,10 +292,40 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     actual = {key: payload.get(key) for key in expected}
     if actual != expected:
         raise ValueError(f"resume config mismatch: expected {expected}, found {actual}")
-    if spec.version not in {"v8", "v9", "v9_1"}:
+    if spec.version not in {"v8", "v9", "v9_1", "v9_2"}:
         return
     _, task_kwargs = build_task(spec.task, spec.eval_workers)
     normalized_task_kwargs = json.loads(json.dumps(task_kwargs, sort_keys=True))
+    if spec.version == "v9_2":
+        expected_method_params = _v92_method_params(spec)
+        expected_protocol = {
+            "backend": spec.backend,
+            "task_eval": normalized_task_kwargs,
+            "llm": {
+                "base_url": spec.base_url,
+                "model": spec.model,
+                "max_tokens": spec.llm_output_tokens,
+                "no_proxy": spec.no_proxy,
+            },
+            "method_params": expected_method_params,
+        }
+        actual_protocol = {
+            "backend": payload.get("backend"),
+            "task_eval": payload.get("task_eval"),
+            "llm": {
+                key: payload.get("llm", {}).get(key) for key in expected_protocol["llm"]
+            },
+            "method_params": {
+                key: payload.get("method_params", {}).get(key)
+                for key in expected_method_params
+            },
+        }
+        if actual_protocol != expected_protocol:
+            raise ValueError(
+                "resume config mismatch for TraceAAD V9_2; use the original "
+                "model, evaluation, budget, and context settings"
+            )
+        return
     if spec.version == "v8":
         protocol_id = V8_PROTOCOL_ID
         checkpoint_version = V8_CHECKPOINT_VERSION
@@ -265,39 +343,36 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         "checkpoint_schema_version": checkpoint_version,
         "max_sample_nums": spec.budget,
         "n_init": spec.n_init,
-        "offspring_per_iteration": 1 if spec.version == "v9_1" else 2,
         "generation_protocol": "direct_code",
-        "quality_normalization": (
-            "mcts_minmax_q"
-            if spec.version == "v9_1"
-            else "global_midrank_percentile"
-        ),
-        "expansion_policy": (
-            "progressive_widening_uct"
-            if spec.version == "v9_1"
-            else "adaptive_new_child_uct"
-        ),
-        "expansion_reward": (
-            "child_continuation_value"
-            if spec.version == "v9_1"
-            else "batch_subtree_best_midrank"
-        ),
         **(
-            {}
+            {
+                "verification_batch_size": 2,
+                "quality_pool_size": 10,
+                "trajectory_confidence_z": 1.0,
+                "trajectory_recent_window": 4,
+                "reference_pool_size": 4,
+                "quality_policy": "raw_directed_fitness_top_k",
+                "budget_policy": "trajectory_wilson_upper",
+                "verification_reward": "trajectory_historical_best_advance",
+                "credit_scope": "selected_trajectory_only",
+                "root_expansion": False,
+            }
             if spec.version == "v9_1"
-            else {"failed_expansion_reward": 0.0}
+            else {
+                "offspring_per_iteration": 2,
+                "quality_normalization": "global_midrank_percentile",
+                "expansion_policy": "adaptive_new_child_uct",
+                "expansion_reward": "batch_subtree_best_midrank",
+                "failed_expansion_reward": 0.0,
+                "root_expansion": False,
+                "reference_temperature": 0.2,
+                "exploration_constant": 0.1,
+                "expansion_prior_weight": 1.0,
+            }
         ),
-        "root_expansion": spec.version == "v9_1",
         "ancestor_history_limit": 8,
         "direct_child_limit": 8,
         "direct_child_top_count": 4,
-        "reference_temperature": 0.2,
-        "exploration_constant": 0.1,
-        **(
-            {"alpha": 0.5}
-            if spec.version == "v9_1"
-            else {"expansion_prior_weight": 1.0}
-        ),
         "maximize": True,
         "operators": operator_names,
         "max_consecutive_sample_failures": 20,
@@ -365,7 +440,9 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     else:
         weights = None
     method_params: dict[str, object]
-    if spec.version in {"v8", "v9", "v9_1"}:
+    if spec.version == "v9_2":
+        method_params = _v92_method_params(spec)
+    elif spec.version in {"v8", "v9", "v9_1"}:
         method_params = {
             "protocol_id": (
                 V8_PROTOCOL_ID
@@ -383,39 +460,36 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
             ),
             "max_sample_nums": spec.budget,
             "n_init": spec.n_init,
-            "offspring_per_iteration": 1 if spec.version == "v9_1" else 2,
             "generation_protocol": "direct_code",
-            "quality_normalization": (
-                "mcts_minmax_q"
-                if spec.version == "v9_1"
-                else "global_midrank_percentile"
-            ),
-            "expansion_policy": (
-                "progressive_widening_uct"
-                if spec.version == "v9_1"
-                else "adaptive_new_child_uct"
-            ),
-            "expansion_reward": (
-                "child_continuation_value"
-                if spec.version == "v9_1"
-                else "batch_subtree_best_midrank"
-            ),
             **(
-                {}
+                {
+                    "verification_batch_size": 2,
+                    "quality_pool_size": 10,
+                    "trajectory_confidence_z": 1.0,
+                    "trajectory_recent_window": 4,
+                    "reference_pool_size": 4,
+                    "quality_policy": "raw_directed_fitness_top_k",
+                    "budget_policy": "trajectory_wilson_upper",
+                    "verification_reward": "trajectory_historical_best_advance",
+                    "credit_scope": "selected_trajectory_only",
+                    "root_expansion": False,
+                }
                 if spec.version == "v9_1"
-                else {"failed_expansion_reward": 0.0}
+                else {
+                    "offspring_per_iteration": 2,
+                    "quality_normalization": "global_midrank_percentile",
+                    "expansion_policy": "adaptive_new_child_uct",
+                    "expansion_reward": "batch_subtree_best_midrank",
+                    "failed_expansion_reward": 0.0,
+                    "root_expansion": False,
+                    "reference_temperature": 0.2,
+                    "exploration_constant": 0.1,
+                    "expansion_prior_weight": 1.0,
+                }
             ),
-            "root_expansion": spec.version == "v9_1",
             "ancestor_history_limit": 8,
             "direct_child_limit": 8,
             "direct_child_top_count": 4,
-            "reference_temperature": 0.2,
-            "exploration_constant": 0.1,
-            **(
-                {"alpha": 0.5}
-                if spec.version == "v9_1"
-                else {"expansion_prior_weight": 1.0}
-            ),
             "max_consecutive_sample_failures": 20,
             "max_stalled_iterations": 20,
             "checkpoint_interval": 10,
@@ -478,6 +552,38 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
             "method_params": method_params,
         },
     )
+
+
+def _v92_method_params(spec: RunSpec) -> dict[str, object]:
+    return {
+        "protocol_id": V92_PROTOCOL_ID,
+        "checkpoint_schema_version": V92_CHECKPOINT_VERSION,
+        "max_sample_nums": spec.budget,
+        "initialization_protocol": "strategy_microtrajectory_curation",
+        "initial_route_pool_size": spec.n_init,
+        "initial_anchor_count": V92_INITIAL_ANCHOR_COUNT,
+        "initial_route_length": 2,
+        "initial_route_selection": "best_endpoint_then_anchor_budget_value",
+        "generation_protocol": "single_idea_code",
+        "generation_operator": V92_OPERATOR,
+        "code_representation": "comment_and_docstring_free_ast_canonical",
+        "window_protocol": "canonical_formation4_downstream4_depth3",
+        "window_size": V92_WINDOW_SIZE,
+        "formation_quota": V92_FORMATION_QUOTA,
+        "downstream_quota": V92_DOWNSTREAM_QUOTA,
+        "downstream_depth": V92_DOWNSTREAM_DEPTH,
+        "quality_pool_size": V92_QUALITY_POOL_SIZE,
+        "quality_policy": "raw_directed_anchor_running_mean",
+        "budget_policy": "top10_unverified_first_then_highest_q",
+        "invalid_outcome": "anchor_directed_fitness",
+        "credit_scope": "selected_anchor_only",
+        "ancestor_backup": False,
+        "maximize": True,
+        "code_max_tokens": spec.llm_output_tokens,
+        "context_token_limit": spec.context_token_limit,
+        "max_consecutive_sample_failures": 20,
+        "checkpoint_interval": 10,
+    }
 
 
 def run_experiment(spec: RunSpec) -> Path:

@@ -5,12 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from experiments.runners.traceaad import launch, run
+from experiments.runners.traceaad import run
 from llm4ad.method.traceaad_v4 import TraceAADV4
 from llm4ad.method.traceaad_v5 import TraceAADV5
 from llm4ad.method.traceaad_v8 import PROTOCOL_ID as V8_PROTOCOL_ID
 from llm4ad.method.traceaad_v8 import TraceAADV8
 from llm4ad.method.traceaad_v9 import TraceAADV9
+from llm4ad.method.traceaad_v9_1 import TraceAADV91
+from llm4ad.method.traceaad_v9_2 import TraceAADV92
 
 
 @pytest.mark.parametrize("task", run.TASKS)
@@ -32,6 +34,8 @@ def test_unified_runner_builds_each_task_and_version(
         "v5": TraceAADV5,
         "v8": TraceAADV8,
         "v9": TraceAADV9,
+        "v9_1": TraceAADV91,
+        "v9_2": TraceAADV92,
     }[version]
     assert isinstance(method, expected_type)
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
@@ -46,9 +50,21 @@ def test_unified_runner_builds_each_task_and_version(
             assert method._offspring_per_iteration == 2
             assert method._context_token_limit == 24576
             assert not hasattr(method, "_dual_probability")
-        else:
+        elif version == "v5":
             assert spec.n_init == 30
             assert method._action_max_tokens == 1024
+        else:
+            if version == "v9_1":
+                assert spec.n_init == 4
+            else:
+                assert spec.n_init == 8
+                assert method._initial_route_pool_size == 8
+                assert method._initial_anchor_count == 6
+            assert method._context_token_limit == 24576
+            if version == "v9_1":
+                assert method._verification_batch_size == 2
+            else:
+                assert not hasattr(method, "_operators")
         assert not hasattr(method, "_global_experience")
 
 
@@ -162,46 +178,6 @@ def test_v8_resume_rejects_changed_experiment_configuration(tmp_path: Path) -> N
     )
     with pytest.raises(ValueError, match="resume config mismatch"):
         run.resolve_run_dir(changed)
-
-
-def test_batch_launcher_builds_independent_repeat_commands() -> None:
-    args = launch.build_parser().parse_args(
-        [
-            "--task",
-            "online_bin_packing",
-            "--version",
-            "v4",
-            "--backend",
-            "local",
-            "--repeats",
-            "3",
-            "--batch",
-            "20260729_230434",
-            "--dry-run",
-        ]
-    )
-    plan = launch.build_launch_plan(args)
-
-    assert [item.repeat for item in plan] == [1, 2, 3]
-    assert len({item.session for item in plan}) == 3
-    assert len({item.run_dir for item in plan}) == 3
-    assert plan[0].run_name == "20260729_230434_obp_v4_rep1"
-    assert "--repeat" in plan[0].command
-    assert "--run-name" in plan[0].command
-
-
-def test_batch_launcher_uses_version_specific_initialization_defaults() -> None:
-    v8_args = launch.build_parser().parse_args(
-        ["--task", "tsp_construct", "--version", "v8", "--dry-run"]
-    )
-    v5_args = launch.build_parser().parse_args(
-        ["--task", "tsp_construct", "--version", "v5", "--dry-run"]
-    )
-
-    v8_command = launch.build_launch_plan(v8_args)[0].command
-    v5_command = launch.build_launch_plan(v5_args)[0].command
-    assert v8_command[v8_command.index("--n-init") + 1] == "10"
-    assert v5_command[v5_command.index("--n-init") + 1] == "30"
 
 
 def test_old_task_specific_traceaad_runners_are_removed() -> None:

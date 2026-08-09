@@ -29,24 +29,24 @@ class TraceIdeateOp(Operator):
 class TraceRefineOp(Operator):
     name = OperatorName.REFINE
     prompt_constraint = (
-        "Make one focused correction to a mechanism that showed value or to a weakness "
-        "exposed by the formation history and direct child attempts."
+        "Make one focused correction to a tested mechanism. Use its recorded result to "
+        "preserve what worked and repair one concrete weakness."
     )
 
 
 class TraceSynthesizeOp(Operator):
     name = OperatorName.SYNTHESIZE
     prompt_constraint = (
-        "Identify one supported principle in each branch and make the two principles "
-        "interact functionally in the current program. Do not concatenate implementations."
+        "Compare the two complete histories and combine one change from each whose observed "
+        "effects are compatible. Make them interact; do not concatenate implementations."
     )
 
 
 class TraceTransferOp(Operator):
     name = OperatorName.TRANSFER
     prompt_constraint = (
-        "Keep the current program's core structure and adapt exactly one supported idea "
-        "from the reference root branch to the current branch's tested history."
+        "Keep the current program's core structure and adapt exactly one previously tested "
+        "change from the reference trajectory to the current trajectory's evidence."
     )
 
 

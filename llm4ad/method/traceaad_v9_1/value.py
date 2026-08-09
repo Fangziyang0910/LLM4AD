@@ -1,4 +1,4 @@
-"""MCTS-AHD-aligned UCT selection and progressive widening for V9.1."""
+"""Stable trajectory-level budget allocation for TraceAAD V9.1."""
 
 from __future__ import annotations
 
@@ -6,195 +6,129 @@ import math
 import random
 from dataclasses import dataclass
 
-from .schema import ProgramNode, SelectionStep
+from .schema import ProgramNode
 from .tree import SearchTree
 
 
 @dataclass(frozen=True, slots=True)
-class SelectionResult:
+class TrajectorySelection:
     selected_node_id: int
-    path: tuple[int, ...]
-    steps: tuple[SelectionStep, ...]
+    quality_rank: int
+    quality_pool_ids: tuple[int, ...]
+    mode: str
+    route_advance_rate: float | None
+    wilson_upper: float
+    recent_advance_rate: float | None
 
 
-def quality_bounds(tree: SearchTree) -> tuple[float | None, float | None]:
-    return tree.q_min, tree.q_max
-
-
-def normalize_value(
-    value: float,
-    q_min: float | None,
-    q_max: float | None,
-) -> float:
-    """Match MCTS-AHD's min-max normalization of continuation values."""
-    if q_min is None or q_max is None or abs(q_max - q_min) < 1e-10:
-        return 0.0
-    return (value - q_min) / (q_max - q_min)
-
-
-def remaining_budget_ratio(total: int | None, used: int) -> float:
-    if total is None:
+def wilson_upper_bound(successes: int, trials: int, z: float = 1.0) -> float:
+    if trials < 0 or successes < 0 or successes > trials:
+        raise ValueError("successes and trials must satisfy 0 <= successes <= trials")
+    if z < 0:
+        raise ValueError("z must be non-negative")
+    if trials == 0:
         return 1.0
-    if total <= 0:
-        return 0.0
-    return min(1.0, max(0.0, (total - used) / total))
+    rate = successes / trials
+    z2 = z * z
+    centre = rate + z2 / (2 * trials)
+    radius = z * math.sqrt(rate * (1 - rate) / trials + z2 / (4 * trials * trials))
+    return (centre + radius) / (1 + z2 / trials)
 
 
-def uct_score(
-    *,
-    child: ProgramNode,
-    parent_visits: int,
-    q_min: float | None,
-    q_max: float | None,
-    exploration_constant: float,
-    budget_ratio: float,
-) -> float:
-    exploitation = normalize_value(child.subtree_value, q_min, q_max)
-    exploration = exploration_constant * budget_ratio * math.sqrt(
-        math.log(parent_visits + 1) / child.visit_count
+def trajectory_quality_pool(
+    tree: SearchTree, *, pool_size: int
+) -> tuple[ProgramNode, ...]:
+    if pool_size <= 0:
+        raise ValueError("pool_size must be positive")
+    ranked = sorted(
+        tree.nodes(),
+        key=lambda node: (-node.directed_fitness, node.program_loc, node.id),
     )
-    return exploitation + exploration
+    return tuple(ranked[:pool_size])
 
 
-def progressive_widening_allowed(node: ProgramNode, alpha: float) -> bool:
-    if alpha <= 0:
-        raise ValueError("alpha must be positive")
-    return int(node.visit_count**alpha) > len(node.child_ids)
-
-
-def select_expansion_node(
+def select_trajectory(
     tree: SearchTree,
     *,
-    rng: random.Random,
-    total_budget: int | None,
-    used_budget: int,
-    exploration_constant: float,
-    alpha: float,
-) -> SelectionResult:
-    """Select a leaf or a node whose progressive-widening budget is open."""
-    if not tree.root.child_ids:
-        raise ValueError("cannot select from an empty tree")
-    if alpha <= 0:
-        raise ValueError("alpha must be positive")
-    q_min, q_max = quality_bounds(tree)
-    ratio = remaining_budget_ratio(total_budget, used_budget)
-    steps: list[SelectionStep] = []
-    path = [tree.root.id]
-    current = tree.root
-
-    while True:
-        if not current.child_ids or progressive_widening_allowed(current, alpha):
-            quality = (
-                0.0
-                if current.subtree_value is None
-                else normalize_value(current.subtree_value, q_min, q_max)
-            )
-            steps.append(
-                SelectionStep(
-                    decision_node_id=current.id,
-                    option="expand",
-                    target_node_id=None,
-                    quality=quality,
-                    raw_value=current.subtree_value,
-                    option_visits=getattr(current, "expansion_count", current.visit_count),
-                    score=quality,
-                )
-            )
-            return SelectionResult(
-                current.id,
-                tuple(path),
-                tuple(steps),
-            )
-
-        scored = [
-            (
-                child_id,
-                uct_score(
-                    child=tree.get_node(child_id),
-                    parent_visits=current.visit_count,
-                    q_min=q_min,
-                    q_max=q_max,
-                    exploration_constant=exploration_constant,
-                    budget_ratio=ratio,
+    pool_size: int,
+    confidence_z: float,
+) -> TrajectorySelection:
+    pool = trajectory_quality_pool(tree, pool_size=pool_size)
+    if not pool:
+        raise ValueError("cannot select from an empty trajectory store")
+    unverified = [node for node in pool if node.verification_count == 0]
+    if unverified:
+        selected = unverified[0]
+        mode = "basic_validation"
+    else:
+        selected = max(
+            pool,
+            key=lambda node: (
+                wilson_upper_bound(
+                    node.route_advance_count,
+                    node.verification_count,
+                    confidence_z,
                 ),
-            )
-            for child_id in current.child_ids
-        ]
-        target_id, score = _choose_tied(scored, rng)
-        child = tree.get_node(target_id)
-        steps.append(
-            SelectionStep(
-                decision_node_id=current.id,
-                option="descend",
-                target_node_id=child.id,
-                quality=normalize_value(child.subtree_value, q_min, q_max),
-                raw_value=child.subtree_value,
-                option_visits=child.visit_count,
-                score=score,
-            )
+                sum(node.recent_advances) / len(node.recent_advances),
+                node.directed_fitness,
+                -node.program_loc,
+                -node.id,
+            ),
         )
-        current = child
-        path.append(child.id)
-
-
-def _choose_tied(
-    scored: list[tuple[int, float]], rng: random.Random
-) -> tuple[int, float]:
-    maximum = max(score for _, score in scored)
-    tied = [target_id for target_id, score in scored if score == maximum]
-    return rng.choice(tied), maximum
+        mode = "trajectory_productivity"
+    trials = selected.verification_count
+    recent = selected.recent_advances
+    return TrajectorySelection(
+        selected_node_id=selected.id,
+        quality_rank=next(
+            index for index, node in enumerate(pool) if node.id == selected.id
+        ),
+        quality_pool_ids=tuple(node.id for node in pool),
+        mode=mode,
+        route_advance_rate=(
+            None if trials == 0 else selected.route_advance_count / trials
+        ),
+        wilson_upper=wilson_upper_bound(
+            selected.route_advance_count, trials, confidence_z
+        ),
+        recent_advance_rate=(None if not recent else sum(recent) / len(recent)),
+    )
 
 
 def reference_candidates(
-    tree: SearchTree, main_node_id: int
-) -> tuple[tuple[int, ProgramNode], ...]:
+    tree: SearchTree, main_node_id: int, *, pool_size: int
+) -> tuple[ProgramNode, ...]:
+    if pool_size <= 0:
+        raise ValueError("pool_size must be positive")
     main = tree.get_node(main_node_id)
-    main_branch = tree.root_branch_id(main_node_id)
-    candidates: list[tuple[int, ProgramNode]] = []
-    for branch_id in tree.root.child_ids:
-        if branch_id == main_branch:
-            continue
-        representative = tree.subtree_best(branch_id)
-        if representative.code_hash == main.code_hash:
-            continue
-        candidates.append((branch_id, representative))
-    return tuple(candidates)
+    candidates = [
+        node
+        for node in tree.nodes()
+        if not tree.same_lineage(main_node_id, node.id)
+        and node.code_hash != main.code_hash
+    ]
+    candidates.sort(
+        key=lambda node: (-node.directed_fitness, node.program_loc, node.id)
+    )
+    return tuple(candidates[:pool_size])
 
 
 def sample_reference(
     tree: SearchTree,
     main_node_id: int,
     *,
-    temperature: float,
+    pool_size: int,
     rng: random.Random,
-) -> tuple[int, ProgramNode] | None:
-    candidates = reference_candidates(tree, main_node_id)
-    if not candidates:
-        return None
-    q_min, q_max = quality_bounds(tree)
-    values = [
-        normalize_value(tree.get_node(branch).subtree_value, q_min, q_max)
-        for branch, _ in candidates
-    ]
-    maximum = max(values)
-    weights = [math.exp((value - maximum) / temperature) for value in values]
-    threshold = rng.random() * sum(weights)
-    cumulative = 0.0
-    for candidate, weight in zip(candidates, weights, strict=True):
-        cumulative += weight
-        if threshold <= cumulative:
-            return candidate
-    return candidates[-1]
+) -> ProgramNode | None:
+    candidates = reference_candidates(tree, main_node_id, pool_size=pool_size)
+    return None if not candidates else rng.choice(candidates)
 
 
 __all__ = [
-    "SelectionResult",
-    "normalize_value",
-    "progressive_widening_allowed",
-    "quality_bounds",
+    "TrajectorySelection",
     "reference_candidates",
-    "remaining_budget_ratio",
     "sample_reference",
-    "select_expansion_node",
-    "uct_score",
+    "select_trajectory",
+    "trajectory_quality_pool",
+    "wilson_upper_bound",
 ]

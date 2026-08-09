@@ -1,4 +1,4 @@
-"""Render bounded tree histories and direct-branch evidence for V9.1."""
+"""Render bounded trajectory histories and tested continuations for V9.1."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from ...base import Function
 from .prompt import fitness_direction_hint, format_fitness
 from .schema import ProgramNode
-from .tree import SearchTree, is_node_better
+from .tree import SearchTree
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,17 +47,10 @@ def select_direct_children(
     ]
     if not children or limit <= 0:
         return ()
-    ranked: list[ProgramNode] = []
-    for child in children:
-        inserted = False
-        child_best = tree.subtree_best(child.id)
-        for index, incumbent in enumerate(ranked):
-            if is_node_better(child_best, tree.subtree_best(incumbent.id)):
-                ranked.insert(index, child)
-                inserted = True
-                break
-        if not inserted:
-            ranked.append(child)
+    ranked = sorted(
+        children,
+        key=lambda child: (-child.directed_fitness, child.program_loc, child.id),
+    )
     chosen = ranked[: min(top_count, limit)]
     chosen_ids = {child.id for child in chosen}
     for child in sorted(children, key=lambda item: item.creation_order, reverse=True):
@@ -95,14 +88,12 @@ def node_history(
         for position, child_id in enumerate(direct_children, start=1):
             child = tree.get_node(child_id)
             edge = tree.get_edge(child.incoming_edge_id)  # type: ignore[arg-type]
-            best = tree.subtree_best(child_id)
             lines.extend(
                 [
                     (
                         f"Branch {position}: {edge.outcome}; immediate fitness "
-                        f"{format_fitness(child.fitness)}; subtree-best fitness "
-                        f"{format_fitness(best.fitness)}; depth to subtree best "
-                        f"{best.depth - child.depth}"
+                        f"{format_fitness(child.fitness)}; advances this trajectory's "
+                        f"historical best={'yes' if edge.advances_parent_trajectory else 'no'}"
                     ),
                     f"  Implemented change: {_one_line(child.idea, 360)}",
                 ]
@@ -149,7 +140,7 @@ def build_code_prompt(
         sections.extend(
             [
                 "",
-                "[Reference Root Branch History]",
+                "[Reference Trajectory History]",
                 reference_history.strip(),
                 "",
                 "[Reference Program]",
@@ -198,6 +189,7 @@ def _render_formation_edge(tree: SearchTree, edge_id: int, position: int) -> lis
         (
             f"Step {position}: {edge.outcome}; fitness "
             f"{format_fitness(parent.fitness)} -> {format_fitness(child.fitness)}; "
+            f"trajectory breakthrough={'yes' if edge.advances_parent_trajectory else 'no'}; "
             f"global breakthrough={'yes' if edge.new_global_best else 'no'}"
         ),
         f"  Implemented change: {_one_line(edge.implemented_idea, 360)}",

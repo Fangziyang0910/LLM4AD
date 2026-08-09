@@ -1,4 +1,8 @@
-"""Complete single-parent tree with MCTS-AHD continuation-value backup."""
+"""Trajectory store for TraceAAD V9.1.
+
+The tree preserves lineage and auditability.  It does not propagate value or
+visits: verification evidence belongs to the trajectory that consumed budget.
+"""
 
 from __future__ import annotations
 
@@ -20,16 +24,12 @@ def is_node_better(candidate: ProgramNode, incumbent: ProgramNode | None) -> boo
 
 
 class SearchTree:
-    """Own the tree, MCTS visits, and continuation-value backup."""
-
     def __init__(self) -> None:
         self.root = VirtualRoot()
         self._nodes: dict[int, ProgramNode] = {}
         self._edges: dict[int, ImprovementEdge] = {}
         self._next_node_id = 0
         self._next_edge_id = 0
-        self.q_min: float | None = None
-        self.q_max: float | None = None
 
     def nodes(self) -> tuple[ProgramNode, ...]:
         return tuple(self._nodes.values())
@@ -43,9 +43,12 @@ class SearchTree:
     def get_edge(self, edge_id: int) -> ImprovementEdge:
         return self._edges[edge_id]
 
-    def _observe_q(self, value: float) -> None:
-        self.q_min = value if self.q_min is None else min(self.q_min, value)
-        self.q_max = value if self.q_max is None else max(self.q_max, value)
+    def best_node(self) -> ProgramNode | None:
+        best: ProgramNode | None = None
+        for node in self._nodes.values():
+            if is_node_better(node, best):
+                best = node
+        return best
 
     def add_initial(
         self,
@@ -55,6 +58,7 @@ class SearchTree:
         fitness: float,
         maximize: bool,
         creation_order: int,
+        bootstrap_reference_node_ids: tuple[int, ...] = (),
     ) -> ProgramNode:
         node = self._new_node(
             code=code,
@@ -67,11 +71,11 @@ class SearchTree:
             creation_order=creation_order,
             batch_id=None,
             operator="init",
+            bootstrap_reference_node_ids=bootstrap_reference_node_ids,
+            trajectory_best_value=None,
+            trajectory_best_node_id=None,
         )
-        self._observe_q(node.directed_fitness)
         self.root.child_ids.append(node.id)
-        self.root.visit_count += 1
-        self._backup_root()
         return node
 
     def add_child(
@@ -85,7 +89,6 @@ class SearchTree:
         creation_order: int,
         operator: OperatorName,
         reference_node_id: int | None,
-        reference_root_branch_id: int | None,
         global_best_directed_fitness: float | None,
         new_global_best: bool,
         global_best_update_reason: str | None,
@@ -94,10 +97,18 @@ class SearchTree:
         sibling_seq: int,
         sample_order: int,
         positive_threshold: float = 1e-6,
-    ) -> tuple[ProgramNode, ImprovementEdge, list[dict[str, int | float | None]]]:
+    ) -> tuple[ProgramNode, ImprovementEdge]:
         parent = self.get_node(parent_id)
         edge_id = self._next_edge_id
         self._next_edge_id += 1
+        directed = fitness if maximize else -fitness
+        advances_route = directed > parent.trajectory_best_value + positive_threshold
+        if advances_route:
+            trajectory_best_value = directed
+            trajectory_best_node_id: int | None = self._next_node_id
+        else:
+            trajectory_best_value = parent.trajectory_best_value
+            trajectory_best_node_id = parent.trajectory_best_node_id
         child = self._new_node(
             code=code,
             idea=idea,
@@ -109,8 +120,10 @@ class SearchTree:
             creation_order=creation_order,
             batch_id=batch_id,
             operator=str(operator),
+            bootstrap_reference_node_ids=(),
+            trajectory_best_value=trajectory_best_value,
+            trajectory_best_node_id=trajectory_best_node_id,
         )
-        self._observe_q(child.directed_fitness)
         delta_parent = child.directed_fitness - parent.directed_fitness
         delta_global = (
             None
@@ -130,9 +143,10 @@ class SearchTree:
             operator=operator,
             implemented_idea=idea,
             reference_node_id=reference_node_id,
-            reference_root_branch_id=reference_root_branch_id,
             delta_parent=delta_parent,
             delta_global_best=delta_global,
+            trajectory_best_before=parent.trajectory_best_value,
+            advances_parent_trajectory=advances_route,
             outcome=outcome,
             delta_loc=child.program_loc - parent.program_loc,
             code_change_ratio=code_change_ratio(parent.code, child.code),
@@ -145,8 +159,7 @@ class SearchTree:
         )
         self._edges[edge.id] = edge
         parent.child_ids.append(child.id)
-        backup_changes = self.backup_from(parent.id)
-        return child, edge, backup_changes
+        return child, edge
 
     def _new_node(
         self,
@@ -161,6 +174,9 @@ class SearchTree:
         creation_order: int,
         batch_id: int | None,
         operator: str,
+        bootstrap_reference_node_ids: tuple[int, ...],
+        trajectory_best_value: float | None,
+        trajectory_best_node_id: int | None,
     ) -> ProgramNode:
         if not math.isfinite(fitness):
             raise ValueError("program fitness must be finite")
@@ -179,16 +195,43 @@ class SearchTree:
             incoming_edge_id=incoming_edge_id,
             child_ids=[],
             depth=depth,
-            visit_count=1,
-            expansion_count=0,
-            subtree_value=directed,
-            subtree_best_node_id=node_id,
             creation_order=creation_order,
             batch_id=batch_id,
             operator=operator,
+            bootstrap_reference_node_ids=list(bootstrap_reference_node_ids),
+            trajectory_best_value=(
+                directed if trajectory_best_value is None else trajectory_best_value
+            ),
+            trajectory_best_node_id=(
+                node_id if trajectory_best_node_id is None else trajectory_best_node_id
+            ),
         )
         self._nodes[node_id] = node
         return node
+
+    def record_verification(
+        self,
+        node_id: int,
+        *,
+        valid_candidate_count: int,
+        route_advanced: bool,
+        global_advanced: bool,
+        batch_id: int,
+        recent_window: int,
+    ) -> None:
+        """Attach one budget event only to the selected trajectory."""
+        if valid_candidate_count < 0:
+            raise ValueError("valid_candidate_count must be non-negative")
+        if recent_window <= 0:
+            raise ValueError("recent_window must be positive")
+        node = self.get_node(node_id)
+        node.verification_count += 1
+        node.valid_candidate_count += valid_candidate_count
+        node.route_advance_count += int(route_advanced)
+        node.global_advance_count += int(global_advanced)
+        node.recent_advances.append(bool(route_advanced))
+        del node.recent_advances[:-recent_window]
+        node.last_verification_batch_id = batch_id
 
     def ancestor_node_ids(self, node_id: int) -> tuple[int, ...]:
         path: list[int] = []
@@ -205,85 +248,15 @@ class SearchTree:
             if self.get_node(item).incoming_edge_id is not None
         )
 
-    def selected_path(self, node_id: int) -> tuple[int, ...]:
-        return (self.root.id, *self.ancestor_node_ids(node_id))
+    def is_ancestor(self, possible_ancestor_id: int, node_id: int) -> bool:
+        return possible_ancestor_id in self.ancestor_node_ids(node_id)[:-1]
 
-    def root_branch_id(self, node_id: int) -> int:
-        return self.ancestor_node_ids(node_id)[0]
-
-    def subtree_best(self, node_id: int) -> ProgramNode:
-        return self.get_node(self.get_node(node_id).subtree_best_node_id)
-
-    def record_successful_visit(self, expanded_node_id: int) -> tuple[int, ...]:
-        """Count one successful expansion on the selected path.
-
-        The newly created child keeps its initial visit count of one. As in
-        MCTS-AHD, only the selected ancestors receive the backpropagated visit.
-        """
-        path = self.selected_path(expanded_node_id)
-        self.root.visit_count += 1
-        for node_id in path[1:]:
-            self.get_node(node_id).visit_count += 1
-        self.get_node(expanded_node_id).expansion_count += 1
-        return path
-
-    def backup_from(self, node_id: int) -> list[dict[str, int | float | None]]:
-        changes: list[dict[str, int | float | None]] = []
-        root_before_value = self.root.subtree_value
-        root_before_best = self.root.subtree_best_node_id
-        current = node_id
-        while current != self.root.id:
-            node = self.get_node(current)
-            before_value = node.subtree_value
-            before_best = node.subtree_best_node_id
-            best = node
-            if node.child_ids:
-                best = self.subtree_best(node.child_ids[0])
-                for child_id in node.child_ids[1:]:
-                    candidate = self.subtree_best(child_id)
-                    if is_node_better(candidate, best):
-                        best = candidate
-            node.subtree_value = best.directed_fitness
-            node.subtree_best_node_id = best.id
-            if before_value != node.subtree_value or before_best != best.id:
-                changes.append(
-                    {
-                        "node_id": node.id,
-                        "before_value": before_value,
-                        "after_value": node.subtree_value,
-                        "before_best_node_id": before_best,
-                        "after_best_node_id": best.id,
-                    }
-                )
-            current = node.parent_id
-        self._backup_root()
-        if (
-            root_before_value != self.root.subtree_value
-            or root_before_best != self.root.subtree_best_node_id
-        ):
-            changes.append(
-                {
-                    "node_id": self.root.id,
-                    "before_value": root_before_value,
-                    "after_value": self.root.subtree_value,
-                    "before_best_node_id": root_before_best,
-                    "after_best_node_id": self.root.subtree_best_node_id,
-                }
-            )
-        return changes
-
-    def _backup_root(self) -> None:
-        if not self.root.child_ids:
-            self.root.subtree_value = None
-            self.root.subtree_best_node_id = None
-            return
-        best = self.subtree_best(self.root.child_ids[0])
-        for branch_id in self.root.child_ids[1:]:
-            candidate = self.subtree_best(branch_id)
-            if is_node_better(candidate, best):
-                best = candidate
-        self.root.subtree_value = best.directed_fitness
-        self.root.subtree_best_node_id = best.id
+    def same_lineage(self, first_id: int, second_id: int) -> bool:
+        return (
+            first_id == second_id
+            or self.is_ancestor(first_id, second_id)
+            or self.is_ancestor(second_id, first_id)
+        )
 
     def descendants(self, node_id: int) -> Iterable[ProgramNode]:
         pending = list(reversed(self.get_node(node_id).child_ids))

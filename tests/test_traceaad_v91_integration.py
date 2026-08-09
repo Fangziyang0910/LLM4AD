@@ -25,13 +25,15 @@ def test_v91_runner_is_independent_from_v9(tmp_path: Path) -> None:
     assert not isinstance(method, TraceAADV9)
     assert spec.method_name == "traceaad_v9_1"
     assert spec.n_init == 4
-    assert method._offspring_per_iteration == 1
-    assert method._alpha == 0.5
+    assert method._verification_batch_size == 2
+    assert method._quality_pool_size == 10
     assert method.search_configuration()["protocol_id"] == PROTOCOL_ID
-    assert method.search_configuration()["checkpoint_schema_version"] == CHECKPOINT_VERSION
+    assert (
+        method.search_configuration()["checkpoint_schema_version"] == CHECKPOINT_VERSION
+    )
 
 
-def test_v91_run_config_records_mcts_protocol(tmp_path: Path) -> None:
+def test_v91_run_config_records_trajectory_protocol(tmp_path: Path) -> None:
     spec = run.make_run_spec(
         task="online_bin_packing",
         version="v9_1",
@@ -51,11 +53,15 @@ def test_v91_run_config_records_mcts_protocol(tmp_path: Path) -> None:
     assert params["protocol_id"] == PROTOCOL_ID
     assert params["checkpoint_schema_version"] == CHECKPOINT_VERSION
     assert params["n_init"] == 4
-    assert params["offspring_per_iteration"] == 1
-    assert params["alpha"] == 0.5
-    assert params["expansion_policy"] == "progressive_widening_uct"
-    assert params["expansion_reward"] == "child_continuation_value"
-    assert params["root_expansion"] is True
+    assert params["verification_batch_size"] == 2
+    assert params["quality_pool_size"] == 10
+    assert params["quality_policy"] == "raw_directed_fitness_top_k"
+    assert params["budget_policy"] == "trajectory_wilson_upper"
+    assert params["verification_reward"] == "trajectory_historical_best_advance"
+    assert params["credit_scope"] == "selected_trajectory_only"
+    assert params["root_expansion"] is False
+    assert "offspring_per_iteration" not in params
+    assert "alpha" not in params
     assert "expansion_prior_weight" not in params
     assert "failed_expansion_reward" not in params
 
@@ -82,3 +88,28 @@ def test_v91_resume_rejects_v9_run_config(tmp_path: Path) -> None:
         assert "resume config mismatch" in str(exc)
     else:
         raise AssertionError("V9.1 must not resume a V9 run")
+
+
+def test_v91_resume_accepts_matching_trajectory_protocol(tmp_path: Path) -> None:
+    original = run.make_run_spec(
+        task="tsp_construct",
+        version="v9_1",
+        budget=17,
+        seed=5,
+        run_name="v91_matching",
+        experiments_root=tmp_path,
+    )
+    run_dir, run_name, _ = run.resolve_run_dir(original)
+    run.write_run_config(original, run_dir, run_name)
+    resumed_spec = run.make_run_spec(
+        task="tsp_construct",
+        version="v9_1",
+        budget=17,
+        seed=5,
+        resume_from=run_dir,
+        experiments_root=tmp_path,
+    )
+    resolved, resolved_name, resumed = run.resolve_run_dir(resumed_spec)
+    assert resumed
+    assert resolved == run_dir
+    assert resolved_name == run_dir.name

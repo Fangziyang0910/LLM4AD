@@ -1,4 +1,4 @@
-"""TraceAAD V9.1 MCTS-aligned tree-search state schema."""
+"""TraceAAD V9.1 trajectory-centred search state."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Final, TypeAlias
 
-PROTOCOL_ID: Final[str] = "traceaad-v9.1-mcts-aligned"
+PROTOCOL_ID: Final[str] = "traceaad-v9.1-trajectory-centered"
 
 NodeId: TypeAlias = int
 EdgeId: TypeAlias = int
@@ -21,17 +21,16 @@ class OperatorName(StrEnum):
 
 @dataclass(slots=True)
 class VirtualRoot:
-    """Structural root. It deliberately has no program or fitness fields."""
+    """Structural container only; it never receives search credit."""
 
     id: int = -1
     child_ids: list[NodeId] = field(default_factory=list)
-    visit_count: int = 0
-    subtree_value: float | None = None
-    subtree_best_node_id: NodeId | None = None
 
 
 @dataclass(slots=True)
 class ProgramNode:
+    """One executable endpoint together with its unique formation trajectory."""
+
     id: NodeId
     code: str
     idea: str
@@ -43,13 +42,18 @@ class ProgramNode:
     incoming_edge_id: EdgeId | None
     child_ids: list[NodeId]
     depth: int
-    visit_count: int
-    expansion_count: int
-    subtree_value: float
-    subtree_best_node_id: NodeId
     creation_order: int
     batch_id: int | None
     operator: str
+    bootstrap_reference_node_ids: list[NodeId]
+    trajectory_best_value: float
+    trajectory_best_node_id: NodeId
+    verification_count: int = 0
+    valid_candidate_count: int = 0
+    route_advance_count: int = 0
+    global_advance_count: int = 0
+    recent_advances: list[bool] = field(default_factory=list)
+    last_verification_batch_id: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,9 +64,10 @@ class ImprovementEdge:
     operator: OperatorName
     implemented_idea: str
     reference_node_id: NodeId | None
-    reference_root_branch_id: NodeId | None
     delta_parent: float
     delta_global_best: float | None
+    trajectory_best_before: float
+    advances_parent_trajectory: bool
     outcome: str
     delta_loc: int
     code_change_ratio: float
@@ -74,17 +79,6 @@ class ImprovementEdge:
     sample_order: int
 
 
-@dataclass(frozen=True, slots=True)
-class SelectionStep:
-    decision_node_id: int
-    option: str
-    target_node_id: NodeId | None
-    quality: float
-    raw_value: float | None
-    option_visits: int
-    score: float
-
-
 __all__ = [
     "EdgeId",
     "ImprovementEdge",
@@ -92,6 +86,5 @@ __all__ = [
     "OperatorName",
     "PROTOCOL_ID",
     "ProgramNode",
-    "SelectionStep",
     "VirtualRoot",
 ]

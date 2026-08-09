@@ -71,6 +71,51 @@ def build_initial_prompt(
     ).strip()
 
 
+def build_bootstrap_prompt(
+    *,
+    task_description: str,
+    template_function: Function,
+    prior_trajectories: tuple[tuple[int, str, float, str], ...],
+    maximize: bool = True,
+) -> str:
+    """Create a new initial trajectory from evaluated history, never a blank restart."""
+    target = copy.deepcopy(template_function)
+    target.body = ""
+    evidence: list[str] = []
+    for node_id, idea, fitness, code in prior_trajectories:
+        evidence.extend(
+            [
+                f"[Evaluated Trajectory {node_id}]",
+                f"Fitness: {format_fitness(fitness)}",
+                f"Idea: {idea}",
+                "```python",
+                code.rstrip(),
+                "```",
+            ]
+        )
+    return "\n".join(
+        [
+            task_description.strip(),
+            fitness_direction_hint(maximize),
+            "",
+            "[Existing Evaluated Histories]",
+            *evidence,
+            "",
+            "[Instruction]",
+            "Create a new initial trajectory using the evaluated histories as evidence.",
+            "Choose a materially different algorithmic route; do not merely rename or perturb an existing implementation.",
+            "Keep useful constraints revealed by the existing programs and implement the new route completely.",
+            "Keep the function name, arguments, return type, and contract unchanged.",
+            "Output only:",
+            f"Idea: <one sentence, no more than {IDEA_MAX_CHARS} characters>",
+            "Code:",
+            "```python",
+            str(target).rstrip(),
+            "```",
+        ]
+    ).strip()
+
+
 def parse_program_response(
     response: str,
     template_program: Program,
@@ -82,11 +127,14 @@ def parse_program_response(
     first_fence = text.find("```")
     if first_fence < 0:
         return None
-    if re.search(
-        r"^\s*Idea\s*:\s*\S[^\r\n]*$",
-        text[:first_fence],
-        flags=re.IGNORECASE | re.MULTILINE,
-    ) is None:
+    if (
+        re.search(
+            r"^\s*Idea\s*:\s*\S[^\r\n]*$",
+            text[:first_fence],
+            flags=re.IGNORECASE | re.MULTILINE,
+        )
+        is None
+    ):
         return None
     idea = _extract_idea(text)
     blocks = _extract_code_blocks(text)
@@ -228,9 +276,11 @@ def _extract_code_blocks(response: str) -> tuple[str, ...]:
         if block.strip()
     )
 
+
 __all__ = [
     "IDEA_MAX_CHARS",
     "ParsedProgram",
+    "build_bootstrap_prompt",
     "build_initial_prompt",
     "fitness_direction_hint",
     "format_fitness",
