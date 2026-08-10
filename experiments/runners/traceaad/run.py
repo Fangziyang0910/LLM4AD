@@ -45,6 +45,45 @@ from llm4ad.method.traceaad_v9_2.traceaad import (
     QUALITY_POOL_SIZE as V92_QUALITY_POOL_SIZE,
     WINDOW_SIZE as V92_WINDOW_SIZE,
 )
+from llm4ad.method.traceaad_v9_3 import (
+    CHECKPOINT_VERSION as V93_CHECKPOINT_VERSION,
+    PROTOCOL_ID as V93_PROTOCOL_ID,
+    TraceAADV93,
+)
+from llm4ad.method.traceaad_v9_3.schema import GENERATION_OPERATOR as V93_OPERATOR
+from llm4ad.method.traceaad_v9_3.traceaad import (
+    DOWNSTREAM_DEPTH as V93_DOWNSTREAM_DEPTH,
+    DOWNSTREAM_QUOTA as V93_DOWNSTREAM_QUOTA,
+    FORMATION_QUOTA as V93_FORMATION_QUOTA,
+    INITIAL_ANCHOR_COUNT as V93_INITIAL_ANCHOR_COUNT,
+    INITIAL_ROUTE_POOL_SIZE as V93_INITIAL_ROUTE_POOL_SIZE,
+    QUALITY_POOL_SIZE as V93_QUALITY_POOL_SIZE,
+    ROLLOUT_LENGTH as V93_ROLLOUT_LENGTH,
+    TRAJECTORY_DECISION_OPERATOR as V93_DECISION_OPERATOR,
+    WINDOW_SIZE as V93_WINDOW_SIZE,
+)
+from llm4ad.method.traceaad_v9_4 import (
+    CHECKPOINT_VERSION as V94_CHECKPOINT_VERSION,
+    PROTOCOL_ID as V94_PROTOCOL_ID,
+    TraceAADV94,
+)
+from llm4ad.method.traceaad_v9_4.schema import GENERATION_OPERATOR as V94_OPERATOR
+from llm4ad.method.traceaad_v9_4.traceaad import (
+    DOWNSTREAM_DEPTH as V94_DOWNSTREAM_DEPTH,
+    DOWNSTREAM_QUOTA as V94_DOWNSTREAM_QUOTA,
+    FORMATION_QUOTA as V94_FORMATION_QUOTA,
+    INITIAL_ANCHOR_COUNT as V94_INITIAL_ANCHOR_COUNT,
+    INITIAL_ROUTE_POOL_SIZE as V94_INITIAL_ROUTE_POOL_SIZE,
+    QUALITY_POOL_SIZE as V94_QUALITY_POOL_SIZE,
+    WINDOW_SIZE as V94_WINDOW_SIZE,
+)
+from llm4ad.method.traceaad_v9_4.tree import (
+    TRAJECTORY_CREDIT_DEPTH as V94_TRAJECTORY_CREDIT_DEPTH,
+    TRAJECTORY_CREDIT_DISCOUNT as V94_TRAJECTORY_CREDIT_DISCOUNT,
+)
+from llm4ad.method.traceaad_v9_4.value import (
+    QUALITY_EXPLORATION_INTERVAL as V94_QUALITY_EXPLORATION_INTERVAL,
+)
 
 from .._common import (
     BACKENDS,
@@ -60,9 +99,18 @@ from .._common import (
     write_run_config as write_run_config_file,
 )
 
-VersionName = Literal["v4", "v5", "v8", "v9", "v9_1", "v9_2"]
+VersionName = Literal["v4", "v5", "v8", "v9", "v9_1", "v9_2", "v9_3", "v9_4"]
 
-VERSIONS: tuple[VersionName, ...] = ("v4", "v5", "v8", "v9", "v9_1", "v9_2")
+VERSIONS: tuple[VersionName, ...] = (
+    "v4",
+    "v5",
+    "v8",
+    "v9",
+    "v9_1",
+    "v9_2",
+    "v9_3",
+    "v9_4",
+)
 V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
 V9_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V9_OPERATORS]
 V91_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V91_OPERATORS]
@@ -133,7 +181,11 @@ def make_run_spec(
         no_proxy=profile.no_proxy,
         budget=budget,
         n_init=(
-            V92_INITIAL_ROUTE_POOL_SIZE
+            V94_INITIAL_ROUTE_POOL_SIZE
+            if version == "v9_4"
+            else V93_INITIAL_ROUTE_POOL_SIZE
+            if version == "v9_3"
+            else V92_INITIAL_ROUTE_POOL_SIZE
             if version == "v9_2"
             else 4
             if version == "v9_1"
@@ -159,6 +211,10 @@ def make_run_spec(
         raise ValueError("n_init must be positive")
     if spec.version == "v9_2" and spec.n_init != V92_INITIAL_ROUTE_POOL_SIZE:
         raise ValueError("TraceAAD V9.2 requires exactly eight initial routes")
+    if spec.version == "v9_3" and spec.n_init != V93_INITIAL_ROUTE_POOL_SIZE:
+        raise ValueError("TraceAAD V9.3 requires exactly eight initial routes")
+    if spec.version == "v9_4" and spec.n_init != V94_INITIAL_ROUTE_POOL_SIZE:
+        raise ValueError("TraceAAD V9.4 requires exactly eight initial routes")
     if spec.eval_workers is not None and spec.eval_workers <= 0:
         raise ValueError("eval_workers must be positive")
     if spec.llm_output_tokens <= 0:
@@ -186,6 +242,36 @@ def build_method(
         temperature=1.0,
     )
     artifacts = TraceAADArtifacts(run_dir=run_dir)
+    if spec.version == "v9_4":
+        return TraceAADV94(
+            llm=llm,
+            evaluation=evaluation,
+            profiler=artifacts,
+            max_sample_nums=spec.budget,
+            initial_route_pool_size=spec.n_init,
+            initial_anchor_count=V94_INITIAL_ANCHOR_COUNT,
+            code_max_tokens=spec.llm_output_tokens,
+            context_token_limit=spec.context_token_limit,
+            max_consecutive_sample_failures=20,
+            checkpoint_interval=10,
+            resume_from=resume_from,
+            checkpoint_dir=run_dir / "checkpoints",
+        )
+    if spec.version == "v9_3":
+        return TraceAADV93(
+            llm=llm,
+            evaluation=evaluation,
+            profiler=artifacts,
+            max_sample_nums=spec.budget,
+            initial_route_pool_size=spec.n_init,
+            initial_anchor_count=V93_INITIAL_ANCHOR_COUNT,
+            code_max_tokens=spec.llm_output_tokens,
+            context_token_limit=spec.context_token_limit,
+            max_consecutive_sample_failures=20,
+            checkpoint_interval=10,
+            resume_from=resume_from,
+            checkpoint_dir=run_dir / "checkpoints",
+        )
     if spec.version == "v9_2":
         return TraceAADV92(
             llm=llm,
@@ -292,12 +378,18 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     actual = {key: payload.get(key) for key in expected}
     if actual != expected:
         raise ValueError(f"resume config mismatch: expected {expected}, found {actual}")
-    if spec.version not in {"v8", "v9", "v9_1", "v9_2"}:
+    if spec.version not in {"v8", "v9", "v9_1", "v9_2", "v9_3", "v9_4"}:
         return
     _, task_kwargs = build_task(spec.task, spec.eval_workers)
     normalized_task_kwargs = json.loads(json.dumps(task_kwargs, sort_keys=True))
-    if spec.version == "v9_2":
-        expected_method_params = _v92_method_params(spec)
+    if spec.version in {"v9_2", "v9_3", "v9_4"}:
+        expected_method_params = (
+            _v94_method_params(spec)
+            if spec.version == "v9_4"
+            else _v93_method_params(spec)
+            if spec.version == "v9_3"
+            else _v92_method_params(spec)
+        )
         expected_protocol = {
             "backend": spec.backend,
             "task_eval": normalized_task_kwargs,
@@ -322,7 +414,8 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         }
         if actual_protocol != expected_protocol:
             raise ValueError(
-                "resume config mismatch for TraceAAD V9_2; use the original "
+                f"resume config mismatch for TraceAAD {spec.version.upper()}; "
+                "use the original "
                 "model, evaluation, budget, and context settings"
             )
         return
@@ -440,7 +533,11 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     else:
         weights = None
     method_params: dict[str, object]
-    if spec.version == "v9_2":
+    if spec.version == "v9_4":
+        method_params = _v94_method_params(spec)
+    elif spec.version == "v9_3":
+        method_params = _v93_method_params(spec)
+    elif spec.version == "v9_2":
         method_params = _v92_method_params(spec)
     elif spec.version in {"v8", "v9", "v9_1"}:
         method_params = {
@@ -578,6 +675,87 @@ def _v92_method_params(spec: RunSpec) -> dict[str, object]:
         "invalid_outcome": "anchor_directed_fitness",
         "credit_scope": "selected_anchor_only",
         "ancestor_backup": False,
+        "maximize": True,
+        "code_max_tokens": spec.llm_output_tokens,
+        "context_token_limit": spec.context_token_limit,
+        "max_consecutive_sample_failures": 20,
+        "checkpoint_interval": 10,
+    }
+
+
+def _v93_method_params(spec: RunSpec) -> dict[str, object]:
+    return {
+        "protocol_id": V93_PROTOCOL_ID,
+        "checkpoint_schema_version": V93_CHECKPOINT_VERSION,
+        "max_sample_nums": spec.budget,
+        "initialization_protocol": "strategy_short_rollout_curation",
+        "initial_route_pool_size": spec.n_init,
+        "initial_anchor_count": V93_INITIAL_ANCHOR_COUNT,
+        "initial_route_length": 1 + V93_ROLLOUT_LENGTH,
+        "initial_route_selection": "best_rollout_representative_by_route_value",
+        "generation_protocol": "trajectory_decision_then_code",
+        "generation_operator": V93_OPERATOR,
+        "trajectory_decision_operator": V93_DECISION_OPERATOR,
+        "rollout_length": V93_ROLLOUT_LENGTH,
+        "code_representation": "comment_and_docstring_free_ast_canonical",
+        "window_protocol": "canonical_formation4_downstream4_depth3",
+        "window_size": V93_WINDOW_SIZE,
+        "formation_quota": V93_FORMATION_QUOTA,
+        "downstream_quota": V93_DOWNSTREAM_QUOTA,
+        "downstream_depth": V93_DOWNSTREAM_DEPTH,
+        "quality_pool_size": V93_QUALITY_POOL_SIZE,
+        "quality_policy": "anchor_initialized_mean_rollout_best_absolute_quality",
+        "budget_policy": "top10_unverified_first_then_highest_q",
+        "invalid_outcome": "rollout_start_anchor_directed_fitness",
+        "credit_scope": "selected_rollout_start_anchor_only",
+        "eligible_policy": "best_program_per_completed_rollout",
+        "ancestor_backup": False,
+        "maximize": True,
+        "code_max_tokens": spec.llm_output_tokens,
+        "context_token_limit": spec.context_token_limit,
+        "max_consecutive_sample_failures": 20,
+        "checkpoint_interval": 10,
+    }
+
+
+def _v94_method_params(spec: RunSpec) -> dict[str, object]:
+    return {
+        "protocol_id": V94_PROTOCOL_ID,
+        "checkpoint_schema_version": V94_CHECKPOINT_VERSION,
+        "max_sample_nums": spec.budget,
+        "initialization_protocol": "strategy_microtrajectory_curation",
+        "initial_route_pool_size": spec.n_init,
+        "initial_anchor_count": V94_INITIAL_ANCHOR_COUNT,
+        "initial_route_length": 2,
+        "initial_route_selection": "best_endpoint_by_absolute_quality",
+        "decision_budget_unit": "one_anchor_one_joint_idea_code_one_evaluation",
+        "generation_protocol": "single_joint_idea_code",
+        "generation_operator": V94_OPERATOR,
+        "code_representation": "comment_and_docstring_free_ast_canonical",
+        "window_protocol": "canonical_formation4_downstream4_depth3",
+        "window_size": V94_WINDOW_SIZE,
+        "formation_quota": V94_FORMATION_QUOTA,
+        "downstream_quota": V94_DOWNSTREAM_QUOTA,
+        "downstream_depth": V94_DOWNSTREAM_DEPTH,
+        "quality_pool_size": V94_QUALITY_POOL_SIZE,
+        "quality_policy": (
+            "anchor_quality_plus_mean_distance_decayed_descendant_improvement"
+        ),
+        "budget_policy": "top10_unverified_first_then_four_exploit_one_coverage",
+        "quality_exploration_interval": V94_QUALITY_EXPLORATION_INTERVAL,
+        "valid_outcome": "positive_descendant_advantage_with_distance_decay",
+        "invalid_outcome": "zero_credit_observation",
+        "failure_evidence": (
+            "local_exact_feedback_and_run_global_top5_exact_patterns_without_failed_code"
+        ),
+        "strict_breakthrough_definition": (
+            "global_strict_directed_fitness_improvement"
+        ),
+        "credit_scope": "selected_anchor_and_visible_ancestors",
+        "trajectory_credit_discount": V94_TRAJECTORY_CREDIT_DISCOUNT,
+        "trajectory_credit_depth": V94_TRAJECTORY_CREDIT_DEPTH,
+        "eligible_policy": "every_valid_child",
+        "ancestor_backup": True,
         "maximize": True,
         "code_max_tokens": spec.llm_output_tokens,
         "context_token_limit": spec.context_token_limit,

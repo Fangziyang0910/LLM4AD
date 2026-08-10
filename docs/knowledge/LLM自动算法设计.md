@@ -38,17 +38,13 @@ evaluator 随后返回 $\mathcal E(P_r;S_{\mathrm{search}})$，其中 $S_{\mathr
 
 LLM 可以利用预训练得到的算法与代码知识提出新方案，但单次生成难以稳定得到高质量算法。候选可能不可执行、违反约束或性能较差，也可能只是在已有方案附近做无效改写。因此，代表性 LLM4AD 方法把生成放入反复评价和改进的闭环：
 
-$$
-\text{选择候选与历史}
-\rightarrow
-\text{LLM 生成或修改代码}
-\rightarrow
-\text{运行完整程序}
-\rightarrow
-\text{evaluator 评价}
-\rightarrow
-\text{更新候选与历史}.
-$$
+```text
+选择候选与历史
+    -> LLM 生成或修改代码
+    -> 运行完整程序
+    -> evaluator 评价
+    -> 更新候选与历史
+```
 
 在这个循环中，搜索个体是候选算法 $r$。候选算法在实例上产生的路线、装箱方案或其他结果，是 evaluator 判断算法质量的依据。搜索机制为每轮提供当前候选、参考历史和生成任务，LLM 根据这些上下文生成新的 Idea + Code。不同生成算子通过当前程序、参考信息和提示词形成不同的生成条件，LLM 负责完成本轮生成任务。
 
@@ -111,4 +107,4 @@ TraceAAD 首先研究如何利用算法改进轨迹构造更高效的在线搜�
 - [Mathematical Discoveries from Program Search with Large Language Models（FunSearch）](https://www.nature.com/articles/s41586-023-06924-6)
 - [Evolution of Heuristics: Towards Efficient Automatic Algorithm Design Using Large Language Model](https://proceedings.mlr.press/v235/liu24bs.html)
 - [ReEvo: Large Language Models as Hyper-Heuristics with Reflective Evolution](https://proceedings.neurips.cc/paper_files/paper/2024/hash/4ced59d480e07d290b6f29fc8798f195-Abstract-Conference.html)
-- [AlphaEvolve: A Coding Agent for Scientific and Algorithmic Discovery](../../../papers/AlphaEvolve/AlphaEvolve.pdf)
+- [AlphaEvolve: A Coding Agent for Scientific and Algorithmic Discovery](https://arxiv.org/abs/2506.13131)
