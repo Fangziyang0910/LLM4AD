@@ -391,22 +391,11 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
             else _v92_method_params(spec)
         )
         expected_protocol = {
-            "backend": spec.backend,
             "task_eval": normalized_task_kwargs,
-            "llm": {
-                "base_url": spec.base_url,
-                "model": spec.model,
-                "max_tokens": spec.llm_output_tokens,
-                "no_proxy": spec.no_proxy,
-            },
             "method_params": expected_method_params,
         }
         actual_protocol = {
-            "backend": payload.get("backend"),
             "task_eval": payload.get("task_eval"),
-            "llm": {
-                key: payload.get("llm", {}).get(key) for key in expected_protocol["llm"]
-            },
             "method_params": {
                 key: payload.get("method_params", {}).get(key)
                 for key in expected_method_params

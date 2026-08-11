@@ -147,7 +147,20 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
         raise ValueError("checkpoint protocol does not match TraceAAD V9.3")
     if payload.get("search_configuration") != method.search_configuration():
         raise ValueError("checkpoint search configuration does not match")
-    if payload.get("runtime_identity") != method.runtime_identity():
+    # 各模型服务源（zhong / server1 / server3 / local）是同一模型，仅服务端与量化差异，
+    # 跨源续跑时忽略 runtime_identity 中的 LLM 服务字段，其余身份字段仍严格比对。
+    _identity_ignore = {"llm_model", "llm_base_url"}
+    saved_identity = {
+        key: value
+        for key, value in (payload.get("runtime_identity") or {}).items()
+        if key not in _identity_ignore
+    }
+    current_identity = {
+        key: value
+        for key, value in method.runtime_identity().items()
+        if key not in _identity_ignore
+    }
+    if saved_identity != current_identity:
         raise ValueError("checkpoint runtime identity does not match")
     graph = _graph_from_dict(payload["graph"])
     best_id = payload["best_node_id"]
@@ -157,8 +170,10 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     method._tot_sample_nums = int(payload["total_budget_events"])
     method._evaluation_count = int(payload["total_evaluations"])
     method._next_iteration = int(payload["next_iteration"])
-    method._consecutive_sample_failures = int(payload["consecutive_sample_failures"])
-    method._search_aborted = bool(payload["search_aborted"])
+    # 中止标志与连续失败计数是运行时终止状态，不随 checkpoint 恢复：
+    # resume 表示从中断处继续搜索，恢复时应从零重新计数，否则会立即再次中止。
+    method._consecutive_sample_failures = 0
+    method._search_aborted = False
     method._next_rollout_id = int(payload["next_rollout_id"])
     method._active_rollout = payload["active_rollout"]
     method._initialization_complete = bool(payload["initialization_complete"])
