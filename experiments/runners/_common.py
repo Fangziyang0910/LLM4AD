@@ -36,7 +36,7 @@ from llm4ad.tools.env import resolve_llm_api_key
 from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
 
 TaskName = Literal["tsp_construct", "cvrp_aco", "op_aco", "online_bin_packing"]
-BackendName = Literal["local", "server1", "zhong"]
+BackendName = Literal["local", "server1", "server3", "server3b", "zhong"]
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXPERIMENTS_ROOT = REPO_ROOT / "experiments"
@@ -73,22 +73,37 @@ BACKENDS: dict[BackendName, BackendProfile] = {
         model="qwen3.6-27b-awq",
         no_proxy="222.201.145.8,localhost,127.0.0.1,::1",
     ),
+    "server3": BackendProfile(
+        base_url="http://222.201.145.6:8000/v1",
+        model="/home/fzy/models/qwen3.6-27b-awq-int4",
+        no_proxy="222.201.145.6,localhost,127.0.0.1,::1",
+    ),
+    "server3b": BackendProfile(
+        base_url="http://222.201.145.6:8001/v1",
+        model="/home/fzy/models/qwen3.6-27b-awq-int4",
+        no_proxy="222.201.145.6,localhost,127.0.0.1,::1",
+    ),
     "zhong": BackendProfile(
         base_url="http://183.36.243.124:9000/v1",
-        model="/home/fzy/models/Qwen3.6-27B-NVFP4",
+        model="/home/fzy/models/Qwen3.6-27B-AWQ-INT4",
         no_proxy="183.36.243.124,localhost,127.0.0.1,::1",
     ),
 }
 
 BACKEND_CAPACITY: dict[BackendName, int] = {
-    "zhong": 6,
-    "server1": 6,
-    "local": 3,
+    "zhong": 9,
+    "server1": 0,  # 暂时不用
+    "server3": 10,
+    "server3b": 5,
+    "local": 0,  # 暂时不用
 }
+# Host:port markers only — `--backend` matching uses detect_backend().
 BACKEND_MARKERS: dict[BackendName, tuple[str, ...]] = {
-    "zhong": ("--backend zhong", "183.36.243.124"),
-    "server1": ("--backend server1", "222.201.145.8"),
-    "local": ("--backend local", "127.0.0.1:8001"),
+    "zhong": ("183.36.243.124",),
+    "server1": ("222.201.145.8",),
+    "server3": ("222.201.145.6:8000",),
+    "server3b": ("222.201.145.6:8001",),
+    "local": ("127.0.0.1:8001",),
 }
 
 LLM_TIMEOUT_SECONDS = 600
@@ -341,14 +356,32 @@ def _process_cmdlines() -> list[str]:
     return lines
 
 
+def detect_backend(cmdline: str) -> BackendName | None:
+    """Identify backend from a process cmdline.
+
+    Prefer the ``--backend`` token (exact name). Fall back to host:port markers
+    for older processes that embed the service URL.
+    """
+    try:
+        tokens = shlex.split(cmdline)
+    except ValueError:
+        tokens = cmdline.split()
+    try:
+        name = tokens[tokens.index("--backend") + 1]
+    except (ValueError, IndexError):
+        name = None
+    if name in BACKENDS:
+        return name  # type: ignore[return-value]
+    for backend, markers in BACKEND_MARKERS.items():
+        if any(marker in cmdline for marker in markers):
+            return backend
+    return None
+
+
 def count_backend_usage() -> dict[BackendName, int]:
     counts: dict[BackendName, int] = {name: 0 for name in BACKEND_CAPACITY}
     for cmdline in _process_cmdlines():
-        matched: BackendName | None = None
-        for backend, markers in BACKEND_MARKERS.items():
-            if any(marker in cmdline for marker in markers):
-                matched = backend
-                break
+        matched = detect_backend(cmdline)
         if matched is None and "traceaad_v4.run_experiment" in cmdline:
             matched = "local"
         if matched is not None:
@@ -432,7 +465,7 @@ def item_active_attempt(item: LaunchItem) -> LaunchItem | None:
 def assign_backends(
     pending: list[LaunchItem],
     *,
-    preferred: tuple[BackendName, ...] = ("zhong", "server1", "local"),
+    preferred: tuple[BackendName, ...] = ("zhong", "server3", "server3b", "local"),
 ) -> list[LaunchItem]:
     remaining = dict(free_slots())
     assigned: list[LaunchItem] = []

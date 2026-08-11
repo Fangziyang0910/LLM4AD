@@ -38,10 +38,12 @@ def load_repo_dotenv(*, override: bool = False) -> Path | None:
 
 
 def resolve_llm_api_key(*, base_url: str | None = None, default: str = "EMPTY") -> str:
-    """Resolve API key: ``LLM_API_KEY``, else Zhong key when targeting Zhong, else default."""
+    """Resolve API key: ``LLM_API_KEY``, else host-specific key, else default."""
     load_repo_dotenv()
     if os.environ.get("LLM_API_KEY"):
         return os.environ["LLM_API_KEY"]
     if base_url and "183.36.243.124" in base_url:
         return os.environ.get("ZHONG_API_KEY", default)
+    if base_url and "222.201.145.6" in base_url:
+        return os.environ.get("SERVER3_API_KEY", default)
     return default

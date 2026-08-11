@@ -17,18 +17,18 @@ from llm4ad.method.traceaad_v9_1 import PROTOCOL_ID
 
 from .._common import (
     BACKEND_CAPACITY,
-    BACKEND_MARKERS,
     REPO_ROOT,
     TASKS,
     TASK_SHORT,
     BackendName,
     TaskName,
+    detect_backend,
 )
 
 MODULE = "experiments.runners.traceaad.run"
 METHOD = "traceaad_v9_1"
 TERMINAL_FAILURES = frozenset({"error", "aborted", "interrupted", "stalled"})
-PREFERRED_BACKENDS: tuple[BackendName, ...] = ("zhong", "server1", "local")
+PREFERRED_BACKENDS: tuple[BackendName, ...] = ("zhong", "server3", "server3b", "local")
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,14 +72,7 @@ def usage_from_cmdlines(cmdlines: list[str]) -> dict[BackendName, int]:
     for line in cmdlines:
         if "python" not in line or "uv run" in line:
             continue
-        backend = next(
-            (
-                name
-                for name, markers in BACKEND_MARKERS.items()
-                if any(marker in line for marker in markers)
-            ),
-            None,
-        )
+        backend = detect_backend(line)
         if backend is None:
             continue
         try:

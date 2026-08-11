@@ -35,14 +35,14 @@ def test_v93_fill_assigns_every_reported_free_slot() -> None:
     plan = fill_v9_3.build_plan(batch="batch", repeats=3)
     assigned = fill_v9_3.assign_pending(
         plan,
-        {"zhong": 2, "server1": 1, "local": 2},
+        {"zhong": 2, "server3": 1, "local": 2},
     )
 
     assert len(assigned) == 5
     assert [backend for _, backend in assigned] == [
         "zhong",
         "zhong",
-        "server1",
+        "server3",
         "local",
         "local",
     ]
@@ -57,7 +57,7 @@ def test_v93_fill_deduplicates_evaluator_children_by_run_name() -> None:
     )
     usage = fill_v9_3.usage_from_cmdlines([first, first, second, "uv run " + second])
 
-    assert usage == {"zhong": 1, "server1": 1, "local": 0}
+    assert usage == {"zhong": 1, "server1": 1, "server3": 0, "server3b": 0, "local": 0}
 
 
 def test_v93_fill_reads_finished_summary(tmp_path, monkeypatch) -> None:

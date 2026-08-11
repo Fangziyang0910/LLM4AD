@@ -94,7 +94,7 @@ def test_shinka_free_slot_assignment_prefers_remote_backends(monkeypatch) -> Non
     monkeypatch.setattr(
         _common,
         "free_slots",
-        lambda: {"zhong": 1, "server1": 1, "local": 0},
+        lambda: {"zhong": 1, "server3": 1, "local": 0},
     )
     assigned = _common.assign_backends(pending)
-    assert [item.backend for item in assigned] == ["zhong", "server1"]
+    assert [item.backend for item in assigned] == ["zhong", "server3"]
