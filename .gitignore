@@ -57,6 +57,7 @@ experiments/**/checkpoints/
 # Local task datasets and downloaded model/data caches
 llm4ad/task/optimization/*/data/
 .huggingface/
+unsloth_compiled_cache/
 
 # OS, editor, and temporary files
 .DS_Store
