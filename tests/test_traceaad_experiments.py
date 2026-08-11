@@ -15,6 +15,7 @@ from llm4ad.method.traceaad_v9_1 import TraceAADV91
 from llm4ad.method.traceaad_v9_2 import TraceAADV92
 from llm4ad.method.traceaad_v9_3 import TraceAADV93
 from llm4ad.method.traceaad_v9_4 import TraceAADV94
+from llm4ad.method.traceaad_v9_5 import TraceAADV95
 
 
 @pytest.mark.parametrize("task", run.TASKS)
@@ -40,6 +41,7 @@ def test_unified_runner_builds_each_task_and_version(
         "v9_2": TraceAADV92,
         "v9_3": TraceAADV93,
         "v9_4": TraceAADV94,
+        "v9_5": TraceAADV95,
     }[version]
     assert isinstance(method, expected_type)
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
@@ -60,6 +62,9 @@ def test_unified_runner_builds_each_task_and_version(
         else:
             if version == "v9_1":
                 assert spec.n_init == 4
+            elif version == "v9_5":
+                assert spec.n_init == 8
+                assert method._initial_root_count == 8
             else:
                 assert spec.n_init == 8
                 assert method._initial_route_pool_size == 8
