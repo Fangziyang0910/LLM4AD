@@ -28,6 +28,13 @@ import requests
 from llm4ad.base import LLM
 
 
+TOKENIZE_RETRY_LIMIT = 3
+
+
+class TokenizationError(RuntimeError):
+    """The serving model could not count tokens for the exact request."""
+
+
 class OpenAIAPI(LLM):
     """Generic OpenAI-compatible chat client (vLLM, llama.cpp, cloud, etc.)."""
 
@@ -58,7 +65,6 @@ class OpenAIAPI(LLM):
         self.stop = stop
         self.enable_thinking = enable_thinking
         self.extra_body = copy.deepcopy(extra_body) if extra_body else {}
-        self._tokenize_style: str | None = None
         self._client = openai.OpenAI(
             api_key=api_key,
             base_url=base_url,
@@ -93,9 +99,23 @@ class OpenAIAPI(LLM):
         return self._content_from_response(response)
 
     def count_tokens(self, text: str) -> int:
-        """Count tokens with the tokenizer served alongside the model."""
-        if self._tokenize_style == "unavailable":
-            return len(text.encode("utf-8"))
+        """Count raw text tokens with the tokenizer serving this model."""
+        return self._request_token_count({"model": self.model, "prompt": text})
+
+    def count_prompt_tokens(self, prompt: str | Any) -> int:
+        """Count the exact chat-templated tokens used by ``draw_sample``."""
+        payload: dict[str, Any] = {
+            "model": self.model,
+            "messages": self._build_messages(prompt, None),
+            "add_generation_prompt": True,
+        }
+        extra_body = self._merged_extra_body(None)
+        for key in ("chat_template", "chat_template_kwargs"):
+            if key in extra_body:
+                payload[key] = extra_body[key]
+        return self._request_token_count(payload)
+
+    def _request_token_count(self, payload: dict[str, Any]) -> int:
         base = self.base_url.rstrip("/")
         tokenize_url = (
             base[: -len("/v1")] + "/tokenize"
@@ -107,17 +127,8 @@ class OpenAIAPI(LLM):
             if not self.api_key or self.api_key == "EMPTY"
             else {"Authorization": f"Bearer {self.api_key}"}
         )
-        styles = (
-            (self._tokenize_style,)
-            if self._tokenize_style is not None
-            else ("content", "prompt")
-        )
-        for style in styles:
-            payload = (
-                {"content": text}
-                if style == "content"
-                else {"model": self.model, "prompt": text}
-            )
+        last_error: Exception | None = None
+        for _ in range(TOKENIZE_RETRY_LIMIT):
             try:
                 response = requests.post(
                     tokenize_url,
@@ -127,22 +138,22 @@ class OpenAIAPI(LLM):
                 )
                 response.raise_for_status()
                 count = self._token_count_from_payload(response.json())
-                if count == 0 and text:
+                if count == 0 and payload:
                     raise ValueError("tokenizer returned no tokens for non-empty text")
-                self._tokenize_style = style
                 return count
-            except Exception:
-                continue
-        self._tokenize_style = "unavailable"
-        return len(text.encode("utf-8"))
+            except Exception as exc:
+                last_error = exc
+        raise TokenizationError(
+            f"model tokenizer failed after {TOKENIZE_RETRY_LIMIT} attempts"
+        ) from last_error
 
     @property
     def token_count_mode(self) -> str:
-        return (
-            "utf8_byte_upper_bound"
-            if self._tokenize_style == "unavailable"
-            else "llm_count_tokens"
-        )
+        return "llm_count_tokens"
+
+    @property
+    def prompt_token_count_mode(self) -> str:
+        return "llm_chat_template_tokens"
 
     @staticmethod
     def _token_count_from_payload(payload: Any) -> int:
@@ -155,7 +166,9 @@ class OpenAIAPI(LLM):
         raise ValueError("tokenizer response does not contain a token count")
 
     @staticmethod
-    def _build_messages(prompt: str | Any, messages: Any | None) -> list[dict[str, Any]]:
+    def _build_messages(
+        prompt: str | Any, messages: Any | None
+    ) -> list[dict[str, Any]]:
         if messages is not None:
             if isinstance(messages, dict):
                 return [messages]
@@ -166,7 +179,9 @@ class OpenAIAPI(LLM):
             return list(prompt)
         return [{"role": "user", "content": prompt.strip()}]
 
-    def _merged_extra_body(self, request_extra_body: dict[str, Any] | None) -> dict[str, Any]:
+    def _merged_extra_body(
+        self, request_extra_body: dict[str, Any] | None
+    ) -> dict[str, Any]:
         extra_body = copy.deepcopy(self.extra_body)
         if self.enable_thinking is not None:
             chat_template_kwargs = dict(extra_body.get("chat_template_kwargs", {}))
@@ -188,7 +203,9 @@ class OpenAIAPI(LLM):
         choice = response.choices[0]
         message = choice.message
         content = message.content
-        reasoning = getattr(message, "reasoning", None) or getattr(message, "reasoning_content", None)
+        reasoning = getattr(message, "reasoning", None) or getattr(
+            message, "reasoning_content", None
+        )
         if content is None or (content == "" and reasoning):
             finish_reason = getattr(choice, "finish_reason", None)
             reasoning_note = " with reasoning output" if reasoning else ""
@@ -200,7 +217,10 @@ class OpenAIAPI(LLM):
         if isinstance(content, str):
             return content
         if isinstance(content, list):
-            return "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in content)
+            return "".join(
+                part.get("text", "") if isinstance(part, dict) else str(part)
+                for part in content
+            )
         return str(content)
 
     def close(self):

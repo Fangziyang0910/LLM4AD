@@ -74,6 +74,10 @@ class InfrastructureFailure(RuntimeError):
     """The model service did not return a completed response."""
 
 
+class TokenizerInfrastructureFailure(InfrastructureFailure):
+    """The model service could not tokenize an exact request after retries."""
+
+
 class EvaluatorInfrastructureFailure(RuntimeError):
     """The evaluator could not prepare or launch candidate execution."""
 
@@ -297,7 +301,7 @@ class TraceAADV95:
             "max_new_tokens": self._code_max_tokens,
             "sampling_seed": self._generation_seed,
             "sampling_seed_support": self._generation_seed is not None,
-            "max_input_context": self._context_token_limit,
+            "max_total_context": self._context_token_limit,
             "tokenizer_identity": getattr(self._llm, "tokenizer_identity", None),
             "tokenizer_version": getattr(self._llm, "tokenizer_version", None),
             "chat_template_hash": getattr(self._llm, "chat_template_hash", None),
@@ -366,6 +370,13 @@ class TraceAADV95:
             stop_reason = "candidate_budget_exhausted"
             result = self._result()
             return result
+        except TokenizerInfrastructureFailure as exc:
+            status = "infrastructure_failure"
+            stop_reason = "tokenizer_retry_exhausted"
+            error = {"error_type": type(exc).__name__, "error": str(exc)}
+            if self._artifacts is not None:
+                self._artifacts.record_error("tokenizer", exc)
+            raise
         except InfrastructureFailure as exc:
             status = "infrastructure_failure"
             stop_reason = "transport_retry_exhausted"
@@ -555,7 +566,7 @@ class TraceAADV95:
             diff_excerpt_chars=diff_limit,
             excerpt_hashes=rendered.excerpt_hashes,
             truncated_attempt_ids=rendered.truncated_attempt_ids,
-            prompt_tokens=self._count_tokens(prompt),
+            prompt_tokens=self._count_prompt_tokens(prompt),
         )
 
     def _request_candidate(
@@ -568,7 +579,7 @@ class TraceAADV95:
     ) -> AttemptRecord:
         if self._pending_attempt is not None:
             raise RuntimeError("cannot request a candidate while one is pending")
-        prompt_tokens = self._count_tokens(prompt)
+        prompt_tokens = self._count_prompt_tokens(prompt)
         generation_seed = (
             None
             if self._generation_seed is None
@@ -984,23 +995,43 @@ class TraceAADV95:
 
     def _prompt_fits(self, prompt: str) -> bool:
         return (
-            self._count_tokens(prompt) + self._code_max_tokens
+            self._count_prompt_tokens(prompt) + self._code_max_tokens
             <= self._context_token_limit
         )
 
+    def _count_prompt_tokens(self, prompt: str) -> int:
+        counter = getattr(self._llm, "count_prompt_tokens", None)
+        if not callable(counter):
+            counter = getattr(self._llm, "count_tokens", None)
+        try:
+            if not callable(counter):
+                raise TypeError("LLM does not expose an exact token counter")
+            return int(counter(prompt))
+        except Exception as exc:
+            raise TokenizerInfrastructureFailure(
+                "model tokenizer retry limit exhausted"
+            ) from exc
+
     def _count_tokens(self, text: str) -> int:
         counter = getattr(self._llm, "count_tokens", None)
-        return int(counter(text)) if callable(counter) else len(text.encode("utf-8"))
+        try:
+            if not callable(counter):
+                raise TypeError("LLM does not expose an exact token counter")
+            return int(counter(text))
+        except Exception as exc:
+            raise TokenizerInfrastructureFailure(
+                "model tokenizer retry limit exhausted"
+            ) from exc
 
     @property
     def _token_count_mode(self) -> str:
-        mode = getattr(self._llm, "token_count_mode", None)
+        mode = getattr(self._llm, "prompt_token_count_mode", None)
         if isinstance(mode, str):
             return mode
         return (
             "llm_count_tokens"
             if callable(getattr(self._llm, "count_tokens", None))
-            else "utf8_byte_upper_bound"
+            else "unavailable"
         )
 
     def _record_candidate(self, **payload: Any) -> None:

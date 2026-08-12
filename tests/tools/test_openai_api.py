@@ -8,7 +8,9 @@ import llm4ad.tools.llm.llm_api_openai as openai_api
 from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
 
 
-def make_response(content="OK", reasoning=None, reasoning_content=None, finish_reason="stop"):
+def make_response(
+    content="OK", reasoning=None, reasoning_content=None, finish_reason="stop"
+):
     message = SimpleNamespace(content=content, reasoning=reasoning)
     if reasoning_content is not None:
         message.reasoning_content = reasoning_content
@@ -118,14 +120,18 @@ def test_openai_api_reports_empty_content(monkeypatch):
         max_tokens=16,
     )
 
-    with pytest.raises(RuntimeError, match="empty message.content.*enable_thinking.*max_tokens"):
+    with pytest.raises(
+        RuntimeError, match="empty message.content.*enable_thinking.*max_tokens"
+    ):
         llm.draw_sample("Say OK only.")
 
 
 def test_openai_api_reports_reasoning_content_only_response(monkeypatch):
     install_fake_openai(
         monkeypatch,
-        make_response(content="", reasoning_content="thinking only", finish_reason="length"),
+        make_response(
+            content="", reasoning_content="thinking only", finish_reason="length"
+        ),
     )
     llm = OpenAIAPI(
         base_url="http://127.0.0.1:8001/v1",
@@ -134,7 +140,9 @@ def test_openai_api_reports_reasoning_content_only_response(monkeypatch):
         max_tokens=16,
     )
 
-    with pytest.raises(RuntimeError, match="empty message.content.*enable_thinking.*max_tokens"):
+    with pytest.raises(
+        RuntimeError, match="empty message.content.*enable_thinking.*max_tokens"
+    ):
         llm.draw_sample("Say OK only.")
 
 
@@ -170,7 +178,9 @@ def test_openai_api_counts_tokens_with_the_model_server_tokenizer(monkeypatch):
         calls.append((url, kwargs))
         return FakeTokenResponse()
 
-    monkeypatch.setattr(openai_api, "requests", SimpleNamespace(post=fake_post), raising=False)
+    monkeypatch.setattr(
+        openai_api, "requests", SimpleNamespace(post=fake_post), raising=False
+    )
     llm = OpenAIAPI(
         base_url="http://127.0.0.1:8001/v1",
         api_key="EMPTY",
@@ -179,11 +189,51 @@ def test_openai_api_counts_tokens_with_the_model_server_tokenizer(monkeypatch):
 
     assert llm.count_tokens("hello world") == 3
     assert calls[0][0] == "http://127.0.0.1:8001/tokenize"
-    assert calls[0][1]["json"] == {"content": "hello world"}
+    assert calls[0][1]["json"] == {
+        "model": "Qwen3.6-27B",
+        "prompt": "hello world",
+    }
     assert llm.token_count_mode == "llm_count_tokens"
 
 
-def test_openai_api_falls_back_when_model_server_has_no_tokenizer(monkeypatch):
+def test_openai_api_counts_complete_chat_prompt(monkeypatch):
+    install_fake_openai(monkeypatch, make_response())
+    calls = []
+
+    class FakeTokenResponse:
+        @staticmethod
+        def raise_for_status():
+            return None
+
+        @staticmethod
+        def json():
+            return {"count": 12}
+
+    def fake_post(url, **kwargs):
+        calls.append((url, kwargs))
+        return FakeTokenResponse()
+
+    monkeypatch.setattr(
+        openai_api, "requests", SimpleNamespace(post=fake_post), raising=False
+    )
+    llm = OpenAIAPI(
+        base_url="http://127.0.0.1:8001/v1",
+        api_key="EMPTY",
+        model="Qwen3.6-27B",
+        enable_thinking=False,
+    )
+
+    assert llm.count_prompt_tokens("hello world") == 12
+    assert calls[0][1]["json"] == {
+        "model": "Qwen3.6-27B",
+        "messages": [{"role": "user", "content": "hello world"}],
+        "add_generation_prompt": True,
+        "chat_template_kwargs": {"enable_thinking": False},
+    }
+    assert llm.prompt_token_count_mode == "llm_chat_template_tokens"
+
+
+def test_openai_api_raises_after_tokenizer_retry_limit(monkeypatch):
     install_fake_openai(monkeypatch, make_response())
     calls = []
 
@@ -203,9 +253,6 @@ def test_openai_api_falls_back_when_model_server_has_no_tokenizer(monkeypatch):
         model="example-model",
     )
 
-    assert llm.count_tokens("你好") == len("你好".encode("utf-8"))
-    assert llm.token_count_mode == "utf8_byte_upper_bound"
-    assert len(calls) == 2
-
-    llm.count_tokens("second call")
-    assert len(calls) == 2
+    with pytest.raises(openai_api.TokenizationError, match="after 3 attempts"):
+        llm.count_tokens("你好")
+    assert len(calls) == 3
