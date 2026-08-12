@@ -25,6 +25,8 @@ def test_v95_runner_builds_complete_frozen_method(tmp_path: Path) -> None:
     assert isinstance(method, TraceAADV95)
     assert spec.method_name == "traceaad_v9_5"
     assert spec.n_init == 8
+    assert spec.context_token_limit == 32768
+    assert spec.llm_output_tokens == 8192
     assert method.search_configuration() == run._v95_method_params(spec)
     assert method.search_configuration()["protocol_id"] == PROTOCOL_ID
     assert method.search_configuration()["checkpoint_schema_version"] == (
@@ -55,6 +57,8 @@ def test_v95_run_config_records_logical_generator_without_service_source(
     assert payload["method"] == "traceaad_v9_5"
     assert payload["method_params"] == run._v95_method_params(spec)
     assert payload["generator_environment"]["logical_model_name"] == "Qwen3.6-27B"
+    assert payload["generator_environment"]["max_total_context"] == 32768
+    assert payload["generator_environment"]["max_new_tokens"] == 8192
     assert "backend" not in payload
     assert "llm" not in payload
     assert "base_url" not in json.dumps(payload)
