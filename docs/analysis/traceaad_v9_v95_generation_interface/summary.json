@@ -1,0 +1,342 @@
+{
+  "aggregate": {
+    "cvrp": {
+      "v9": {
+        "context": {
+          "mean_direct_events": 0.992305118768819,
+          "mean_formation_events": 7.8895951823352295,
+          "mean_reference_formation_events": 0.0,
+          "mean_total_history_events": 8.881900301104048,
+          "prompt_count": 2989,
+          "reference_program_prompt_rate": 0.48745399799263966
+        },
+        "generation": {
+          "budget_unit": "evaluated_candidate",
+          "evaluator_calls_by_run": [
+            1000,
+            1000,
+            1000
+          ],
+          "finished_runs": 3,
+          "invalid_candidate_rate": 0.04882154882154882,
+          "mean_actual_evaluator_calls": 1000.0,
+          "mean_line_change_ratio": 0.6722411012241327,
+          "mean_nominal_budget": 1000.0,
+          "median_line_change_ratio": 0.7191011235955056,
+          "parent_improvement_rate_valid_transition": 0.12601769911504423,
+          "unique_valid_program_rate": 0.9851327433628319,
+          "valid_program_count": 2825
+        },
+        "request": {
+          "completed_search_requests": 2989,
+          "mean_logged_prompt_tokens_raw": 4413.933422549348,
+          "mean_response_tokens_raw": 2158.354968216795,
+          "median_logged_prompt_tokens_raw": 4350.0,
+          "parse_failure_rate_per_completed_response": 0.006356641017062563
+        },
+        "run_names": [
+          "v9_20260807_123753_v9_cvrp_rep1",
+          "v9_20260807_123753_v9_cvrp_rep2",
+          "v9_20260807_123753_v9_cvrp_rep3"
+        ]
+      },
+      "v95": {
+        "context": {
+          "mean_direct_events": 0.12760549059481444,
+          "mean_formation_events": 7.812913065582105,
+          "mean_reference_formation_events": 0.0,
+          "mean_total_history_events": 7.94051855617692,
+          "prompt_count": 1967,
+          "reference_program_prompt_rate": 0.0
+        },
+        "generation": {
+          "budget_unit": "completed_response",
+          "evaluator_calls_by_run": [
+            959,
+            962
+          ],
+          "finished_runs": 2,
+          "invalid_candidate_rate": 0.007625826131164209,
+          "mean_actual_evaluator_calls": 960.5,
+          "mean_line_change_ratio": 0.24642370517742948,
+          "mean_nominal_budget": 1000.0,
+          "median_line_change_ratio": 0.09090909090909094,
+          "parent_improvement_rate_valid_transition": 0.4088114754098361,
+          "unique_valid_program_rate": 0.9600409836065574,
+          "valid_program_count": 1952
+        },
+        "request": {
+          "completed_search_requests": 1967,
+          "mean_logged_prompt_tokens_raw": 6027.068632435181,
+          "mean_response_tokens_raw": 2487.4687341128624,
+          "median_logged_prompt_tokens_raw": 5597.0,
+          "parse_failure_rate_per_completed_response": 0.0
+        },
+        "run_names": [
+          "v9_5_20260811_171029_cvrp_rep1",
+          "v9_5_20260811_171029_cvrp_rep3"
+        ]
+      }
+    },
+    "op": {
+      "v9": {
+        "context": {
+          "mean_direct_events": 1.0866935483870968,
+          "mean_formation_events": 7.690188172043011,
+          "mean_reference_formation_events": 0.0,
+          "mean_total_history_events": 8.776881720430108,
+          "prompt_count": 2976,
+          "reference_program_prompt_rate": 0.49260752688172044
+        },
+        "generation": {
+          "budget_unit": "evaluated_candidate",
+          "evaluator_calls_by_run": [
+            1000,
+            1000,
+            1000
+          ],
+          "finished_runs": 3,
+          "invalid_candidate_rate": 0.040740740740740744,
+          "mean_actual_evaluator_calls": 1000.0,
+          "mean_line_change_ratio": 0.6864121460423837,
+          "mean_nominal_budget": 1000.0,
+          "median_line_change_ratio": 0.717948717948718,
+          "parent_improvement_rate_valid_transition": 0.09722709722709723,
+          "unique_valid_program_rate": 0.9922779922779923,
+          "valid_program_count": 2849
+        },
+        "request": {
+          "completed_search_requests": 2976,
+          "mean_logged_prompt_tokens_raw": 3659.9905913978496,
+          "mean_response_tokens_raw": 1720.2815860215053,
+          "median_logged_prompt_tokens_raw": 3623.0,
+          "parse_failure_rate_per_completed_response": 0.0020161290322580645
+        },
+        "run_names": [
+          "v9_20260807_123753_v9_op_rep1",
+          "v9_20260807_123753_v9_op_rep2",
+          "v9_20260807_123753_v9_op_rep3"
+        ]
+      },
+      "v95": {
+        "context": {
+          "mean_direct_events": 4.409691629955947,
+          "mean_formation_events": 3.494747543205693,
+          "mean_reference_formation_events": 0.0,
+          "mean_total_history_events": 7.90443917316164,
+          "prompt_count": 2951,
+          "reference_program_prompt_rate": 0.0
+        },
+        "generation": {
+          "budget_unit": "completed_response",
+          "evaluator_calls_by_run": [
+            945,
+            961,
+            981
+          ],
+          "finished_runs": 3,
+          "invalid_candidate_rate": 0.036936631650288036,
+          "mean_actual_evaluator_calls": 962.3333333333334,
+          "mean_line_change_ratio": 0.5760433729091424,
+          "mean_nominal_budget": 1000.0,
+          "median_line_change_ratio": 0.6167298163800641,
+          "parent_improvement_rate_valid_transition": 0.016537649542575653,
+          "unique_valid_program_rate": 0.9609429978888107,
+          "valid_program_count": 2842
+        },
+        "request": {
+          "completed_search_requests": 2951,
+          "mean_logged_prompt_tokens_raw": 4669.29312097594,
+          "mean_response_tokens_raw": 1368.6638427651644,
+          "median_logged_prompt_tokens_raw": 4706.0,
+          "parse_failure_rate_per_completed_response": 0.0
+        },
+        "run_names": [
+          "v9_5_20260811_171029_op_rep1",
+          "v9_5_20260811_171029_op_rep2",
+          "v9_5_20260811_171029_op_rep3"
+        ]
+      }
+    },
+    "tsp": {
+      "v9": {
+        "context": {
+          "mean_direct_events": 1.0957339603627814,
+          "mean_formation_events": 7.860262008733624,
+          "mean_reference_formation_events": 0.0,
+          "mean_total_history_events": 8.955995969096406,
+          "prompt_count": 2977,
+          "reference_program_prompt_rate": 0.49277796439368493
+        },
+        "generation": {
+          "budget_unit": "evaluated_candidate",
+          "evaluator_calls_by_run": [
+            1000,
+            1000,
+            1000
+          ],
+          "finished_runs": 3,
+          "invalid_candidate_rate": 0.038746630727762806,
+          "mean_actual_evaluator_calls": 1000.0,
+          "mean_line_change_ratio": 0.7198806088834069,
+          "mean_nominal_budget": 1000.0,
+          "median_line_change_ratio": 0.7583892617449665,
+          "parent_improvement_rate_valid_transition": 0.10304942166140904,
+          "unique_valid_program_rate": 0.9905362776025236,
+          "valid_program_count": 2853
+        },
+        "request": {
+          "completed_search_requests": 2977,
+          "mean_logged_prompt_tokens_raw": 3736.770574403762,
+          "mean_response_tokens_raw": 1779.224051058112,
+          "median_logged_prompt_tokens_raw": 3534.0,
+          "parse_failure_rate_per_completed_response": 0.0030231776956667787
+        },
+        "run_names": [
+          "v9_20260807_123753_v9_tsp_rep1",
+          "v9_20260807_123753_v9_tsp_rep2",
+          "v9_20260807_123753_v9_tsp_rep3"
+        ]
+      },
+      "v95": {
+        "context": {
+          "mean_direct_events": 0.39552618200305034,
+          "mean_formation_events": 7.486019318759532,
+          "mean_reference_formation_events": 0.0,
+          "mean_total_history_events": 7.8815455007625825,
+          "prompt_count": 1967,
+          "reference_program_prompt_rate": 0.0
+        },
+        "generation": {
+          "budget_unit": "completed_response",
+          "evaluator_calls_by_run": [
+            937,
+            964
+          ],
+          "finished_runs": 2,
+          "invalid_candidate_rate": 0.10421962379257753,
+          "mean_actual_evaluator_calls": 950.5,
+          "mean_line_change_ratio": 0.5882132398988253,
+          "mean_nominal_budget": 1000.0,
+          "median_line_change_ratio": 0.6410190615835777,
+          "parent_improvement_rate_valid_transition": 0.23609534619750283,
+          "unique_valid_program_rate": 0.9483541430192962,
+          "valid_program_count": 1762
+        },
+        "request": {
+          "completed_search_requests": 1967,
+          "mean_logged_prompt_tokens_raw": 5410.206914082359,
+          "mean_response_tokens_raw": 2066.978139298424,
+          "median_logged_prompt_tokens_raw": 5439.0,
+          "parse_failure_rate_per_completed_response": 0.0
+        },
+        "run_names": [
+          "v9_5_20260811_171029_tsp_rep2",
+          "v9_5_20260811_171029_tsp_rep3"
+        ]
+      }
+    }
+  },
+  "analysis": "TraceAAD V9 vs V9.5 generation interface audit",
+  "sample_prompt_decomposition": {
+    "cvrp": {
+      "v9": {
+        "mean_abs_reconstruction_token_error": 0.0,
+        "mean_component_tokens": {
+          "current_program": 2336.45,
+          "history": 994.5,
+          "instruction": 122.0,
+          "operator_direction": 32.75,
+          "reference_history": 13.0,
+          "reference_program": 515.2,
+          "target_signature": 167.0,
+          "task": 171.0
+        },
+        "mean_logged_prompt_tokens_raw": 4351.9,
+        "mean_recounted_chat_tokens": 4363.9,
+        "mean_recounted_prompt_tokens_raw": 4351.9,
+        "n": 20
+      },
+      "v95": {
+        "mean_abs_reconstruction_token_error": 0.0,
+        "mean_component_tokens": {
+          "current_program": 2914.45,
+          "history": 3421.2,
+          "instruction": 139.0,
+          "task": 171.0
+        },
+        "mean_logged_prompt_tokens_raw": 6645.65,
+        "mean_recounted_chat_tokens": 6657.65,
+        "mean_recounted_prompt_tokens_raw": 6645.65,
+        "n": 20
+      }
+    },
+    "op": {
+      "v9": {
+        "mean_abs_reconstruction_token_error": 0.0,
+        "mean_component_tokens": {
+          "current_program": 1882.15,
+          "history": 1029.6,
+          "instruction": 122.0,
+          "operator_direction": 32.6,
+          "reference_history": 16.9,
+          "reference_program": 577.35,
+          "target_signature": 162.0,
+          "task": 160.0
+        },
+        "mean_logged_prompt_tokens_raw": 3982.6,
+        "mean_recounted_chat_tokens": 3994.6,
+        "mean_recounted_prompt_tokens_raw": 3982.6,
+        "n": 20
+      },
+      "v95": {
+        "mean_abs_reconstruction_token_error": 0.0,
+        "mean_component_tokens": {
+          "current_program": 1363.05,
+          "history": 3299.4,
+          "instruction": 139.0,
+          "task": 160.0
+        },
+        "mean_logged_prompt_tokens_raw": 4961.45,
+        "mean_recounted_chat_tokens": 4973.45,
+        "mean_recounted_prompt_tokens_raw": 4961.45,
+        "n": 20
+      }
+    },
+    "tsp": {
+      "v9": {
+        "mean_abs_reconstruction_token_error": 0.0,
+        "mean_component_tokens": {
+          "current_program": 2591.55,
+          "history": 989.1,
+          "instruction": 122.0,
+          "operator_direction": 31.9,
+          "reference_history": 7.8,
+          "reference_program": 212.8,
+          "target_signature": 121.0,
+          "task": 113.0
+        },
+        "mean_logged_prompt_tokens_raw": 4189.15,
+        "mean_recounted_chat_tokens": 4201.15,
+        "mean_recounted_prompt_tokens_raw": 4189.15,
+        "n": 20
+      },
+      "v95": {
+        "mean_abs_reconstruction_token_error": 0.0,
+        "mean_component_tokens": {
+          "current_program": 2188.95,
+          "history": 3130.8,
+          "instruction": 139.0,
+          "task": 113.0
+        },
+        "mean_logged_prompt_tokens_raw": 5571.75,
+        "mean_recounted_chat_tokens": 5583.75,
+        "mean_recounted_prompt_tokens_raw": 5571.75,
+        "n": 20
+      }
+    }
+  },
+  "sample_seed": 9509,
+  "sample_size_per_task_version": 20,
+  "scope": "TSP, CVRP, OP; completed formal runs only"
+}
