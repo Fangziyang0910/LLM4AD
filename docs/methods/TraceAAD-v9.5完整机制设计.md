@@ -5,10 +5,15 @@
 > Allocation 及其必要生命周期边界已经冻结为 V9.5 第一版。
 > 文中的机制判断与科学假设不等同于实验结论。
 
-## 1. 核心定义
+## 1. 主张与机制概览
 
-TraceAAD 的基本主张是：算法改进历史应作为下一次修改的重要条件。V9.5 将这个主张落实为
-三个核心机制：
+### 1.1 为何需要改进历史
+
+算法改进是逐步引入思想、试错和修正的过程。一次修改值不值得做、应该往哪个方向做，取决于
+这条路线此前从什么方案出发、引入过什么思想、得到什么结果。TraceAAD 的基本主张是：**算法
+改进历史应作为下一次修改的重要条件。**
+
+V9.5 把这个主张落实为三个核心机制：
 
 1. **Anchor-Centered Local Evidence**：围绕当前历史状态抽取 recent formation corrections
    与 exact-state direct attempts。
@@ -17,18 +22,18 @@ TraceAAD 的基本主张是：算法改进历史应作为下一次修改的重�
 3. **Quality-Guided Optimistic Allocation**：全局搜索只依据当前质量与已获得的 candidate
    机会数，决定下一份预算给哪个历史状态。
 
-前三层的职责严格分开：
+三者的职责严格分开：
 
 ```text
 历史事实内容 -> EvidenceBuilder -> 改变 LLM generation
 当前质量 q + state 访问次数 n + 固定尺度 s -> Budget allocation
 ```
 
-V9.5 不再把 trajectory outcome 同时压入 prompt、credit、trend、operator selection 和多层
-backup。历史的具体内容主要在 generation 中发挥作用；allocation 不估计 trajectory
+历史的具体内容主要在 generation 中发挥作用。历史 outcome 只经两条通道影响后续搜索：改变
+下一次生成读到的证据内容，以及使该 state 的机会计数增加。Allocation 本身不估计 trajectory
 productivity。
 
-### 1.1 核心对象
+### 1.2 核心对象
 
 V9.5 使用 **Search Forest** `F_t`，而不是单根 Search Tree。初始化会产生 K 个独立 root
 states；forest 保存截至时刻 `t` 已发生的全部状态、attempt、分支和评价事实。
@@ -44,7 +49,7 @@ states；forest 保存截至时刻 `t` 已发生的全部状态、attempt、分�
 
 祖先、已经生成的子代和兄弟分支都属于过去事实。结构上的“下游”不等于时间上的未来。
 
-### 1.2 完整信息链
+### 1.3 完整信息链
 
 ```text
 Search Forest F_t
@@ -68,42 +73,17 @@ Search Forest F_t
 模型的真实决策条件是 `(code, evidence)`。因此唯一 executable program 与一次具体历史状态
 不能合并为同一个节点对象。
 
-`ProgramArtifact` 保存代码和评价事实：
-
-```text
-ProgramArtifact {
-    artifact_id
-    evaluator_contract_hash
-    evaluator_input_hash
-    evaluator_input_code
-    fitness
-    directed_fitness
-    code_length
-    program_loc
-    first_discovery_order
-}
-```
-
-搜索内部统一定义越大越好的有向质量：
+`ProgramArtifact` 保存代码与评价事实：evaluator 实际执行的输入代码及其 hash、evaluator
+contract hash、真实 fitness 与有向 fitness、代码规模和首次发现次序。搜索内部统一定义越大
+越好的有向质量：
 
 ```text
 q(p) = fitness(p)      maximize task
 q(p) = -fitness(p)     minimize task
 ```
 
-`AnchorState` 保存形成历史与搜索访问状态：
-
-```text
-AnchorState {
-    state_id
-    artifact_id
-    parent_state_id | null
-    incoming_attempt_id | null
-    depth
-    creation_order
-    generation_count_n
-}
-```
+`AnchorState` 保存形成历史与搜索访问状态：所属 artifact、parent state、incoming attempt、
+depth、创建次序，以及该状态自己的 candidate 机会计数 `n`。完整字段见附录 A.1。
 
 对 anchor `a`，`q(a)` 来自其 artifact；`n(a)` 只属于该 AnchorState。同一 artifact 可以由
 不同独立路径到达并形成不同 states，因为这些 states 的 formation、direct attempts 和下一次
@@ -112,7 +92,7 @@ AnchorState {
 ### 2.2 Attempt 的原子生命周期
 
 Candidate budget 和 `n` 的逻辑计数点是 **response completion**，但只有完成整个 candidate
-处理后，AttemptRecord 才能被 EvidenceBuilder 读取。顺序固定为：
+处理后，AttemptRecord 才能被 EvidenceBuilder 使用。顺序固定为：
 
 ```text
 LLM response completed
@@ -130,42 +110,17 @@ LLM response completed
 budget 或 `n`。EvidenceBuilder 只查询 `status=finalized` 的 AttemptRecords，半成品事实不能进入
 历史上下文。
 
-完成后的最小事实结构为：
+完成后的 AttemptRecord 保存 anchor/child state 与 artifact 归属、declared idea、raw code 与
+evaluator input 的 hash、actual diff 及其统计、父子 fitness 与有向增量、outcome 与 kind、失败
+类别与反馈，以及 evaluator 是否被调用和 candidate 次序（附录 A.1）。其中两个枚举承担机制
+含义：
 
-```text
-AttemptRecord {
-    attempt_id
-    status = finalized
-    anchor_state_id | null
-    child_state_id | null
-    artifact_id | null
+- `direct_outcome` 为 `improve / plateau / regress / invalid`。有效或重复 root 没有 parent
+  comparison，因此可以为 null。
+- `attempt_kind` 区分 `root_new`、`root_duplicate`、`new_artifact`、`cached_artifact`、
+  `no_op`、`repeated_duplicate`、`ancestral_return` 与 `invalid`。
 
-    declared_idea | null
-    raw_code_hash | null
-    evaluator_input_hash | null
-    actual_diff | null
-    diff_statistics | null
-
-    parent_fitness | null
-    child_fitness | null
-    directed_delta | null
-    direct_outcome | null
-    attempt_kind
-
-    failure_category | null
-    failure_feedback | null
-    evaluator_called
-    candidate_order
-    creation_time
-}
-```
-
-`direct_outcome` 为 `improve / plateau / regress / invalid`；有效或重复 root 没有 parent
-comparison，因此可以为 null。`attempt_kind` 区分 `root_new`、`root_duplicate`、
-`new_artifact`、`cached_artifact`、`no_op`、`repeated_duplicate`、`ancestral_return` 与
-`invalid`。
-
-EvidenceBuilder 根据一个统一 AttemptRecord 生成不同 evidence view：valid child 是
+EvidenceBuilder 根据同一份 AttemptRecord 生成不同 evidence view：valid child 是
 CorrectionEvidence；invalid 是 FailureEvidence；no-op、repeated duplicate 与 ancestral return
 是对应的 AttemptEvidence。无效 proposal 会成为真实历史，但不会被伪造成 correction edge。
 
@@ -182,9 +137,9 @@ V9.5 固定以下不变量：
 5. actual diff 只比较 parent 与 candidate 的 `evaluator_input_code`；
 6. cache 只按同一个 artifact key 复用 fitness。
 
-Normalization 只允许任务执行契约必需且确定性的提取、换行和包装处理。第一版不做 AST
-重写、import 重排、变量重命名，也不删除 comment 或 docstring。若以后增加任何转换，
-evaluator 仍必须执行转换后的准确结果，并通过单独测试证明 artifact identity 与执行输入一致。
+Normalization 的允许范围严格限定为任务执行契约必需且确定性的提取、换行和包装处理：不做 AST
+重写、import 重排或变量重命名，也不删除 comment 与 docstring。若以后增加任何转换，evaluator
+仍必须执行转换后的准确结果，并通过单独测试证明 artifact identity 与执行输入一致。
 
 这条 contract 防止 evaluator 执行 raw code、系统却用另一份 normalized code 合并 cache 的
 错误。ProgramArtifact 保存 evaluator input；不同 raw responses 的 hash 保存在各自 attempts。
@@ -200,16 +155,15 @@ E_t(a)=\operatorname{Extract}(F_t,a;B)
 =E_{recent\ formation}(a)+E_{direct}(a).
 $$
 
-第一版只有两个来源：
+两个来源分别回答一个问题：
 
 1. **Recent Formation Corrections**：`a` 最近怎样形成；
 2. **Exact-State Direct Attempts**：从这个具体 AnchorState 出发已经试过什么。
 
-当前 artifact 的完整代码是与 `E_t(a)` 并列的输入，不计入 8 条历史事件预算。
+当前 artifact 的完整代码是与 `E_t(a)` 并列的输入，不计入历史事件预算。
 
-V9.5 **没有全局 verified failure memory**，也没有第三条 failure-feedback 通道。当前 anchor 的
-invalid proposal 已经作为 direct FailureEvidence 进入 `E_t(a)`；其他 states 的 failure 不会
-以全局摘要、失败库或隐藏 prompt 字段再次注入。
+失败信息只有一条通道：当前 anchor 的 invalid proposal 作为 direct FailureEvidence 进入
+`E_t(a)`。其他 states 的失败不会以全局摘要、失败库或隐藏 prompt 字段再次注入。
 
 ### 3.2 Direct attempts
 
@@ -227,8 +181,8 @@ Direct 是最高优先级来源，因为下一次生成仍从同一个 `(artifac
 root_state --e1--> ... --ek--> a
 ```
 
-Formation 只取 lineage 末端最近的有效 corrections，并保持真实形成顺序。更早 facts 直接省略，
-不生成 prefix summary、统计摘要或额外 LLM 总结。
+Formation 只取 lineage 末端最近的有效 corrections，并保持真实形成顺序。更早的 facts 直接
+省略，既不做 prefix summary 或统计摘要，也不追加一次 LLM 总结。
 
 ### 3.4 Direct evidence 去重与选择
 
@@ -255,13 +209,12 @@ else:
 4. direct 不足时，用最近 formation corrections 补足；
 5. prompt 内 formation 和 direct 分别按真实时间从早到晚展示。
 
-冻结的 selector id 为：
+选择规则完全由 outcome 覆盖与 recency 确定，不引入 fitness 排名、embedding、语义相似度、
+额外 LLM 或 learned retriever。冻结的 selector id 为：
 
 ```text
 v95_dedup_direct_outcome_coverage_then_recent_formation_v1
 ```
-
-选择不使用 fitness 排名、embedding、语义相似度、额外 LLM 或 learned retriever。
 
 ### 3.5 Rich Record 与 Minimal Prompt View
 
@@ -298,19 +251,14 @@ Prompt 优先级固定为：
 超限时先缩短 diff context，再删除最早 formation，最后删除 direct 中按 recency 补入的事件。
 实际进入 prompt 的代表 attempt ids、折叠 ids、excerpt hash、token count 和删除原因必须可审计。
 
+正式配置使用 32768-token 总上下文与 8192-token 最大输出，因此完整 chat-templated prompt 最多
+占用 24576 tokens。Token count 必须由当前生成服务对完整 messages、generation prompt 和实际
+chat-template 参数计算；tokenizer 请求短暂失败时重试，持续失败记为 infrastructure failure，
+不得以 UTF-8 字节数代替 token 数并据此报告 context overflow。
+
 正式运行前必须用最大 code-output token bound 验证最小 prompt 可容纳。若只保留 task、当前
-代码和输出契约仍然 overflow，则属于 configuration failure，不是在线 eligibility controller。
-
-### 3.7 第一版明确排除
-
-EvidenceBuilder 不提供：
-
-- direct child descendant/follow-up summary；
-- formation ancestor 的 sibling/counterfactual attempts；
-- early-formation prefix summary；
-- subtree/branch best 或 delayed development 标签；
-- global failure memory、global free-text summary、Idea Bank 或 cross-lineage reference；
-- 第二次 LLM 调用生成的历史摘要。
+代码和输出契约仍然 overflow，则属于 configuration failure，而不是交给在线 eligibility
+controller 处理的搜索事件。
 
 ## 4. Evidence-Conditioned Generation
 
@@ -332,9 +280,8 @@ Direct Attempts from This Exact Anchor State
 Minimal output contract
 ```
 
-不存在独立的 global failure feedback、operator、reference、allocation score 或内部调度字段。
-
-核心指令保持简短：
+模型看到的条件到此为止：没有 global failure feedback、operator、reference、allocation score
+或内部调度字段。核心指令保持简短：
 
 ```text
 Improve the current algorithm using the provided search history. Preserve useful
@@ -364,7 +311,8 @@ Code:
 - 不得因为 Idea 缺失丢弃一份可解析、可执行的 Code。
 
 Idea 不是 reasoning，也不是对真实修改的权威描述。Actual diff 才是系统可验证的代码变化。
-模型不输出 Decision、Evidence used、Refine/Explore 分类、chain-of-thought、diff 或 patch。
+模型只被要求给出 Idea 与 Code 两个字段，输出契约中没有 Decision、Evidence used、
+Refine/Explore 分类、chain-of-thought、diff 或 patch。
 
 冻结的 generation policy id 为：
 
@@ -384,11 +332,11 @@ select one anchor
     -> reselect globally
 ```
 
-同一 anchor 可以连续被选中，但后一次读取写回后的 `E_{t+1}(a)`。V9.5 没有 sibling batch、
-固定三步 rollout、best-of-rollout 或一次选择后的 follow-up commitment。
+同一 anchor 可以连续被选中，但后一次读取写回后的 `E_{t+1}(a)`。每份 candidate 完成后都重新
+进行全局选择，一次选择不携带 follow-up commitment。
 
-V9.5 也不预定义 `ideate / refine / synthesize / transfer` operator portfolio。模型隐式决定修改
-方式；行为分类只可用于离线分析。
+修改方式由模型隐式决定：V9.5 不预定义 `ideate / refine / synthesize / transfer` operator
+portfolio，行为分类只可用于离线分析。
 
 ### 4.4 Full Code 与 system-derived diff
 
@@ -398,7 +346,8 @@ Fact derivation: Parent Evaluator Input + Candidate Evaluator Input -> Actual Di
 Evidence:        Idea or unavailable + Actual Diff/Failure + Observed Result
 ```
 
-V9.5 是 correction-aware search，不是 edit-based code search。系统不要求模型输出或应用 patch。
+V9.5 是 correction-aware search，不是 edit-based code search。修改记录由系统从父子 evaluator
+input 推导，模型既不输出也不应用 patch。
 
 ## 5. Quality-Guided Optimistic Allocation
 
@@ -431,15 +380,16 @@ $$
 `S(a)` 只表达当前 executable quality 与尚未充分开发程度。它是确定性的预算优先级，不是
 expected return、trajectory value 或统计置信上界。
 
-同一 state 每次被选择后，direct evidence 都可能变化：
+之所以不把它当作价值估计，是因为同一 state 每次被选择后 direct evidence 都可能变化：
 
 $$
 \pi_\theta(\cdot\mid a,E_1(a))
 \neq \pi_\theta(\cdot\mid a,E_2(a)).
 $$
 
-因此过去 direct gains 不是稳定 productivity distribution 的重复样本。V9.5 不计算 mean
-gain、trend、momentum、volatility、maturity、ancestor credit 或 descendant credit。
+生成分布随证据改变，过去 direct gains 就不是同一 productivity distribution 的重复样本。
+V9.5 因此不计算 mean gain、trend、momentum、volatility、maturity，也不在 ancestor 与
+descendant 之间传递 credit。
 
 结果历史只通过两条路径影响后续：
 
@@ -454,34 +404,36 @@ gain、trend、momentum、volatility、maturity、ancestor credit 或 descendant
 这可能偏好高质量附近的局部精炼，并错过需要先大幅退步的路线；V9.5 接受这一可证伪边界，
 不为理论深谷恢复多步 credit。
 
-Allocation 不设置 Top-10、clade quota、固定利用—覆盖节奏、active population 或另一层 UCB。
+`argmax` 在全部有效 states 上进行，选择权完全由 `S(a)` 决定，其上不再叠加 Top-K、clade
+quota、固定利用—覆盖节奏、active population 或第二层 UCB。
 
 ## 6. Search Lifecycle
 
 ### 6.1 Initialization
 
-默认 `K=8`，用于与此前版本保持实验连续性；K 是显式配置，不是理论常数。
+默认 `K=8`，用于与既有实验保持连续性；K 是显式配置，不是理论常数。
 
 ```text
 Task -> LLM -> Optional Idea + Mandatory Full Code
 ```
 
-不先生成 strategy cards，不调用 planning agent，不为 roots 人工指定 operator。每份完成 root
-response 都消耗一份 candidate search budget。有效且此前未出现的 artifact 创建一个 root
-AnchorState；invalid 或重复 root 记录 finalized attempt 并继续，直到得到 K 个唯一有效 roots。
-Transport failure 按工程重试，不计 candidate budget。
+Root 生成与后续生成使用同一条通道：不先生成 strategy cards，不调用 planning agent，也不为
+roots 人工指定 operator。每份完成 root response 都消耗一份 candidate search budget。有效且
+此前未出现的 artifact 创建一个 root AnchorState；invalid 或重复 root 记录 finalized attempt
+并继续，直到得到 K 个唯一有效 roots。Transport failure 按工程重试，不计 candidate budget。
 
 随后每个 root state 恰好完成一次 bootstrap：使用同一个 GenerationPolicy，完成 response 后
 该 root 的 `n+=1`。Valid child 按正常 artifact/state 规则处理；invalid、no-op、duplicate 和
 ancestral return 进入 root 的 direct attempts。
 
-初始化不做 `8 -> 6` 或其他 Top-K 淘汰。所有 root states 与有效 bootstrap child states 都进入
-全局候选集合。若预算耗尽前无法形成 K 个唯一 roots 或完成 K 次 bootstrap，run 标记为
+初始化不做 Top-K 淘汰，所有 root states 与有效 bootstrap child states 都进入全局候选集合。
+若预算耗尽前无法形成 K 个唯一 roots 或完成 K 次 bootstrap，run 标记为
 `initialization_failure`，不进入正式比较。
 
 ### 6.2 固定 optimism scale
 
-对 bootstrap 中所有创建有效 child state 的 transitions 计算：
+`s` 需要与任务的真实一步变化幅度同量级，因此由 bootstrap 观测直接给出。对 bootstrap 中所有
+创建有效 child state 的 transitions 计算：
 
 $$
 d_i=|q(child_i)-q(root_i)|.
@@ -498,8 +450,8 @@ s=
 \end{cases}
 $$
 
-若全部 `d_i=0`，中位数自然为 0。不使用 IQR fallback、epsilon 或 task-specific coefficient。
-正式搜索开始后 `s` 永久固定，resume 恢复原值，后续结果不能重估。
+若全部 `d_i=0`，中位数自然为 0。估计量只有中位数本身，不附加 IQR fallback、epsilon 或
+task-specific coefficient。正式搜索开始后 `s` 永久固定，resume 恢复原值，后续结果不能重估。
 
 ### 6.3 Candidate search budget
 
@@ -546,8 +498,9 @@ Candidate 成功构造 evaluator input 后，按以下顺序处理：
 5. artifact 不存在：调用 evaluator；有效时创建 ProgramArtifact 与 AnchorState，无效时记录
    invalid。
 
-因此独立分支可以汇聚：`A -> X` 与 `B -> X` 可形成不同 states；同一 lineage 不能通过
-`X -> Y -> X -> ...` 循环创建无限 `n=0` states。冻结的 identity policy 为：
+这套顺序保留了有意义的汇聚，同时切断了刷 optimism 的循环：独立分支 `A -> X` 与 `B -> X`
+可形成不同 states，而同一 lineage 不能通过 `X -> Y -> X -> ...` 循环创建无限 `n=0` states。
+冻结的 identity policy 为：
 
 ```text
 v95_parent_state_artifact_relation_no_ancestral_return_v1
@@ -563,17 +516,17 @@ Fitness cache 要求同一 evaluator contract 下同一 evaluator input 的结�
 ### 6.6 Anchor eligibility 与事实保留
 
 所有引用有效 ProgramArtifact 的 AnchorStates 都有资格，包括 improve、plateau 和 regress
-child states。V9.5 不设置 active/archive population、退步阈值、定期剪枝或 Top-K survival。
-低质量 state 是否再次获得预算完全由 `S(a)` 决定。
+child states。低质量 state 是否再次获得预算完全由 `S(a)` 决定，其上没有 active/archive
+population、退步阈值、定期剪枝或 Top-K survival。
 
 Artifacts、states 和 finalized attempts 一经产生就永久保留。Pending attempt 只在恢复完成后
 转为 finalized fact。
 
 ### 6.7 停止与最终选择
 
-Core 的唯一正常停止条件是 `candidate_search_budget exhausted`。不加入连续无改善、trajectory
-maturity、confidence threshold 或 convergence detector。Initialization、transport、evaluator
-infrastructure 或 configuration failure 是失败 run，不是算法正常提前停止。
+Core 的唯一正常停止条件是 `candidate_search_budget exhausted`。连续无改善、trajectory
+maturity、confidence threshold 与 convergence detector 都不构成停止条件。Initialization、
+transport、evaluator infrastructure 或 configuration failure 是失败 run，不是算法正常提前停止。
 
 最终只在唯一 ProgramArtifacts 中按真实 objective 选择：
 
@@ -620,51 +573,77 @@ while candidate_count < candidate_search_budget:
 return best unique ProgramArtifact by true objective
 ```
 
-## 8. 风险与科学边界
+## 8. 本版机制范围
 
-### 8.1 Actual diff 不是因果解释
+V9.5 被有意约束为一个最小可检验对象。四个界面各只保留一组通道：
+
+**Evidence.** 只有 exact-state direct attempts 与 recent formation corrections 两个来源，全部
+来自 finalized AttemptRecords 的真实字段。Descendant 与 follow-up 摘要、formation ancestor 的
+sibling/counterfactual attempts、early-formation prefix summary、subtree/branch best 与 delayed
+development 标签、global failure memory、global reflection 与 global free-text summary、Idea
+Bank、cross-lineage reference，以及任何由第二次 LLM 调用生成的历史摘要都不在本版范围内。
+
+**Generation.** 一次调用、一个 candidate、optional Idea + mandatory Full Code，修改类型由模型
+隐式决定。Operator portfolio、显式 refine/explore 分类、model-generated patch 应用、sibling
+batch 与 multi-step rollout 都不在本版范围内。
+
+**Allocation.** 只有 `q`、`n` 和固定 `s`。Trajectory trend、momentum、volatility、maturity、
+mean gain、ancestor/descendant/correction 可传递 credit、artifact-level 共享 `n`、learned
+retriever、surrogate、critic 与 RL 都不在本版范围内。
+
+**Lifecycle.** 全部有效 states 参与 argmax，预算按 completed candidate response 计，停止条件
+只有预算耗尽。Top-K、clade quota、active/archive population、在线剪枝、convergence detector 与
+无改善提前停止都不在本版范围内。
+
+这些信息通道和控制层未被采用，不等于它们无效。删除它们是为了让被检验的对象足够小、让机制
+差异可归因；其中若有成分确实有价值，应由后续版本在有过程证据的前提下逐项加入。方法版本
+各自独立实现，本版不为旧版本保留兼容路径。
+
+## 9. 风险与科学边界
+
+### 9.1 Actual diff 不是因果解释
 
 一次父子 diff 可能包含多个耦合变化，fitness 也可能受 evaluator 协议影响。V9.5 只能声称 prompt
 包含了更真实的修改记录，不能声称系统识别了导致改善的具体代码行。
 
-### 8.2 Full Code 可能产生无关重写
+### 9.2 Full Code 可能产生无关重写
 
 完整代码生成可能引入与 Idea 无关的变化或代码漂移。第一版仍使用 Full Code，因为 patch
 generation 会增加定位、格式、应用和上下文匹配失败。Actual diff 只负责记录，不按 diff 大小
 拒绝 candidate。
 
-### 8.3 Direct 可能占满上下文
+### 9.3 Direct 可能占满上下文
 
 当一个 state 有至少 8 个去重后的 direct representatives，formation 不进入本轮 prompt。这是
-direct 优先的明确取舍，必须报告发生频率；第一版不增加隐藏 formation quota。
+direct 优先的明确取舍，必须报告发生频率；本版不为 formation 保留隐藏 quota。
 
-### 8.4 被省略的历史可能有价值
+### 9.4 被省略的历史可能有价值
 
-Deep descendants、counterfactual siblings 和早期 formation 可能有用。第一版删除它们是为了
+Deep descendants、counterfactual siblings 和早期 formation 可能有用。本版删除它们是为了
 识别最小问题，不等于证明这些信息无效。
 
-### 8.5 Allocation 具有局部搜索偏置
+### 9.5 Allocation 具有局部搜索偏置
 
 `S(a)` 不预测下一 candidate 或最终 global best。它可能低估需要先大幅退步的路线；不能称为
 learned value、expected return 或无偏估计。
 
-### 8.6 初始化尺度可能不稳定
+### 9.6 初始化尺度可能不稳定
 
 有效 bootstrap transitions 数量很小，中位数会随初始化样本变化。正式报告必须给出 `D_init`、
 最终 `s`、零尺度状态和敏感性 replay，不能把 data-derived scale 描述为理论常数。
 
-### 8.7 跨分支重复 artifact 仍可能增加状态数
+### 9.7 跨分支重复 artifact 仍可能增加状态数
 
 Ancestral-return 约束阻止同一 lineage 循环洗 optimism，但独立分支仍可汇聚到同一 artifact 并
 形成不同 states。这是 history-conditioned generation 的有意结果。必须报告 state/artifact 比、
-cache hit、重复 artifact states 的预算占比；第一版不再增加 artifact-level 共享 `n`。
+cache hit、重复 artifact states 的预算占比。
 
-### 8.8 Cache 依赖 evaluator 确定性与 normalization contract
+### 9.8 Cache 依赖 evaluator 确定性与 normalization contract
 
 若同一 evaluator input 在同一 contract 下可能得到随机结果，或 hash code 与真实执行 code
 不一致，fitness cache 会错误合并状态。实现必须验证这两个前提，不能根据接口名称假设安全。
 
-## 9. 科学假设
+## 10. 科学假设
 
 在正式实验前，V9.5 只提出以下可验证假设：
 
@@ -683,7 +662,59 @@ cache hit、重复 artifact states 的预算占比；第一版不再增加 artif
 
 # Appendix A：Schema 与 Prompt Contract
 
-## A.1 Frozen policy ids
+## A.1 状态与事实 schema
+
+```text
+ProgramArtifact {
+    artifact_id
+    evaluator_contract_hash
+    evaluator_input_hash
+    evaluator_input_code
+    fitness
+    directed_fitness
+    code_length
+    program_loc
+    first_discovery_order
+}
+
+AnchorState {
+    state_id
+    artifact_id
+    parent_state_id | null
+    incoming_attempt_id | null
+    depth
+    creation_order
+    generation_count_n
+}
+
+AttemptRecord {
+    attempt_id
+    status = finalized
+    anchor_state_id | null
+    child_state_id | null
+    artifact_id | null
+
+    declared_idea | null
+    raw_code_hash | null
+    evaluator_input_hash | null
+    actual_diff | null
+    diff_statistics | null
+
+    parent_fitness | null
+    child_fitness | null
+    directed_delta | null
+    direct_outcome | null
+    attempt_kind
+
+    failure_category | null
+    failure_feedback | null
+    evaluator_called
+    candidate_order
+    creation_time
+}
+```
+
+## A.2 Frozen policy ids
 
 ```text
 evidence_selector_id = v95_dedup_direct_outcome_coverage_then_recent_formation_v1
@@ -698,7 +729,7 @@ stop_policy_id = v95_candidate_budget_exhaustion_v1
 normalization_policy_id = v95_evaluator_input_is_artifact_identity_v1
 ```
 
-## A.2 Parser contract
+## A.3 Parser contract
 
 - Full Code mandatory；Idea optional。
 - Idea 缺失时 `declared_idea=null`，不影响 Code validity。
@@ -706,7 +737,7 @@ normalization_policy_id = v95_evaluator_input_is_artifact_identity_v1
 - Parser 输出 raw-code hash、evaluator-input code/hash 和明确 failure category。
 - Actual diff 只由父子 evaluator inputs 计算。
 
-## A.3 Prompt contract
+## A.4 Prompt contract
 
 - 输入只含 Task、当前 code 和 `E_t(a)`。
 - Evidence event 只显示 Idea/Change/Result 或 Idea/Failure。
@@ -722,14 +753,14 @@ normalization_policy_id = v95_evaluator_input_is_artifact_identity_v1
 - protocol/design version；
 - logical model name `Qwen3.6-27B`；
 - task、maximize/minimize、candidate search budget；
-- Appendix A 中全部 frozen policy ids 与实际参数；
+- 附录 A.2 中全部 frozen policy ids 与实际参数；
 - `K=8`、event budget `8`、fixed `s`、tie-break；
 - context limit、max code-output tokens、diff excerpt rule；
 - evaluator contract hash 与 deterministic-cache flag；
 - transport retry limit；
 - 所有方法内部随机种子。
 
-不写未采用的 operator、reference、global failure memory、Top-K、clade quota 或 UCB 空字段。
+配置只写本版实际采用的字段，不为未采用的机制预留空字段。
 
 ## B.2 Generator environment metadata
 
@@ -738,14 +769,14 @@ Generation operator 会被 decoding 配置改变，因此本地 environment mani
 - logical model name；
 - tokenizer identity/version 与 chat-template hash；
 - temperature、top-p、top-k、max new tokens、sampling seed/seed support；
-- max input context；
+- max total context；
 - serving API/software 名称与版本（若服务暴露）；
 - prompt-renderer version/hash。
 
-按照本仓库统一实验协议，正式结果不区分 zhong/server3/server3b 等服务源，也不记录具体
-量化版本，统一写作 `Qwen3.6-27B`。因此这里保证的是逻辑模型、prompt 与 decoding protocol
-层面的可追溯性，不声称跨不同服务部署能够 bitwise reproduction。这一限制必须在实验说明中
-明确，而不能只留下模型名后声称完整生成器复现。
+按照本仓库统一实验协议，正式结果不区分服务源，也不记录具体量化版本，统一写作
+`Qwen3.6-27B`。因此这里保证的是逻辑模型、prompt 与 decoding protocol 层面的可追溯性，不声称
+跨不同服务部署能够 bitwise reproduction。这一限制必须在实验说明中明确，而不能只留下模型名
+后声称完整生成器复现。
 
 ## B.3 Checkpoint
 
@@ -759,8 +790,8 @@ Checkpoint 必须恢复：
 - LLM request、candidate、evaluator call 和各 outcome counts；
 - RNG states、config identity、schema version。
 
-Resume 不维护旧 checkpoint 兼容层；schema 不匹配直接拒绝。恢复 pending candidate 时禁止重复
-模型调用、预算计数或 `n+=1`。
+Resume 要求 schema 严格匹配，不匹配直接拒绝。恢复 pending candidate 时禁止重复模型调用、
+预算计数或 `n+=1`。
 
 ## B.4 Rich audit artifacts
 
@@ -794,7 +825,7 @@ Prompt 使用 Minimal View，日志保存 Rich Record。原始 prompt、response
 - 相同 artifact 的不同 states 不混用 lineage 或 direct attempts；
 - exact repeated evidence 在 prompt selection 前折叠，但原始 records 全部保留；
 - direct outcome coverage 与 recency 在 dedup representatives 上正确执行；
-- 总事件不超过 8，不含 descendants、counterfactual、reference 或 global failure memory；
+- 总事件不超过 8，且只含 §8 允许的两个来源；
 - prompt 只含 Minimal View，Rich fields 只存在于工件；
 - diff truncation marker、完整工件与 token-boundary test 正确。
 
@@ -806,14 +837,14 @@ Prompt 使用 Minimal View，日志保存 Rich Record。原始 prompt、response
 - response completion 后 pending、budget 与 n 原子提交；
 - parse/evaluator 中断后 resume 同一 pending candidate，不重复调用/计数；
 - finalize 后 attempt 才进入 EvidenceBuilder；
-- response 不请求 Decision、Evidence used、reasoning、operator 或 patch。
+- response 只要求 Idea 与 Code 两个字段。
 
 ## C.4 Allocation 与 lifecycle
 
 - maximize/minimize 统一成 directed `q`；
 - score 只由 `q`、`n`、fixed `s` 决定；
-- 所有有效 states 参加 argmax，无 Top-K/quota；
-- K 个唯一 roots、每 root 一次 bootstrap、不做 `8->6`；
+- 所有有效 states 参加 argmax；
+- K 个唯一 roots、每 root 一次 bootstrap、初始化不淘汰；
 - `s` 严格等于有效 bootstrap deltas 的 median，空集为 0；
 - candidate budget 精确停止；
 - 最终只按唯一 artifact 的 objective/code length/discovery order 选择。
@@ -867,45 +898,10 @@ V9.5 内部预算是 completed candidate responses。跨方法报告必须同时
 5. `0.5s / s / 2s` sensitivity；
 6. `m=1` vs. multiple siblings 仅作为后续预算单位扩展。
 
-# Appendix E：版本边界与设计依据
-
-## E.1 相对 V9.4 的主要变化
-
-| 层次 | V9.4 | V9.5 |
-| --- | --- | --- |
-| 状态 | 单一 program node | ProgramArtifact + AnchorState + Search Forest |
-| Prompt history | topology-nearby `4+4` | deduped exact-state direct + recent formation |
-| Failure history | 可能存在额外 memory 通道 | 只有当前 state 的 direct FailureEvidence |
-| Generation | Idea + Code | Code mandatory；Idea optional；actual diff 后处理 |
-| Candidate unit | 单 candidate | `m=1` 明确冻结，完成后重选 |
-| Credit/allocation | ancestor credit、Top-10、固定节奏 | `q+s/sqrt(n+1)`，不估计 productivity |
-| Initialization | bootstrap 后 `8->6` | K roots + 每根 bootstrap；不筛选 |
-| Duplicate | 节点级处理 | artifact cache + route-specific state + no ancestral return |
-| Budget | 容易与 evaluator count 混称 | completed candidate response |
-| Stop | 固定预算 | 仅 candidate budget 正常耗尽 |
-
-Artifact/state 分离、ancestral-return 约束、candidate accounting 和 cache 是 V9.5 新增的生命周期
-边界，不是从 V9.4 保留的机制。
-
-## E.2 本版明确不加入
-
-- descendant/follow-up summary、counterfactual、prefix summary；
-- global failure memory、global reflection、Idea Bank、cross-lineage reference；
-- explicit refine/explore classification 或 operator portfolio；
-- model-generated patch/edit application；
-- multiple-sibling batch、multi-step rollout；
-- trajectory trend、momentum、volatility、maturity、mean gain；
-- ancestor/descendant/correction transferable credit；
-- Top-K、clade quota、active/archive population、online pruning；
-- artifact-level shared `n`、learned retriever、surrogate、critic 或 RL；
-- convergence detector 或无改善提前停止；
-- 为旧版本维护兼容路径。
-
-## E.3 现有依据的边界
+# Appendix E：设计依据与其边界
 
 [研究认识](../knowledge/研究认识.md)给出历史条件化单步生成与有限预算持续搜索的总体认识。
-[V9.4](TraceAAD-v9.4完整机制设计.md)提供单 candidate 内核和待替换的历史/credit 机制。
-[V9.3/V9.4 联合分析](../analysis/TraceAAD-V9.3-V9.4机制与实验分析.md)用于暴露旧选择机制的
+[V9.3/V9.4 联合分析](../analysis/TraceAAD-V9.3-V9.4机制与实验分析.md)用于暴露既有选择机制的
 缺口，不能证明 V9.5 有效。
 
 [DGA²D 阅读笔记](../references/LLM自动算法设计方法阅读笔记/51-DGA2D.md)和
