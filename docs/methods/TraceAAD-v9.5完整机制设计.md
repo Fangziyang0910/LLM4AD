@@ -902,8 +902,8 @@ V9.5 内部预算是 completed candidate responses。跨方法报告必须同时
 # Appendix E：设计依据与其边界
 
 [研究认识](../knowledge/研究认识.md)给出历史条件化单步生成与有限预算持续搜索的总体认识。
-[V9.3/V9.4 联合分析](../analysis/TraceAAD-V9.3-V9.4机制与实验分析.md)用于暴露既有选择机制的
-缺口，不能证明 V9.5 有效。
+[版本谱系与实验事实](../analysis/TraceAAD-版本实验事实与机制诊断.md)的 V9.3/V9.4 节用于
+暴露既有选择机制的缺口，不能证明 V9.5 有效。
 
 [DGA²D 阅读笔记](../references/LLM自动算法设计方法阅读笔记/51-DGA2D.md)和
 [MEMOIR 阅读笔记](../references/LLM自动算法设计方法阅读笔记/47-MEMOIR.md)只支持修改记录、

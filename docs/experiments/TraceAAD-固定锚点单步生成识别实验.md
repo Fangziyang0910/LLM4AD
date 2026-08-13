@@ -5,6 +5,17 @@
 > 单步收益不等于完整搜索或 held-out 收益。结论已回写
 > [RQ-009](../research/RQ-009-锚点历史上下文.md) 与[研究认识](../knowledge/研究认识.md)。
 
+## 背景：V9 与 V9.5 生成接口审计（2026-08-12）
+
+三轮实验的直接动因是一次观察性审计（原《V9-V9.5 生成接口审计》并入本节）。它对 TSP/CVRP/OP 各随机抽取 20 条真实 search prompt（V9.5 原样读取，V9 由 `decisions.jsonl` 快照重建，60 个重建样本 raw-token 误差为 0），用实验模型真实 tokenizer 计数，得到两个主要事实：
+
+1. **V9.5 的额外输入负担来自 actual diff，不是指令。** V9 历史部分约 0.99–1.03K token，V9.5 为 3.13–3.42K（全量日志平均 prompt 长 1.28–1.45 倍）；两版指令仅 122 对 139 token，V9.5 平均历史事件数反而略少。差异是每条事件的表达密度：actual diff 保留真实修改，却把长 diff 压成单行并出现 `[diff truncated]`，语义重点更分散。
+2. **"prompt 更重"当时只是可信机制风险，不是已证实性能原因。** V9.5 的 parent improvement rate 在 CVRP 40.9%、TSP 23.6% 高于 V9（12.6%/10.3%），在 OP 仅 1.65%（V9 为 9.72%），影响明显随任务变化；而两版同时改变了选择空间、价值定义、算子、参考程序、sibling 数和重选频率，仅看最终分数无法识别 prompt 的净效应。
+
+审计同时纠正了强参照：单版本与四个固定基线同场时 V9 平均名次 1.867（同场 MCTS-AHD 为 1.933），V9 才是应优先解释的强 TraceAAD 参照。另一个保留的解释边界：树拓扑是可靠的 provenance，不是算法语义类别——"深 clade 连续发展是 TSP 成功机制"只能收缩为"TSP 优秀程序具有较长连续修改历史"。
+
+由此确定的识别路径是：不重跑完整搜索，而在同一批真实锚点上固定任务、当前代码、输出契约与采样条件，只改变输入的历史成分，配对检验"历史是否有用、何种表示更有用"。聚合数据在 `../analysis/traceaad_v9_v95_generation_interface/`（`summary.json`、`sample_prompt_metrics.csv`），审计脚本为 `experiments/analysis/analyze_v9_v95_generation_interface.py`。
+
 ## 共同方法
 
 三轮共享同一套识别范式：
