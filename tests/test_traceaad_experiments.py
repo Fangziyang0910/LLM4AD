@@ -17,6 +17,7 @@ from llm4ad.method.traceaad_v9_3 import TraceAADV93
 from llm4ad.method.traceaad_v9_4 import TraceAADV94
 from llm4ad.method.traceaad_v9_5 import TraceAADV95
 from llm4ad.method.traceaad_v9_6 import TraceAADV96
+from llm4ad.method.traceaad_v9_7 import TraceAADV97
 
 
 @pytest.mark.parametrize("task", run.TASKS)
@@ -44,6 +45,7 @@ def test_unified_runner_builds_each_task_and_version(
         "v9_4": TraceAADV94,
         "v9_5": TraceAADV95,
         "v9_6": TraceAADV96,
+        "v9_7": TraceAADV97,
     }[version]
     assert isinstance(method, expected_type)
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
@@ -64,7 +66,7 @@ def test_unified_runner_builds_each_task_and_version(
         else:
             if version == "v9_1":
                 assert spec.n_init == 4
-            elif version in {"v9_5", "v9_6"}:
+            elif version in {"v9_5", "v9_6", "v9_7"}:
                 assert spec.n_init == 8
                 assert method._initial_root_count == 8
             else:
@@ -72,7 +74,7 @@ def test_unified_runner_builds_each_task_and_version(
                 assert method._initial_route_pool_size == 8
                 assert method._initial_anchor_count == 6
             assert method._context_token_limit == (
-                32768 if version in {"v9_5", "v9_6"} else 24576
+                32768 if version in {"v9_5", "v9_6", "v9_7"} else 24576
             )
             if version == "v9_1":
                 assert method._verification_batch_size == 2

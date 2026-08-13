@@ -139,6 +139,35 @@ from llm4ad.method.traceaad_v9_6.traceaad import (
     MAX_HISTORY_EVENTS as V96_MAX_HISTORY_EVENTS,
     evaluation_contract_hash as v96_evaluation_contract_hash,
 )
+from llm4ad.method.traceaad_v9_7 import (
+    CHECKPOINT_VERSION as V97_CHECKPOINT_VERSION,
+    PROTOCOL_ID as V97_PROTOCOL_ID,
+    TraceAADV97,
+)
+from llm4ad.method.traceaad_v9_7.prompt import (
+    PROMPT_RENDERER_VERSION as V97_PROMPT_RENDERER_VERSION,
+    prompt_renderer_hash as v97_prompt_renderer_hash,
+)
+from llm4ad.method.traceaad_v9_7.schema import (
+    BUDGET_POLICY_ID as V97_BUDGET_POLICY_ID,
+    CANDIDATE_ACCOUNTING_POLICY_ID as V97_CANDIDATE_ACCOUNTING_POLICY_ID,
+    CANDIDATE_MULTIPLICITY_POLICY_ID as V97_CANDIDATE_MULTIPLICITY_POLICY_ID,
+    GENERATION_POLICY_ID as V97_GENERATION_POLICY_ID,
+    HISTORY_SELECTOR_ID as V97_HISTORY_SELECTOR_ID,
+    INITIALIZATION_POLICY_ID as V97_INITIALIZATION_POLICY_ID,
+    INTENT_POLICY_ID as V97_INTENT_POLICY_ID,
+    NORMALIZATION_POLICY_ID as V97_NORMALIZATION_POLICY_ID,
+    OPTIMISM_SCALE_POLICY_ID as V97_OPTIMISM_SCALE_POLICY_ID,
+    REFINE_PROBABILITY as V97_REFINE_PROBABILITY,
+    STATE_IDENTITY_POLICY_ID as V97_STATE_IDENTITY_POLICY_ID,
+    STOP_POLICY_ID as V97_STOP_POLICY_ID,
+)
+from llm4ad.method.traceaad_v9_7.traceaad import (
+    INITIAL_ROOT_COUNT as V97_INITIAL_ROOT_COUNT,
+    LOGICAL_MODEL_NAME as V97_LOGICAL_MODEL_NAME,
+    MAX_HISTORY_EVENTS as V97_MAX_HISTORY_EVENTS,
+    evaluation_contract_hash as v97_evaluation_contract_hash,
+)
 
 from .._common import (
     BACKENDS,
@@ -155,7 +184,7 @@ from .._common import (
 )
 
 VersionName = Literal[
-    "v4", "v5", "v8", "v9", "v9_1", "v9_2", "v9_3", "v9_4", "v9_5", "v9_6"
+    "v4", "v5", "v8", "v9", "v9_1", "v9_2", "v9_3", "v9_4", "v9_5", "v9_6", "v9_7"
 ]
 
 VERSIONS: tuple[VersionName, ...] = (
@@ -169,6 +198,7 @@ VERSIONS: tuple[VersionName, ...] = (
     "v9_4",
     "v9_5",
     "v9_6",
+    "v9_7",
 )
 V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
 V9_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V9_OPERATORS]
@@ -241,7 +271,9 @@ def make_run_spec(
         no_proxy=profile.no_proxy,
         budget=budget,
         n_init=(
-            V96_INITIAL_ROOT_COUNT
+            V97_INITIAL_ROOT_COUNT
+            if version == "v9_7"
+            else V96_INITIAL_ROOT_COUNT
             if version == "v9_6"
             else V95_INITIAL_ROOT_COUNT
             if version == "v9_5"
@@ -264,7 +296,7 @@ def make_run_spec(
         action_max_tokens=action_max_tokens,
         context_token_limit=(
             V95_TOTAL_CONTEXT_TOKENS
-            if context_token_limit is None and version in {"v9_5", "v9_6"}
+            if context_token_limit is None and version in {"v9_5", "v9_6", "v9_7"}
             else 24576
             if context_token_limit is None
             else context_token_limit
@@ -289,6 +321,8 @@ def make_run_spec(
         raise ValueError("TraceAAD V9.5 requires exactly eight initial roots")
     if spec.version == "v9_6" and spec.n_init != V96_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.6 requires exactly eight initial roots")
+    if spec.version == "v9_7" and spec.n_init != V97_INITIAL_ROOT_COUNT:
+        raise ValueError("TraceAAD V9.7 requires exactly eight initial roots")
     if spec.eval_workers is not None and spec.eval_workers <= 0:
         raise ValueError("eval_workers must be positive")
     if spec.llm_output_tokens <= 0:
@@ -316,6 +350,21 @@ def build_method(
         temperature=1.0,
     )
     artifacts = TraceAADArtifacts(run_dir=run_dir)
+    if spec.version == "v9_7":
+        return TraceAADV97(
+            llm=llm,
+            evaluation=evaluation,
+            profiler=artifacts,
+            evaluator_call_budget=spec.budget,
+            initial_root_count=spec.n_init,
+            code_max_tokens=spec.llm_output_tokens,
+            context_token_limit=spec.context_token_limit,
+            max_history_events=V97_MAX_HISTORY_EVENTS,
+            transport_retry_limit=3,
+            generation_seed=spec.seed,
+            resume_from=resume_from,
+            checkpoint_dir=run_dir / "checkpoints",
+        )
     if spec.version == "v9_6":
         return TraceAADV96(
             llm=llm,
@@ -483,13 +532,17 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     actual = {key: payload.get(key) for key in expected}
     if actual != expected:
         raise ValueError(f"resume config mismatch: expected {expected}, found {actual}")
-    if spec.version not in {"v8", "v9", "v9_1", "v9_2", "v9_3", "v9_4", "v9_5", "v9_6"}:
+    if spec.version not in {
+        "v8", "v9", "v9_1", "v9_2", "v9_3", "v9_4", "v9_5", "v9_6", "v9_7"
+    }:
         return
     _, task_kwargs = build_task(spec.task, spec.eval_workers)
     normalized_task_kwargs = json.loads(json.dumps(task_kwargs, sort_keys=True))
-    if spec.version in {"v9_2", "v9_3", "v9_4", "v9_5", "v9_6"}:
+    if spec.version in {"v9_2", "v9_3", "v9_4", "v9_5", "v9_6", "v9_7"}:
         expected_method_params = (
-            _v96_method_params(spec)
+            _v97_method_params(spec)
+            if spec.version == "v9_7"
+            else _v96_method_params(spec)
             if spec.version == "v9_6"
             else _v95_method_params(spec)
             if spec.version == "v9_5"
@@ -511,6 +564,10 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
             expected_protocol["generator_environment"] = _v96_generator_environment(
                 spec
             )
+        if spec.version == "v9_7":
+            expected_protocol["generator_environment"] = _v97_generator_environment(
+                spec
+            )
         actual_protocol = {
             "task_eval": payload.get("task_eval"),
             "method_params": {
@@ -518,7 +575,7 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
                 for key in expected_method_params
             },
         }
-        if spec.version in {"v9_5", "v9_6"}:
+        if spec.version in {"v9_5", "v9_6", "v9_7"}:
             actual_protocol["generator_environment"] = payload.get(
                 "generator_environment"
             )
@@ -643,7 +700,9 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     else:
         weights = None
     method_params: dict[str, object]
-    if spec.version == "v9_6":
+    if spec.version == "v9_7":
+        method_params = _v97_method_params(spec)
+    elif spec.version == "v9_6":
         method_params = _v96_method_params(spec)
     elif spec.version == "v9_5":
         method_params = _v95_method_params(spec)
@@ -752,7 +811,9 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         "task_eval": task_kwargs,
         "method_params": method_params,
     }
-    if spec.version == "v9_6":
+    if spec.version == "v9_7":
+        payload["generator_environment"] = _v97_generator_environment(spec)
+    elif spec.version == "v9_6":
         payload["generator_environment"] = _v96_generator_environment(spec)
     elif spec.version == "v9_5":
         payload["generator_environment"] = _v95_generator_environment(spec)
@@ -870,6 +931,61 @@ def _v96_method_params(spec: RunSpec) -> dict[str, object]:
         "normalization_policy_id": V96_NORMALIZATION_POLICY_ID,
         "prompt_renderer_version": V96_PROMPT_RENDERER_VERSION,
         "prompt_renderer_hash": v96_prompt_renderer_hash(),
+    }
+
+
+def _v97_generator_environment(spec: RunSpec) -> dict[str, object]:
+    return {
+        "logical_model_name": V97_LOGICAL_MODEL_NAME,
+        "temperature": 1.0,
+        "top_p": None,
+        "top_k": None,
+        "max_new_tokens": spec.llm_output_tokens,
+        "sampling_seed": spec.seed,
+        "sampling_seed_support": True,
+        "max_total_context": spec.context_token_limit,
+        "tokenizer_identity": None,
+        "tokenizer_version": None,
+        "chat_template_hash": None,
+        "serving_api": "OpenAI-compatible chat completions",
+        "serving_api_version": None,
+        "prompt_renderer_version": V97_PROMPT_RENDERER_VERSION,
+        "prompt_renderer_hash": v97_prompt_renderer_hash(),
+    }
+
+
+def _v97_method_params(spec: RunSpec) -> dict[str, object]:
+    evaluation, _ = build_task(spec.task, spec.eval_workers)
+    return {
+        "protocol_id": V97_PROTOCOL_ID,
+        "checkpoint_schema_version": V97_CHECKPOINT_VERSION,
+        "evaluator_call_budget": spec.budget,
+        "budget_unit": "real_evaluator_call",
+        "initial_root_count": spec.n_init,
+        "max_history_events": V97_MAX_HISTORY_EVENTS,
+        "logical_model_name": V97_LOGICAL_MODEL_NAME,
+        "evaluator_contract_hash": v97_evaluation_contract_hash(evaluation),
+        "deterministic_fitness_cache": True,
+        "maximize": True,
+        "code_max_tokens": spec.llm_output_tokens,
+        "context_token_limit": spec.context_token_limit,
+        "transport_retry_limit": 3,
+        "generation_seed": spec.seed,
+        "refine_probability": V97_REFINE_PROBABILITY,
+        "explore_probability": 1.0 - V97_REFINE_PROBABILITY,
+        "history_selector_id": V97_HISTORY_SELECTOR_ID,
+        "generation_policy_id": V97_GENERATION_POLICY_ID,
+        "intent_policy_id": V97_INTENT_POLICY_ID,
+        "candidate_multiplicity_policy_id": V97_CANDIDATE_MULTIPLICITY_POLICY_ID,
+        "budget_policy_id": V97_BUDGET_POLICY_ID,
+        "initialization_policy_id": V97_INITIALIZATION_POLICY_ID,
+        "optimism_scale_policy_id": V97_OPTIMISM_SCALE_POLICY_ID,
+        "state_identity_policy_id": V97_STATE_IDENTITY_POLICY_ID,
+        "candidate_accounting_policy_id": V97_CANDIDATE_ACCOUNTING_POLICY_ID,
+        "stop_policy_id": V97_STOP_POLICY_ID,
+        "normalization_policy_id": V97_NORMALIZATION_POLICY_ID,
+        "prompt_renderer_version": V97_PROMPT_RENDERER_VERSION,
+        "prompt_renderer_hash": v97_prompt_renderer_hash(),
     }
 
 
