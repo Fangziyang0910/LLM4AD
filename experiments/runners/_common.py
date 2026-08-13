@@ -91,12 +91,13 @@ BACKENDS: dict[BackendName, BackendProfile] = {
 }
 
 BACKEND_CAPACITY: dict[BackendName, int] = {
-    "zhong": 9,
+    "zhong": 0,  # 暂时不用
     "server1": 0,  # 暂时不用
-    "server3": 10,
-    "server3b": 5,
+    "server3": 9,
+    "server3b": 9,
     "local": 0,  # 暂时不用
 }
+PRIMARY_BACKENDS: tuple[BackendName, ...] = ("server3", "server3b")
 # Host:port markers only — `--backend` matching uses detect_backend().
 BACKEND_MARKERS: dict[BackendName, tuple[str, ...]] = {
     "zhong": ("183.36.243.124",),
@@ -462,22 +463,22 @@ def item_active_attempt(item: LaunchItem) -> LaunchItem | None:
             return None
 
 
-def assign_backends(
-    pending: list[LaunchItem],
-    *,
-    preferred: tuple[BackendName, ...] = ("zhong", "server3", "server3b", "local"),
-) -> list[LaunchItem]:
+def select_backend(remaining: dict[BackendName, int]) -> BackendName | None:
+    """Pick the primary backend with the most free slots; ties keep listed order."""
+    candidates = [name for name in PRIMARY_BACKENDS if remaining.get(name, 0) > 0]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda name: remaining[name])
+
+
+def assign_backends(pending: list[LaunchItem]) -> list[LaunchItem]:
     remaining = dict(free_slots())
     assigned: list[LaunchItem] = []
     for item in pending:
-        chosen: BackendName | None = None
-        for backend in preferred:
-            if remaining.get(backend, 0) > 0:
-                chosen = backend
-                remaining[backend] -= 1
-                break
+        chosen = select_backend(remaining)
         if chosen is None:
             break
+        remaining[chosen] -= 1
         assigned.append(item.with_backend(chosen))
     return assigned
 

@@ -23,12 +23,12 @@ from .._common import (
     BackendName,
     TaskName,
     detect_backend,
+    select_backend,
 )
 
 MODULE = "experiments.runners.traceaad.run"
 METHOD = "traceaad_v9_3"
 TERMINAL_FAILURES = frozenset({"error", "aborted", "interrupted", "stalled"})
-PREFERRED_BACKENDS: tuple[BackendName, ...] = ("zhong", "server3", "server3b", "local")
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,10 +167,7 @@ def assign_pending(
     remaining = dict(available)
     assigned: list[tuple[V93Run, BackendName]] = []
     for item in pending:
-        backend = next(
-            (name for name in PREFERRED_BACKENDS if remaining.get(name, 0) > 0),
-            None,
-        )
+        backend = select_backend(remaining)
         if backend is None:
             break
         remaining[backend] -= 1

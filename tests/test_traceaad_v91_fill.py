@@ -29,15 +29,14 @@ def test_v91_fill_assigns_every_reported_free_slot() -> None:
     plan = fill_v9_1.build_plan(batch="batch", repeats=3)
     assigned = fill_v9_1.assign_pending(
         plan,
-        {"zhong": 2, "server3": 1, "local": 2},
+        {"zhong": 2, "server3": 2, "server3b": 2, "local": 2},
     )
-    assert len(assigned) == 5
+    assert len(assigned) == 4
     assert [backend for _, backend in assigned] == [
-        "zhong",
-        "zhong",
         "server3",
-        "local",
-        "local",
+        "server3b",
+        "server3",
+        "server3b",
     ]
 
 
