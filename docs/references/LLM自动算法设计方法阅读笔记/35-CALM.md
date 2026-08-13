@@ -32,7 +32,7 @@ verbal 层把进化历史转成 LLM 可消费的改动语言，并刻意缩小�
 
 ## 5. 对 LLM4AD / TraceAAD 可学习之处
 
-- 可学习点：把“轨迹如何构造下一步 prompt”（verbal）与“是否训练模型参数”（numerical）作为两项独立研究变量。成立前提：各自 token、LLM query、evaluator 预算可对齐。主要风险：把参数学习收益误记为历史利用。最小验证：先冻结模型，仅比较轨迹提示；再在同一 triples 和预算下测试在线更新。
+- 可学习点：把“轨迹如何构造下一步 prompt”（verbal）与“是否训练模型参数”（numerical）作为两项独立研究变量。成立前提：各自 token、LLM query、evaluator 预算可对齐。主要风险：把参数学习收益误记为历史利用。最小验证：先固定模型权重，仅比较轨迹提示；再在同一 triples 和预算下测试在线更新。
 - 可学习点：记录局部改动、父代、response、合法性和相对分数，建立可审计 credit 链。成立前提：能判定重复/可行并重放 evaluator。主要风险：全局 reward 错配给长代码的每个 token。最小验证：统计 injection/replacement 后相对父代的改进、退化、重复与不可行比例。
 - 可学习点：把简化和重启作为控制复杂度/停滞的最小动作。成立前提：停滞由固定 evaluator 的 best-so-far 定义。主要风险：重启消耗探索预算，或简化删去关键机制。最小验证：固定总 queries，报告代码长度、unique lineage、突破次数和测试分数。
 

@@ -144,7 +144,7 @@ MEoH、HSEvo、QUBE、CDEoH、EoH-S、ShinkaEvolve 和 RoCo 分别用 Pareto、�
 
 ### 7. 把搜索经验写入模型，需要与在线搜索分开证明
 
-[CALM](35-CALM.md)、[EvoTune](36-EvoTune.md)、[Fine-tuning LLM for AAD](37-Fine-tuning-LLM-for-AAD.md)、[AHD Agent](38-AHD-Agent.md) 和 [Beyond Inference-Time Search](41-Beyond-Inference-Time-Search.md) 分别用 GRPO、搜索反馈训练、DPO、agentic RL 或 solver synthesis 内化设计能力。底层逻辑是参数学习可以摊销未来搜索成本，但也可能只记住任务模板、可执行格式或 evaluator 偏好。可学习之处是将训练成本与在线搜索成本分开，并用冻结模型、固定代码和未见实例检验能力是否真正转移。
+[CALM](35-CALM.md)、[EvoTune](36-EvoTune.md)、[Fine-tuning LLM for AAD](37-Fine-tuning-LLM-for-AAD.md)、[AHD Agent](38-AHD-Agent.md) 和 [Beyond Inference-Time Search](41-Beyond-Inference-Time-Search.md) 分别用 GRPO、搜索反馈训练、DPO、agentic RL 或 solver synthesis 内化设计能力。底层逻辑是参数学习可以摊销未来搜索成本，但也可能只记住任务模板、可执行格式或 evaluator 偏好。可学习之处是将训练成本与在线搜索成本分开，并用权重固定的模型、固定代码和未见实例检验能力是否真正转移。
 
 ### 8. 历史应按作用范围分层，且不是越长越好
 

@@ -4,7 +4,7 @@
 
 ## 1. 核心问题与方法
 
-Hero 用 Qwen2.5-Coder-14B 通过 GRPO 训练生成 standalone solver，不在每个测试实例反复 best-of-k 搜索。奖励由格式、执行、结构 scaffold/课程式反馈和可行性门控的目标奖励组成；系统 prompt 要求 Deconstruct–Hypothesize–Critique。主任务是 SDS，另有 JSSP；论文还将一个生成代码冻结后跨测试集执行，检验“compile once”。
+Hero 用 Qwen2.5-Coder-14B 通过 GRPO 训练生成 standalone solver，不在每个测试实例反复 best-of-k 搜索。奖励由格式、执行、结构 scaffold/课程式反馈和可行性门控的目标奖励组成；系统 prompt 要求 Deconstruct–Hypothesize–Critique。主任务是 SDS，另有 JSSP；论文还将一个生成代码固定后跨测试集执行，检验“compile once”。
 
 ## 2. 论文宣称的机制贡献（逐项）
 
@@ -29,7 +29,7 @@ RL 把“写出正确搜索循环和约束保护”从实例内采样转成模�
 ## 5. 对 LLM4AD / TraceAAD 可学习之处
 
 - 可学习点：把可执行性、可行性、质量分层报告。前提：三层 evaluator 语义固定。风险：仅优化格式/通过率。最小验证：给每层单独计数并测试 quality conditional on feasible。
-- 可学习点：若主张可复用算法，必须固定代码跨 held-out 实例跑。前提：冻结选择规则不手挑。风险：每实例重新生成掩盖泛化。最小验证：采用 Appendix 的固定代码协议。
+- 可学习点：若主张可复用算法，必须固定代码跨 held-out 实例跑。前提：预先确定选择规则不手挑。风险：每实例重新生成掩盖泛化。最小验证：采用 Appendix 的固定代码协议。
 
 ## 6. 证据边界
 

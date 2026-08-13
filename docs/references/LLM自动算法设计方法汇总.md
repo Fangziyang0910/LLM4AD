@@ -111,7 +111,7 @@
 | [Self-Developing](../../../papers/Can_Large_Language_Models_Invent_Algorithms_to_Improve_Themselves/) | 广义算法发现 | 生成模型合并算法，并用算法成败的偏好对迭代 DPO 更新 algorithm factory。 |
 | [AlgoPilot](../../../papers/AlgoPilot_Fully_Autonomous_Program_Synthesis_Without_Human_Written_Programs/) | 广义算法发现 | 以随机程序轨迹训练 TLM，再用其软奖励引导 RL 形成可恢复的排序轨迹。 |
 | [LLaMEA-SAGE](../../../papers/LLaMEA_SAGE_Guiding_Automated_Algorithm_Design_with_Structural_Feedback/) | 直接 AAD/AHD | 从 archive 训练结构—性能 surrogate，以 SHAP 解释指导 LLM 变异。 |
-| [Latent Heuristic Search](../../../papers/Latent_Heuristic_Search_Continuous_Optimization_for_Automated_Algorithm_Design/) | 直接 AAD/AHD | 训练程序 latent manifold 与 surrogate，在冻结代码 LLM 前提下做连续梯度搜索。 |
+| [Latent Heuristic Search](../../../papers/Latent_Heuristic_Search_Continuous_Optimization_for_Automated_Algorithm_Design/) | 直接 AAD/AHD | 训练程序 latent manifold 与 surrogate，在代码 LLM 权重固定的前提下做连续梯度搜索。 |
 | [GAE](../../../papers/GAE_Graph_Augmented_Evolution_for_Scientific_Discovery/) | 广义算法发现 | 联合训练程序图 GNN、SAC meta-controller 与在线 GRPO mutation policy。 |
 | [Teacher-Aware Evolution](../../../papers/Teacher_Aware_Evolution_of_Heuristic_Programs/) | 直接 AAD/AHD | 查询独立 learned teacher 的动作偏好，为程序进化提供密集行为反馈。 |
 

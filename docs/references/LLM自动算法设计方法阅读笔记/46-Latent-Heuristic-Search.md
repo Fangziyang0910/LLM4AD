@@ -4,7 +4,7 @@
 
 ## 1. 核心问题与方法
 
-LHS 训练 program encoder、normalizing flow、latent-to-soft-prompt mapper 和任务 surrogate。搜索时冻结代码 LLM，在高斯化 prior space 中沿 surrogate 梯度移动，再由 soft prompt 解码、执行和评价候选。
+LHS 训练 program encoder、normalizing flow、latent-to-soft-prompt mapper 和任务 surrogate。搜索时代码 LLM 权重固定，在高斯化 prior space 中沿 surrogate 梯度移动，再由 soft prompt 解码、执行和评价候选。
 
 ## 2. 论文宣称的机制贡献（逐项）
 

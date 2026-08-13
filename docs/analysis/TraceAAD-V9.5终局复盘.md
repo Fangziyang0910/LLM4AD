@@ -1,6 +1,6 @@
 # TraceAAD V9.5 终局复盘
 
-> 冻结对象：正式批次 `20260811_171029`。分析日期：2026-08-12。
+> 分析对象：正式批次 `20260811_171029`。分析日期：2026-08-12。
 >
 > **2026-08-12 记录：** 本文原含预算计数口径的"纠正"与公平性论述，该议题已裁定关闭——
 > 固定 1000 次评价即为统一公平口径，相关论述已删除，不再讨论。
@@ -458,4 +458,4 @@ experiments/<task>/traceaad_v9_5/eval_best_20260812_v95/results.json
 V9/V9.5 生成接口与预算审计脚本：`experiments/analysis/analyze_v9_v95_generation_interface.py`；
 完整聚合见 `traceaad_v9_v95_generation_interface/summary.json`。
 
-前置阶段性分析：[TraceAAD-V9.5阶段性运行机制分析.md](TraceAAD-V9.5阶段性运行机制分析.md)（19:10 截点，已由本文在完整预算上重算）。
+19:10 截点的前置阶段性分析已由本文在完整预算上重算，不再单独保留。

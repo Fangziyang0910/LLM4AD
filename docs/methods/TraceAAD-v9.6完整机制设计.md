@@ -2,6 +2,10 @@
 
 > 版本：V9.6（`llm4ad/method/traceaad_v9_6/`），protocol id
 > `traceaad-v9.6-anchor-history-context`。
+> 状态：正式批次 `20260812_191011` 已完成（四任务 × 3 重复 + held-out），
+> 对 V9.5 的四层证据链对比见
+> [V9.5-V9.6 证据链对比](../analysis/TraceAAD-V9.5-V9.6证据链对比.md)；
+> 后继版本 V9.7 在其上只改分配与生成意图。
 > V9.6 在 V9.5 基础上只改两处：**锚点历史上下文**（挑法 + 写法，设计定案见
 > [RQ-009](../research/RQ-009-锚点历史上下文.md)）和**预算单位**（按真实评价次数计）。
 > 状态与事实模型、初始化、锚点选择、输出契约、去重与 cache、checkpoint 结构均与
@@ -16,8 +20,6 @@
 
 ### 1.1 挑法
 
-实现在 `history.py` 的 `select_history`：
-
 1. **子代尝试**：从当前锚点的 direct attempts 中，取最近的改进尝试至多 2 条、最近的
    退步尝试至多 2 条；完全相同的代码（按 `evaluator_input_hash`）只算一次。持平和
    无效不入选。没有子代就不取。
@@ -30,7 +32,7 @@
 
 ### 1.2 写法
 
-实现在 `history.py` 的 `render_history`。历史块只含入选事件，不放总览统计。每条事件
+历史块只含入选事件，不放总览统计。每条事件
 统一格式，父代标 `Formation step`，子代标 `Attempt from current algorithm`：
 
 ```text
@@ -76,13 +78,8 @@ Fitness: 12.84 -> 13.20
 固定 1000 次评价对所有任务与重复统一。配置键为 `evaluator_call_budget` +
 `budget_unit: real_evaluator_call`，停止原因为 `evaluator_budget_exhausted`。
 
-## 3. 实现与验证
+## 3. 复现入口
 
-- 包结构：`schema / source / forest / selection / history / prompt / checkpoint /
-  traceaad`。`history.py` 替换 V9.5 的 `evidence.py`；`forest / selection / source /
-  checkpoint` 与 V9.5 相同。
-- 运行入口：`experiments.runners.traceaad.run --version v9_6`，默认 8 根、
-  32768 context、8192 输出 tokens，`--budget` 即评价次数预算。
-- 测试：`tests/test_traceaad_v96_integration.py` 覆盖挑法（封顶、去重、时间排序、
-  formation 填充）、写法（事件格式、无历史）、context 回退、runner 冻结配置
-  与预算口径。
+运行入口 `experiments.runners.traceaad.run --version v9_6`：8 根、32768 context、
+8192 输出 tokens，`--budget` 即评价次数预算。除历史上下文与预算单位外，其余模块
+与 V9.5 相同。

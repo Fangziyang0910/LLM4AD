@@ -17,7 +17,7 @@ AutoSND 分三阶段：Stage I 从简单启发式广搜并记录质量、运行�
 |机制主张|论文证据|证据等级|判断|
 |---|---|---|---|
 |完整系统在 12+3 网络上有竞争力|Table 1、Figure 3、Figure 5|间接支持|完整三阶段与专用网络启发式/AHD 的联合比较。|
-|Stage II 策略改善跨图覆盖和质量|§5.3.1、Figure 4、Appendix Table 10|直接支持|w/o Stage II 使用对应完整搜索冻结候选；Full 覆盖 12/12，消融为 8/12。|
+|Stage II 策略改善跨图覆盖和质量|§5.3.1、Figure 4、Appendix Table 10|直接支持|w/o Stage II 使用对应完整搜索的固定候选；Full 覆盖 12/12，消融为 8/12。|
 |structural family restriction 保持有效性|Figure 4|直接支持|移除限制后 Stage III validity 降至 76.5%。|
 |最终结构机制可解释|Table 2、Figure 6、§5.4|部分支持|代码组件消融和 lineage 显示 residual degree backbone、局部修正与有界更新的作用；仅限最终候选与网络域。|
 

@@ -32,7 +32,7 @@ RL 可以把 evaluator 的延迟奖励分配给“何时探索、何时修复、
 
 ## 6. 证据边界
 
-§Experimental Setup 与 Appendix `appendix:rl-training`、`app:data_split_protocol` 给出训练/数据边界；训练动态为 500 steps（§Training Curves）。总体设计曲线由五次独立 design runs 对齐；工具消融只覆盖 CVRP-Constructive、TSP-ACO 与 DeepSeek-V4-Flash。没有冻结同一 policy 后仅关闭 RL 的匹配实验，不能将总体优势归因给“RL 本身”；也没有逐工具或逐动作消融。
+§Experimental Setup 与 Appendix `appendix:rl-training`、`app:data_split_protocol` 给出训练/数据边界；训练动态为 500 steps（§Training Curves）。总体设计曲线由五次独立 design runs 对齐；工具消融只覆盖 CVRP-Constructive、TSP-ACO 与 DeepSeek-V4-Flash。没有固定同一 policy 后仅关闭 RL 的匹配实验，不能将总体优势归因给“RL 本身”；也没有逐工具或逐动作消融。
 
 ## 7. 论文内定位
 

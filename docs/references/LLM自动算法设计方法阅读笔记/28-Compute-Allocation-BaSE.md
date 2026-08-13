@@ -35,7 +35,7 @@ BaSE 将一次独立自演化 run 当作 bandit arm。每个 arm 有当前深度
 
 ## 6. 证据边界
 
-论文的 CI 说明位于 appendix：许多基线用 seed trajectory bootstrap，BaSE 则是在冻结 greedy pool 上运行 10 次 MAB 并 bootstrap；两者随机性层级不同，比较时须谨慎。主文主张总 LLM-call 固定，但 token、wall-clock、evaluator 代价仍可能异质；“最快达阈值”还依赖预选 $\tau$，不能与最终 best 混为同一证据。
+论文的 CI 说明位于 appendix：许多基线用 seed trajectory bootstrap，BaSE 则是在固定的 greedy pool 上运行 10 次 MAB 并 bootstrap；两者随机性层级不同，比较时须谨慎。主文主张总 LLM-call 固定，但 token、wall-clock、evaluator 代价仍可能异质；“最快达阈值”还依赖预选 $\tau$，不能与最终 best 混为同一证据。
 
 ## 7. 论文内定位
 

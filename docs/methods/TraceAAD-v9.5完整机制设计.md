@@ -1,8 +1,9 @@
 # TraceAAD V9.5 完整机制设计
 
-> 状态：已按本文档完成独立实现、机制测试、TraceAAD 回归测试与四任务
-> 最小真实模型冒烟；尚未进行正式实验。Evidence、Generation、Quality-Guided Optimistic
-> Allocation 及其必要生命周期边界已经冻结为 V9.5 第一版。
+> 状态：正式批次 `20260811_171029` 已完成 10/12 run（TSP/CVRP 各一次替代重复因
+> 基础设施失败未完成，结果未进入正式结果页）。终局证据见
+> [V9.5 终局复盘](../analysis/TraceAAD-V9.5终局复盘.md)；后继版本 V9.6 只替换
+> 历史上下文（[V9.6 完整机制设计](TraceAAD-v9.6完整机制设计.md)）。
 > 文中的机制判断与科学假设不等同于实验结论。
 
 ## 1. 主张与机制概览
@@ -210,7 +211,7 @@ else:
 5. prompt 内 formation 和 direct 分别按真实时间从早到晚展示。
 
 选择规则完全由 outcome 覆盖与 recency 确定，不引入 fitness 排名、embedding、语义相似度、
-额外 LLM 或 learned retriever。冻结的 selector id 为：
+额外 LLM 或 learned retriever。selector id 为：
 
 ```text
 v95_dedup_direct_outcome_coverage_then_recent_formation_v1
@@ -314,7 +315,7 @@ Idea 不是 reasoning，也不是对真实修改的权威描述。Actual diff �
 模型只被要求给出 Idea 与 Code 两个字段，输出契约中没有 Decision、Evidence used、
 Refine/Explore 分类、chain-of-thought、diff 或 patch。
 
-冻结的 generation policy id 为：
+generation policy id 为：
 
 ```text
 v95_anchor_evidence_optional_idea_full_code_v1
@@ -500,7 +501,7 @@ Candidate 成功构造 evaluator input 后，按以下顺序处理：
 
 这套顺序保留了有意义的汇聚，同时切断了刷 optimism 的循环：独立分支 `A -> X` 与 `B -> X`
 可形成不同 states，而同一 lineage 不能通过 `X -> Y -> X -> ...` 循环创建无限 `n=0` states。
-冻结的 identity policy 为：
+identity policy 为：
 
 ```text
 v95_parent_state_artifact_relation_no_ancestral_return_v1

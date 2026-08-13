@@ -1,6 +1,7 @@
 # TraceAAD：面向自动算法设计的基于轨迹搜索研究
 
-> 本报告面向组会汇报，方法描述以 [TraceAAD V9.5 完整机制设计](../methods/TraceAAD-v9.5完整机制设计.md) 为准。实验结论冻结于 2026-08-12：OP 与 Online Bin Packing 已完成三次独立重复，TSP 与 CVRP 各缺一次替代重复，相关均值与排名均属于阶段性结果。
+> 本报告面向组会汇报，方法描述以 [TraceAAD V9.5 完整机制设计](../methods/TraceAAD-v9.5完整机制设计.md) 为准。实验结论记录于 2026-08-12：OP 与 Online Bin Packing 已完成三次独立重复，TSP 与 CVRP 各缺一次替代重复，相关均值与排名均属于阶段性结果。
+> 后续：TSP/CVRP 替代重复因基础设施失败最终未完成，V9.5 结果未进入正式结果页；此后方法演化为 V9.6 与 V9.7，当前判断见[研究认识](研究认识.md)。
 
 ## 1. 引言
 
@@ -151,7 +152,7 @@ TraceAAD 通过职责分离形成其方法特征：轨迹提供与当前程序�
 
 ### 4.1 协议与完整性
 
-冻结批次为 `20260811_171029`，统一模型为 Qwen3.6-27B，覆盖 TSP Construct、CVRP-ACO、OP-ACO 和 Online Bin Packing，每个任务计划三次独立搜索，并对每次搜索所得最好程序进行 held-out 评价。TSP/CVRP/OP 测试规模为 50、100、200；OBP 测试为 1k、5k、10k 物品与 capacity 100、500 的组合。
+正式批次为 `20260811_171029`，统一模型为 Qwen3.6-27B，覆盖 TSP Construct、CVRP-ACO、OP-ACO 和 Online Bin Packing，每个任务计划三次独立搜索，并对每次搜索所得最好程序进行 held-out 评价。TSP/CVRP/OP 测试规模为 50、100、200；OBP 测试为 1k、5k、10k 物品与 capacity 100、500 的组合。
 
 当前 12 个计划运行中有 10 个到达预算终点。TSP repeat 1 在 623 个响应处、CVRP repeat 2 在 580 个响应处因 tokenizer 暂时不可用后的错误上下文判定终止；两次替代运行尚未形成可纳入结果。因此，TSP/CVRP 的 V9.5 数值来自两次完成重复，OP/OBP 来自三次完成重复。以下结论均保留这一完整性边界。
 

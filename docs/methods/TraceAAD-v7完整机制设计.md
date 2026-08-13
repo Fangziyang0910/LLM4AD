@@ -1,5 +1,7 @@
 # TraceAAD V7：可执行状态唯一的轨迹进化
 
+> 状态：历史版本记录，不定义当前方法。实验结局见 [版本实验事实与机制诊断](../analysis/TraceAAD-版本实验事实与机制诊断.md)。
+
 ## 设计动机
 
 ### 1. 出发点
@@ -189,7 +191,7 @@ $$
 锚点；相同时直接选择该节点。
 
 一个批次的 active 状态、global best、主轨迹、锚点、参考和 prompt context
-在生成 sibling 前冻结。两个 sibling 都相对同一快照计算 `delta_global_best`。
+在生成 sibling 前取定。两个 sibling 都相对同一快照计算 `delta_global_best`。
 批次结束后在全部有效 sibling 中确定唯一 global-best winner；完全相同质量时
 使用确定性代码/Action 顺序消除生成顺序影响。
 
@@ -266,7 +268,7 @@ checkpoint 不自动迁移。
    - 相同 code_hash 只保留一条 active 路线；
    - 直到得到 30 个唯一 active endpoint 或预算耗尽。
 2. 重复直到预算耗尽或安全停止：
-   a. 冻结当前 active 和 global-best 快照；
+   a. 记录当前 active 和 global-best 快照；
    b. 计算 Q、P、V 和预算衰减 UCB，选择主轨迹；
    c. 从 endpoint / compact best 选择唯一主锚点；
    d. 等概率选择可用语义算子；
