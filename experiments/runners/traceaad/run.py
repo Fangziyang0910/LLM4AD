@@ -9,24 +9,34 @@ from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
-from llm4ad.method.traceaad_artifacts import TraceAADArtifacts
-from llm4ad.method.traceaad_v4 import TraceAADV4, ValueWeights as V4ValueWeights
-from llm4ad.method.traceaad_v5 import TraceAADV5, ValueWeights as V5ValueWeights
+from llm4ad.method.traceaad_v4 import (
+    RunArtifacts as V4RunArtifacts,
+    TraceAADV4,
+    ValueWeights as V4ValueWeights,
+)
+from llm4ad.method.traceaad_v5 import (
+    RunArtifacts as V5RunArtifacts,
+    TraceAADV5,
+    ValueWeights as V5ValueWeights,
+)
 from llm4ad.method.traceaad_v8 import (
     CHECKPOINT_VERSION as V8_CHECKPOINT_VERSION,
     PROTOCOL_ID as V8_PROTOCOL_ID,
+    RunArtifacts as V8RunArtifacts,
     TraceAADV8,
 )
 from llm4ad.method.traceaad_v8.operators import DEFAULT_OPERATORS as V8_OPERATORS
 from llm4ad.method.traceaad_v9 import (
     CHECKPOINT_VERSION as V9_CHECKPOINT_VERSION,
     PROTOCOL_ID as V9_PROTOCOL_ID,
+    RunArtifacts as V9RunArtifacts,
     TraceAADV9,
 )
 from llm4ad.method.traceaad_v9.operators import DEFAULT_OPERATORS as V9_OPERATORS
 from llm4ad.method.traceaad_v9_5 import (
     CHECKPOINT_VERSION as V95_CHECKPOINT_VERSION,
     PROTOCOL_ID as V95_PROTOCOL_ID,
+    RunArtifacts as V95RunArtifacts,
     TraceAADV95,
 )
 from llm4ad.method.traceaad_v9_5.prompt import (
@@ -55,6 +65,7 @@ from llm4ad.method.traceaad_v9_5.traceaad import (
 from llm4ad.method.traceaad_v9_6 import (
     CHECKPOINT_VERSION as V96_CHECKPOINT_VERSION,
     PROTOCOL_ID as V96_PROTOCOL_ID,
+    RunArtifacts as V96RunArtifacts,
     TraceAADV96,
 )
 from llm4ad.method.traceaad_v9_6.prompt import (
@@ -263,12 +274,11 @@ def build_method(
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
         )
-    artifacts = TraceAADArtifacts(run_dir=run_dir)
     if spec.version == "v9_6":
         return TraceAADV96(
             llm=llm,
             evaluation=evaluation,
-            profiler=artifacts,
+            artifacts=V96RunArtifacts(run_dir=run_dir),
             evaluator_call_budget=spec.budget,
             initial_root_count=spec.n_init,
             code_max_tokens=spec.llm_output_tokens,
@@ -283,7 +293,7 @@ def build_method(
         return TraceAADV95(
             llm=llm,
             evaluation=evaluation,
-            profiler=artifacts,
+            artifacts=V95RunArtifacts(run_dir=run_dir),
             candidate_search_budget=spec.budget,
             initial_root_count=spec.n_init,
             code_max_tokens=spec.llm_output_tokens,
@@ -308,8 +318,9 @@ def build_method(
     }
     if spec.version in {"v8", "v9"}:
         method_type = TraceAADV8 if spec.version == "v8" else TraceAADV9
+        artifacts_type = V8RunArtifacts if spec.version == "v8" else V9RunArtifacts
         return method_type(
-            profiler=artifacts,
+            artifacts=artifacts_type(run_dir=run_dir),
             ancestor_history_limit=8,
             direct_child_limit=8,
             direct_child_top_count=4,
@@ -330,13 +341,13 @@ def build_method(
     }
     if spec.version == "v4":
         return TraceAADV4(
-            profiler=artifacts,
+            artifacts=V4RunArtifacts(run_dir=run_dir),
             value_weights=V4ValueWeights(),
             **population_common,
             **common,
         )
     return TraceAADV5(
-        profiler=artifacts,
+        artifacts=V5RunArtifacts(run_dir=run_dir),
         value_weights=V5ValueWeights(),
         elite_count=3,
         action_max_tokens=spec.action_max_tokens,
