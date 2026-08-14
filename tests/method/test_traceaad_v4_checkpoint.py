@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from llm4ad.base import Evaluation, LLM
-from llm4ad.method.traceaad_v4 import TraceAADV4, TraceAADProfiler
+from llm4ad.method.traceaad_v4 import RunArtifacts, TraceAADV4
 
 TEMPLATE = """def choose(value: int) -> int:
     return value
@@ -58,10 +58,10 @@ def _method(
     return TraceAADV4(
         llm=llm or CheckpointLLM(),
         evaluation=CheckpointEvaluation(),
-        profiler=(
+        artifacts=(
             None
             if run_dir is None
-            else TraceAADProfiler(run_dir=run_dir)
+            else RunArtifacts(run_dir=run_dir)
         ),
         max_sample_nums=budget,
         n_init=2,
@@ -167,7 +167,7 @@ def test_resume_continues_profiler_sample_numbers(tmp_path: Path) -> None:
     )
     resumed.run()
 
-    assert resumed._profiler._num_samples == 6
+    assert resumed._artifacts._num_samples == 6
     candidates_path = tmp_path / "artifacts" / "candidates.jsonl"
     assert candidates_path.is_file()
     sample_orders = []

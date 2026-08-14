@@ -61,7 +61,7 @@ def run_smoke():
     llm = FakeLLM()
     ev = FakeEvaluation()
     method = TraceAADV4(
-        llm=llm, evaluation=ev, profiler=None,
+        llm=llm, evaluation=ev,
         max_sample_nums=14, n_init=3, actions_per_iteration=2,
         max_active_trajectories=10, maximize=True,
     )

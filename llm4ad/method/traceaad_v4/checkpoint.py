@@ -183,22 +183,14 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     best_id = payload.get("best_node_id")
     method._best_node = None if best_id is None else graph.get_node(int(best_id))
     method._best_trajectory_id = payload.get("best_trajectory_id")
-    artifacts = getattr(method, "_artifacts", None) or getattr(method, "_profiler", None)
-    if artifacts is not None and hasattr(artifacts, "sync_after_resume"):
+    artifacts = method._artifacts
+    if artifacts is not None:
         best = method._best_node
         artifacts.sync_after_resume(
             total_samples=method._tot_sample_nums,
             best_score=None if best is None else best.fitness,
             best_sample_order=getattr(method, "_best_node_sample_order", None),
         )
-    elif artifacts is not None and hasattr(artifacts, "_num_samples"):
-        artifacts._num_samples = method._tot_sample_nums
-        best = method._best_node
-        if best is not None and best.fitness is not None:
-            artifacts._best_score = best.fitness
-            artifacts._best_sample_order = getattr(
-                method, "_best_node_sample_order", None
-            )
 
 
 def find_latest_checkpoint(path: str | Path) -> Path:
