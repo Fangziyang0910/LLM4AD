@@ -1,11 +1,12 @@
 """TraceAAD V9.7: route-then-anchor allocation with Refine/Explore intents.
 
-Differences from V9.6 are exactly two: budget allocation becomes two-level
-(route first, then anchor within the route; see ``selection.py``) and the
+Differences from V9.6 are three: budget allocation becomes two-level
+(route first, then anchor within the route; see ``selection.py``); the
 single free-form generation instruction becomes two fixed-probability
-generation intents (Refine 0.7 / Explore 0.3; see ``prompt.py``). The
-history context (selection and rendering), initialization, output contract,
-budget unit, and checkpoint structure are unchanged from V9.6.
+generation intents (Refine 0.7 / Explore 0.3; see ``prompt.py``); and the
+default history is the parent improvement path only, without direct
+attempts (see ``history.py``). Initialization, output contract, budget
+unit, and checkpoint structure are unchanged from V9.6.
 """
 
 from __future__ import annotations
@@ -585,9 +586,8 @@ class TraceAADV97:
             anchor_state_id=state_id,
             intent=intent.value,
             formation_pool_ids=selection.formation_pool_ids,
-            direct_pool_ids=selection.direct_pool_ids,
             selected_formation_ids=selection.formation_event_ids,
-            selected_direct_ids=selection.direct_event_ids,
+            omitted_direct_attempt_ids=self._forest.direct_attempt_ids(state_id),
             shown_event_ids=shown.event_ids,
             dropped_for_context=len(selection.event_ids) - len(shown.event_ids),
             prompt_tokens=self._count_prompt_tokens(prompt),

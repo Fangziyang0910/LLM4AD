@@ -1,8 +1,8 @@
 """History-conditioned Idea + full Code protocol for V9.7.
 
 The output contract, root prompt, and response parsing are identical to
-V9.6; the anchor prompt keeps the V9.6 structure and history block and only
-swaps the instruction section by generation intent (Refine / Explore).
+V9.6. The history block is the parent improvement path only; the instruction
+section is swapped by generation intent (Refine / Explore).
 """
 
 from __future__ import annotations

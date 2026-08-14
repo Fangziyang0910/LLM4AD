@@ -8,11 +8,7 @@ from typing import Final, Literal
 
 PROTOCOL_ID: Final[str] = "traceaad-v9.7-route-refine-explore"
 
-# History selection and rendering are byte-identical to V9.6, so the policy
-# id keeps the V9.6 value on purpose: same string, same mechanism.
-HISTORY_SELECTOR_ID: Final[str] = (
-    "v96_recent_formation_fill_capped_improve_regress_direct_v1"
-)
+HISTORY_SELECTOR_ID: Final[str] = "v97_recent_parent_formation_path_v1"
 GENERATION_POLICY_ID: Final[str] = "v97_intent_refine_explore_optional_idea_full_code_v1"
 CANDIDATE_MULTIPLICITY_POLICY_ID: Final[str] = "v96_single_candidate_reselect_v1"
 BUDGET_POLICY_ID: Final[str] = (
