@@ -70,17 +70,19 @@ def _filter_scored(
     for record in data:
         if not isinstance(record, dict):
             continue
-        if not isinstance(record.get("score"), (int, float)):
+        # TraceAAD V9.7 records the same facts as ``child_fitness``/``order``.
+        score = record.get("score", record.get("child_fitness"))
+        if not isinstance(score, (int, float)):
             continue
         if "program" not in record and "code" not in record:
             continue
-        sample_order = record.get("sample_order")
+        sample_order = record.get("sample_order", record.get("order"))
         if max_sample_order is not None:
             if not isinstance(sample_order, int) or sample_order > max_sample_order:
                 continue
         if "program" not in record and isinstance(record.get("code"), str):
             record = {**record, "program": record["code"]}
-        out.append(record)
+        out.append({**record, "score": score, "sample_order": sample_order})
     return out
 
 

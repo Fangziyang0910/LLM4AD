@@ -225,7 +225,7 @@ def analyze_run(run_dir: Path) -> dict[str, Any]:
     if summary.get("status") != "finished":
         raise ValueError(f"run is not finished: {run_dir}")
     if int(summary.get("evaluator_call_count", -1)) != int(
-        params.get("evaluator_call_budget", -2)
+        params.get("evaluator_call_budget", params.get("budget"))
     ):
         raise ValueError(f"run did not reach its evaluator budget: {run_dir}")
 
@@ -268,16 +268,22 @@ def analyze_run(run_dir: Path) -> dict[str, Any]:
         if row["critical_multiplier"] is not None
     ]
     bootstrap_deltas = [float(value) for value in summary["bootstrap_deltas"]]
+    # Completed batches record the scale as ``optimism_scale``; newer runs as ``s``.
+    scale = summary.get("optimism_scale")
+    if scale is None:
+        scale = summary["s"]
     task = str(config["task"])
     return {
         "run_name": str(config.get("timestamp", run_dir.name)),
         "run_dir": str(run_dir.relative_to(REPO)),
         "task": task,
         "task_label": TASK_LABELS.get(task, task),
-        "repeat": int(config["repeat"]),
-        "history_selector_id": str(params.get("history_selector_id")),
+        "repeat": int(config.get("repeat") or 0),
+        "history_selector_id": str(
+            params.get("history_selector_id") or params.get("protocol_id")
+        ),
         "evaluator_calls": int(summary["evaluator_call_count"]),
-        "optimism_scale": float(summary["optimism_scale"]),
+        "optimism_scale": float(scale),
         "bootstrap_delta_count": len(bootstrap_deltas),
         "bootstrap_zero_delta_count": sum(value == 0.0 for value in bootstrap_deltas),
         "route": {
@@ -430,6 +436,8 @@ def render_markdown(result: dict[str, Any]) -> str:
         "| --- | ---: | ---: | ---: |",
     ]
     for task in ("TSP", "CVRP", "OP", "OBP"):
+        if task not in aggregate["tasks"]:
+            continue
         item = aggregate["tasks"][task]
         route = item["route"]
         anchor = item["anchor"]
