@@ -336,7 +336,7 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     method._initialization_complete = bool(payload["initialization_complete"])
     method._rng.setstate(_as_tuple(payload["rng_state"]))
     artifacts = method._artifacts
-    if artifacts is not None and hasattr(artifacts, "sync_after_resume"):
+    if artifacts is not None:
         artifacts.sync_after_resume(
             total_samples=method._tot_sample_nums,
             best_score=None if best is None else best.fitness,

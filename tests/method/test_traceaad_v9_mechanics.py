@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from llm4ad.base import Evaluation, LLM, TextFunctionProgramConverter
-from llm4ad.method.traceaad_artifacts import TraceAADArtifacts
+from llm4ad.method.traceaad_v9 import RunArtifacts
 from llm4ad.method.traceaad_v9 import TraceAADV9
 from llm4ad.method.traceaad_v9.checkpoint import dump_state, load_state, save_checkpoint
 from llm4ad.method.traceaad_v9.context import node_history, select_direct_children
@@ -450,7 +450,7 @@ def test_empty_tree_is_reported_as_stalled(tmp_path: Path) -> None:
     method = TraceAADV9(
         llm=ScriptedLLM(),
         evaluation=IncreasingEvaluation(),
-        profiler=TraceAADArtifacts(run_dir=tmp_path),
+        artifacts=RunArtifacts(run_dir=tmp_path),
         max_sample_nums=1,
         n_init=0,
         context_token_limit=24576,
@@ -465,7 +465,7 @@ def test_transport_failures_are_llm_call_artifacts(tmp_path: Path) -> None:
     method = TraceAADV9(
         llm=TransportFailureLLM(),
         evaluation=IncreasingEvaluation(),
-        profiler=TraceAADArtifacts(run_dir=tmp_path),
+        artifacts=RunArtifacts(run_dir=tmp_path),
         max_sample_nums=1,
         n_init=1,
         max_stalled_iterations=1,
@@ -488,11 +488,11 @@ def test_transport_failures_are_llm_call_artifacts(tmp_path: Path) -> None:
 
 
 def test_resume_artifact_counts_are_cumulative(tmp_path: Path) -> None:
-    first_artifacts = TraceAADArtifacts(run_dir=tmp_path)
+    first_artifacts = RunArtifacts(run_dir=tmp_path)
     first = TraceAADV9(
         llm=ScriptedLLM(),
         evaluation=IncreasingEvaluation(),
-        profiler=first_artifacts,
+        artifacts=first_artifacts,
         max_sample_nums=5,
         n_init=2,
         offspring_per_iteration=1,
@@ -511,7 +511,7 @@ def test_resume_artifact_counts_are_cumulative(tmp_path: Path) -> None:
     resumed = TraceAADV9(
         llm=ScriptedLLM(),
         evaluation=IncreasingEvaluation(),
-        profiler=TraceAADArtifacts(run_dir=tmp_path),
+        artifacts=RunArtifacts(run_dir=tmp_path),
         max_sample_nums=5,
         n_init=2,
         offspring_per_iteration=1,
@@ -676,7 +676,7 @@ def test_small_scripted_run_preserves_histories_and_has_no_population(
     method = TraceAADV9(
         llm=llm,
         evaluation=IncreasingEvaluation(),
-        profiler=TraceAADArtifacts(run_dir=tmp_path),
+        artifacts=RunArtifacts(run_dir=tmp_path),
         max_sample_nums=7,
         n_init=3,
         offspring_per_iteration=2,
