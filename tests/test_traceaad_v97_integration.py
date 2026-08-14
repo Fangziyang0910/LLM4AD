@@ -39,7 +39,7 @@ from llm4ad.method.traceaad_v9_7.selection import (
     score_routes,
     select_anchor,
 )
-from llm4ad.method.traceaad_v9_7.traceaad import draw_intent
+from llm4ad.method.traceaad_v9_7.traceaad import bootstrap_abs_delta, draw_intent
 
 V96_DIR = Path("llm4ad/method/traceaad_v9_6")
 V97_DIR = Path("llm4ad/method/traceaad_v9_7")
@@ -334,6 +334,12 @@ def test_v97_single_route_reduces_to_v96_anchor_rule() -> None:
 
     # child: 1.5 + 0.5/1 = 2.0; root: 1.0 + 0.5/2 = 1.25
     assert decision.state_id == state_ids[1]
+
+
+def test_v97_bootstrap_scale_includes_valid_zero_delta_child() -> None:
+    assert bootstrap_abs_delta(child_created=True, directed_delta=0.0) == 0.0
+    assert bootstrap_abs_delta(child_created=True, directed_delta=-1.25) == 1.25
+    assert bootstrap_abs_delta(child_created=False, directed_delta=0.0) is None
 
 
 # ---------------------------------------------------------------------------

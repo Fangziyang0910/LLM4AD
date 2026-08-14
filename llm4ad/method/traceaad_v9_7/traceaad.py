@@ -179,6 +179,20 @@ def draw_intent(generation_seed: int | None, iteration: int) -> GenerationIntent
     )
 
 
+def bootstrap_abs_delta(
+    *, child_created: bool, directed_delta: float | None
+) -> float | None:
+    """Return the scale observation for one finalized bootstrap transition.
+
+    Every valid transition that creates a child contributes, including an
+    evaluator-level plateau with directed_delta == 0.  Attempts that do not
+    create a child are not scale observations.
+    """
+    if not child_created or directed_delta is None:
+        return None
+    return abs(directed_delta)
+
+
 class TraceAADV97:
     """Run the complete V9.7 search forest lifecycle."""
 
@@ -490,6 +504,9 @@ class TraceAADV97:
             close_llm(self._llm)
 
     def _initialize(self) -> None:
+        # Root identity is evaluator-input code uniqueness only. Whether the
+        # K roots are structurally different algorithms is a process-analysis
+        # prerequisite for interpreting route allocation, not an online filter.
         while (
             len(self._forest.root_state_ids) < self._initial_root_count
             and self._has_budget()
@@ -537,6 +554,8 @@ class TraceAADV97:
             if self._bootstrap_deltas
             else 0.0
         )
+        # s is a Refine-bootstrap heuristic, not a scale matched to the
+        # 0.7/0.3 Refine/Explore mixture used in search.
         self._initialization_complete = True
         save_checkpoint(self)
         self._record_decision(
@@ -863,8 +882,12 @@ class TraceAADV97:
 
         if pending.stage_name == "bootstrap" and pending.anchor_state_id is not None:
             self._bootstrapped_root_ids.add(pending.anchor_state_id)
-            if child_state is not None and directed_delta is not None:
-                self._bootstrap_deltas.append(abs(directed_delta))
+            scale_observation = bootstrap_abs_delta(
+                child_created=child_state is not None,
+                directed_delta=directed_delta,
+            )
+            if scale_observation is not None:
+                self._bootstrap_deltas.append(scale_observation)
         if pending.stage_name == "search" and pending.iteration is not None:
             self._next_iteration = max(self._next_iteration, pending.iteration + 1)
 
@@ -1128,6 +1151,7 @@ __all__ = [
     "InfrastructureFailure",
     "TraceAADRunResult",
     "TraceAADV97",
+    "bootstrap_abs_delta",
     "draw_intent",
     "evaluation_contract_hash",
 ]

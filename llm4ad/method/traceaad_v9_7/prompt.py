@@ -1,8 +1,11 @@
 """History-conditioned Idea + full Code protocol for V9.7.
 
 The output contract, root prompt, and response parsing are identical to
-V9.6. The history block is the parent improvement path only; the instruction
-section is swapped by generation intent (Refine / Explore).
+V9.6. The history block is the parent improvement path only. Refine and
+Explore share that path and differ only in modification scale: Refine
+continues along the current design; Explore keeps an opportunity to leave
+it. This is a fixed exploration-exploitation mix, not a repair for
+history-induced conservatism.
 """
 
 from __future__ import annotations

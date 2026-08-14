@@ -1,12 +1,15 @@
 """Route-then-anchor optimistic allocation.
 
-Both levels use the same V9.6 formula ``q + s / sqrt(n + 1)``. The route
-level scores each initial-root lineage by its best directed fitness plus an
-optimism term that decays with the total generations already spent inside
-the route; the anchor level then applies the V9.6 anchor rule within the
-selected route. Anchor-level optimism prevents a single state from being
-over- or under-visited; route-level optimism prevents the budget from
-concentrating long-term on one initial branch.
+Both levels use the same V9.6 formula ``q + s / sqrt(n + 1)``. A route is
+the provenance set of all anchors descending from one initial root, not a
+semantic algorithm category. Selection is a hierarchical hard gate: the
+highest-scoring route is chosen first, and only then an anchor inside that
+route. This is a V9.7 design choice that makes H1 directly testable; it is
+not claimed to be the unique correct structure. Route-level optimism
+rebalances generation opportunities across initial sources; it does not
+claim that those sources correspond to different algorithmic ideas. The
+visit counts n and N count completed generation responses, not evaluator
+calls.
 """
 
 from __future__ import annotations
