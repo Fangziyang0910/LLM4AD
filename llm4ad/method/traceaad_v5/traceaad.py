@@ -17,14 +17,7 @@ from ...base import (
     SecureEvaluator,
     TextFunctionProgramConverter,
 )
-from .._observability import (
-    close_llm,
-    init_observability,
-    is_search_aborted,
-    record_sample_failure,
-    reset_sample_failures,
-)
-from ..traceaad_artifacts import TraceAADArtifacts
+from .artifacts import RunArtifacts
 from .checkpoint import load_checkpoint, save_checkpoint
 from .complexity import code_change_ratio, code_hash, nonempty_loc
 from .context import build_action_prompt, trajectory_history
@@ -53,6 +46,24 @@ from .value import (
     trajectory_sampling_distribution,
     weighted_choice,
 )
+
+
+def _note_sample_failure(method, exc: Exception, *, stage: str, **payload) -> None:
+    if method._debug_mode:
+        raise exc
+    method._consecutive_sample_failures += 1
+    artifacts = method._artifacts
+    if artifacts is not None:
+        artifacts.record_error(stage, exc, **payload)
+    if method._consecutive_sample_failures >= method._max_consecutive_sample_failures:
+        method._search_aborted = True
+        if artifacts is not None:
+            artifacts.record_decision(
+                "search_aborted",
+                reason="max_consecutive_sample_failures",
+                consecutive_failures=method._consecutive_sample_failures,
+                max_consecutive_failures=method._max_consecutive_sample_failures,
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,7 +100,7 @@ class TraceAADV5:
         self,
         llm: LLM,
         evaluation: Evaluation,
-        profiler: TraceAADArtifacts | None = None,
+        artifacts: RunArtifacts | None = None,
         max_sample_nums: int | None = 100,
         *,
         n_init: int = 30,
@@ -124,9 +135,7 @@ class TraceAADV5:
             raise ValueError("checkpoint_interval must be positive")
         self._llm = llm
         self._evaluation = evaluation
-        # Keep _profiler alias so shared failure helpers can duck-type artifacts.
-        self._artifacts = profiler
-        self._profiler = profiler
+        self._artifacts = artifacts
         self._task_description_str = evaluation.task_description
         self._max_sample_nums = max_sample_nums
         self._n_init = int(n_init)
@@ -176,7 +185,9 @@ class TraceAADV5:
         self._next_attempt_id = 0
         self._initialization_complete = False
 
-        init_observability(self, max_consecutive_sample_failures)
+        self._consecutive_sample_failures = 0
+        self._max_consecutive_sample_failures = max(1, int(max_consecutive_sample_failures))
+        self._search_aborted = False
         if resume_from is not None:
             checkpoint = load_checkpoint(self, resume_from)
             if self._checkpoint_dir is None:
@@ -202,7 +213,7 @@ class TraceAADV5:
                 if len(self._memory.trajectories()) >= self._n_init:
                     self._initialization_complete = True
                 save_checkpoint(self)
-            while self._has_budget() and not is_search_aborted(self):
+            while self._has_budget() and not self._search_aborted:
                 if not self._memory.active():
                     self._record_decision(
                         "search_stopped", status="no_active_trajectory"
@@ -236,7 +247,7 @@ class TraceAADV5:
             if len(self._memory.active()) >= self._management_threshold:
                 self._manage_population()
             result = self._result()
-            status = "aborted" if is_search_aborted(self) else "finished"
+            status = "aborted" if self._search_aborted else "finished"
             return result
         except Exception as exc:
             error = {
@@ -265,11 +276,11 @@ class TraceAADV5:
                     n_valid_nodes=result.n_valid_nodes,
                     n_edges=result.n_edges,
                     n_trajectories=result.n_trajectories,
-                    search_aborted=is_search_aborted(self),
+                    search_aborted=self._search_aborted,
                     **error,
                 )
                 self._artifacts.finish()
-            close_llm(self._llm)
+            self._llm.close()
 
     def _initialize(self) -> None:
         stalled_draws = 0
@@ -277,7 +288,7 @@ class TraceAADV5:
         while (
             len(self._memory.trajectories()) < self._n_init
             and self._has_budget()
-            and not is_search_aborted(self)
+            and not self._search_aborted
         ):
             prompt = build_initial_prompt(
                 task_description=self._task_description_str,
@@ -413,7 +424,7 @@ class TraceAADV5:
         base_node = self._graph.get_node(anchor_id)
         route_best_before = compact_best_node(selected, self._graph, self._maximize)
         for seq, action in enumerate(actions):
-            if not self._has_budget() or is_search_aborted(self):
+            if not self._has_budget() or self._search_aborted:
                 break
             code_prompt = build_code_prompt(
                 current_node=base_node,
@@ -636,9 +647,9 @@ class TraceAADV5:
                 max_tokens=self._action_max_tokens,
             )
             sample_time = time.time() - start
-            reset_sample_failures(self)
+            self._consecutive_sample_failures = 0
         except Exception as exc:
-            record_sample_failure(
+            _note_sample_failure(
                 self,
                 exc,
                 stage="action",
@@ -822,9 +833,9 @@ class TraceAADV5:
         try:
             response = self._llm.draw_sample(prompt)
             elapsed = time.time() - start
-            reset_sample_failures(self)
+            self._consecutive_sample_failures = 0
         except Exception as exc:
-            record_sample_failure(
+            _note_sample_failure(
                 self,
                 exc,
                 stage=stage,

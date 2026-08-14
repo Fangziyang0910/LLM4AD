@@ -471,14 +471,14 @@ def test_traceaad_v5_has_no_online_global_experience(tmp_path: Path) -> None:
 
 
 def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
-    from llm4ad.method.traceaad_v5 import TraceAADProfiler, TraceAADV5
+    from llm4ad.method.traceaad_v5 import RunArtifacts, TraceAADV5
     from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
 
     checkpoint_dir = tmp_path / "checkpoints"
     first = TraceAADV5(
         llm=V5MechanismLLM(),
         evaluation=IncreasingEvaluation(),
-        profiler=TraceAADProfiler(run_dir=tmp_path),
+        artifacts=RunArtifacts(run_dir=tmp_path),
         max_sample_nums=3,
         n_init=2,
         actions_per_iteration=1,
@@ -490,7 +490,7 @@ def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
     resumed = TraceAADV5(
         llm=V5MechanismLLM(),
         evaluation=IncreasingEvaluation(),
-        profiler=TraceAADProfiler(run_dir=tmp_path),
+        artifacts=RunArtifacts(run_dir=tmp_path),
         max_sample_nums=5,
         n_init=2,
         actions_per_iteration=1,
@@ -521,7 +521,7 @@ def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
 def test_traceaad_v5_writes_partial_summary_and_checkpoint_on_exception(
     tmp_path: Path,
 ) -> None:
-    from llm4ad.method.traceaad_v5 import TraceAADProfiler, TraceAADV5
+    from llm4ad.method.traceaad_v5 import RunArtifacts, TraceAADV5
 
     class BrokenLLM(LLM):
         def draw_sample(self, prompt, *args, **kwargs):
@@ -531,7 +531,7 @@ def test_traceaad_v5_writes_partial_summary_and_checkpoint_on_exception(
     method = TraceAADV5(
         llm=BrokenLLM(),
         evaluation=IncreasingEvaluation(),
-        profiler=TraceAADProfiler(run_dir=tmp_path),
+        artifacts=RunArtifacts(run_dir=tmp_path),
         max_sample_nums=2,
         n_init=1,
         debug_mode=True,
@@ -1117,12 +1117,12 @@ def test_traceaad_v5_accepts_small_top_level_helper_functions(
 
 
 def test_traceaad_v5_logs_structured_evaluation_failures(tmp_path: Path) -> None:
-    from llm4ad.method.traceaad_v5 import TraceAADProfiler, TraceAADV5
+    from llm4ad.method.traceaad_v5 import RunArtifacts, TraceAADV5
 
     TraceAADV5(
         llm=RuntimeFailureLLM(),
         evaluation=ExecutingEvaluation(),
-        profiler=TraceAADProfiler(run_dir=tmp_path),
+        artifacts=RunArtifacts(run_dir=tmp_path),
         max_sample_nums=1,
         n_init=1,
         checkpoint_dir=tmp_path / "checkpoints",

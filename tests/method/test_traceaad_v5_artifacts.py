@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 
 from llm4ad.base import Evaluation, LLM
-from llm4ad.method.traceaad_artifacts import _RESPONSE_TRUNCATE
-from llm4ad.method.traceaad_v5 import TraceAADProfiler, TraceAADV5, TraceAADV5Artifacts
+from llm4ad.method.traceaad_v5 import RunArtifacts, TraceAADV5
+from llm4ad.method.traceaad_v5.artifacts import _RESPONSE_TRUNCATE
 from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
 
 
@@ -118,7 +118,7 @@ def _run_short_search(tmp_path: Path, *, max_sample_nums: int = 4):
     return TraceAADV5(
         llm=_ScriptedLLM(),
         evaluation=_IncreasingEvaluation(),
-        profiler=TraceAADProfiler(run_dir=tmp_path),
+        artifacts=RunArtifacts(run_dir=tmp_path),
         max_sample_nums=max_sample_nums,
         n_init=2,
         actions_per_iteration=1,
@@ -250,7 +250,7 @@ def test_failed_llm_call_stores_truncated_response_without_prompt(
     TraceAADV5(
         llm=ParseFailCodeLLM(),
         evaluation=_IncreasingEvaluation(),
-        profiler=TraceAADProfiler(run_dir=tmp_path),
+        artifacts=RunArtifacts(run_dir=tmp_path),
         max_sample_nums=3,
         n_init=1,
         actions_per_iteration=1,
@@ -293,7 +293,7 @@ def test_checkpoint_has_search_state_only_and_resumes(tmp_path: Path) -> None:
     first = TraceAADV5(
         llm=_ScriptedLLM(),
         evaluation=_IncreasingEvaluation(),
-        profiler=TraceAADProfiler(run_dir=tmp_path),
+        artifacts=RunArtifacts(run_dir=tmp_path),
         max_sample_nums=3,
         n_init=2,
         actions_per_iteration=1,
@@ -312,7 +312,7 @@ def test_checkpoint_has_search_state_only_and_resumes(tmp_path: Path) -> None:
     resumed = TraceAADV5(
         llm=_ScriptedLLM(),
         evaluation=_IncreasingEvaluation(),
-        profiler=TraceAADProfiler(run_dir=tmp_path),
+        artifacts=RunArtifacts(run_dir=tmp_path),
         max_sample_nums=5,
         n_init=2,
         actions_per_iteration=1,
@@ -331,7 +331,7 @@ def test_checkpoint_has_search_state_only_and_resumes(tmp_path: Path) -> None:
 
 
 def test_artifacts_unit_llm_meta_strips_success_bodies(tmp_path: Path) -> None:
-    sink = TraceAADV5Artifacts(run_dir=tmp_path)
+    sink = RunArtifacts(run_dir=tmp_path)
     sink.record_llm_call(
         stage="action",
         operator="trace_ideate",
@@ -366,7 +366,7 @@ def test_runner_v5_wires_run_dir_artifacts_and_checkpoint_paths(
         experiments_root=tmp_path,
     )
     method = run.build_method(spec, tmp_path / "one_run")
-    assert isinstance(method._artifacts, TraceAADV5Artifacts)
+    assert isinstance(method._artifacts, RunArtifacts)
     assert method._checkpoint_dir == tmp_path / "one_run" / "checkpoints"
     assert method._artifacts._log_dir == tmp_path / "one_run" / "logs"
     assert method._artifacts._artifacts_dir == tmp_path / "one_run" / "artifacts"
@@ -444,7 +444,7 @@ def test_eval_failure_lands_in_candidates_not_method_events(tmp_path: Path) -> N
     TraceAADV5(
         llm=RuntimeFailureLLM(),
         evaluation=ExecutingEvaluation(),
-        profiler=TraceAADProfiler(run_dir=tmp_path),
+        artifacts=RunArtifacts(run_dir=tmp_path),
         max_sample_nums=1,
         n_init=1,
         checkpoint_dir=tmp_path / "checkpoints",

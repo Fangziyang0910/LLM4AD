@@ -165,20 +165,14 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     best_route = payload["best_trajectory_id"]
     method._best_trajectory_id = None if best_route is None else int(best_route)
     method._rng.setstate(_as_tuple(payload["rng_state"]))
-    artifacts = getattr(method, "_artifacts", None) or getattr(method, "_profiler", None)
-    if artifacts is not None and hasattr(artifacts, "sync_after_resume"):
+    artifacts = method._artifacts
+    if artifacts is not None:
         best = method._best_node
         artifacts.sync_after_resume(
             total_samples=method._tot_sample_nums,
             best_score=None if best is None else best.fitness,
             best_sample_order=method._best_node_sample_order,
         )
-    elif artifacts is not None and hasattr(artifacts, "_num_samples"):
-        artifacts._num_samples = method._tot_sample_nums
-        best = method._best_node
-        if best is not None and best.fitness is not None:
-            artifacts._best_score = best.fitness
-            artifacts._best_sample_order = method._best_node_sample_order
 
 
 def _as_tuple(value):
