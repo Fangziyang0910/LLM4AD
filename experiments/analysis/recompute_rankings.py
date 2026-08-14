@@ -51,7 +51,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V8.3": ["traceaad_v8_3/eval_best_20260805_final"],
         "V9": ["traceaad_v9/version9/eval_best_20260807_123753"],
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
-        "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
+        "V9.7": ["traceaad_v9_7/eval_best_20260814_1020"],
     },
     "cvrp_aco": {
         "MCTS-AHD": ["mcts_ahd/eval_20260712_all3", "mcts_ahd/eval_best_20260804_test200"],
@@ -68,6 +68,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V8.3": ["traceaad_v8_3/eval_best_20260805_final", "traceaad_v8_3/eval_best_20260804_test200"],
         "V9": ["traceaad_v9/version9/eval_best_20260807_123753", "traceaad_v9/version9/eval_best_20260804_test200"],
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
+        "V9.7": ["traceaad_v9_7/eval_best_20260814_1020"],
     },
     "op_aco": {
         "MCTS-AHD": ["mcts_ahd/eval_best_20260725_104402"],
@@ -84,6 +85,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V8.3": ["traceaad_v8_3/eval_best_20260805_final"],
         "V9": ["traceaad_v9/version9/eval_best_20260807_123753"],
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
+        "V9.7": ["traceaad_v9_7/eval_best_20260814_1020"],
     },
     "online_bin_packing": {
         "MCTS-AHD": ["mcts_ahd/eval_best_20260726_111852"],
@@ -100,6 +102,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V8.3": ["traceaad_v8_3/eval_best_20260805_final"],
         "V9": ["traceaad_v9/version9/eval_best_20260807_123753"],
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
+        "V9.7": ["traceaad_v9_7/eval_best_20260814_1020"],
     },
 }
 
@@ -117,6 +120,7 @@ OFFICIAL = [
     "V8.3",
     "V9",
     "V9.6",
+    "V9.7",
     "EoH",
     "ReEvo",
     "CALM",
@@ -208,7 +212,7 @@ def main() -> None:
 
     print("\n=== 2. 单版本上场（5 方法同场）===")
     print(f"{'版本':<6s} {'平均名次':>8s} {'5方法中':>6s} {'名次差':>7s} {'相对基线优势':>10s}")
-    for v in ["V4", "V5", "V6", "V7", "V8", "V8.2", "V8.3", "V9", "V9.6"]:
+    for v in ["V4", "V5", "V6", "V7", "V8", "V8.2", "V8.3", "V9", "V9.6", "V9.7"]:
         field = [v] + BASELINES
         rs = {m: 0.0 for m in field}
         for j in range(n_scales):
