@@ -16,7 +16,11 @@ from llm4ad.method.traceaad_v9_7.checkpoint import (
     _forest_to_dict,
 )
 from llm4ad.method.traceaad_v9_7.forest import SearchForest
-from llm4ad.method.traceaad_v9_7.history import render_history, select_history
+from llm4ad.method.traceaad_v9_7.history import (
+    drop_oldest_event,
+    render_history,
+    select_history,
+)
 from llm4ad.method.traceaad_v9_7.prompt import (
     INTENT_INSTRUCTIONS,
     build_generation_prompt,
@@ -143,24 +147,104 @@ def _add_route(
 
 
 # ---------------------------------------------------------------------------
-# History freeze: byte-identical to V9.6
+# History: parent improvement path only
 # ---------------------------------------------------------------------------
 
 
-def test_v97_history_and_source_are_byte_identical_to_v96() -> None:
-    for name in ("history.py", "source.py"):
-        assert (V97_DIR / name).read_bytes() == (V96_DIR / name).read_bytes(), (
-            f"{name} must stay byte-identical to V9.6 (design: 历史一字不动)"
+def test_v97_source_is_byte_identical_to_v96() -> None:
+    assert (V97_DIR / "source.py").read_bytes() == (V96_DIR / "source.py").read_bytes()
+
+
+def _add_direct(
+    forest: SearchForest,
+    anchor_state_id: int,
+    *,
+    order: int,
+    outcome: DirectOutcome,
+    idea: str,
+    code_hash: str | None,
+) -> int:
+    attempt_id = forest.next_attempt_id()
+    forest.add_attempt(
+        _attempt(
+            attempt_id,
+            anchor_state_id=anchor_state_id,
+            candidate_order=order,
+            outcome=outcome,
+            idea=idea,
+            code_hash=code_hash,
         )
+    )
+    return attempt_id
 
 
-def test_v97_history_selection_still_renders_through_v97_modules() -> None:
+def test_v97_history_shows_parent_path_and_omits_direct_attempts() -> None:
+    forest = SearchForest("contract", maximize=True)
+    state_ids = _add_route(forest, root_fitness=1.0, creation_order=1, chain=(1.1, 1.2))
+    leaf = state_ids[-1]
+    _add_direct(
+        forest,
+        leaf,
+        order=50,
+        outcome=DirectOutcome.IMPROVE,
+        idea="direct improve",
+        code_hash="direct_improve",
+    )
+    _add_direct(
+        forest,
+        leaf,
+        order=51,
+        outcome=DirectOutcome.REGRESS,
+        idea="direct regress",
+        code_hash="direct_regress",
+    )
+
+    selection = select_history(forest, leaf)
+    text = render_history(forest, selection)
+
+    assert selection.event_ids == selection.formation_event_ids
+    assert len(selection.event_ids) == 2
+    assert forest.direct_attempt_ids(leaf)  # facts still exist
+    assert "direct improve" not in text
+    assert "direct regress" not in text
+    assert "Attempt from current algorithm" not in text
+    assert text.count("[History ") == 2
+    assert "[History 1] Formation step" in text
+    assert "[History 2] Formation step" in text
+    assert "Idea: step 1" in text
+    assert "Idea: step 2" in text
+
+
+def test_v97_history_keeps_the_most_recent_eight_formation_steps() -> None:
+    forest = SearchForest("contract", maximize=True)
+    chain = tuple(1.0 + index / 10 for index in range(1, 11))
+    state_ids = _add_route(forest, root_fitness=1.0, creation_order=1, chain=chain)
+    selection = select_history(forest, state_ids[-1])
+
+    assert len(selection.formation_pool_ids) == 10
+    assert len(selection.event_ids) == 8
+    assert selection.event_ids == selection.formation_pool_ids[-8:]
+
+
+def test_v97_history_renders_absence_at_root() -> None:
+    forest = SearchForest("contract", maximize=True)
+    state_ids = _add_route(forest, root_fitness=1.0, creation_order=1)
+    selection = select_history(forest, state_ids[0])
+
+    assert selection.event_ids == ()
+    text = render_history(forest, selection)
+    assert "No history events are shown for this algorithm." in text
+
+
+def test_v97_drop_oldest_event_shrinks_parent_path_for_context() -> None:
     forest = SearchForest("contract", maximize=True)
     state_ids = _add_route(forest, root_fitness=1.0, creation_order=1, chain=(1.1, 1.2))
     selection = select_history(forest, state_ids[-1])
-    text = render_history(forest, selection)
-    assert text.count("[History ") == 2
-    assert "Formation step" in text
+    shrunk = drop_oldest_event(selection)
+
+    assert len(selection.event_ids) == 2
+    assert shrunk.event_ids == selection.event_ids[1:]
+    assert shrunk.formation_event_ids == selection.formation_event_ids[1:]
 
 
 # ---------------------------------------------------------------------------
@@ -367,6 +451,9 @@ def test_v97_runner_builds_complete_frozen_method(tmp_path: Path) -> None:
     assert method.search_configuration()["budget_unit"] == "real_evaluator_call"
     assert method.search_configuration()["refine_probability"] == 0.7
     assert method.search_configuration()["explore_probability"] == pytest.approx(0.3)
+    assert method.search_configuration()["history_selector_id"] == (
+        "v97_recent_parent_formation_path_v1"
+    )
 
     # Budget counts real evaluator calls, not completed responses.
     method._candidate_count = 5000
