@@ -24,66 +24,6 @@ from llm4ad.method.traceaad_v9 import (
     TraceAADV9,
 )
 from llm4ad.method.traceaad_v9.operators import DEFAULT_OPERATORS as V9_OPERATORS
-from llm4ad.method.traceaad_v9_1 import (
-    CHECKPOINT_VERSION as V91_CHECKPOINT_VERSION,
-    PROTOCOL_ID as V91_PROTOCOL_ID,
-    TraceAADV91,
-)
-from llm4ad.method.traceaad_v9_1.operators import DEFAULT_OPERATORS as V91_OPERATORS
-from llm4ad.method.traceaad_v9_2 import (
-    CHECKPOINT_VERSION as V92_CHECKPOINT_VERSION,
-    PROTOCOL_ID as V92_PROTOCOL_ID,
-    TraceAADV92,
-)
-from llm4ad.method.traceaad_v9_2.schema import GENERATION_OPERATOR as V92_OPERATOR
-from llm4ad.method.traceaad_v9_2.traceaad import (
-    DOWNSTREAM_DEPTH as V92_DOWNSTREAM_DEPTH,
-    DOWNSTREAM_QUOTA as V92_DOWNSTREAM_QUOTA,
-    FORMATION_QUOTA as V92_FORMATION_QUOTA,
-    INITIAL_ANCHOR_COUNT as V92_INITIAL_ANCHOR_COUNT,
-    INITIAL_ROUTE_POOL_SIZE as V92_INITIAL_ROUTE_POOL_SIZE,
-    QUALITY_POOL_SIZE as V92_QUALITY_POOL_SIZE,
-    WINDOW_SIZE as V92_WINDOW_SIZE,
-)
-from llm4ad.method.traceaad_v9_3 import (
-    CHECKPOINT_VERSION as V93_CHECKPOINT_VERSION,
-    PROTOCOL_ID as V93_PROTOCOL_ID,
-    TraceAADV93,
-)
-from llm4ad.method.traceaad_v9_3.schema import GENERATION_OPERATOR as V93_OPERATOR
-from llm4ad.method.traceaad_v9_3.traceaad import (
-    DOWNSTREAM_DEPTH as V93_DOWNSTREAM_DEPTH,
-    DOWNSTREAM_QUOTA as V93_DOWNSTREAM_QUOTA,
-    FORMATION_QUOTA as V93_FORMATION_QUOTA,
-    INITIAL_ANCHOR_COUNT as V93_INITIAL_ANCHOR_COUNT,
-    INITIAL_ROUTE_POOL_SIZE as V93_INITIAL_ROUTE_POOL_SIZE,
-    QUALITY_POOL_SIZE as V93_QUALITY_POOL_SIZE,
-    ROLLOUT_LENGTH as V93_ROLLOUT_LENGTH,
-    TRAJECTORY_DECISION_OPERATOR as V93_DECISION_OPERATOR,
-    WINDOW_SIZE as V93_WINDOW_SIZE,
-)
-from llm4ad.method.traceaad_v9_4 import (
-    CHECKPOINT_VERSION as V94_CHECKPOINT_VERSION,
-    PROTOCOL_ID as V94_PROTOCOL_ID,
-    TraceAADV94,
-)
-from llm4ad.method.traceaad_v9_4.schema import GENERATION_OPERATOR as V94_OPERATOR
-from llm4ad.method.traceaad_v9_4.traceaad import (
-    DOWNSTREAM_DEPTH as V94_DOWNSTREAM_DEPTH,
-    DOWNSTREAM_QUOTA as V94_DOWNSTREAM_QUOTA,
-    FORMATION_QUOTA as V94_FORMATION_QUOTA,
-    INITIAL_ANCHOR_COUNT as V94_INITIAL_ANCHOR_COUNT,
-    INITIAL_ROUTE_POOL_SIZE as V94_INITIAL_ROUTE_POOL_SIZE,
-    QUALITY_POOL_SIZE as V94_QUALITY_POOL_SIZE,
-    WINDOW_SIZE as V94_WINDOW_SIZE,
-)
-from llm4ad.method.traceaad_v9_4.tree import (
-    TRAJECTORY_CREDIT_DEPTH as V94_TRAJECTORY_CREDIT_DEPTH,
-    TRAJECTORY_CREDIT_DISCOUNT as V94_TRAJECTORY_CREDIT_DISCOUNT,
-)
-from llm4ad.method.traceaad_v9_4.value import (
-    QUALITY_EXPLORATION_INTERVAL as V94_QUALITY_EXPLORATION_INTERVAL,
-)
 from llm4ad.method.traceaad_v9_5 import (
     CHECKPOINT_VERSION as V95_CHECKPOINT_VERSION,
     PROTOCOL_ID as V95_PROTOCOL_ID,
@@ -141,32 +81,13 @@ from llm4ad.method.traceaad_v9_6.traceaad import (
 )
 from llm4ad.method.traceaad_v9_7 import (
     CHECKPOINT_VERSION as V97_CHECKPOINT_VERSION,
-    PROTOCOL_ID as V97_PROTOCOL_ID,
-    TraceAADV97,
-)
-from llm4ad.method.traceaad_v9_7.prompt import (
-    PROMPT_RENDERER_VERSION as V97_PROMPT_RENDERER_VERSION,
-    prompt_renderer_hash as v97_prompt_renderer_hash,
-)
-from llm4ad.method.traceaad_v9_7.schema import (
-    BUDGET_POLICY_ID as V97_BUDGET_POLICY_ID,
-    CANDIDATE_ACCOUNTING_POLICY_ID as V97_CANDIDATE_ACCOUNTING_POLICY_ID,
-    CANDIDATE_MULTIPLICITY_POLICY_ID as V97_CANDIDATE_MULTIPLICITY_POLICY_ID,
-    GENERATION_POLICY_ID as V97_GENERATION_POLICY_ID,
-    HISTORY_SELECTOR_ID as V97_HISTORY_SELECTOR_ID,
-    INITIALIZATION_POLICY_ID as V97_INITIALIZATION_POLICY_ID,
-    INTENT_POLICY_ID as V97_INTENT_POLICY_ID,
-    NORMALIZATION_POLICY_ID as V97_NORMALIZATION_POLICY_ID,
-    OPTIMISM_SCALE_POLICY_ID as V97_OPTIMISM_SCALE_POLICY_ID,
-    REFINE_PROBABILITY as V97_REFINE_PROBABILITY,
-    STATE_IDENTITY_POLICY_ID as V97_STATE_IDENTITY_POLICY_ID,
-    STOP_POLICY_ID as V97_STOP_POLICY_ID,
-)
-from llm4ad.method.traceaad_v9_7.traceaad import (
     INITIAL_ROOT_COUNT as V97_INITIAL_ROOT_COUNT,
     LOGICAL_MODEL_NAME as V97_LOGICAL_MODEL_NAME,
     MAX_HISTORY_EVENTS as V97_MAX_HISTORY_EVENTS,
-    evaluation_contract_hash as v97_evaluation_contract_hash,
+    PROTOCOL_ID as V97_PROTOCOL_ID,
+    REFINE_PROBABILITY as V97_REFINE_PROBABILITY,
+    RunArtifacts as V97RunArtifacts,
+    TraceAADV97,
 )
 
 from .._common import (
@@ -183,26 +104,19 @@ from .._common import (
     write_run_config as write_run_config_file,
 )
 
-VersionName = Literal[
-    "v4", "v5", "v8", "v9", "v9_1", "v9_2", "v9_3", "v9_4", "v9_5", "v9_6", "v9_7"
-]
+VersionName = Literal["v4", "v5", "v8", "v9", "v9_5", "v9_6", "v9_7"]
 
 VERSIONS: tuple[VersionName, ...] = (
     "v4",
     "v5",
     "v8",
     "v9",
-    "v9_1",
-    "v9_2",
-    "v9_3",
-    "v9_4",
     "v9_5",
     "v9_6",
     "v9_7",
 )
 V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
 V9_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V9_OPERATORS]
-V91_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V91_OPERATORS]
 V95_TOTAL_CONTEXT_TOKENS = 32768
 
 
@@ -277,14 +191,6 @@ def make_run_spec(
             if version == "v9_6"
             else V95_INITIAL_ROOT_COUNT
             if version == "v9_5"
-            else V94_INITIAL_ROUTE_POOL_SIZE
-            if version == "v9_4"
-            else V93_INITIAL_ROUTE_POOL_SIZE
-            if version == "v9_3"
-            else V92_INITIAL_ROUTE_POOL_SIZE
-            if version == "v9_2"
-            else 4
-            if version == "v9_1"
             else 10
             if version in {"v8", "v9"}
             else 30
@@ -311,12 +217,6 @@ def make_run_spec(
         raise ValueError("budget must be positive")
     if spec.n_init <= 0:
         raise ValueError("n_init must be positive")
-    if spec.version == "v9_2" and spec.n_init != V92_INITIAL_ROUTE_POOL_SIZE:
-        raise ValueError("TraceAAD V9.2 requires exactly eight initial routes")
-    if spec.version == "v9_3" and spec.n_init != V93_INITIAL_ROUTE_POOL_SIZE:
-        raise ValueError("TraceAAD V9.3 requires exactly eight initial routes")
-    if spec.version == "v9_4" and spec.n_init != V94_INITIAL_ROUTE_POOL_SIZE:
-        raise ValueError("TraceAAD V9.4 requires exactly eight initial routes")
     if spec.version == "v9_5" and spec.n_init != V95_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.5 requires exactly eight initial roots")
     if spec.version == "v9_6" and spec.n_init != V96_INITIAL_ROOT_COUNT:
@@ -349,22 +249,21 @@ def build_method(
         max_tokens=spec.llm_output_tokens,
         temperature=1.0,
     )
-    artifacts = TraceAADArtifacts(run_dir=run_dir)
     if spec.version == "v9_7":
         return TraceAADV97(
             llm=llm,
             evaluation=evaluation,
-            profiler=artifacts,
-            evaluator_call_budget=spec.budget,
-            initial_root_count=spec.n_init,
-            code_max_tokens=spec.llm_output_tokens,
-            context_token_limit=spec.context_token_limit,
-            max_history_events=V97_MAX_HISTORY_EVENTS,
-            transport_retry_limit=3,
-            generation_seed=spec.seed,
+            artifacts=V97RunArtifacts(run_dir=run_dir),
+            budget=spec.budget,
+            n_roots=spec.n_init,
+            max_tokens=spec.llm_output_tokens,
+            context_limit=spec.context_token_limit,
+            max_history=V97_MAX_HISTORY_EVENTS,
+            seed=spec.seed,
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
         )
+    artifacts = TraceAADArtifacts(run_dir=run_dir)
     if spec.version == "v9_6":
         return TraceAADV96(
             llm=llm,
@@ -396,51 +295,6 @@ def build_method(
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
         )
-    if spec.version == "v9_4":
-        return TraceAADV94(
-            llm=llm,
-            evaluation=evaluation,
-            profiler=artifacts,
-            max_sample_nums=spec.budget,
-            initial_route_pool_size=spec.n_init,
-            initial_anchor_count=V94_INITIAL_ANCHOR_COUNT,
-            code_max_tokens=spec.llm_output_tokens,
-            context_token_limit=spec.context_token_limit,
-            max_consecutive_sample_failures=20,
-            checkpoint_interval=10,
-            resume_from=resume_from,
-            checkpoint_dir=run_dir / "checkpoints",
-        )
-    if spec.version == "v9_3":
-        return TraceAADV93(
-            llm=llm,
-            evaluation=evaluation,
-            profiler=artifacts,
-            max_sample_nums=spec.budget,
-            initial_route_pool_size=spec.n_init,
-            initial_anchor_count=V93_INITIAL_ANCHOR_COUNT,
-            code_max_tokens=spec.llm_output_tokens,
-            context_token_limit=spec.context_token_limit,
-            max_consecutive_sample_failures=20,
-            checkpoint_interval=10,
-            resume_from=resume_from,
-            checkpoint_dir=run_dir / "checkpoints",
-        )
-    if spec.version == "v9_2":
-        return TraceAADV92(
-            llm=llm,
-            evaluation=evaluation,
-            profiler=artifacts,
-            max_sample_nums=spec.budget,
-            initial_route_pool_size=spec.n_init,
-            initial_anchor_count=V92_INITIAL_ANCHOR_COUNT,
-            code_max_tokens=spec.llm_output_tokens,
-            context_token_limit=spec.context_token_limit,
-            max_consecutive_sample_failures=20,
-            checkpoint_interval=10,
-            resume_from=resume_from,
-            checkpoint_dir=run_dir / "checkpoints",
-        )
     common = {
         "llm": llm,
         "evaluation": evaluation,
@@ -452,40 +306,20 @@ def build_method(
         "resume_from": resume_from,
         "checkpoint_dir": run_dir / "checkpoints",
     }
-    if spec.version in {"v8", "v9", "v9_1"}:
-        method_type = (
-            TraceAADV8
-            if spec.version == "v8"
-            else TraceAADV9
-            if spec.version == "v9"
-            else TraceAADV91
-        )
-        tree_kwargs = {
-            "ancestor_history_limit": 8,
-            "direct_child_limit": 8,
-            "direct_child_top_count": 4,
-            "code_max_tokens": spec.llm_output_tokens,
-            "context_token_limit": spec.context_token_limit,
-            "random_seed": spec.seed,
-        }
-        if spec.version == "v9_1":
-            tree_kwargs.update(
-                verification_batch_size=2,
-                quality_pool_size=10,
-                trajectory_confidence_z=1.0,
-                trajectory_recent_window=4,
-                reference_pool_size=4,
-            )
-        else:
-            tree_kwargs.update(
-                offspring_per_iteration=2,
-                reference_temperature=0.2,
-                exploration_constant=0.1,
-                expansion_prior_weight=1.0,
-            )
+    if spec.version in {"v8", "v9"}:
+        method_type = TraceAADV8 if spec.version == "v8" else TraceAADV9
         return method_type(
             profiler=artifacts,
-            **tree_kwargs,
+            ancestor_history_limit=8,
+            direct_child_limit=8,
+            direct_child_top_count=4,
+            code_max_tokens=spec.llm_output_tokens,
+            context_token_limit=spec.context_token_limit,
+            random_seed=spec.seed,
+            offspring_per_iteration=2,
+            reference_temperature=0.2,
+            exploration_constant=0.1,
+            expansion_prior_weight=1.0,
             **common,
         )
     population_common = {
@@ -533,24 +367,18 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     if actual != expected:
         raise ValueError(f"resume config mismatch: expected {expected}, found {actual}")
     if spec.version not in {
-        "v8", "v9", "v9_1", "v9_2", "v9_3", "v9_4", "v9_5", "v9_6", "v9_7"
+        "v8", "v9", "v9_5", "v9_6", "v9_7"
     }:
         return
     _, task_kwargs = build_task(spec.task, spec.eval_workers)
     normalized_task_kwargs = json.loads(json.dumps(task_kwargs, sort_keys=True))
-    if spec.version in {"v9_2", "v9_3", "v9_4", "v9_5", "v9_6", "v9_7"}:
+    if spec.version in {"v9_5", "v9_6", "v9_7"}:
         expected_method_params = (
             _v97_method_params(spec)
             if spec.version == "v9_7"
             else _v96_method_params(spec)
             if spec.version == "v9_6"
             else _v95_method_params(spec)
-            if spec.version == "v9_5"
-            else _v94_method_params(spec)
-            if spec.version == "v9_4"
-            else _v93_method_params(spec)
-            if spec.version == "v9_3"
-            else _v92_method_params(spec)
         )
         expected_protocol = {
             "task_eval": normalized_task_kwargs,
@@ -590,46 +418,25 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         protocol_id = V8_PROTOCOL_ID
         checkpoint_version = V8_CHECKPOINT_VERSION
         operator_names = V8_OPERATOR_NAMES
-    elif spec.version == "v9":
+    else:
         protocol_id = V9_PROTOCOL_ID
         checkpoint_version = V9_CHECKPOINT_VERSION
         operator_names = V9_OPERATOR_NAMES
-    else:
-        protocol_id = V91_PROTOCOL_ID
-        checkpoint_version = V91_CHECKPOINT_VERSION
-        operator_names = V91_OPERATOR_NAMES
     expected_method_params = {
         "protocol_id": protocol_id,
         "checkpoint_schema_version": checkpoint_version,
         "max_sample_nums": spec.budget,
         "n_init": spec.n_init,
         "generation_protocol": "direct_code",
-        **(
-            {
-                "verification_batch_size": 2,
-                "quality_pool_size": 10,
-                "trajectory_confidence_z": 1.0,
-                "trajectory_recent_window": 4,
-                "reference_pool_size": 4,
-                "quality_policy": "raw_directed_fitness_top_k",
-                "budget_policy": "trajectory_wilson_upper",
-                "verification_reward": "trajectory_historical_best_advance",
-                "credit_scope": "selected_trajectory_only",
-                "root_expansion": False,
-            }
-            if spec.version == "v9_1"
-            else {
-                "offspring_per_iteration": 2,
-                "quality_normalization": "global_midrank_percentile",
-                "expansion_policy": "adaptive_new_child_uct",
-                "expansion_reward": "batch_subtree_best_midrank",
-                "failed_expansion_reward": 0.0,
-                "root_expansion": False,
-                "reference_temperature": 0.2,
-                "exploration_constant": 0.1,
-                "expansion_prior_weight": 1.0,
-            }
-        ),
+        "offspring_per_iteration": 2,
+        "quality_normalization": "global_midrank_percentile",
+        "expansion_policy": "adaptive_new_child_uct",
+        "expansion_reward": "batch_subtree_best_midrank",
+        "failed_expansion_reward": 0.0,
+        "root_expansion": False,
+        "reference_temperature": 0.2,
+        "exploration_constant": 0.1,
+        "expansion_prior_weight": 1.0,
         "ancestor_history_limit": 8,
         "direct_child_limit": 8,
         "direct_child_top_count": 4,
@@ -642,7 +449,7 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         "context_token_limit": spec.context_token_limit,
         "random_seed": spec.seed,
     }
-    if spec.version in {"v9", "v9_1"}:
+    if spec.version == "v9":
         expected_method_params["history_protocol"] = "matched_history"
     expected_protocol = {
         "backend": spec.backend,
@@ -706,57 +513,28 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         method_params = _v96_method_params(spec)
     elif spec.version == "v9_5":
         method_params = _v95_method_params(spec)
-    elif spec.version == "v9_4":
-        method_params = _v94_method_params(spec)
-    elif spec.version == "v9_3":
-        method_params = _v93_method_params(spec)
-    elif spec.version == "v9_2":
-        method_params = _v92_method_params(spec)
-    elif spec.version in {"v8", "v9", "v9_1"}:
+    elif spec.version in {"v8", "v9"}:
         method_params = {
             "protocol_id": (
-                V8_PROTOCOL_ID
-                if spec.version == "v8"
-                else V9_PROTOCOL_ID
-                if spec.version == "v9"
-                else V91_PROTOCOL_ID
+                V8_PROTOCOL_ID if spec.version == "v8" else V9_PROTOCOL_ID
             ),
             "checkpoint_schema_version": (
                 V8_CHECKPOINT_VERSION
                 if spec.version == "v8"
                 else V9_CHECKPOINT_VERSION
-                if spec.version == "v9"
-                else V91_CHECKPOINT_VERSION
             ),
             "max_sample_nums": spec.budget,
             "n_init": spec.n_init,
             "generation_protocol": "direct_code",
-            **(
-                {
-                    "verification_batch_size": 2,
-                    "quality_pool_size": 10,
-                    "trajectory_confidence_z": 1.0,
-                    "trajectory_recent_window": 4,
-                    "reference_pool_size": 4,
-                    "quality_policy": "raw_directed_fitness_top_k",
-                    "budget_policy": "trajectory_wilson_upper",
-                    "verification_reward": "trajectory_historical_best_advance",
-                    "credit_scope": "selected_trajectory_only",
-                    "root_expansion": False,
-                }
-                if spec.version == "v9_1"
-                else {
-                    "offspring_per_iteration": 2,
-                    "quality_normalization": "global_midrank_percentile",
-                    "expansion_policy": "adaptive_new_child_uct",
-                    "expansion_reward": "batch_subtree_best_midrank",
-                    "failed_expansion_reward": 0.0,
-                    "root_expansion": False,
-                    "reference_temperature": 0.2,
-                    "exploration_constant": 0.1,
-                    "expansion_prior_weight": 1.0,
-                }
-            ),
+            "offspring_per_iteration": 2,
+            "quality_normalization": "global_midrank_percentile",
+            "expansion_policy": "adaptive_new_child_uct",
+            "expansion_reward": "batch_subtree_best_midrank",
+            "failed_expansion_reward": 0.0,
+            "root_expansion": False,
+            "reference_temperature": 0.2,
+            "exploration_constant": 0.1,
+            "expansion_prior_weight": 1.0,
             "ancestor_history_limit": 8,
             "direct_child_limit": 8,
             "direct_child_top_count": 4,
@@ -764,7 +542,7 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
             "max_stalled_iterations": 20,
             "checkpoint_interval": 10,
         }
-        if spec.version in {"v9", "v9_1"}:
+        if spec.version == "v9":
             method_params["history_protocol"] = "matched_history"
     else:
         method_params = {
@@ -787,15 +565,13 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
                 "random_seed": spec.seed,
             }
         )
-    if spec.version in {"v8", "v9", "v9_1"}:
+    if spec.version in {"v8", "v9"}:
         method_params.update(
             {
                 "maximize": True,
-                "operators": V8_OPERATOR_NAMES
-                if spec.version == "v8"
-                else V9_OPERATOR_NAMES
-                if spec.version == "v9"
-                else V91_OPERATOR_NAMES,
+                "operators": (
+                    V8_OPERATOR_NAMES if spec.version == "v8" else V9_OPERATOR_NAMES
+                ),
                 "code_max_tokens": spec.llm_output_tokens,
                 "context_token_limit": spec.context_token_limit,
                 "random_seed": spec.seed,
@@ -938,167 +714,25 @@ def _v97_generator_environment(spec: RunSpec) -> dict[str, object]:
     return {
         "logical_model_name": V97_LOGICAL_MODEL_NAME,
         "temperature": 1.0,
-        "top_p": None,
-        "top_k": None,
         "max_new_tokens": spec.llm_output_tokens,
         "sampling_seed": spec.seed,
-        "sampling_seed_support": True,
         "max_total_context": spec.context_token_limit,
-        "tokenizer_identity": None,
-        "tokenizer_version": None,
-        "chat_template_hash": None,
-        "serving_api": "OpenAI-compatible chat completions",
-        "serving_api_version": None,
-        "prompt_renderer_version": V97_PROMPT_RENDERER_VERSION,
-        "prompt_renderer_hash": v97_prompt_renderer_hash(),
     }
 
 
 def _v97_method_params(spec: RunSpec) -> dict[str, object]:
-    evaluation, _ = build_task(spec.task, spec.eval_workers)
     return {
         "protocol_id": V97_PROTOCOL_ID,
         "checkpoint_schema_version": V97_CHECKPOINT_VERSION,
-        "evaluator_call_budget": spec.budget,
-        "budget_unit": "real_evaluator_call",
-        "initial_root_count": spec.n_init,
-        "max_history_events": V97_MAX_HISTORY_EVENTS,
-        "logical_model_name": V97_LOGICAL_MODEL_NAME,
-        "evaluator_contract_hash": v97_evaluation_contract_hash(evaluation),
-        "deterministic_fitness_cache": True,
+        "budget": spec.budget,
+        "n_roots": spec.n_init,
+        "max_history": V97_MAX_HISTORY_EVENTS,
         "maximize": True,
-        "code_max_tokens": spec.llm_output_tokens,
-        "context_token_limit": spec.context_token_limit,
-        "transport_retry_limit": 3,
-        "generation_seed": spec.seed,
+        "max_tokens": spec.llm_output_tokens,
+        "context_limit": spec.context_token_limit,
+        "seed": spec.seed,
         "refine_probability": V97_REFINE_PROBABILITY,
         "explore_probability": 1.0 - V97_REFINE_PROBABILITY,
-        "history_selector_id": V97_HISTORY_SELECTOR_ID,
-        "generation_policy_id": V97_GENERATION_POLICY_ID,
-        "intent_policy_id": V97_INTENT_POLICY_ID,
-        "candidate_multiplicity_policy_id": V97_CANDIDATE_MULTIPLICITY_POLICY_ID,
-        "budget_policy_id": V97_BUDGET_POLICY_ID,
-        "initialization_policy_id": V97_INITIALIZATION_POLICY_ID,
-        "optimism_scale_policy_id": V97_OPTIMISM_SCALE_POLICY_ID,
-        "state_identity_policy_id": V97_STATE_IDENTITY_POLICY_ID,
-        "candidate_accounting_policy_id": V97_CANDIDATE_ACCOUNTING_POLICY_ID,
-        "stop_policy_id": V97_STOP_POLICY_ID,
-        "normalization_policy_id": V97_NORMALIZATION_POLICY_ID,
-        "prompt_renderer_version": V97_PROMPT_RENDERER_VERSION,
-        "prompt_renderer_hash": v97_prompt_renderer_hash(),
-    }
-
-
-def _v92_method_params(spec: RunSpec) -> dict[str, object]:
-    return {
-        "protocol_id": V92_PROTOCOL_ID,
-        "checkpoint_schema_version": V92_CHECKPOINT_VERSION,
-        "max_sample_nums": spec.budget,
-        "initialization_protocol": "strategy_microtrajectory_curation",
-        "initial_route_pool_size": spec.n_init,
-        "initial_anchor_count": V92_INITIAL_ANCHOR_COUNT,
-        "initial_route_length": 2,
-        "initial_route_selection": "best_endpoint_then_anchor_budget_value",
-        "generation_protocol": "single_idea_code",
-        "generation_operator": V92_OPERATOR,
-        "code_representation": "comment_and_docstring_free_ast_canonical",
-        "window_protocol": "canonical_formation4_downstream4_depth3",
-        "window_size": V92_WINDOW_SIZE,
-        "formation_quota": V92_FORMATION_QUOTA,
-        "downstream_quota": V92_DOWNSTREAM_QUOTA,
-        "downstream_depth": V92_DOWNSTREAM_DEPTH,
-        "quality_pool_size": V92_QUALITY_POOL_SIZE,
-        "quality_policy": "raw_directed_anchor_running_mean",
-        "budget_policy": "top10_unverified_first_then_highest_q",
-        "invalid_outcome": "anchor_directed_fitness",
-        "credit_scope": "selected_anchor_only",
-        "ancestor_backup": False,
-        "maximize": True,
-        "code_max_tokens": spec.llm_output_tokens,
-        "context_token_limit": spec.context_token_limit,
-        "max_consecutive_sample_failures": 20,
-        "checkpoint_interval": 10,
-    }
-
-
-def _v93_method_params(spec: RunSpec) -> dict[str, object]:
-    return {
-        "protocol_id": V93_PROTOCOL_ID,
-        "checkpoint_schema_version": V93_CHECKPOINT_VERSION,
-        "max_sample_nums": spec.budget,
-        "initialization_protocol": "strategy_short_rollout_curation",
-        "initial_route_pool_size": spec.n_init,
-        "initial_anchor_count": V93_INITIAL_ANCHOR_COUNT,
-        "initial_route_length": 1 + V93_ROLLOUT_LENGTH,
-        "initial_route_selection": "best_rollout_representative_by_route_value",
-        "generation_protocol": "trajectory_decision_then_code",
-        "generation_operator": V93_OPERATOR,
-        "trajectory_decision_operator": V93_DECISION_OPERATOR,
-        "rollout_length": V93_ROLLOUT_LENGTH,
-        "code_representation": "comment_and_docstring_free_ast_canonical",
-        "window_protocol": "canonical_formation4_downstream4_depth3",
-        "window_size": V93_WINDOW_SIZE,
-        "formation_quota": V93_FORMATION_QUOTA,
-        "downstream_quota": V93_DOWNSTREAM_QUOTA,
-        "downstream_depth": V93_DOWNSTREAM_DEPTH,
-        "quality_pool_size": V93_QUALITY_POOL_SIZE,
-        "quality_policy": "anchor_initialized_mean_rollout_best_absolute_quality",
-        "budget_policy": "top10_unverified_first_then_highest_q",
-        "invalid_outcome": "rollout_start_anchor_directed_fitness",
-        "credit_scope": "selected_rollout_start_anchor_only",
-        "eligible_policy": "best_program_per_completed_rollout",
-        "ancestor_backup": False,
-        "maximize": True,
-        "code_max_tokens": spec.llm_output_tokens,
-        "context_token_limit": spec.context_token_limit,
-        "max_consecutive_sample_failures": 20,
-        "checkpoint_interval": 10,
-    }
-
-
-def _v94_method_params(spec: RunSpec) -> dict[str, object]:
-    return {
-        "protocol_id": V94_PROTOCOL_ID,
-        "checkpoint_schema_version": V94_CHECKPOINT_VERSION,
-        "max_sample_nums": spec.budget,
-        "initialization_protocol": "strategy_microtrajectory_curation",
-        "initial_route_pool_size": spec.n_init,
-        "initial_anchor_count": V94_INITIAL_ANCHOR_COUNT,
-        "initial_route_length": 2,
-        "initial_route_selection": "best_endpoint_by_absolute_quality",
-        "decision_budget_unit": "one_anchor_one_joint_idea_code_one_evaluation",
-        "generation_protocol": "single_joint_idea_code",
-        "generation_operator": V94_OPERATOR,
-        "code_representation": "comment_and_docstring_free_ast_canonical",
-        "window_protocol": "canonical_formation4_downstream4_depth3",
-        "window_size": V94_WINDOW_SIZE,
-        "formation_quota": V94_FORMATION_QUOTA,
-        "downstream_quota": V94_DOWNSTREAM_QUOTA,
-        "downstream_depth": V94_DOWNSTREAM_DEPTH,
-        "quality_pool_size": V94_QUALITY_POOL_SIZE,
-        "quality_policy": (
-            "anchor_quality_plus_mean_distance_decayed_descendant_improvement"
-        ),
-        "budget_policy": "top10_unverified_first_then_four_exploit_one_coverage",
-        "quality_exploration_interval": V94_QUALITY_EXPLORATION_INTERVAL,
-        "valid_outcome": "positive_descendant_advantage_with_distance_decay",
-        "invalid_outcome": "zero_credit_observation",
-        "failure_evidence": (
-            "local_exact_feedback_and_run_global_top5_exact_patterns_without_failed_code"
-        ),
-        "strict_breakthrough_definition": (
-            "global_strict_directed_fitness_improvement"
-        ),
-        "credit_scope": "selected_anchor_and_visible_ancestors",
-        "trajectory_credit_discount": V94_TRAJECTORY_CREDIT_DISCOUNT,
-        "trajectory_credit_depth": V94_TRAJECTORY_CREDIT_DEPTH,
-        "eligible_policy": "every_valid_child",
-        "ancestor_backup": True,
-        "maximize": True,
-        "code_max_tokens": spec.llm_output_tokens,
-        "context_token_limit": spec.context_token_limit,
-        "max_consecutive_sample_failures": 20,
-        "checkpoint_interval": 10,
     }
 
 

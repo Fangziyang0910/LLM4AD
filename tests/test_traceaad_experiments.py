@@ -11,10 +11,6 @@ from llm4ad.method.traceaad_v5 import TraceAADV5
 from llm4ad.method.traceaad_v8 import PROTOCOL_ID as V8_PROTOCOL_ID
 from llm4ad.method.traceaad_v8 import TraceAADV8
 from llm4ad.method.traceaad_v9 import TraceAADV9
-from llm4ad.method.traceaad_v9_1 import TraceAADV91
-from llm4ad.method.traceaad_v9_2 import TraceAADV92
-from llm4ad.method.traceaad_v9_3 import TraceAADV93
-from llm4ad.method.traceaad_v9_4 import TraceAADV94
 from llm4ad.method.traceaad_v9_5 import TraceAADV95
 from llm4ad.method.traceaad_v9_6 import TraceAADV96
 from llm4ad.method.traceaad_v9_7 import TraceAADV97
@@ -39,10 +35,6 @@ def test_unified_runner_builds_each_task_and_version(
         "v5": TraceAADV5,
         "v8": TraceAADV8,
         "v9": TraceAADV9,
-        "v9_1": TraceAADV91,
-        "v9_2": TraceAADV92,
-        "v9_3": TraceAADV93,
-        "v9_4": TraceAADV94,
         "v9_5": TraceAADV95,
         "v9_6": TraceAADV96,
         "v9_7": TraceAADV97,
@@ -64,22 +56,14 @@ def test_unified_runner_builds_each_task_and_version(
             assert spec.n_init == 30
             assert method._action_max_tokens == 1024
         else:
-            if version == "v9_1":
-                assert spec.n_init == 4
-            elif version in {"v9_5", "v9_6", "v9_7"}:
-                assert spec.n_init == 8
+            assert spec.n_init == 8
+            if version == "v9_7":
+                assert method._n_roots == 8
+                assert method._context_limit == 32768
+            else:
                 assert method._initial_root_count == 8
-            else:
-                assert spec.n_init == 8
-                assert method._initial_route_pool_size == 8
-                assert method._initial_anchor_count == 6
-            assert method._context_token_limit == (
-                32768 if version in {"v9_5", "v9_6", "v9_7"} else 24576
-            )
-            if version == "v9_1":
-                assert method._verification_batch_size == 2
-            else:
-                assert not hasattr(method, "_operators")
+                assert method._context_token_limit == 32768
+            assert not hasattr(method, "_operators")
         assert not hasattr(method, "_global_experience")
 
 
