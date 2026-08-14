@@ -34,7 +34,7 @@ from threading import Lock, Thread
 from typing import Literal, Optional
 
 from .profiler import HillClimbProfiler
-from .._observability import (
+from .observability import (
     close_sampler_llm,
     finish_profiler,
     init_observability,

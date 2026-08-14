@@ -36,7 +36,7 @@ from .population import Population
 from .profiler import NSGA2Profiler
 from .prompt import NSGA2Prompt
 from .sampler import NSGA2Sampler
-from .._observability import (
+from .observability import (
     call_sampler_get_thought_and_function,
     close_sampler_llm,
     finish_profiler,

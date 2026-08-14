@@ -15,7 +15,7 @@ from .prompt import PathWisePrompt
 from .sampler import PathWiseSampler
 from ...base import Evaluation, Function, LLM, Program, SecureEvaluator, TextFunctionProgramConverter
 from ...tools.profiler import ProfilerBase
-from .._observability import (
+from .observability import (
     close_llm,
     finish_profiler,
     init_observability,

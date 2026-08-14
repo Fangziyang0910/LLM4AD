@@ -33,7 +33,7 @@ from threading import Lock, Thread
 from typing import Optional, Literal
 
 from .profiler import RandSampleProfiler
-from .._observability import (
+from .observability import (
     close_sampler_llm,
     finish_profiler,
     init_observability,

@@ -35,7 +35,7 @@ from . import programs_database
 from .config import ProgramsDatabaseConfig
 from ...base import *
 from .profiler import FunSearchProfiler
-from .._observability import (
+from .observability import (
     close_sampler_llm,
     finish_profiler,
     init_observability,

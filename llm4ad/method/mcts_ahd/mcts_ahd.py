@@ -37,7 +37,7 @@ from .mcts import MCTS, MCTSNode
 from .profiler import MAProfiler
 from .prompt import MAPrompt
 from .sampler import MASampler
-from .._observability import close_sampler_llm, finish_profiler, shutdown_executor
+from .observability import close_sampler_llm, finish_profiler, shutdown_executor
 from ...base import (
     Evaluation, LLM, Function, Program, TextFunctionProgramConverter, SecureEvaluator
 )

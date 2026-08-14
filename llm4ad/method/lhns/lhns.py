@@ -40,7 +40,7 @@ from .func_ruin import LHNSFunctionRuin, LHNSFunction, LHNSProgram, LHNSTextFunc
 from .profiler import LHNSProfiler
 from .prompt import LHNSPrompt
 from .sampler import LHNSSampler
-from .._observability import (
+from .observability import (
     call_sampler_get_thought_and_function,
     close_sampler_llm,
     finish_profiler,

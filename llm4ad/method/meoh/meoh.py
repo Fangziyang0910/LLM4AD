@@ -36,7 +36,7 @@ from .population import Population
 from .profiler import MEoHProfiler
 from .prompt import MEoHPrompt
 from .sampler import MEoHSampler
-from .._observability import (
+from .observability import (
     call_sampler_get_thought_and_function,
     close_sampler_llm,
     finish_profiler,

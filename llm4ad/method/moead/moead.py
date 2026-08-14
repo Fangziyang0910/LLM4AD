@@ -35,7 +35,7 @@ from .population import Population
 from .profiler import MOEADProfiler
 from .prompt import MOEADPrompt
 from .sampler import MOEADSampler
-from .._observability import (
+from .observability import (
     call_sampler_get_thought_and_function,
     close_sampler_llm,
     finish_profiler,

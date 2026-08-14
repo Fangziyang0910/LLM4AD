@@ -8,8 +8,8 @@ from llamea import Solution
 
 from llm4ad.base import Function
 from llm4ad.base.evaluate import Evaluation
-from llm4ad.method._observability import init_observability, record_sample_failure
-from llm4ad.method._sampling import sample_thought_and_function, trim_braced_thought
+from llm4ad.method.eoh.observability import init_observability, record_sample_failure
+from llm4ad.method.eoh.sampling import sample_thought_and_function, trim_braced_thought
 from llm4ad.method.llamea.evaluation import generate_evaluator
 from llm4ad.tools.profiler import ProfilerBase
 

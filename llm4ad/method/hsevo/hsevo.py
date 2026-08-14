@@ -11,7 +11,7 @@ from .population import Population
 from .profiler import HSEvoProfiler
 from .prompt import HSEvoPrompt
 from .sampler import HSEvoSampler
-from .._observability import (
+from .observability import (
     close_sampler_llm,
     finish_profiler,
     init_observability,

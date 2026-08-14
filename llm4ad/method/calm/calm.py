@@ -15,7 +15,7 @@ from typing import List, Optional
 
 import numpy as np
 
-from .._observability import (
+from .observability import (
     init_observability,
     is_search_aborted,
     log_event,

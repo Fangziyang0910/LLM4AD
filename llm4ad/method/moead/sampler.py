@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Tuple
 
-from .._sampling import sample_thought_and_function, trim_braced_thought
+from .sampling import sample_thought_and_function, trim_braced_thought
 from ...base import LLM, Function, Program
 
 
