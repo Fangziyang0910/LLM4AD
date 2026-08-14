@@ -1,85 +1,45 @@
-# TraceAAD V9.6 完整机制设计
+# TraceAAD V9.6：父代形成历史优先的锚点上下文
 
-> 版本：V9.6（`llm4ad/method/traceaad_v9_6/`），protocol id
-> `traceaad-v9.6-anchor-history-context`。
-> 状态：正式批次 `20260812_191011` 已完成（四任务 × 3 重复 + held-out），
-> 对 V9.5 的四层证据链对比见
-> [V9.5-V9.6 证据链对比](../analysis/TraceAAD-V9.5-V9.6证据链对比.md)；
-> 后继版本 V9.7 在其上只改分配与生成意图。
-> V9.6 在 V9.5 基础上只改两处：**锚点历史上下文**（挑法 + 写法，设计定案见
-> [RQ-009](../research/RQ-009-锚点历史上下文.md)）和**预算单位**（按真实评价次数计）。
-> 状态与事实模型、初始化、锚点选择、输出契约、去重与 cache、checkpoint 结构均与
-> V9.5 相同，规范见 [TraceAAD-v9.5完整机制设计.md](TraceAAD-v9.5完整机制设计.md)
-> 第 2、4、5、6 章与附录，本文不重复。
+> 状态：历史版本。V9.6 在 V9.5 基础上只改变历史上下文和预算单位；其余搜索状态、生成与分配见 [V9.5](TraceAAD-v9.5完整机制设计.md)。联合结果见 [V9.5–V9.6 证据链](../analysis/TraceAAD-V9.5-V9.6证据链对比.md)。
 
-## 1. 历史上下文
+## 1. 改动目标
 
-选定锚点后，从它的父代轨迹（formation）和已有子代尝试（direct attempts）中挑最多
-8 条历史，让模型看清三件事：我现在有什么算法 → 它之前怎么改过来的 → 从这里已经
-试过什么。
+V9.5 的 direct-first 规则在 OP/OBP 上经常使 8 个位置被当前锚点的子代尝试占满，父代形成历史缺席。V9.6 把历史拆成两个来源：当前算法怎样形成，以及从当前算法已经试过什么；对子代尝试设上限，把剩余容量保留给 formation。
 
-### 1.1 挑法
+## 2. 历史选择
 
-1. **子代尝试**：从当前锚点的 direct attempts 中，取最近的改进尝试至多 2 条、最近的
-   退步尝试至多 2 条；完全相同的代码（按 `evaluator_input_hash`）只算一次。持平和
-   无效不入选。没有子代就不取。
-2. **父代轨迹**：剩余名额（8 减去子代条数）用 formation 链上最靠近锚点的修改填满，
-   不足 8 条就全给，不凑数。
-3. 全部入选事件按发生顺序（`candidate_order`）排列。
+历史最多 8 条：
 
-子代封顶 + 成功失败都露面，修正了 V9.5 子代优先、装满为止在 OP/OBP 上造成的
-失败比例失真（实测数据见 RQ-009）。
+1. 从当前锚点的 direct attempts 中取最近的 improve 至多 2 条、最近的 regress 至多 2 条；完全相同代码只保留一条。plateau 与 invalid 不入选。
+2. 剩余位置由 formation 链上最靠近当前锚点的事件填满。
+3. 全部事件按真实发生顺序呈现。
 
-### 1.2 写法
+这一定义保证 direct 不超过 4 条，并使非根锚点通常保留形成历史。它不声称 direct 的 improve/regress 选择具有独立价值。
 
-历史块只含入选事件，不放总览统计。每条事件
-统一格式，父代标 `Formation step`，子代标 `Attempt from current algorithm`：
+## 3. 历史写法
+
+每条事件统一为：
 
 ```text
-[History 3] Attempt from current algorithm
-Idea: Use adaptive candidate ordering
-Change: +8/-5 lines; removed: `score = dist * w`; added: `score = dist * w * decay`
-Result: regress
-Fitness: 12.84 -> 13.20
+[History i] Formation step | Attempt from current algorithm
+Idea: <declared idea>
+Change: +A/-R lines; removed: <up to 2 lines>; added: <up to 2 lines>
+Result: improve | regress | plateau
+Fitness: parent -> child
 ```
 
-- **Idea**：当时声明的想法，单行截断 300 字符；
-- **Change**：确定性生成的紧凑修改描述——加删行数 + 每侧至多 2 行真实改动代码示例，
-  整行截断 520 字符（第二轮识别实验验证过的形式），不再放整段压平的 diff；
-- **Result / Fitness**：improve / regress / plateau 与 parent -> child 分数。
+Change 由父子实际代码确定，包括增删行数和每侧至多两行真实改动；不再展示压平的长 diff。Idea 截断为 300 字符，Change 截断为 520 字符。提示结构为任务、当前完整算法、最近历史和与 V9.5 相同的生成指令。
 
-没有可展示事件（根锚点首次 bootstrap，或尝试全部为持平/无效）时写一句
-`No history events are shown for this algorithm.`。
+若上下文超限，从最早事件开始逐条删除；任务契约和当前代码始终保留。没有可展示事件时明确写出无历史事件。
 
-### 1.3 Prompt 结构
+## 4. 预算单位
 
-```text
-[Task]
-[Current Algorithm]  Fitness + 完整代码
-[Recent Algorithm Improvement History]  最多 8 条
-[Instruction]  与 V9.5 一字不动（含输出契约）
-```
+V9.6 把正式预算改为**真实 evaluator 调用次数**。解析失败、no-op、重复代码或命中确定性 cache 不消耗评价预算；evaluator 实际执行一次即消耗一次。正式比较统一为 1000 次真实评价。
 
-### 1.4 Context 回退
+这项变更使不同运行的搜索预算按真实评价对齐，但 LLM 调用数仍可能不同，不能把 1000 eval 解释为全部生成成本相同。
 
-若 prompt 超出上下文预算，从最早的事件开始逐条丢弃并重新渲染；全部丢完仍超限则抛
-`ConfigurationFailure`。V9.5 的 diff 截断阶梯
-（1200/600/300/0）随 raw diff 一起删除。
+## 5. 解释边界
 
-### 1.5 审计
-
-每次构建历史记录一条 `history_built` decision：formation/direct 完整池、入选 id、
-实际展示 id、因上下文丢弃的条数、prompt tokens。分析历史失真时以池与入选的对比为准。
-
-## 2. 预算单位
-
-预算按**真实评价次数**计：`_has_budget()` 比较 `evaluation_count`（evaluator 实际
-执行次数）与 `evaluator_call_budget`。解析失败、重复代码命中 cache 都不消耗预算。
-固定 1000 次评价对所有任务与重复统一。配置键为 `evaluator_call_budget` +
-`budget_unit: real_evaluator_call`，停止原因为 `evaluator_budget_exhausted`。
-
-## 3. 复现入口
-
-运行入口 `experiments.runners.traceaad.run --version v9_6`：8 根、32768 context、
-8192 输出 tokens，`--budget` 即评价次数预算。除历史上下文与预算单位外，其余模块
-与 V9.5 相同。
+- V9.6 同时改变历史挑选、历史写法和预算单位，完整搜索结果不能识别三者的独立贡献。
+- V9.5–V9.6 观察性对比显示 formation 恢复、提示缩短及生成分布变化，但锚点人群和分配尺度也同时变化。
+- 随后的固定锚点三臂实验直接支持父代来时路的单步价值，没有支持已有子代尝试的稳定额外价值。V9.7 因而把默认上下文收缩为当前算法加父代来时路。

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plot TraceAAD V9.5 held-out results against external AAD baselines.
+"""Plot the historical TraceAAD V9.5 held-out snapshot against AAD baselines.
 
 External-baseline values are parsed from the four authoritative task-level result
 pages. V9.5 values are read from its formal held-out ``results.json`` files.
@@ -21,14 +21,14 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parents[4]
 OUTPUT_DIR = Path(__file__).resolve().parent
 
-METHODS = ["MCTS-AHD", "PathWise", "EoH", "ReEvo", "CALM", "TraceAAD V9.5"]
+METHODS = ["MCTS-AHD", "PathWise", "EoH", "ReEvo", "CALM (w/o GRPO)", "TraceAAD V9.5"]
 BASELINES = METHODS[:-1]
 COLORS = {
     "MCTS-AHD": "#243B53",
     "PathWise": "#7B8794",
     "EoH": "#4C72B0",
     "ReEvo": "#9AA5B1",
-    "CALM": "#D6A11D",
+    "CALM (w/o GRPO)": "#D6A11D",
     "TraceAAD V9.5": "#D95D39",
 }
 MARKERS = {
@@ -36,7 +36,7 @@ MARKERS = {
     "PathWise": "v",
     "EoH": "^",
     "ReEvo": "D",
-    "CALM": "P",
+    "CALM (w/o GRPO)": "P",
     "TraceAAD V9.5": "s",
 }
 LINESTYLES = {
@@ -44,7 +44,7 @@ LINESTYLES = {
     "PathWise": "--",
     "EoH": "-.",
     "ReEvo": ":",
-    "CALM": (0, (5, 2)),
+    "CALM (w/o GRPO)": (0, (5, 2)),
     "TraceAAD V9.5": "-",
 }
 
@@ -304,7 +304,7 @@ def main() -> None:
         transform=axes[1, 2].transAxes,
     )
     fig.suptitle(
-        "TraceAAD V9.5 与代表性 AAD 方法的 held-out 主结果",
+        "TraceAAD V9.5 阶段性 held-out 结果",
         fontsize=13.0,
         fontweight="bold",
         y=0.985,

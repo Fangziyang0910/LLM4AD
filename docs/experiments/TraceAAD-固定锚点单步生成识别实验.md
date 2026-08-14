@@ -1,37 +1,32 @@
 # TraceAAD 固定锚点单步生成识别实验（三轮）
 
-> 状态：三轮全部完成并收口（共 1,512 次生成与评价，无缺失、重复或解析失败）。
-> 这些是低成本的固定锚点单步 generation-interface probe，不是完整搜索消融；
-> 单步收益不等于完整搜索或 held-out 收益。结论已回写
-> [RQ-009](../research/RQ-009-锚点历史上下文.md) 与[研究认识](../knowledge/研究认识.md)。
+> 三轮共完成 1,512 次生成与评价，无缺失、重复或解析失败。
+> 研究对象是固定锚点上的单步生成作用，不是完整搜索消融；单步收益不能直接推出完整搜索或 held-out 收益。结论已回写 [RQ-009](../research/RQ-009-锚点历史上下文.md) 与[研究认识](../knowledge/研究认识.md)。
 
 ## 背景：V9 与 V9.5 生成接口审计（2026-08-12）
 
-三轮实验的直接动因是一次观察性审计（原《V9-V9.5 生成接口审计》并入本节）。它对 TSP/CVRP/OP 各随机抽取 20 条真实 search prompt（V9.5 原样读取，V9 由 `decisions.jsonl` 快照重建，60 个重建样本 raw-token 误差为 0），用实验模型真实 tokenizer 计数，得到两个主要事实：
+三轮实验源于 V9 与 V9.5 的生成输入审计。审计在 TSP、CVRP、OP 各抽取 20 条真实搜索提示；V9.5 使用原始提示，V9 从当时状态重建，60 个重建样本的 raw-token 误差为 0。主要观察如下：
 
-1. **V9.5 的额外输入负担来自 actual diff，不是指令。** V9 历史部分约 0.99–1.03K token，V9.5 为 3.13–3.42K（全量日志平均 prompt 长 1.28–1.45 倍）；两版指令仅 122 对 139 token，V9.5 平均历史事件数反而略少。差异是每条事件的表达密度：actual diff 保留真实修改，却把长 diff 压成单行并出现 `[diff truncated]`，语义重点更分散。
-2. **"prompt 更重"当时只是可信机制风险，不是已证实性能原因。** V9.5 的 parent improvement rate 在 CVRP 40.9%、TSP 23.6% 高于 V9（12.6%/10.3%），在 OP 仅 1.65%（V9 为 9.72%），影响明显随任务变化；而两版同时改变了选择空间、价值定义、算子、参考程序、sibling 数和重选频率，仅看最终分数无法识别 prompt 的净效应。
+1. **V9.5 的额外输入负担来自 actual diff，而非指令。** V9 历史部分约 0.99–1.03K token，V9.5 为 3.13–3.42K；两版指令仅 122 对 139 token，V9.5 的平均历史事件数反而略少。差异来自单条事件的表达密度：长 diff 被压成单行并发生截断，语义重点更分散。
+2. **更长的提示当时只是机制风险，不是已识别的性能原因。** V9.5 的 parent improvement rate 在 CVRP、TSP 为 40.9%、23.6%，高于 V9 的 12.6%、10.3%；OP 则为 1.65%，低于 V9 的 9.72%。两版同时改变了选择空间、价值定义、算子、参考程序、子代数和重选频率，完整搜索结果不能识别提示长度的净效应。
 
-审计同时纠正了强参照：单版本与四个固定基线同场时 V9 平均名次 1.867（同场 MCTS-AHD 为 1.933），V9 才是应优先解释的强 TraceAAD 参照。另一个保留的解释边界：树拓扑是可靠的 provenance，不是算法语义类别——"深 clade 连续发展是 TSP 成功机制"只能收缩为"TSP 优秀程序具有较长连续修改历史"。
+审计还纠正了两个解释边界。按当时单版本与四个固定基线同场的口径，V9 平均名次为 1.867，MCTS-AHD 为 1.933，因此 V9 是更合适的强参照。树拓扑只记录来源关系，不表示算法语义类别；“优秀程序具有较长连续修改历史”不能改写为“深路线是成功机制”。
 
-由此确定的识别路径是：不重跑完整搜索，而在同一批真实锚点上固定任务、当前代码、输出契约与采样条件，只改变输入的历史成分，配对检验"历史是否有用、何种表示更有用"。聚合数据在 `../analysis/traceaad_v9_v95_generation_interface/`（`summary.json`、`sample_prompt_metrics.csv`），审计脚本为 `experiments/analysis/analyze_v9_v95_generation_interface.py`。
+据此，实验在同一批真实锚点上固定任务、当前代码、输出契约和采样条件，只改变历史成分，以配对方式识别历史及其表示的单步作用。
 
 ## 共同方法
 
 三轮共享同一套识别范式：
 
-- **固定锚点配对**：锚点取自正式批次的真实生成时刻（当时的代码、fitness 与入选历史事件原样重建，防泄漏——只使用该时刻已记录的事件）；同一锚点在各条件下 prompt 严格嵌套或仅差目标块，指令、输出契约、temperature=1.0、块内采样 seed 逐字一致，条件顺序在 task × 层内精确平衡。
-- **抽样**：每任务按 directed \(q\) 三等分层，每层 6 个锚点，4 任务 × 3 层 × 6 = 72 个锚点；每锚点 × 条件 × 3 次重复采样。锚点是独立单位，3 次采样是锚点内重复。
-- **度量**：valid rate、条件于 valid 的 \(\Delta q=q_{child}-q_{parent}\)、parent improvement rate、line-change ratio、prompt/response tokens、failure kind。先在锚点 × 条件内聚合三次采样，再做条件间配对差，95% 区间按锚点重采样 10,000 次 bootstrap。四任务不合并原始 \(\Delta q\) 幅度（evaluator 尺度不同）。
-- **执行**：第一轮的 24 路本地 evaluator 并发放大了 TSP timeout；第二、三轮改为生成阶段按空闲模型容量分片并行、全部落盘后用单个顺序 evaluator 进程统一评价。
-- 模型 Qwen3.6-27B，输出上限 8192 tokens，总上下文 32768 tokens。原始 prompt、response、代码和 evaluator 结果只留本地，不进入 Git。
+- **固定锚点配对**：锚点取自正式搜索的真实生成时刻，仅使用当时已经记录的代码、fitness 与历史事件。各条件的提示严格嵌套或只差目标块；指令、输出契约、`temperature=1.0` 和块内采样 seed 保持一致，条件顺序在 task × 质量层内平衡。
+- **抽样**：每任务按 directed $q$ 三等分层，每层 6 个锚点，共 4 任务 × 3 层 × 6 = 72 个锚点；每个锚点在每个条件下重复采样 3 次。锚点是独立单位，采样是锚点内重复。
+- **度量**：valid rate、条件于 valid 的 $\Delta q=q_{child}-q_{parent}$、parent improvement rate、line-change ratio、prompt/response tokens 与 failure kind。先在锚点 × 条件内聚合，再计算条件间配对差；95% 区间按锚点重采样 10,000 次 bootstrap。四任务的原始 $\Delta q$ 尺度不同，不跨任务合并。
+- **评价有效性**：第一轮 TSP 的 valid rate 受评价超时与并发负载混杂，因此只作辅助指标；后两轮采用统一顺序评价以避免该混杂。
+- **模型**：Qwen3.6-27B，输出上限 8192 tokens，总上下文 32768 tokens。
 
 ## 第一轮：简洁历史 vs 无历史
 
-**问题**：对已积累至少两条局部历史的同一真实锚点，加入简洁历史
-（`Source + Idea + Result + Fitness transition`，至多 8 条当时入选事件，不含 diff）
-是否改善下一步算法修改？锚点来自 V9.5 正式批次 `20260811_171029`；
-216 对、432 次生成。
+**问题**：对已积累至少两条局部历史的同一真实锚点，加入简洁历史（`Source + Idea + Result + Fitness transition`，至多 8 条当时可见事件，不含 diff）是否改善下一步算法修改？共 216 对、432 次生成。
 
 | Task | Valid: No History → History | Conditional Δq: No History → History | 配对差 B−A [95% CI] |
 | --- | ---: | ---: | ---: |
@@ -73,10 +68,7 @@ CVRP 是唯一同时出现明确 \(\Delta q\) 与 improvement-rate 增益的任�
 | `parent_path` | 上者 + 来时路（该时刻入选的全部 Formation step） |
 | `parent_path_child` | 上者 + 该时刻入选的子代尝试 |
 
-锚点来自 V9.6 正式批次 `20260812_191011` 的真实生成时刻（要求来时路 ≥ 2 条且子代 ≥ 1 条、
-无上下文丢弃；多数为 7 条来时路 + 1 条子代，与 V9.6 真实动态一致）。历史块由 V9.6 渲染器
-（Idea + Change + Result + Fitness）原样重建并逐字核对。72 锚点 × 3 臂 × 3 重复 = 648 次生成；
-216 个块内三臂共享采样 seed，臂序 3 轮转精确平衡。
+锚点取自 V9.6 正式搜索的真实生成时刻，要求来时路不少于 2 条、已有子代不少于 1 条且无上下文丢弃。多数锚点包含 7 条来时路和 1 条子代。历史块按当时的 `Idea + Change + Result + Fitness` 原样重建。72 锚点 × 3 臂 × 3 重复，共 648 次生成；216 个块内三臂共享采样 seed，臂序精确平衡。
 
 **问题 1：来时路本身有没有价值？（`parent_path` − `code_only`）**
 
@@ -98,8 +90,7 @@ CVRP 是唯一同时出现明确 \(\Delta q\) 与 improvement-rate 增益的任�
 | OP | -0.391 → -0.451 | -0.060 [-0.478, 0.273] | 3.7% → 2.8% | 10 / 1 / 7 |
 | OBP | -46.4 → -15.1 | +31.3 [-6.5, 76.1] | 1.9% → 1.9% | 11 / 2 / 5 |
 
-四任务配对区间全部跨 0，总方向 35 好 / 34 差 / 3 平——等于掷硬币。TSP 偏负
-（valid 98.1% → 90.7%，improve 减半），CVRP 的 improvement rate 也从 18.5% 掉到 9.3%。
+四任务配对区间均跨 0，总方向为 35 好、34 差、3 平。TSP 方向偏负（valid 98.1% → 90.7%，improve 12.0% → 7.4%），CVRP 的 improvement rate 也从 18.5% 降至 9.3%。
 
 **作用方式**：来时路的收益主要来自压缩灾难性偏离而非制造更多 improvement——四任务
 trial 级中位 \(\Delta q\) 一致右移（CVRP -5.29 → -0.09、OBP -24.0 → -2.5），落入任务最差
@@ -113,10 +104,8 @@ trial 级中位 \(\Delta q\) 一致右移（CVRP -5.29 → -0.09、OBP -24.0 →
 来时路。边界：锚点限于"来时路 ≥ 2 且子代 ≥ 1"的 V9.6 真实时刻，子代多为 1 条（68/72），
 结论是"在这种真实暴露水平下无额外价值"，不排除子代丰富场景另有结论。
 
-## 复现入口
+## 解释边界
 
-| 轮 | 准备/生成/评价 | 分析 | 本地工件 |
-| --- | --- | --- | --- |
-| 一 | `experiments/runners/traceaad/generation_probe.py` | `experiments/analysis/analyze_traceaad_generation_probe.py` | `experiments/generation_probe/20260812_v95_concise_history_probe/` |
-| 二 | `experiments/runners/traceaad/compact_change_probe.py` | 同上 | `experiments/generation_probe/20260812_v95_compact_actual_change_probe/` |
-| 三 | `experiments/runners/traceaad/parent_path_probe.py` | `experiments/analysis/analyze_parent_path_probe.py` | `experiments/generation_probe/20260813_v96_parent_path_probe/` |
+- 三轮实验识别固定锚点上的单步生成作用，不评价预算分配、完整搜索或 held-out 净收益。
+- 第三轮锚点以“来时路不少于 2 条且已有子代不少于 1 条”为条件；68/72 个锚点只有 1 条子代，因此不能外推到子代丰富状态。
+- 修改收缩与质量改善在第三轮同向出现，现有证据不能把收缩解释为损害。
