@@ -21,8 +21,7 @@ from ...base import (
     SecureEvaluator,
     TextFunctionProgramConverter,
 )
-from .._observability import close_llm
-from ..traceaad_artifacts import TraceAADArtifacts
+from .artifacts import RunArtifacts
 from .checkpoint import CHECKPOINT_VERSION, load_checkpoint, save_checkpoint
 from .evidence import (
     EvidenceSelection,
@@ -163,7 +162,7 @@ class TraceAADV95:
         self,
         llm: LLM,
         evaluation: Evaluation,
-        profiler: TraceAADArtifacts | None = None,
+        artifacts: RunArtifacts | None = None,
         candidate_search_budget: int = 1000,
         *,
         initial_root_count: int = INITIAL_ROOT_COUNT,
@@ -205,8 +204,7 @@ class TraceAADV95:
 
         self._llm = llm
         self._evaluation = evaluation
-        self._artifacts = profiler
-        self._profiler = profiler
+        self._artifacts = artifacts
         self._task_description_str = evaluation.task_description
         self._template_program = template
         self._function_to_evolve: Function = copy.deepcopy(template.functions[0])
@@ -241,8 +239,6 @@ class TraceAADV95:
         self._best_artifact_sample_order: int | None = None
         self._outcome_counts: dict[str, int] = {}
 
-        if profiler is not None:
-            profiler.record_parameters(llm, evaluation, self)
         if resume_from is not None:
             checkpoint = load_checkpoint(self, resume_from)
             if self._checkpoint_dir is None:
@@ -437,7 +433,7 @@ class TraceAADV95:
                     **error,
                 )
                 self._artifacts.finish()
-            close_llm(self._llm)
+            self._llm.close()
 
     def _initialize(self) -> None:
         while (
