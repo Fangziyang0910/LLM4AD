@@ -1,59 +1,53 @@
-"""Program artifacts, history-specific anchor states, and finalized attempts."""
+"""Programs, anchors, and finalized generation attempts."""
 
 from __future__ import annotations
 
-from .schema import AnchorState, AttemptRecord, ProgramArtifact
-from .source import nonempty_loc, text_hash
+from dataclasses import asdict
+from typing import Any, Mapping
+
+from .schema import Anchor, Attempt, Outcome, Program
+from .source import code_hash
 
 
-def is_artifact_better(
-    candidate: ProgramArtifact, incumbent: ProgramArtifact | None
-) -> bool:
+def is_better(candidate: Program, incumbent: Program | None) -> bool:
     if incumbent is None:
         return True
-    return (
-        candidate.directed_fitness,
-        -candidate.code_length,
-        -candidate.first_discovery_order,
-    ) > (
-        incumbent.directed_fitness,
-        -incumbent.code_length,
-        -incumbent.first_discovery_order,
+    return (candidate.q, -candidate.length, -candidate.order) > (
+        incumbent.q,
+        -incumbent.length,
+        -incumbent.order,
     )
 
 
-class SearchForest:
-    """The complete factual state of one V9.7 search run."""
-
-    def __init__(self, evaluator_contract_hash: str, *, maximize: bool) -> None:
-        self.evaluator_contract_hash = evaluator_contract_hash
+class Forest:
+    def __init__(self, *, maximize: bool) -> None:
         self.maximize = maximize
-        self._artifacts: dict[int, ProgramArtifact] = {}
-        self._artifact_keys: dict[tuple[str, str], int] = {}
-        self._states: dict[int, AnchorState] = {}
-        self._attempts: dict[int, AttemptRecord] = {}
+        self._programs: dict[int, Program] = {}
+        self._by_hash: dict[str, int] = {}
+        self._anchors: dict[int, Anchor] = {}
+        self._attempts: dict[int, Attempt] = {}
         self._relations: set[tuple[int, int]] = set()
-        self.root_state_ids: list[int] = []
-        self._next_artifact_id = 0
-        self._next_state_id = 0
+        self.root_ids: list[int] = []
+        self._next_program_id = 0
+        self._next_anchor_id = 0
         self._next_attempt_id = 0
 
-    def artifacts(self) -> tuple[ProgramArtifact, ...]:
-        return tuple(self._artifacts.values())
+    def programs(self) -> tuple[Program, ...]:
+        return tuple(self._programs.values())
 
-    def states(self) -> tuple[AnchorState, ...]:
-        return tuple(self._states.values())
+    def anchors(self) -> tuple[Anchor, ...]:
+        return tuple(self._anchors.values())
 
-    def attempts(self) -> tuple[AttemptRecord, ...]:
+    def attempts(self) -> tuple[Attempt, ...]:
         return tuple(self._attempts.values())
 
-    def get_artifact(self, artifact_id: int) -> ProgramArtifact:
-        return self._artifacts[artifact_id]
+    def get_program(self, program_id: int) -> Program:
+        return self._programs[program_id]
 
-    def get_state(self, state_id: int) -> AnchorState:
-        return self._states[state_id]
+    def get_anchor(self, anchor_id: int) -> Anchor:
+        return self._anchors[anchor_id]
 
-    def get_attempt(self, attempt_id: int) -> AttemptRecord:
+    def get_attempt(self, attempt_id: int) -> Attempt:
         return self._attempts[attempt_id]
 
     def next_attempt_id(self) -> int:
@@ -61,126 +55,120 @@ class SearchForest:
         self._next_attempt_id += 1
         return attempt_id
 
-    def artifact_for_code(self, evaluator_input_code: str) -> ProgramArtifact | None:
-        key = (self.evaluator_contract_hash, text_hash(evaluator_input_code))
-        artifact_id = self._artifact_keys.get(key)
-        return None if artifact_id is None else self.get_artifact(artifact_id)
+    def program_for_code(self, code: str) -> Program | None:
+        program_id = self._by_hash.get(code_hash(code))
+        return None if program_id is None else self.get_program(program_id)
 
-    def add_artifact(
-        self,
-        *,
-        evaluator_input_code: str,
-        fitness: float,
-        discovery_order: int,
-    ) -> ProgramArtifact:
-        evaluator_input_hash = text_hash(evaluator_input_code)
-        key = (self.evaluator_contract_hash, evaluator_input_hash)
-        if key in self._artifact_keys:
-            raise ValueError("artifact already exists")
-        artifact = ProgramArtifact(
-            artifact_id=self._next_artifact_id,
-            evaluator_contract_hash=self.evaluator_contract_hash,
-            evaluator_input_hash=evaluator_input_hash,
-            evaluator_input_code=evaluator_input_code,
+    def add_program(self, *, code: str, fitness: float, order: int) -> Program:
+        program = Program(
+            id=self._next_program_id,
+            code=code,
             fitness=fitness,
-            directed_fitness=fitness if self.maximize else -fitness,
-            code_length=len(evaluator_input_code),
-            program_loc=nonempty_loc(evaluator_input_code),
-            first_discovery_order=discovery_order,
+            q=fitness if self.maximize else -fitness,
+            length=len(code),
+            order=order,
         )
-        self._next_artifact_id += 1
-        self._artifacts[artifact.artifact_id] = artifact
-        self._artifact_keys[key] = artifact.artifact_id
-        return artifact
+        self._next_program_id += 1
+        self._programs[program.id] = program
+        self._by_hash[code_hash(code)] = program.id
+        return program
 
-    def add_root_state(self, *, artifact_id: int, creation_order: int) -> AnchorState:
-        state = AnchorState(
-            state_id=self._next_state_id,
-            artifact_id=artifact_id,
-            parent_state_id=None,
-            incoming_attempt_id=None,
-            depth=0,
-            creation_order=creation_order,
+    def add_root(self, *, program_id: int, order: int) -> Anchor:
+        anchor = Anchor(
+            id=self._next_anchor_id,
+            program_id=program_id,
+            parent_id=None,
+            attempt_id=None,
+            root_id=self._next_anchor_id,
+            order=order,
         )
-        self._next_state_id += 1
-        self._states[state.state_id] = state
-        self.root_state_ids.append(state.state_id)
-        return state
+        self._next_anchor_id += 1
+        self._anchors[anchor.id] = anchor
+        self.root_ids.append(anchor.id)
+        return anchor
 
-    def add_child_state(
+    def add_child(
         self,
         *,
-        parent_state_id: int,
-        artifact_id: int,
+        parent_id: int,
+        program_id: int,
         attempt_id: int,
-        creation_order: int,
-    ) -> AnchorState:
-        relation = (parent_state_id, artifact_id)
-        if relation in self._relations:
-            raise ValueError("parent-state artifact relation already exists")
-        lineage_artifacts = {
-            self.get_state(state_id).artifact_id
-            for state_id in self.ancestor_state_ids(parent_state_id)
-        }
-        if artifact_id in lineage_artifacts:
-            raise ValueError(
-                "current or ancestral artifact cannot create a child state"
-            )
-        parent = self.get_state(parent_state_id)
-        state = AnchorState(
-            state_id=self._next_state_id,
-            artifact_id=artifact_id,
-            parent_state_id=parent_state_id,
-            incoming_attempt_id=attempt_id,
-            depth=parent.depth + 1,
-            creation_order=creation_order,
+        order: int,
+    ) -> Anchor:
+        anchor = Anchor(
+            id=self._next_anchor_id,
+            program_id=program_id,
+            parent_id=parent_id,
+            attempt_id=attempt_id,
+            root_id=self.get_anchor(parent_id).root_id,
+            order=order,
         )
-        self._next_state_id += 1
-        self._states[state.state_id] = state
-        self._relations.add(relation)
-        return state
+        self._next_anchor_id += 1
+        self._anchors[anchor.id] = anchor
+        self._relations.add((parent_id, program_id))
+        return anchor
 
-    def add_attempt(self, attempt: AttemptRecord) -> None:
-        if attempt.attempt_id in self._attempts:
-            raise ValueError("attempt already finalized")
-        self._attempts[attempt.attempt_id] = attempt
+    def add_attempt(self, attempt: Attempt) -> None:
+        self._attempts[attempt.id] = attempt
 
-    def relation_exists(self, parent_state_id: int, artifact_id: int) -> bool:
-        return (parent_state_id, artifact_id) in self._relations
+    def relation_exists(self, parent_id: int, program_id: int) -> bool:
+        return (parent_id, program_id) in self._relations
 
-    def ancestor_state_ids(self, state_id: int) -> tuple[int, ...]:
+    def ancestor_ids(self, anchor_id: int) -> tuple[int, ...]:
         path: list[int] = []
-        current: int | None = state_id
+        current: int | None = anchor_id
         while current is not None:
             path.append(current)
-            current = self.get_state(current).parent_state_id
+            current = self.get_anchor(current).parent_id
         return tuple(reversed(path))
 
-    def ancestor_artifact_ids(self, state_id: int) -> tuple[int, ...]:
-        path = self.ancestor_state_ids(state_id)
-        return tuple(self.get_state(item).artifact_id for item in path[:-1])
+    def ancestor_program_ids(self, anchor_id: int) -> tuple[int, ...]:
+        return tuple(
+            self.get_anchor(item).program_id for item in self.ancestor_ids(anchor_id)[:-1]
+        )
 
-    def formation_attempt_ids(self, state_id: int) -> tuple[int, ...]:
+    def parent_path_ids(self, anchor_id: int) -> tuple[int, ...]:
         ids: list[int] = []
-        for path_state_id in self.ancestor_state_ids(state_id)[1:]:
-            attempt_id = self.get_state(path_state_id).incoming_attempt_id
+        for path_id in self.ancestor_ids(anchor_id)[1:]:
+            attempt_id = self.get_anchor(path_id).attempt_id
             if attempt_id is not None:
                 ids.append(attempt_id)
         return tuple(ids)
 
-    def direct_attempt_ids(self, state_id: int) -> tuple[int, ...]:
-        return tuple(
-            attempt.attempt_id
-            for attempt in self._attempts.values()
-            if attempt.anchor_state_id == state_id
-        )
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "maximize": self.maximize,
+            "next_program_id": self._next_program_id,
+            "next_anchor_id": self._next_anchor_id,
+            "next_attempt_id": self._next_attempt_id,
+            "root_ids": list(self.root_ids),
+            "programs": [asdict(item) for item in self.programs()],
+            "anchors": [asdict(item) for item in self.anchors()],
+            "attempts": [asdict(item) for item in self.attempts()],
+        }
 
-    def best_artifact(self) -> ProgramArtifact | None:
-        best: ProgramArtifact | None = None
-        for artifact in self._artifacts.values():
-            if is_artifact_better(artifact, best):
-                best = artifact
-        return best
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> Forest:
+        forest = cls(maximize=bool(payload["maximize"]))
+        for item in payload["programs"]:
+            program = Program(**item)
+            forest._programs[program.id] = program
+            forest._by_hash[code_hash(program.code)] = program.id
+        for item in payload["anchors"]:
+            anchor = Anchor(**item)
+            forest._anchors[anchor.id] = anchor
+            if anchor.parent_id is not None:
+                forest._relations.add((anchor.parent_id, anchor.program_id))
+        for item in payload["attempts"]:
+            if item["outcome"] is not None:
+                item = {**item, "outcome": Outcome(item["outcome"])}
+            attempt = Attempt(**item)
+            forest._attempts[attempt.id] = attempt
+        forest.root_ids = list(payload["root_ids"])
+        forest._next_program_id = payload["next_program_id"]
+        forest._next_anchor_id = payload["next_anchor_id"]
+        forest._next_attempt_id = payload["next_attempt_id"]
+        return forest
 
 
-__all__ = ["SearchForest", "is_artifact_better"]
+__all__ = ["Forest", "is_better"]

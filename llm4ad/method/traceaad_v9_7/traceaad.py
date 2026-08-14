@@ -1,25 +1,11 @@
-"""TraceAAD V9.7: route-then-anchor allocation with Refine/Explore intents.
-
-Differences from V9.6 are three: budget allocation becomes two-level
-(route first, then anchor within the route; see ``selection.py``); the
-single free-form generation instruction becomes two fixed-probability
-generation intents (Refine 0.7 / Explore 0.3; see ``prompt.py``); and the
-default history is the parent improvement path only, without direct
-attempts (see ``history.py``). Initialization, output contract, budget
-unit, and checkpoint structure are unchanged from V9.6.
-"""
+"""TraceAAD V9.7: route-then-anchor allocation with Refine/Explore intents."""
 
 from __future__ import annotations
 
 import copy
 import hashlib
-import inspect
-import json
 import math
 import statistics
-import time
-from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -30,167 +16,43 @@ from ...base import (
     SecureEvaluator,
     TextFunctionProgramConverter,
 )
-from .._observability import close_llm
-from ..traceaad_artifacts import TraceAADArtifacts
+from .artifacts import RunArtifacts
 from .checkpoint import CHECKPOINT_VERSION, load_checkpoint, save_checkpoint
-from .forest import SearchForest, is_artifact_better
-from .history import (
-    MAX_HISTORY_EVENTS,
-    HistorySelection,
-    drop_oldest_event,
-    render_history,
-    select_history,
-)
+from .forest import Forest, is_better
+from .history import drop_oldest, one_line, parent_path, render_path
 from .prompt import (
-    PROMPT_RENDERER_VERSION,
     ProgramResponseError,
     build_generation_prompt,
     build_root_prompt,
     parse_program_response,
-    prompt_renderer_hash,
 )
 from .schema import (
-    BUDGET_POLICY_ID,
-    CANDIDATE_ACCOUNTING_POLICY_ID,
-    CANDIDATE_MULTIPLICITY_POLICY_ID,
-    GENERATION_POLICY_ID,
-    HISTORY_SELECTOR_ID,
-    INITIALIZATION_POLICY_ID,
-    INTENT_POLICY_ID,
-    NORMALIZATION_POLICY_ID,
-    OPTIMISM_SCALE_POLICY_ID,
+    INITIAL_ROOT_COUNT,
+    MAX_HISTORY_EVENTS,
     PROTOCOL_ID,
     REFINE_PROBABILITY,
-    STATE_IDENTITY_POLICY_ID,
-    STOP_POLICY_ID,
-    AttemptKind,
-    AttemptRecord,
-    DirectOutcome,
-    GenerationIntent,
-    PendingAttempt,
-    PendingStage,
-    ProgramArtifact,
+    Anchor,
+    Attempt,
+    Intent,
+    Outcome,
+    Pending,
+    Program,
 )
-from .selection import select_anchor
-from .source import actual_code_diff, text_hash
+from .selection import Choice, select
+from .source import code_diff
 
-INITIAL_ROOT_COUNT = 8
-LOGICAL_MODEL_NAME = "Qwen3.6-27B"
-ROOT_GENERATION_OPERATOR = "root_generation"
-
-
-class InfrastructureFailure(RuntimeError):
-    """The model service did not return a completed response."""
+TRANSPORT_RETRIES = 3
+ERROR_MAX_CHARS = 360
 
 
-class TokenizerInfrastructureFailure(InfrastructureFailure):
-    """The model service could not tokenize an exact request after retries."""
-
-
-class EvaluatorInfrastructureFailure(RuntimeError):
-    """The evaluator could not prepare or launch candidate execution."""
-
-
-class ConfigurationFailure(RuntimeError):
-    """The frozen method cannot run under the supplied execution contract."""
-
-
-@dataclass(frozen=True, slots=True)
-class TraceAADRunResult:
-    best_artifact: ProgramArtifact | None
-    n_artifacts: int
-    n_states: int
-    n_root_states: int
-    n_attempts: int
-    n_candidates: int
-    n_evaluations: int
-    n_llm_requests: int
-    n_iterations: int
-    optimism_scale: float | None
-    initialization_complete: bool
-
-
-def _stable_identity_value(value: Any) -> Any:
-    if value is None or isinstance(value, (bool, int, float, str)):
-        return value
-    if isinstance(value, Path):
-        return str(value)
-    if isinstance(value, dict):
-        return {
-            str(key): _stable_identity_value(item)
-            for key, item in sorted(value.items(), key=lambda pair: str(pair[0]))
-        }
-    if isinstance(value, (list, tuple)):
-        return [_stable_identity_value(item) for item in value]
-    if all(hasattr(value, name) for name in ("shape", "dtype", "tobytes")):
-        return {
-            "array_shape": list(value.shape),
-            "array_dtype": str(value.dtype),
-            "array_sha256": hashlib.sha256(value.tobytes()).hexdigest(),
-        }
-    return repr(value)
-
-
-def _public_configuration(obj: Any) -> dict[str, Any]:
-    return {
-        key: _stable_identity_value(value)
-        for key, value in sorted(vars(obj).items())
-        if not key.startswith("_")
-    }
-
-
-def evaluation_contract_hash(evaluation: Evaluation) -> str:
-    implementation_path = inspect.getsourcefile(type(evaluation))
-    payload = {
-        "type": f"{type(evaluation).__module__}.{type(evaluation).__qualname__}",
-        "implementation_sha256": (
-            None
-            if implementation_path is None
-            else hashlib.sha256(Path(implementation_path).read_bytes()).hexdigest()
-        ),
-        "template_program": str(evaluation.template_program),
-        "configuration": _public_configuration(evaluation),
-        "dataset": _stable_identity_value(getattr(evaluation, "_datasets", None)),
-    }
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
-
-
-def _compact_error(message: str | None, limit: int = 360) -> str | None:
-    if message is None:
-        return None
-    compact = " ".join(str(message).split())
-    if not compact:
-        return None
-    return compact if len(compact) <= limit else compact[: limit - 3].rstrip() + "..."
-
-
-def draw_intent(generation_seed: int | None, iteration: int) -> GenerationIntent:
+def draw_intent(seed: int | None, iteration: int) -> Intent:
     """Deterministic fixed-mixture intent: no RNG state, resume-safe."""
-    seed_token = "none" if generation_seed is None else str(generation_seed)
+    token = "none" if seed is None else str(seed)
     digest = hashlib.sha256(
-        f"{PROTOCOL_ID}:intent:{seed_token}:{iteration}".encode("utf-8")
+        f"{PROTOCOL_ID}:intent:{token}:{iteration}".encode("utf-8")
     ).digest()
     value = int.from_bytes(digest[:8], "big") / 2**64
-    return (
-        GenerationIntent.REFINE
-        if value < REFINE_PROBABILITY
-        else GenerationIntent.EXPLORE
-    )
-
-
-def bootstrap_abs_delta(
-    *, child_created: bool, directed_delta: float | None
-) -> float | None:
-    """Return the scale observation for one finalized bootstrap transition.
-
-    Every valid transition that creates a child contributes, including an
-    evaluator-level plateau with directed_delta == 0.  Attempts that do not
-    create a child are not scale observations.
-    """
-    if not child_created or directed_delta is None:
-        return None
-    return abs(directed_delta)
+    return Intent.REFINE if value < REFINE_PROBABILITY else Intent.EXPLORE
 
 
 class TraceAADV97:
@@ -200,38 +62,29 @@ class TraceAADV97:
         self,
         llm: LLM,
         evaluation: Evaluation,
-        profiler: TraceAADArtifacts | None = None,
-        evaluator_call_budget: int = 1000,
+        artifacts: RunArtifacts | None = None,
+        budget: int = 1000,
         *,
-        initial_root_count: int = INITIAL_ROOT_COUNT,
+        n_roots: int = INITIAL_ROOT_COUNT,
         maximize: bool = True,
-        code_max_tokens: int = 8192,
-        context_token_limit: int | None = None,
-        max_history_events: int = MAX_HISTORY_EVENTS,
-        transport_retry_limit: int = 3,
-        generation_seed: int | None = 0,
+        max_tokens: int = 8192,
+        context_limit: int | None = None,
+        max_history: int = MAX_HISTORY_EVENTS,
+        seed: int | None = 0,
         checkpoint_dir: str | Path | None = None,
         resume_from: str | Path | None = None,
         debug_mode: bool = False,
     ) -> None:
-        if evaluator_call_budget <= 0:
-            raise ValueError("evaluator_call_budget must be positive")
-        if initial_root_count <= 0:
-            raise ValueError("initial_root_count must be positive")
-        if context_token_limit is None or context_token_limit <= 0:
-            raise ValueError("context_token_limit must be explicitly positive")
-        if code_max_tokens <= 0 or max_history_events <= 0:
-            raise ValueError("token and history limits must be positive")
-        if transport_retry_limit < 0:
-            raise ValueError("transport retry limit cannot be negative")
+        if budget <= 0 or n_roots <= 0 or max_tokens <= 0 or max_history <= 0:
+            raise ValueError("budget, n_roots, max_tokens, and max_history must be positive")
+        if context_limit is None or context_limit <= 0:
+            raise ValueError("context_limit must be explicitly positive")
         if (
             evaluation.use_numba_accelerate
             or evaluation.use_protected_div
             or evaluation.random_seed is not None
         ):
-            raise ConfigurationFailure(
-                "V9.7 requires evaluator_input_code to be executed unchanged"
-            )
+            raise ValueError("V9.7 requires candidate code to be executed unchanged")
 
         template = TextFunctionProgramConverter.text_to_program(
             evaluation.template_program
@@ -241,917 +94,621 @@ class TraceAADV97:
 
         self._llm = llm
         self._evaluation = evaluation
-        self._artifacts = profiler
-        self._profiler = profiler
-        self._task_description_str = evaluation.task_description
-        self._template_program = template
-        self._function_to_evolve: Function = copy.deepcopy(template.functions[0])
+        self._log = artifacts
+        self._task = evaluation.task_description
+        self._template = template
+        self._function: Function = copy.deepcopy(template.functions[0])
         self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode)
-        self._evaluator_call_budget = evaluator_call_budget
-        self._initial_root_count = initial_root_count
+        self._budget = budget
+        self._n_roots = n_roots
         self._maximize = maximize
-        self._code_max_tokens = code_max_tokens
-        self._context_token_limit = context_token_limit
-        self._max_history_events = max_history_events
-        self._transport_retry_limit = transport_retry_limit
-        self._generation_seed = generation_seed
+        self._max_tokens = max_tokens
+        self._context_limit = context_limit
+        self._max_history = max_history
+        self._seed = seed
         self._checkpoint_dir = None if checkpoint_dir is None else Path(checkpoint_dir)
         llm.debug_mode = debug_mode
 
-        self._evaluator_contract_hash = evaluation_contract_hash(evaluation)
-        self._forest = SearchForest(
-            self._evaluator_contract_hash, maximize=self._maximize
-        )
-        self._pending_attempt: PendingAttempt | None = None
-        self._candidate_count = 0
-        self._llm_request_count = 0
-        self._evaluation_count = 0
-        self._transport_failure_count = 0
-        self._next_iteration = 0
+        self._forest = Forest(maximize=self._maximize)
+        self._pending: Pending | None = None
+        self._n_candidates = 0
+        self._n_eval = 0
+        self._iteration = 0
         self._initialization_complete = False
-        self._bootstrapped_root_ids: set[int] = set()
+        self._bootstrapped: set[int] = set()
         self._bootstrap_deltas: list[float] = []
-        self._optimism_scale: float | None = None
-        self._best_artifact_id: int | None = None
-        self._best_artifact_sample_order: int | None = None
-        self._outcome_counts: dict[str, int] = {}
+        self._s: float | None = None
+        self._best_id: int | None = None
 
-        if profiler is not None:
-            profiler.record_parameters(llm, evaluation, self)
         if resume_from is not None:
             checkpoint = load_checkpoint(self, resume_from)
             if self._checkpoint_dir is None:
                 self._checkpoint_dir = checkpoint.parent
-            self._record_decision(
-                "checkpoint_loaded",
-                checkpoint=str(checkpoint),
-                candidate_count=self._candidate_count,
-                evaluation_count=self._evaluation_count,
-                pending_attempt_id=(
-                    None
-                    if self._pending_attempt is None
-                    else self._pending_attempt.attempt_id
-                ),
-            )
 
     def search_configuration(self) -> dict[str, Any]:
         return {
             "protocol_id": PROTOCOL_ID,
             "checkpoint_schema_version": CHECKPOINT_VERSION,
-            "evaluator_call_budget": self._evaluator_call_budget,
-            "budget_unit": "real_evaluator_call",
-            "initial_root_count": self._initial_root_count,
-            "max_history_events": self._max_history_events,
-            "logical_model_name": LOGICAL_MODEL_NAME,
-            "evaluator_contract_hash": self._evaluator_contract_hash,
-            "deterministic_fitness_cache": True,
+            "budget": self._budget,
+            "n_roots": self._n_roots,
+            "max_history": self._max_history,
             "maximize": self._maximize,
-            "code_max_tokens": self._code_max_tokens,
-            "context_token_limit": self._context_token_limit,
-            "transport_retry_limit": self._transport_retry_limit,
-            "generation_seed": self._generation_seed,
+            "max_tokens": self._max_tokens,
+            "context_limit": self._context_limit,
+            "seed": self._seed,
             "refine_probability": REFINE_PROBABILITY,
             "explore_probability": 1.0 - REFINE_PROBABILITY,
-            "history_selector_id": HISTORY_SELECTOR_ID,
-            "generation_policy_id": GENERATION_POLICY_ID,
-            "intent_policy_id": INTENT_POLICY_ID,
-            "candidate_multiplicity_policy_id": CANDIDATE_MULTIPLICITY_POLICY_ID,
-            "budget_policy_id": BUDGET_POLICY_ID,
-            "initialization_policy_id": INITIALIZATION_POLICY_ID,
-            "optimism_scale_policy_id": OPTIMISM_SCALE_POLICY_ID,
-            "state_identity_policy_id": STATE_IDENTITY_POLICY_ID,
-            "candidate_accounting_policy_id": CANDIDATE_ACCOUNTING_POLICY_ID,
-            "stop_policy_id": STOP_POLICY_ID,
-            "normalization_policy_id": NORMALIZATION_POLICY_ID,
-            "prompt_renderer_version": PROMPT_RENDERER_VERSION,
-            "prompt_renderer_hash": prompt_renderer_hash(),
         }
 
-    def runtime_identity(self) -> dict[str, Any]:
-        return {
-            "task_description_sha256": text_hash(self._task_description_str),
-            "template_program_sha256": text_hash(str(self._template_program)),
-            "evaluation_contract_hash": self._evaluator_contract_hash,
-            "logical_model_name": LOGICAL_MODEL_NAME,
-            "temperature": getattr(self._llm, "temperature", None),
-            "top_p": getattr(self._llm, "top_p", None),
-            "top_k": getattr(self._llm, "top_k", None),
-            "max_new_tokens": self._code_max_tokens,
-            "sampling_seed": self._generation_seed,
-            "sampling_seed_support": self._generation_seed is not None,
-            "max_total_context": self._context_token_limit,
-            "tokenizer_identity": getattr(self._llm, "tokenizer_identity", None),
-            "tokenizer_version": getattr(self._llm, "tokenizer_version", None),
-            "chat_template_hash": getattr(self._llm, "chat_template_hash", None),
-            "serving_api": type(self._llm).__name__,
-            "serving_api_version": getattr(self._llm, "api_version", None),
-            "prompt_renderer_version": PROMPT_RENDERER_VERSION,
-            "prompt_renderer_hash": prompt_renderer_hash(),
-        }
-
-    def run(self) -> TraceAADRunResult:
+    def run(self) -> None:
         status = "error"
         stop_reason: str | None = None
         error: dict[str, str] = {}
-        result: TraceAADRunResult | None = None
         try:
-            if self._pending_attempt is not None:
-                self._process_pending_attempt()
+            if self._pending is not None:
+                self._process_pending()
             if not self._initialization_complete:
                 self._initialize()
             if not self._initialization_complete:
                 status = "initialization_failure"
                 stop_reason = "evaluator_budget_exhausted_during_initialization"
-                result = self._result()
-                return result
+                return
 
             while self._has_budget():
-                assert self._optimism_scale is not None
-                decision = select_anchor(self._forest, self._optimism_scale)
-                state = self._forest.get_state(decision.state_id)
-                artifact = self._forest.get_artifact(state.artifact_id)
-                self._record_decision(
-                    "route_selected",
-                    iteration=self._next_iteration,
-                    selected_root_state_id=decision.root_state_id,
-                    routes=[
-                        {
-                            "root_state_id": item.root_state_id,
-                            "best_q": item.best_directed_fitness,
-                            "n": item.generation_count_n,
-                            "optimism": item.optimism,
-                            "score": item.score,
-                        }
-                        for item in decision.route_scores
-                    ],
-                )
-                selected_score = next(
-                    item
-                    for item in decision.state_scores
-                    if item.state_id == decision.state_id
-                )
-                self._record_decision(
-                    "anchor_selected",
-                    iteration=self._next_iteration,
-                    route_id=decision.root_state_id,
-                    selected_state_id=decision.state_id,
-                    selected_artifact_id=artifact.artifact_id,
-                    selected_score=selected_score.score,
-                    states=[
-                        {
-                            "state_id": item.state_id,
-                            "artifact_id": self._forest.get_state(
-                                item.state_id
-                            ).artifact_id,
-                            "q": item.directed_fitness,
-                            "n": item.generation_count_n,
-                            "optimism": item.optimism,
-                            "score": item.score,
-                            "creation_order": self._forest.get_state(
-                                item.state_id
-                            ).creation_order,
-                        }
-                        for item in decision.state_scores
-                    ],
-                )
-                intent = draw_intent(self._generation_seed, self._next_iteration)
-                self._record_decision(
-                    "intent_selected",
-                    iteration=self._next_iteration,
-                    intent=intent.value,
-                    refine_probability=REFINE_PROBABILITY,
-                )
-                prompt = self._build_anchor_prompt(decision.state_id, intent)
-                self._request_candidate(
-                    prompt,
-                    anchor_state_id=decision.state_id,
+                assert self._s is not None
+                choice = select(self._forest, self._s)
+                intent = draw_intent(self._seed, self._iteration)
+                self._log_choice(choice, intent)
+                self._generate(
+                    self._prompt(choice.anchor_id, intent),
+                    anchor_id=choice.anchor_id,
                     stage="search",
-                    iteration=self._next_iteration,
+                    iteration=self._iteration,
                     intent=intent.value,
                 )
 
             status = "finished"
             stop_reason = "evaluator_budget_exhausted"
-            result = self._result()
-            return result
-        except TokenizerInfrastructureFailure as exc:
-            status = "infrastructure_failure"
-            stop_reason = "tokenizer_retry_exhausted"
-            error = {"error_type": type(exc).__name__, "error": str(exc)}
-            if self._artifacts is not None:
-                self._artifacts.record_error("tokenizer", exc)
-            raise
-        except InfrastructureFailure as exc:
-            status = "infrastructure_failure"
-            stop_reason = "transport_retry_exhausted"
-            error = {"error_type": type(exc).__name__, "error": str(exc)}
-            if self._artifacts is not None:
-                self._artifacts.record_error("transport", exc)
-            raise
-        except EvaluatorInfrastructureFailure as exc:
-            status = "infrastructure_failure"
-            stop_reason = "evaluator_infrastructure_failure"
-            error = {"error_type": type(exc).__name__, "error": str(exc)}
-            if self._artifacts is not None:
-                self._artifacts.record_error("evaluator", exc)
-            raise
-        except ConfigurationFailure as exc:
-            status = "configuration_failure"
-            stop_reason = "configuration_contract_failed"
-            error = {"error_type": type(exc).__name__, "error": str(exc)}
-            if self._artifacts is not None:
-                self._artifacts.record_error("configuration", exc)
-            raise
         except Exception as exc:
             error = {"error_type": type(exc).__name__, "error": str(exc)[:1000]}
-            if self._artifacts is not None:
-                self._artifacts.record_error("run", exc)
+            if self._log is not None:
+                self._log.record_error("run", exc)
             raise
         finally:
             save_checkpoint(self)
-            if result is None:
-                result = self._result()
-            if self._artifacts is not None:
-                best = result.best_artifact
-                self._artifacts.write_summary(
+            if self._log is not None:
+                best = (
+                    None
+                    if self._best_id is None
+                    else self._forest.get_program(self._best_id)
+                )
+                self._log.write_summary(
                     status=status,
                     stop_reason=stop_reason,
-                    best_artifact_id=(None if best is None else best.artifact_id),
+                    best_program_id=None if best is None else best.id,
                     best_score=None if best is None else best.fitness,
-                    best_sample_order=self._best_artifact_sample_order,
-                    method_sample_count=self._candidate_count,
-                    evaluator_call_count=self._evaluation_count,
-                    llm_request_count=self._llm_request_count,
-                    transport_failure_count=self._transport_failure_count,
-                    n_artifacts=result.n_artifacts,
-                    n_states=result.n_states,
-                    n_root_states=result.n_root_states,
-                    n_attempts=result.n_attempts,
-                    n_iterations=result.n_iterations,
+                    best_sample_order=None if best is None else best.order,
+                    method_sample_count=self._n_candidates,
+                    evaluator_call_count=self._n_eval,
+                    n_programs=len(self._forest.programs()),
+                    n_anchors=len(self._forest.anchors()),
+                    n_roots=len(self._forest.root_ids),
+                    n_attempts=len(self._forest.attempts()),
+                    n_iterations=self._iteration,
                     initialization_complete=self._initialization_complete,
-                    bootstrapped_root_ids=sorted(self._bootstrapped_root_ids),
+                    bootstrapped=sorted(self._bootstrapped),
                     bootstrap_deltas=self._bootstrap_deltas,
-                    optimism_scale=self._optimism_scale,
-                    outcome_counts=self._outcome_counts,
-                    pending_attempt_id=(
-                        None
-                        if self._pending_attempt is None
-                        else self._pending_attempt.attempt_id
-                    ),
+                    s=self._s,
+                    pending_id=None if self._pending is None else self._pending.id,
                     **error,
                 )
-                self._artifacts.finish()
-            close_llm(self._llm)
+                self._log.finish()
+            self._llm.close()
 
     def _initialize(self) -> None:
-        # Root identity is evaluator-input code uniqueness only. Whether the
-        # K roots are structurally different algorithms is a process-analysis
-        # prerequisite for interpreting route allocation, not an online filter.
-        while (
-            len(self._forest.root_state_ids) < self._initial_root_count
-            and self._has_budget()
-        ):
+        while len(self._forest.root_ids) < self._n_roots and self._has_budget():
             prompt = build_root_prompt(
-                task_description=self._task_description_str,
-                template_function=self._function_to_evolve,
+                task_description=self._task,
+                template_function=self._function,
                 maximize=self._maximize,
             )
-            self._require_prompt_capacity(prompt, "root_generation")
-            self._request_candidate(
+            if not self._fits(prompt):
+                raise RuntimeError("root prompt plus output bound exceeds context limit")
+            self._generate(
                 prompt,
-                anchor_state_id=None,
+                anchor_id=None,
                 stage="root_generation",
                 iteration=None,
                 intent=None,
             )
 
-        for root_state_id in tuple(self._forest.root_state_ids):
+        for root_id in tuple(self._forest.root_ids):
             if not self._has_budget():
                 break
-            if root_state_id in self._bootstrapped_root_ids:
+            if root_id in self._bootstrapped:
                 continue
-            prompt = self._build_anchor_prompt(
-                root_state_id, GenerationIntent.REFINE
-            )
-            self._request_candidate(
-                prompt,
-                anchor_state_id=root_state_id,
+            self._generate(
+                self._prompt(root_id, Intent.REFINE),
+                anchor_id=root_id,
                 stage="bootstrap",
                 iteration=None,
-                intent=GenerationIntent.REFINE.value,
+                intent=Intent.REFINE.value,
             )
 
-        complete = len(
-            self._forest.root_state_ids
-        ) == self._initial_root_count and self._bootstrapped_root_ids == set(
-            self._forest.root_state_ids
+        complete = (
+            len(self._forest.root_ids) == self._n_roots
+            and self._bootstrapped == set(self._forest.root_ids)
         )
         if not complete:
             save_checkpoint(self)
             return
-        self._optimism_scale = (
+        self._s = (
             float(statistics.median(self._bootstrap_deltas))
             if self._bootstrap_deltas
             else 0.0
         )
-        # s is a Refine-bootstrap heuristic, not a scale matched to the
-        # 0.7/0.3 Refine/Explore mixture used in search.
         self._initialization_complete = True
         save_checkpoint(self)
-        self._record_decision(
-            "initialization_completed",
-            root_state_ids=list(self._forest.root_state_ids),
-            bootstrapped_root_ids=sorted(self._bootstrapped_root_ids),
-            bootstrap_deltas=list(self._bootstrap_deltas),
-            optimism_scale=self._optimism_scale,
-            candidate_count=self._candidate_count,
-        )
 
-    def _build_anchor_prompt(self, state_id: int, intent: GenerationIntent) -> str:
-        state = self._forest.get_state(state_id)
-        artifact = self._forest.get_artifact(state.artifact_id)
-        selection = select_history(
-            self._forest, state_id, max_events=self._max_history_events
+    def _prompt(self, anchor_id: int, intent: Intent) -> str:
+        program = self._forest.get_program(
+            self._forest.get_anchor(anchor_id).program_id
         )
-        current = selection
+        selected = parent_path(self._forest, anchor_id, max_events=self._max_history)
+        shown = selected
         while True:
             prompt = build_generation_prompt(
-                task_description=self._task_description_str,
-                anchor=artifact,
-                history_text=render_history(self._forest, current),
+                task_description=self._task,
+                code=program.code,
+                fitness=program.fitness,
+                history_text=render_path(self._forest, shown),
                 intent=intent,
                 maximize=self._maximize,
             )
-            if self._prompt_fits(prompt):
-                self._record_history(state_id, intent, selection, current, prompt)
+            if self._fits(prompt):
+                self._decision(
+                    "history_built",
+                    anchor_id=anchor_id,
+                    intent=intent.value,
+                    selected_event_ids=selected,
+                    shown_event_ids=shown,
+                    dropped_for_context=len(selected) - len(shown),
+                    prompt_tokens=self._tokens(prompt),
+                )
                 return prompt
-            if not current.event_ids:
-                raise ConfigurationFailure(
+            if not shown:
+                raise RuntimeError(
                     "task, current code, and output budget exceed context "
                     "even with no history events"
                 )
-            current = drop_oldest_event(current)
+            shown = drop_oldest(shown)
 
-    def _record_history(
-        self,
-        state_id: int,
-        intent: GenerationIntent,
-        selection: HistorySelection,
-        shown: HistorySelection,
-        prompt: str,
-    ) -> None:
-        self._record_decision(
-            "history_built",
-            anchor_state_id=state_id,
-            intent=intent.value,
-            formation_pool_ids=selection.formation_pool_ids,
-            selected_formation_ids=selection.formation_event_ids,
-            omitted_direct_attempt_ids=self._forest.direct_attempt_ids(state_id),
-            shown_event_ids=shown.event_ids,
-            dropped_for_context=len(selection.event_ids) - len(shown.event_ids),
-            prompt_tokens=self._count_prompt_tokens(prompt),
-        )
-
-    def _request_candidate(
+    def _generate(
         self,
         prompt: str,
         *,
-        anchor_state_id: int | None,
+        anchor_id: int | None,
         stage: str,
         iteration: int | None,
         intent: str | None,
-    ) -> AttemptRecord:
-        if self._pending_attempt is not None:
+    ) -> Attempt:
+        if self._pending is not None:
             raise RuntimeError("cannot request a candidate while one is pending")
-        prompt_tokens = self._count_prompt_tokens(prompt)
+        prompt_tokens = self._tokens(prompt)
         generation_seed = (
-            None
-            if self._generation_seed is None
-            else self._generation_seed + self._candidate_count + 1
+            None if self._seed is None else self._seed + self._n_candidates + 1
         )
-        for transport_attempt in range(self._transport_retry_limit + 1):
-            start = time.time()
-            self._llm_request_count += 1
-            try:
-                kwargs: dict[str, Any] = {"max_tokens": self._code_max_tokens}
-                if generation_seed is not None:
-                    kwargs["seed"] = generation_seed
-                response = self._llm.draw_sample(prompt, **kwargs)
-                sample_time = time.time() - start
-                break
-            except Exception as exc:
-                sample_time = time.time() - start
-                self._transport_failure_count += 1
-                save_checkpoint(self)
-                self._record_llm_call(
-                    stage=stage,
-                    iteration=iteration,
-                    anchor_state_id=anchor_state_id,
-                    intent=intent,
-                    sample_order=None,
-                    sample_time=sample_time,
-                    prompt_tokens=prompt_tokens,
-                    response_tokens=0,
-                    status="transport",
-                    prompt=prompt,
-                    store_prompt=True,
-                    failure_kind="transport",
-                    error_type=type(exc).__name__,
-                    error=str(exc),
-                    transport_attempt=transport_attempt + 1,
-                    generation_seed=generation_seed,
-                )
-                if transport_attempt == self._transport_retry_limit:
-                    raise InfrastructureFailure(
-                        "model transport retry limit exhausted"
-                    ) from exc
-
-        self._candidate_count += 1
-        if anchor_state_id is not None:
-            self._forest.get_state(anchor_state_id).generation_count_n += 1
-        pending = PendingAttempt(
-            attempt_id=self._forest.next_attempt_id(),
-            anchor_state_id=anchor_state_id,
-            stage_name=stage,
-            iteration=iteration,
-            candidate_order=self._candidate_count,
-            intent=intent,
-            response=response,
-            prompt=prompt,
-            prompt_tokens=prompt_tokens,
-            response_tokens=self._count_tokens(response),
-            sample_time=sample_time,
-            generation_seed=generation_seed,
-        )
-        self._pending_attempt = pending
-        save_checkpoint(self)
-        self._record_llm_call(
+        response = self._draw(
+            prompt,
+            generation_seed,
             stage=stage,
             iteration=iteration,
-            anchor_state_id=anchor_state_id,
+            anchor_id=anchor_id,
             intent=intent,
-            sample_order=pending.candidate_order,
-            sample_time=sample_time,
             prompt_tokens=prompt_tokens,
-            response_tokens=pending.response_tokens,
-            status="ok",
-            prompt=prompt,
-            store_prompt=True,
-            program_parse_success=None,
-            generation_seed=generation_seed,
         )
-        return self._process_pending_attempt()
+        self._n_candidates += 1
+        if anchor_id is not None:
+            self._forest.get_anchor(anchor_id).n += 1
+        self._pending = Pending(
+            id=self._forest.next_attempt_id(),
+            anchor_id=anchor_id,
+            stage=stage,
+            iteration=iteration,
+            order=self._n_candidates,
+            intent=intent,
+            response=response,
+        )
+        save_checkpoint(self)
+        if self._log is not None:
+            self._log.record_llm_call(
+                stage=stage,
+                iteration=iteration,
+                anchor_id=anchor_id,
+                intent=intent,
+                order=self._pending.order,
+                prompt_tokens=prompt_tokens,
+                response_tokens=self._tokens(response),
+                status="ok",
+                prompt=prompt,
+                generation_seed=generation_seed,
+            )
+        return self._process_pending()
 
-    def _process_pending_attempt(self) -> AttemptRecord:
-        pending = self._pending_attempt
+    def _draw(
+        self,
+        prompt: str,
+        seed: int | None,
+        *,
+        stage: str,
+        iteration: int | None,
+        anchor_id: int | None,
+        intent: str | None,
+        prompt_tokens: int,
+    ) -> str:
+        last_error: Exception | None = None
+        kwargs: dict[str, Any] = {"max_tokens": self._max_tokens}
+        if seed is not None:
+            kwargs["seed"] = seed
+        for attempt in range(TRANSPORT_RETRIES + 1):
+            try:
+                return self._llm.draw_sample(prompt, **kwargs)
+            except Exception as exc:
+                last_error = exc
+                save_checkpoint(self)
+                if self._log is not None:
+                    self._log.record_llm_call(
+                        stage=stage,
+                        iteration=iteration,
+                        anchor_id=anchor_id,
+                        intent=intent,
+                        prompt_tokens=prompt_tokens,
+                        response_tokens=0,
+                        status="transport",
+                        prompt=prompt,
+                        generation_seed=seed,
+                        error_type=type(exc).__name__,
+                        error=str(exc),
+                        transport_attempt=attempt + 1,
+                    )
+        raise RuntimeError("model transport retry limit exhausted") from last_error
+
+    def _process_pending(self) -> Attempt:
+        pending = self._pending
         if pending is None:
             raise RuntimeError("no pending candidate to process")
-        if pending.processing_stage is PendingStage.RESPONSE_RECEIVED:
-            try:
-                parsed = parse_program_response(
-                    pending.response,
-                    self._template_program,
-                    self._function_to_evolve.name,
-                )
-            except ProgramResponseError as exc:
-                pending.declared_idea = exc.declared_idea
-                pending.raw_code = exc.raw_code
-                pending.raw_code_hash = (
-                    None if exc.raw_code is None else text_hash(exc.raw_code)
-                )
-                pending.failure_category = "parse"
-                pending.failure_feedback = _compact_error(str(exc))
-                return self._finalize_pending_attempt()
 
-            pending.declared_idea = parsed.declared_idea
-            pending.raw_code = parsed.raw_code
-            pending.raw_code_hash = text_hash(parsed.raw_code)
-            pending.evaluator_input_code = str(parsed.program)
-            pending.evaluator_input_hash = text_hash(pending.evaluator_input_code)
-            if pending.anchor_state_id is not None:
-                parent_state = self._forest.get_state(pending.anchor_state_id)
-                parent = self._forest.get_artifact(parent_state.artifact_id)
-                pending.actual_diff, pending.diff_statistics = actual_code_diff(
-                    parent.evaluator_input_code, pending.evaluator_input_code
-                )
-            pending.processing_stage = PendingStage.PARSED
-            save_checkpoint(self)
+        try:
+            parsed = parse_program_response(
+                pending.response, self._template, self._function.name
+            )
+        except ProgramResponseError as exc:
+            return self._finalize(
+                idea=exc.declared_idea,
+                code=None,
+                diff=None,
+                added=0,
+                removed=0,
+                existing=None,
+                fitness=None,
+                error=one_line(str(exc), ERROR_MAX_CHARS),
+                evaluated=False,
+            )
 
-        if pending.processing_stage is PendingStage.PARSED:
-            assert pending.evaluator_input_code is not None
-            existing = self._forest.artifact_for_code(pending.evaluator_input_code)
-            if existing is not None:
-                return self._finalize_pending_attempt(existing_artifact=existing)
+        idea = parsed.declared_idea
+        code = str(parsed.program)
+        diff: str | None = None
+        added = 0
+        removed = 0
+        if pending.anchor_id is not None:
+            parent = self._forest.get_program(
+                self._forest.get_anchor(pending.anchor_id).program_id
+            )
+            diff, added, removed = code_diff(parent.code, code)
+        existing = self._forest.program_for_code(code)
+        if existing is not None:
+            return self._finalize(
+                idea=idea,
+                code=code,
+                diff=diff,
+                added=added,
+                removed=removed,
+                existing=existing,
+                fitness=None,
+                error=None,
+                evaluated=False,
+            )
 
-            outcome, evaluate_time = (
-                self._evaluator.evaluate_program_record_time_with_details(
-                    pending.evaluator_input_code
+        outcome, _elapsed = self._evaluator.evaluate_program_record_time_with_details(
+            code
+        )
+        self._n_eval += 1
+        if outcome.failure_kind == "prepare_error":
+            raise RuntimeError(
+                one_line(
+                    outcome.error
+                    or "evaluator preparation failed without an error message",
+                    ERROR_MAX_CHARS,
                 )
             )
-            self._evaluation_count += 1
-            pending.evaluator_called = True
-            pending.evaluate_time = evaluate_time
-            if outcome.failure_kind == "prepare_error":
-                raise EvaluatorInfrastructureFailure(
-                    _compact_error(outcome.error)
-                    or "evaluator preparation failed without an error message"
-                )
-            score = getattr(outcome.result, "fitness", outcome.result)
-            try:
-                fitness = float(score)
-            except (TypeError, ValueError, OverflowError):
-                fitness = math.nan
-            if math.isfinite(fitness):
-                pending.evaluated_fitness = fitness
-            else:
-                pending.failure_category = outcome.failure_kind or "invalid_result"
-                pending.failure_feedback = _compact_error(
-                    outcome.error
-                ) or _compact_error(
-                    f"evaluator returned non-finite or non-numeric fitness: {score!r}"
-                )
-            pending.processing_stage = PendingStage.EVALUATED
-            save_checkpoint(self)
+        score = getattr(outcome.result, "fitness", outcome.result)
+        try:
+            parsed_fitness = float(score)
+        except (TypeError, ValueError, OverflowError):
+            parsed_fitness = math.nan
+        if math.isfinite(parsed_fitness):
+            return self._finalize(
+                idea=idea,
+                code=code,
+                diff=diff,
+                added=added,
+                removed=removed,
+                existing=None,
+                fitness=parsed_fitness,
+                error=None,
+                evaluated=True,
+            )
+        return self._finalize(
+            idea=idea,
+            code=code,
+            diff=diff,
+            added=added,
+            removed=removed,
+            existing=None,
+            fitness=None,
+            error=one_line(
+                outcome.error
+                or f"evaluator returned non-finite or non-numeric fitness: {score!r}",
+                ERROR_MAX_CHARS,
+            ),
+            evaluated=True,
+        )
 
-        return self._finalize_pending_attempt()
-
-    def _finalize_pending_attempt(
-        self, *, existing_artifact: ProgramArtifact | None = None
-    ) -> AttemptRecord:
-        pending = self._pending_attempt
+    def _finalize(
+        self,
+        *,
+        idea: str | None,
+        code: str | None,
+        diff: str | None,
+        added: int,
+        removed: int,
+        existing: Program | None,
+        fitness: float | None,
+        error: str | None,
+        evaluated: bool,
+    ) -> Attempt:
+        pending = self._pending
         if pending is None:
             raise RuntimeError("no pending candidate to finalize")
-        anchor_state = (
+        parent_anchor = (
             None
-            if pending.anchor_state_id is None
-            else self._forest.get_state(pending.anchor_state_id)
+            if pending.anchor_id is None
+            else self._forest.get_anchor(pending.anchor_id)
         )
-        parent_artifact = (
+        parent = (
             None
-            if anchor_state is None
-            else self._forest.get_artifact(anchor_state.artifact_id)
+            if parent_anchor is None
+            else self._forest.get_program(parent_anchor.program_id)
         )
-        artifact = existing_artifact
-        child_state = None
-        kind: AttemptKind
-
-        if pending.failure_category is not None:
-            kind = AttemptKind.INVALID
-        elif artifact is not None and anchor_state is None:
-            kind = AttemptKind.ROOT_DUPLICATE
-        elif artifact is not None and parent_artifact is not None:
-            if artifact.artifact_id == parent_artifact.artifact_id:
-                kind = AttemptKind.NO_OP
-            elif artifact.artifact_id in self._forest.ancestor_artifact_ids(
-                anchor_state.state_id
-            ):
-                kind = AttemptKind.ANCESTRAL_RETURN
-            elif self._forest.relation_exists(
-                anchor_state.state_id, artifact.artifact_id
-            ):
-                kind = AttemptKind.REPEATED_DUPLICATE
-            else:
-                kind = AttemptKind.CACHED_ARTIFACT
-                child_state = self._forest.add_child_state(
-                    parent_state_id=anchor_state.state_id,
-                    artifact_id=artifact.artifact_id,
-                    attempt_id=pending.attempt_id,
-                    creation_order=pending.candidate_order,
-                )
-        else:
-            assert pending.evaluator_input_code is not None
-            assert pending.evaluated_fitness is not None
-            artifact = self._forest.add_artifact(
-                evaluator_input_code=pending.evaluator_input_code,
-                fitness=pending.evaluated_fitness,
-                discovery_order=pending.candidate_order,
-            )
-            if anchor_state is None:
-                kind = AttemptKind.ROOT_NEW
-                child_state = self._forest.add_root_state(
-                    artifact_id=artifact.artifact_id,
-                    creation_order=pending.candidate_order,
-                )
-            else:
-                kind = AttemptKind.NEW_ARTIFACT
-                child_state = self._forest.add_child_state(
-                    parent_state_id=anchor_state.state_id,
-                    artifact_id=artifact.artifact_id,
-                    attempt_id=pending.attempt_id,
-                    creation_order=pending.candidate_order,
-                )
-
-        directed_delta = (
-            None
-            if parent_artifact is None or artifact is None
-            else artifact.directed_fitness - parent_artifact.directed_fitness
+        program, child, kind = self._place(
+            pending=pending,
+            parent_anchor=parent_anchor,
+            parent=parent,
+            existing=existing,
+            code=code,
+            fitness=fitness,
+            error=error,
         )
-        direct_outcome = self._direct_outcome(
-            anchor_state is not None,
-            invalid=kind is AttemptKind.INVALID,
-            directed_delta=directed_delta,
-        )
-        attempt = AttemptRecord(
-            attempt_id=pending.attempt_id,
-            status="finalized",
-            anchor_state_id=pending.anchor_state_id,
-            child_state_id=None if child_state is None else child_state.state_id,
-            artifact_id=None if artifact is None else artifact.artifact_id,
+        dq = None if parent is None or program is None else program.q - parent.q
+        outcome = _outcome(parent is not None, invalid=kind == "invalid", dq=dq)
+        attempt = Attempt(
+            id=pending.id,
+            anchor_id=pending.anchor_id,
+            child_id=None if child is None else child.id,
+            program_id=None if program is None else program.id,
             intent=pending.intent,
-            declared_idea=pending.declared_idea,
-            raw_code_hash=pending.raw_code_hash,
-            evaluator_input_hash=pending.evaluator_input_hash,
-            actual_diff=pending.actual_diff,
-            diff_statistics=pending.diff_statistics,
-            parent_fitness=(
-                None if parent_artifact is None else parent_artifact.fitness
-            ),
-            child_fitness=None if artifact is None else artifact.fitness,
-            directed_delta=directed_delta,
-            direct_outcome=direct_outcome,
-            attempt_kind=kind,
-            failure_category=pending.failure_category,
-            failure_feedback=pending.failure_feedback,
-            evaluator_called=pending.evaluator_called,
-            candidate_order=pending.candidate_order,
-            creation_time=datetime.now(timezone.utc).isoformat(),
-            stage=pending.stage_name,
+            idea=idea,
+            diff=diff,
+            added=added,
+            removed=removed,
+            parent_fitness=None if parent is None else parent.fitness,
+            child_fitness=None if program is None else program.fitness,
+            dq=dq,
+            outcome=outcome,
+            kind=kind,
+            order=pending.order,
+            stage=pending.stage,
             iteration=pending.iteration,
         )
         self._forest.add_attempt(attempt)
 
-        if pending.stage_name == "bootstrap" and pending.anchor_state_id is not None:
-            self._bootstrapped_root_ids.add(pending.anchor_state_id)
-            scale_observation = bootstrap_abs_delta(
-                child_created=child_state is not None,
-                directed_delta=directed_delta,
-            )
-            if scale_observation is not None:
-                self._bootstrap_deltas.append(scale_observation)
-        if pending.stage_name == "search" and pending.iteration is not None:
-            self._next_iteration = max(self._next_iteration, pending.iteration + 1)
+        if pending.stage == "bootstrap" and pending.anchor_id is not None:
+            self._bootstrapped.add(pending.anchor_id)
+            if child is not None and dq is not None:
+                self._bootstrap_deltas.append(abs(dq))
+        if pending.stage == "search" and pending.iteration is not None:
+            self._iteration = max(self._iteration, pending.iteration + 1)
 
-        best_updated, best_reason = self._update_best(artifact)
-        self._outcome_counts[kind.value] = self._outcome_counts.get(kind.value, 0) + 1
-        audit_pending = pending
-        self._pending_attempt = None
+        self._update_best(program)
+        self._pending = None
         save_checkpoint(self)
-        self._record_finalized_attempt(
-            attempt,
-            audit_pending,
-            best_updated=best_updated,
-            best_reason=best_reason,
-        )
+        self._record_attempt(attempt, response=pending.response, code=code, error=error, evaluated=evaluated)
         return attempt
 
-    @staticmethod
-    def _direct_outcome(
-        has_anchor: bool, *, invalid: bool, directed_delta: float | None
-    ) -> DirectOutcome | None:
-        if not has_anchor:
-            return None
-        if invalid:
-            return DirectOutcome.INVALID
-        assert directed_delta is not None
-        if directed_delta > 0:
-            return DirectOutcome.IMPROVE
-        if directed_delta < 0:
-            return DirectOutcome.REGRESS
-        return DirectOutcome.PLATEAU
+    def _place(
+        self,
+        *,
+        pending: Pending,
+        parent_anchor: Anchor | None,
+        parent: Program | None,
+        existing: Program | None,
+        code: str | None,
+        fitness: float | None,
+        error: str | None,
+    ) -> tuple[Program | None, Anchor | None, str]:
+        if error is not None:
+            return None, None, "invalid"
+        if existing is not None and parent_anchor is None:
+            return existing, None, "root_duplicate"
+        if existing is not None and parent is not None:
+            if existing.id == parent.id:
+                return existing, None, "no_op"
+            if existing.id in self._forest.ancestor_program_ids(parent_anchor.id):
+                return existing, None, "ancestral_return"
+            if self._forest.relation_exists(parent_anchor.id, existing.id):
+                return existing, None, "repeated_duplicate"
+            child = self._forest.add_child(
+                parent_id=parent_anchor.id,
+                program_id=existing.id,
+                attempt_id=pending.id,
+                order=pending.order,
+            )
+            return existing, child, "cached"
+        assert code is not None and fitness is not None
+        program = self._forest.add_program(
+            code=code, fitness=fitness, order=pending.order
+        )
+        if parent_anchor is None:
+            child = self._forest.add_root(program_id=program.id, order=pending.order)
+            return program, child, "root_new"
+        child = self._forest.add_child(
+            parent_id=parent_anchor.id,
+            program_id=program.id,
+            attempt_id=pending.id,
+            order=pending.order,
+        )
+        return program, child, "new"
 
-    def _update_best(self, artifact: ProgramArtifact | None) -> tuple[bool, str | None]:
-        if artifact is None:
+    def _update_best(self, program: Program | None) -> tuple[bool, str | None]:
+        if program is None:
             return False, None
         incumbent = (
-            None
-            if self._best_artifact_id is None
-            else self._forest.get_artifact(self._best_artifact_id)
+            None if self._best_id is None else self._forest.get_program(self._best_id)
         )
-        if not is_artifact_better(artifact, incumbent):
+        if not is_better(program, incumbent):
             return False, None
         reason = (
-            "strict_fitness"
-            if incumbent is None
-            or artifact.directed_fitness > incumbent.directed_fitness
-            else "tie_shorter"
+            "strict_fitness" if incumbent is None or program.q > incumbent.q else "tie_break"
         )
-        self._best_artifact_id = artifact.artifact_id
-        self._best_artifact_sample_order = artifact.first_discovery_order
-        self._record_decision(
+        self._best_id = program.id
+        self._decision(
             "best_updated",
-            artifact_id=artifact.artifact_id,
-            sample_order=artifact.first_discovery_order,
+            program_id=program.id,
+            sample_order=program.order,
             reason=reason,
         )
         return True, reason
 
-    def _record_finalized_attempt(
+    def _record_attempt(
         self,
-        attempt: AttemptRecord,
-        pending: PendingAttempt,
+        attempt: Attempt,
         *,
-        best_updated: bool,
-        best_reason: str | None,
+        response: str,
+        code: str | None,
+        error: str | None,
+        evaluated: bool,
     ) -> None:
+        if self._log is None:
+            return
         status = "ok"
-        if attempt.attempt_kind is AttemptKind.INVALID:
-            status = (
-                "parse_failed" if attempt.failure_category == "parse" else "eval_failed"
-            )
-        self._record_candidate(
-            operator=self._operator_label(attempt.intent),
-            sample_order=attempt.candidate_order,
-            score=attempt.child_fitness,
-            status=status,
-            failure_kind=attempt.failure_category,
-            error=attempt.failure_feedback,
-            program=pending.evaluator_input_code or "",
-            raw_response=pending.response,
-            raw_code=pending.raw_code,
-            idea=attempt.declared_idea,
-            raw_code_hash=attempt.raw_code_hash,
-            evaluator_input_hash=attempt.evaluator_input_hash,
-            evaluator_contract_hash=self._evaluator_contract_hash,
-            actual_diff=attempt.actual_diff,
-            diff_statistics=(
-                None
-                if attempt.diff_statistics is None
-                else {
-                    "added_lines": attempt.diff_statistics.added_lines,
-                    "removed_lines": attempt.diff_statistics.removed_lines,
-                    "changed_lines": attempt.diff_statistics.changed_lines,
-                }
-            ),
-            attempt_id=attempt.attempt_id,
-            attempt_kind=attempt.attempt_kind,
-            intent=attempt.intent,
-            direct_outcome=attempt.direct_outcome,
-            evaluator_called=attempt.evaluator_called,
-            evaluate_time=pending.evaluate_time,
-            sample_time=pending.sample_time,
-            parent_node_id=attempt.anchor_state_id,
-            child_state_id=attempt.child_state_id,
-            artifact_id=attempt.artifact_id,
-            iteration=attempt.iteration,
+        if attempt.kind == "invalid":
+            status = "parse_failed" if not evaluated else "eval_failed"
+        self._log.record_candidate(
+            attempt_id=attempt.id,
+            order=attempt.order,
             stage=attempt.stage,
-        )
-        if attempt.child_state_id is not None and attempt.anchor_state_id is not None:
-            self._artifacts_record_edge(
-                edge_id=attempt.attempt_id,
-                parent_id=attempt.anchor_state_id,
-                child_id=attempt.child_state_id,
-                sample_order=attempt.candidate_order,
-                iteration=attempt.iteration,
-                stage=attempt.stage,
-                operator=self._operator_label(attempt.intent),
-                intent=attempt.intent,
-                implemented_idea=attempt.declared_idea,
-                actual_diff=attempt.actual_diff,
-                delta_parent=attempt.directed_delta,
-                outcome=attempt.direct_outcome,
-                new_global_best=best_updated,
-                strict_breakthrough=best_reason == "strict_fitness",
-                global_best_update_reason=best_reason,
-            )
-        self._record_decision(
-            "attempt_finalized",
-            attempt_id=attempt.attempt_id,
-            candidate_order=attempt.candidate_order,
-            anchor_state_id=attempt.anchor_state_id,
-            child_state_id=attempt.child_state_id,
-            artifact_id=attempt.artifact_id,
+            iteration=attempt.iteration,
+            anchor_id=attempt.anchor_id,
+            child_id=attempt.child_id,
+            program_id=attempt.program_id,
             intent=attempt.intent,
-            attempt_kind=attempt.attempt_kind,
-            direct_outcome=attempt.direct_outcome,
-            evaluator_called=attempt.evaluator_called,
-            cache_hit=attempt.attempt_kind
-            in {
-                AttemptKind.ROOT_DUPLICATE,
-                AttemptKind.CACHED_ARTIFACT,
-                AttemptKind.NO_OP,
-                AttemptKind.REPEATED_DUPLICATE,
-                AttemptKind.ANCESTRAL_RETURN,
-            },
-            ancestral_membership=attempt.attempt_kind is AttemptKind.ANCESTRAL_RETURN,
-            relation_existed=attempt.attempt_kind is AttemptKind.REPEATED_DUPLICATE,
-            raw_code_hash=attempt.raw_code_hash,
-            evaluator_input_hash=attempt.evaluator_input_hash,
-            actual_diff_hash=(
-                None if attempt.actual_diff is None else text_hash(attempt.actual_diff)
-            ),
-            failure_category=attempt.failure_category,
-            failure_feedback=attempt.failure_feedback,
+            idea=attempt.idea,
+            kind=attempt.kind,
+            outcome=attempt.outcome,
+            evaluator_called=evaluated,
+            status=status,
+            parent_fitness=attempt.parent_fitness,
+            child_fitness=attempt.child_fitness,
+            dq=attempt.dq,
+            added=attempt.added,
+            removed=attempt.removed,
+            diff=attempt.diff,
+            program=code or "",
+            raw_response=response,
+            error=error,
         )
 
-    @staticmethod
-    def _operator_label(intent: str | None) -> str:
-        return ROOT_GENERATION_OPERATOR if intent is None else intent
-
-    def _require_prompt_capacity(self, prompt: str, stage: str) -> None:
-        if not self._prompt_fits(prompt):
-            raise ConfigurationFailure(
-                f"V9.7 {stage} prompt plus output bound exceeds context limit"
-            )
-
-    def _prompt_fits(self, prompt: str) -> bool:
-        return (
-            self._count_prompt_tokens(prompt) + self._code_max_tokens
-            <= self._context_token_limit
+    def _log_choice(self, choice: Choice, intent: Intent) -> None:
+        program_id = self._forest.get_anchor(choice.anchor_id).program_id
+        chosen = next(item for item in choice.anchors if item.anchor_id == choice.anchor_id)
+        self._decision(
+            "route_selected",
+            iteration=self._iteration,
+            selected_root_state_id=choice.route_id,
+            routes=[
+                {
+                    "root_state_id": item.route_id,
+                    "best_q": item.q,
+                    "n": item.n,
+                    "optimism": item.optimism,
+                    "score": item.score,
+                }
+                for item in choice.routes
+            ],
+        )
+        self._decision(
+            "anchor_selected",
+            iteration=self._iteration,
+            route_id=choice.route_id,
+            selected_state_id=choice.anchor_id,
+            selected_artifact_id=program_id,
+            selected_score=chosen.score,
+            states=[
+                {
+                    "state_id": item.anchor_id,
+                    "artifact_id": self._forest.get_anchor(item.anchor_id).program_id,
+                    "q": item.q,
+                    "n": item.n,
+                    "optimism": item.optimism,
+                    "score": item.score,
+                    "creation_order": self._forest.get_anchor(item.anchor_id).order,
+                }
+                for item in choice.anchors
+            ],
         )
 
-    def _count_prompt_tokens(self, prompt: str) -> int:
-        counter = getattr(self._llm, "count_prompt_tokens", None)
-        if not callable(counter):
-            counter = getattr(self._llm, "count_tokens", None)
-        try:
-            if not callable(counter):
-                raise TypeError("LLM does not expose an exact token counter")
-            return int(counter(prompt))
-        except Exception as exc:
-            raise TokenizerInfrastructureFailure(
-                "model tokenizer retry limit exhausted"
-            ) from exc
+    def _decision(self, event: str, **payload: Any) -> None:
+        if self._log is not None:
+            self._log.record_decision(event, **payload)
 
-    def _count_tokens(self, text: str) -> int:
-        counter = getattr(self._llm, "count_tokens", None)
-        try:
-            if not callable(counter):
-                raise TypeError("LLM does not expose an exact token counter")
-            return int(counter(text))
-        except Exception as exc:
-            raise TokenizerInfrastructureFailure(
-                "model tokenizer retry limit exhausted"
-            ) from exc
+    def _fits(self, prompt: str) -> bool:
+        return self._tokens(prompt) + self._max_tokens <= self._context_limit
 
-    @property
-    def _token_count_mode(self) -> str:
-        mode = getattr(self._llm, "prompt_token_count_mode", None)
-        if isinstance(mode, str):
-            return mode
-        return (
-            "llm_count_tokens"
-            if callable(getattr(self._llm, "count_tokens", None))
-            else "unavailable"
-        )
-
-    def _record_candidate(self, **payload: Any) -> None:
-        if self._artifacts is not None:
-            self._artifacts.record_candidate(**payload)
-
-    def _record_llm_call(
-        self, *, anchor_state_id: int | None, intent: str | None, **payload: Any
-    ) -> None:
-        if self._artifacts is not None:
-            self._artifacts.record_llm_call(
-                operator=self._operator_label(intent),
-                intent=intent,
-                parent_node_id=anchor_state_id,
-                token_count_mode=self._token_count_mode,
-                **payload,
-            )
-
-    def _artifacts_record_edge(self, **payload: Any) -> None:
-        if self._artifacts is not None:
-            self._artifacts.record_edge(**payload)
-
-    def _record_decision(self, event: str, **payload: Any) -> None:
-        if self._artifacts is not None:
-            self._artifacts.record_decision(event, **payload)
+    def _tokens(self, text: str) -> int:
+        for name in ("count_prompt_tokens", "count_tokens"):
+            counter = getattr(self._llm, name, None)
+            if callable(counter):
+                return int(counter(text))
+        raise RuntimeError("model tokenizer is unavailable")
 
     def _has_budget(self) -> bool:
-        return self._evaluation_count < self._evaluator_call_budget
+        return self._n_eval < self._budget
 
-    def _result(self) -> TraceAADRunResult:
-        best = (
-            None
-            if self._best_artifact_id is None
-            else self._forest.get_artifact(self._best_artifact_id)
-        )
-        return TraceAADRunResult(
-            best_artifact=best,
-            n_artifacts=len(self._forest.artifacts()),
-            n_states=len(self._forest.states()),
-            n_root_states=len(self._forest.root_state_ids),
-            n_attempts=len(self._forest.attempts()),
-            n_candidates=self._candidate_count,
-            n_evaluations=self._evaluation_count,
-            n_llm_requests=self._llm_request_count,
-            n_iterations=self._next_iteration,
-            optimism_scale=self._optimism_scale,
-            initialization_complete=self._initialization_complete,
-        )
+
+def _outcome(has_anchor: bool, *, invalid: bool, dq: float | None) -> Outcome | None:
+    if not has_anchor:
+        return None
+    if invalid:
+        return Outcome.INVALID
+    assert dq is not None
+    if dq > 0:
+        return Outcome.IMPROVE
+    if dq < 0:
+        return Outcome.REGRESS
+    return Outcome.PLATEAU
 
 
 __all__ = [
-    "INITIAL_ROOT_COUNT",
-    "LOGICAL_MODEL_NAME",
-    "MAX_HISTORY_EVENTS",
-    "ConfigurationFailure",
-    "EvaluatorInfrastructureFailure",
-    "InfrastructureFailure",
-    "TraceAADRunResult",
     "TraceAADV97",
-    "bootstrap_abs_delta",
     "draw_intent",
-    "evaluation_contract_hash",
 ]

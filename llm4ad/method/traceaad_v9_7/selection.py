@@ -1,143 +1,108 @@
-"""Route-then-anchor optimistic allocation.
-
-Both levels use the same V9.6 formula ``q + s / sqrt(n + 1)``. A route is
-the provenance set of all anchors descending from one initial root, not a
-semantic algorithm category. Selection is a hierarchical hard gate: the
-highest-scoring route is chosen first, and only then an anchor inside that
-route. This is a V9.7 design choice that makes H1 directly testable; it is
-not claimed to be the unique correct structure. Route-level optimism
-rebalances generation opportunities across initial sources; it does not
-claim that those sources correspond to different algorithmic ideas. The
-visit counts n and N count completed generation responses, not evaluator
-calls.
-"""
+"""Route-then-anchor allocation: q + s / sqrt(n + 1) at both levels."""
 
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
 
-from .forest import SearchForest
+from .forest import Forest
 
 
 @dataclass(frozen=True, slots=True)
 class RouteScore:
-    root_state_id: int
-    best_directed_fitness: float
-    generation_count_n: int
+    route_id: int
+    q: float
+    n: int
     optimism: float
     score: float
 
 
 @dataclass(frozen=True, slots=True)
-class StateScore:
-    state_id: int
-    directed_fitness: float
-    generation_count_n: int
+class AnchorScore:
+    anchor_id: int
+    q: float
+    n: int
     optimism: float
     score: float
 
 
 @dataclass(frozen=True, slots=True)
-class AllocationDecision:
-    state_id: int
-    root_state_id: int
-    route_scores: tuple[RouteScore, ...]
-    state_scores: tuple[StateScore, ...]
+class Choice:
+    anchor_id: int
+    route_id: int
+    routes: tuple[RouteScore, ...]
+    anchors: tuple[AnchorScore, ...]
 
 
-def route_root_id(forest: SearchForest, state_id: int) -> int:
-    return forest.ancestor_state_ids(state_id)[0]
-
-
-def score_routes(forest: SearchForest, optimism_scale: float) -> tuple[RouteScore, ...]:
+def score_routes(forest: Forest, s: float) -> tuple[RouteScore, ...]:
     best: dict[int, float] = {}
     spent: dict[int, int] = {}
-    for state in forest.states():
-        root_id = route_root_id(forest, state.state_id)
-        quality = forest.get_artifact(state.artifact_id).directed_fitness
-        if root_id not in best or quality > best[root_id]:
-            best[root_id] = quality
-        spent[root_id] = spent.get(root_id, 0) + state.generation_count_n
-    scored: list[RouteScore] = []
-    for root_id in forest.root_state_ids:
-        optimism = optimism_scale / math.sqrt(spent[root_id] + 1)
-        scored.append(
-            RouteScore(
-                root_state_id=root_id,
-                best_directed_fitness=best[root_id],
-                generation_count_n=spent[root_id],
-                optimism=optimism,
-                score=best[root_id] + optimism,
-            )
+    for anchor in forest.anchors():
+        q = forest.get_program(anchor.program_id).q
+        if anchor.root_id not in best or q > best[anchor.root_id]:
+            best[anchor.root_id] = q
+        spent[anchor.root_id] = spent.get(anchor.root_id, 0) + anchor.n
+    return tuple(
+        RouteScore(
+            route_id=root,
+            q=best[root],
+            n=spent[root],
+            optimism=s / math.sqrt(spent[root] + 1),
+            score=best[root] + s / math.sqrt(spent[root] + 1),
         )
-    return tuple(scored)
-
-
-def score_states(
-    forest: SearchForest, optimism_scale: float, root_state_id: int
-) -> tuple[StateScore, ...]:
-    scored: list[StateScore] = []
-    for state in forest.states():
-        if route_root_id(forest, state.state_id) != root_state_id:
-            continue
-        artifact = forest.get_artifact(state.artifact_id)
-        optimism = optimism_scale / math.sqrt(state.generation_count_n + 1)
-        scored.append(
-            StateScore(
-                state_id=state.state_id,
-                directed_fitness=artifact.directed_fitness,
-                generation_count_n=state.generation_count_n,
-                optimism=optimism,
-                score=artifact.directed_fitness + optimism,
-            )
-        )
-    return tuple(scored)
-
-
-def select_anchor(forest: SearchForest, optimism_scale: float) -> AllocationDecision:
-    route_scores = score_routes(forest, optimism_scale)
-    if not route_scores:
-        raise ValueError("cannot allocate budget without an AnchorState")
-
-    def route_key(item: RouteScore) -> tuple[float, int, int, int]:
-        root = forest.get_state(item.root_state_id)
-        return (
-            item.score,
-            -item.generation_count_n,
-            -root.creation_order,
-            -root.state_id,
-        )
-
-    selected_route = max(route_scores, key=route_key)
-    state_scores = score_states(
-        forest, optimism_scale, selected_route.root_state_id
+        for root in forest.root_ids
     )
 
-    def state_key(item: StateScore) -> tuple[float, int, int, int]:
-        state = forest.get_state(item.state_id)
-        return (
-            item.score,
-            -item.generation_count_n,
-            -state.creation_order,
-            -state.state_id,
-        )
 
-    selected_state = max(state_scores, key=state_key)
-    return AllocationDecision(
-        state_id=selected_state.state_id,
-        root_state_id=selected_route.root_state_id,
-        route_scores=route_scores,
-        state_scores=state_scores,
+def score_anchors(forest: Forest, s: float, selected_route: int) -> tuple[AnchorScore, ...]:
+    scored: list[AnchorScore] = []
+    for anchor in forest.anchors():
+        if anchor.root_id != selected_route:
+            continue
+        q = forest.get_program(anchor.program_id).q
+        optimism = s / math.sqrt(anchor.n + 1)
+        scored.append(
+            AnchorScore(
+                anchor_id=anchor.id,
+                q=q,
+                n=anchor.n,
+                optimism=optimism,
+                score=q + optimism,
+            )
+        )
+    return tuple(scored)
+
+
+def select(forest: Forest, s: float) -> Choice:
+    routes = score_routes(forest, s)
+    if not routes:
+        raise ValueError("cannot allocate budget without an anchor")
+
+    def route_key(item: RouteScore) -> tuple[float, int, int, int]:
+        root = forest.get_anchor(item.route_id)
+        return (item.score, -item.n, -root.order, -root.id)
+
+    chosen_route = max(routes, key=route_key)
+    anchors = score_anchors(forest, s, chosen_route.route_id)
+
+    def anchor_key(item: AnchorScore) -> tuple[float, int, int, int]:
+        anchor = forest.get_anchor(item.anchor_id)
+        return (item.score, -item.n, -anchor.order, -anchor.id)
+
+    chosen = max(anchors, key=anchor_key)
+    return Choice(
+        anchor_id=chosen.anchor_id,
+        route_id=chosen_route.route_id,
+        routes=routes,
+        anchors=anchors,
     )
 
 
 __all__ = [
-    "AllocationDecision",
+    "AnchorScore",
+    "Choice",
     "RouteScore",
-    "StateScore",
-    "route_root_id",
+    "score_anchors",
     "score_routes",
-    "score_states",
-    "select_anchor",
+    "select",
 ]
