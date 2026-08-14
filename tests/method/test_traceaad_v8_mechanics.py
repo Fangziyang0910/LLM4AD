@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from llm4ad.base import Evaluation, LLM, TextFunctionProgramConverter
-from llm4ad.method.traceaad_artifacts import TraceAADArtifacts
+from llm4ad.method.traceaad_v8 import RunArtifacts
 from llm4ad.method.traceaad_v8 import TraceAADV8
 from llm4ad.method.traceaad_v8.checkpoint import dump_state, load_state, save_checkpoint
 from llm4ad.method.traceaad_v8.context import node_history, select_direct_children
@@ -509,7 +509,7 @@ def test_small_scripted_run_preserves_histories_and_has_no_population(
     method = TraceAADV8(
         llm=llm,
         evaluation=IncreasingEvaluation(),
-        profiler=TraceAADArtifacts(run_dir=tmp_path),
+        artifacts=RunArtifacts(run_dir=tmp_path),
         max_sample_nums=7,
         n_init=3,
         offspring_per_iteration=2,

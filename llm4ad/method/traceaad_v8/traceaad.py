@@ -19,14 +19,7 @@ from ...base import (
     SecureEvaluator,
     TextFunctionProgramConverter,
 )
-from .._observability import (
-    close_llm,
-    init_observability,
-    is_search_aborted,
-    record_sample_failure,
-    reset_sample_failures,
-)
-from ..traceaad_artifacts import TraceAADArtifacts
+from .artifacts import RunArtifacts
 from .checkpoint import CHECKPOINT_VERSION, load_checkpoint, save_checkpoint
 from .complexity import code_hash, nonempty_loc
 from .context import (
@@ -43,6 +36,24 @@ from .value import (
     sample_reference,
     select_expansion_node,
 )
+
+
+def _note_sample_failure(method, exc: Exception, *, stage: str, **payload) -> None:
+    if method._debug_mode:
+        raise exc
+    method._consecutive_sample_failures += 1
+    artifacts = method._artifacts
+    if artifacts is not None:
+        artifacts.record_error(stage, exc, **payload)
+    if method._consecutive_sample_failures >= method._max_consecutive_sample_failures:
+        method._search_aborted = True
+        if artifacts is not None:
+            artifacts.record_decision(
+                "search_aborted",
+                reason="max_consecutive_sample_failures",
+                consecutive_failures=method._consecutive_sample_failures,
+                max_consecutive_failures=method._max_consecutive_sample_failures,
+            )
 
 
 def _stable_identity_value(value):
@@ -127,7 +138,7 @@ class TraceAADV8:
         self,
         llm: LLM,
         evaluation: Evaluation,
-        profiler: TraceAADArtifacts | None = None,
+        artifacts: RunArtifacts | None = None,
         max_sample_nums: int | None = 100,
         *,
         n_init: int = 10,
@@ -176,8 +187,7 @@ class TraceAADV8:
         self._llm = llm
         self._evaluation = evaluation
         self._evaluation_configuration_sha256 = _configuration_digest(evaluation)
-        self._artifacts = profiler
-        self._profiler = profiler
+        self._artifacts = artifacts
         self._task_description_str = evaluation.task_description
         self._max_sample_nums = max_sample_nums
         self._n_init = int(n_init)
@@ -225,9 +235,9 @@ class TraceAADV8:
         self._batch_count = 0
         self._stalled_iterations = 0
         self._initialization_complete = False
-        init_observability(self, max_consecutive_sample_failures)
-        if profiler is not None:
-            profiler.record_parameters(llm, evaluation, self)
+        self._consecutive_sample_failures = 0
+        self._max_consecutive_sample_failures = max(1, int(max_consecutive_sample_failures))
+        self._search_aborted = False
         if resume_from is not None:
             checkpoint = load_checkpoint(self, resume_from)
             if self._checkpoint_dir is None:
@@ -307,7 +317,7 @@ class TraceAADV8:
                 self._initialize()
                 self._initialization_complete = True
                 save_checkpoint(self)
-            while self._has_budget() and not is_search_aborted(self):
+            while self._has_budget() and not self._search_aborted:
                 if not self._tree.root.child_ids:
                     self._record_decision("search_stopped", status="empty_tree")
                     break
@@ -327,7 +337,7 @@ class TraceAADV8:
                     break
                 self._save_checkpoint_if_due()
             result = self._result()
-            status = "aborted" if is_search_aborted(self) else "finished"
+            status = "aborted" if self._search_aborted else "finished"
             return result
         except Exception as exc:
             error = {"error_type": type(exc).__name__, "error": str(exc)[:1000]}
@@ -356,11 +366,11 @@ class TraceAADV8:
                     n_batches=result.n_batches,
                     initialization_target=self._n_init,
                     initialization_actual=result.n_root_children,
-                    search_aborted=is_search_aborted(self),
+                    search_aborted=self._search_aborted,
                     **error,
                 )
                 self._artifacts.finish()
-            close_llm(self._llm)
+            self._llm.close()
 
     def _initialize(self) -> None:
         stalled_draws = 0
@@ -368,7 +378,7 @@ class TraceAADV8:
         while (
             len(self._tree.root.child_ids) < self._n_init
             and self._has_budget()
-            and not is_search_aborted(self)
+            and not self._search_aborted
         ):
             prompt = build_initial_prompt(
                 task_description=self._task_description_str,
@@ -555,7 +565,7 @@ class TraceAADV8:
         global_best_before = self._best_node
         evaluated: list[_EvaluatedCandidate] = []
         for seq, code_context in enumerate(code_contexts):
-            if not self._has_budget() or is_search_aborted(self):
+            if not self._has_budget() or self._search_aborted:
                 break
             generated = self._draw_program(
                 code_context.prompt,
@@ -761,9 +771,9 @@ class TraceAADV8:
         try:
             response = self._llm.draw_sample(prompt, max_tokens=max_tokens)
             elapsed = time.time() - start
-            reset_sample_failures(self)
+            self._consecutive_sample_failures = 0
         except Exception as exc:
-            record_sample_failure(
+            _note_sample_failure(
                 self,
                 exc,
                 stage=stage,
