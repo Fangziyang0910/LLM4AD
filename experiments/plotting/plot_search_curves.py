@@ -63,7 +63,7 @@ RUN_GLOBS = {
     "tsp_construct": {
         "TraceAAD V9": ["traceaad_v9/version9/*_v9_*_rep*"],
         "TraceAAD V9.6": ["traceaad_v9_6/v9_6_20260812_191011_*_rep*"],
-        "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260813_184519_*_rep*"],
+        "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "MCTS-AHD": ["mcts_ahd/20260709_2135*"],
         "PathWise": ["pathwise/20260730_1755_*_pw_rep*"],
         "EoH": ["eoh/eoh_paper_*_eoh_rep*"],
@@ -87,7 +87,7 @@ RUN_GLOBS = {
     "op_aco": {
         "TraceAAD V9": ["traceaad_v9/version9/*_v9_*_rep*"],
         "TraceAAD V9.6": ["traceaad_v9_6/v9_6_20260812_191011_*_rep*"],
-        "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260813_184519_*_rep*"],
+        "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "MCTS-AHD": ["mcts_ahd/*mctsahd_rep*"],
         "PathWise": ["pathwise/20260730_1755_*_pw_rep*"],
         "EoH": ["eoh/eoh_paper_*_eoh_rep*"],
@@ -97,7 +97,7 @@ RUN_GLOBS = {
     "online_bin_packing": {
         "TraceAAD V9": ["traceaad_v9/version9/*_v9_*_rep*"],
         "TraceAAD V9.6": ["traceaad_v9_6/v9_6_20260812_191011_*_rep*"],
-        "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260813_184519_*_rep*"],
+        "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "MCTS-AHD": ["mcts_ahd/*mctsahd_rep*"],
         "PathWise": ["pathwise/20260730_1755_*_pw_rep*"],
         "EoH": ["eoh/eoh_paper_*_eoh_rep*"],
@@ -119,9 +119,10 @@ def _v9_points(run: Path) -> list[tuple[int, float]]:
     rows = [json.loads(l) for l in (run / "artifacts" / "candidates.jsonl").read_text().splitlines()]
     pts = []
     for r in rows:
-        s = r.get("score")
-        if r.get("status") == "ok" and isinstance(r.get("sample_order"), int) and isinstance(s, (int, float)):
-            pts.append((r["sample_order"], float(s)))
+        s = r.get("score", r.get("child_fitness"))
+        order = r.get("sample_order", r.get("order"))
+        if r.get("status") == "ok" and isinstance(order, int) and isinstance(s, (int, float)):
+            pts.append((order, float(s)))
     return pts
 
 
@@ -251,6 +252,11 @@ def plot_task(task: str) -> Path:
 
 
 def main() -> None:
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("tasks", nargs="*", default=list(TASKS), help="subset of tasks to plot")
+    args = ap.parse_args()
     plt.rcParams.update(
         {
             "font.family": "serif",
@@ -260,7 +266,9 @@ def main() -> None:
             "axes.spines.right": False,
         }
     )
-    for task in TASKS:
+    for task in args.tasks:
+        if task not in TASKS:
+            raise SystemExit(f"unknown task {task}")
         print("wrote", plot_task(task))
 
 

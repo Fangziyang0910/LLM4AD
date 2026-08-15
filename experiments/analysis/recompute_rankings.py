@@ -1,8 +1,11 @@
-"""从正式测试工件重算跨规模平均名次（十三方法同场 / 单版本上场）。
+"""从正式测试工件重算跨规模平均名次（十五方法同场 / 单版本上场）。
 
 数据源为各任务目录下 `eval_best_*` 的 `results.json`（逐 run 的 eval_objective），
 与 `docs/experiments/实验总汇.md` 记录的口径一致。规模共 15 个
 （TSP/CVRP/OP 各 3 + OBP 6），每规模在参与方法内排名，并列取平均名次。
+
+单版本上场为 1 个 TraceAAD + 5 个外部对照（MCTS-AHD、PathWise、EoH、ReEvo、
+CALM (w/o GRPO)）共 6 方法，与实验配置中的正式对照一致。
 
 CVRP 的 MCTS-AHD 官方结果可通过 `--cvrp-mcts batch1|batch2` 切换：
 batch1 用 20260711/12 批次（test_50/100 取 eval_20260712_all3，test_200 取
@@ -126,7 +129,7 @@ OFFICIAL = [
     "CALM",
 ]
 
-BASELINES = ["MCTS-AHD", "PathWise", "EoH", "ReEvo"]
+BASELINES = ["MCTS-AHD", "PathWise", "EoH", "ReEvo", "CALM"]
 
 
 def load_means(task: str, method: str, cvrp_mcts: str) -> dict[str, float]:
@@ -210,8 +213,8 @@ def main() -> None:
     for m in sorted(field13, key=lambda m: field13[m]):
         print(f"  {m:<12s} {field13[m]:.3f}")
 
-    print("\n=== 2. 单版本上场（5 方法同场）===")
-    print(f"{'版本':<6s} {'平均名次':>8s} {'5方法中':>6s} {'名次差':>7s} {'相对基线优势':>10s}")
+    print("\n=== 2. 单版本上场（6 方法同场：1 TraceAAD + 5 外部对照）===")
+    print(f"{'版本':<6s} {'平均名次':>8s} {'6方法中':>6s} {'名次差':>7s} {'相对基线优势':>10s}")
     for v in ["V4", "V5", "V6", "V7", "V8", "V8.2", "V8.3", "V9", "V9.6", "V9.7"]:
         field = [v] + BASELINES
         rs = {m: 0.0 for m in field}
