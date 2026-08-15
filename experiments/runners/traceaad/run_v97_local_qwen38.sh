@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 最终正确版：12路 V9.7 Qwen3.8 + resume已跑700轮
+# 12路 V9.7 Qwen3.8 + resume已跑700轮；1分钟轮询
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -7,12 +7,12 @@ cd "$REPO_ROOT"
 
 BATCH="${BATCH:-v9_7_qwen38_20260815_010107}"
 MAX_CONCURRENT="${MAX_CONCURRENT:-3}"
-POLL_SEC="${POLL_SEC:-30}"
+POLL_SEC="${POLL_SEC:-60}"
 LOG_DIR="${REPO_ROOT}/experiments/_logs"
 mkdir -p "$LOG_DIR"
 BATCH_LOG="${LOG_DIR}/${BATCH}_sequential.log"
 
-TASKS=(tsp_construct online_bin_packing op_aco cvrp)
+TASKS=(tsp_construct online_bin_packing op_aco cvrp_aco)
 TASK_SHORT=(tsp obp op cvrp)
 
 log() {
@@ -34,6 +34,31 @@ is_running() {
     tmux has-session -t "=$1" 2>/dev/null
 }
 
+is_done() {
+    local run_dir="$1"
+    local summary ckpt n_eval
+    summary="${run_dir}/logs/run_summary.json"
+    ckpt="${run_dir}/checkpoints/latest.json"
+    if [[ -f "$summary" ]]; then
+        if grep -q '"status": *"finished"' "$summary"; then
+            return 0
+        fi
+    fi
+    if [[ -f "$ckpt" ]]; then
+        n_eval=$(python3 - "$ckpt" <<'PY'
+import json, sys
+try:
+    data = json.loads(open(sys.argv[1]).read())
+    print(data.get("n_eval") or 0)
+except Exception:
+    print(0)
+PY
+)
+        [[ "$n_eval" -ge 1000 ]] && return 0
+    fi
+    return 1
+}
+
 launch_one() {
     local task="$1" rep="$2"
     local run_name="${BATCH}_${task}_rep${rep}"
@@ -42,7 +67,6 @@ launch_one() {
     session="$(session_name "$task" "$rep")"
 
     if is_running "$session"; then
-        log "resume $run_name (already running)"
         return 0
     fi
 
@@ -58,10 +82,11 @@ launch_one() {
     log "launched/resumed $run_name"
 }
 
-log "=== Starting 12路 V9.7 on Qwen3.8 ==="
+log "=== Starting 12路 V9.7 on Qwen3.8 (POLL=${POLL_SEC}s) ==="
 
 while true; do
     running_n=0
+    done_n=0
     pending=()
 
     for task in "${TASKS[@]}"; do
@@ -74,13 +99,16 @@ while true; do
                 continue
             fi
 
-            if [[ -d "$run_dir" ]]; then
-                pending+=("${task}:${rep}")
+            if is_done "$run_dir"; then
+                done_n=$((done_n + 1))
+                continue
             fi
+
+            pending+=("${task}:${rep}")
         done
     done
 
-    log "running=${running_n} pending=${#pending[@]}"
+    log "done=${done_n}/12 running=${running_n} pending=${#pending[@]}"
 
     for spec in "${pending[@]}"; do
         if [[ "$running_n" -ge "$MAX_CONCURRENT" ]]; then break; fi
