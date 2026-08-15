@@ -38,10 +38,15 @@ GUI/outputs/
 # Raw experiment artifacts stay local. Git tracks experiment entrypoints and
 # the condensed reports under docs/results/, never individual runs/evaluations.
 experiments/**/20[0-9]*/
+experiments/**/v[0-9]*/
+experiments/**/smoke_*/
 experiments/**/eval*/
 experiments/**/_eval*/
 experiments/**/run_config.json
 experiments/**/results.json
+experiments/**/best_curve.csv
+experiments/**/best_program.py
+experiments/**/evaluations.csv
 experiments/**/*_sample_*_program.py
 experiments/**/heldout_selection_note.json
 experiments/**/selected_finite.json
