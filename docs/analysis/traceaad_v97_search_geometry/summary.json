@@ -1,0 +1,3279 @@
+{
+  "analysis": "traceaad_v97_search_geometry",
+  "batch": "20260814_150927",
+  "evidence_boundary": {
+    "allocation": "Observed route histories are policy-selected. Abandoned routes are right-censored, so their counterfactual continuation value is not identified by these logs.",
+    "proposal": "Intent comparisons in complete search are confounded by selected anchors and downstream allocation. Static code mechanism tags are an interpretable proxy, not a validated semantic family label."
+  },
+  "allocation": {
+    "tsp_construct": {
+      "n_runs": 3,
+      "initial_best_is_top_route_count": 1,
+      "top_route_is_final_best_route_count": 3,
+      "root_to_final_macro_changed_count": 2,
+      "distributions": {
+        "top_route_share": {
+          "n": 3,
+          "mean": 0.9973353313353314,
+          "median": 0.998,
+          "min": 0.994005994005994,
+          "max": 1.0,
+          "q25": 0.996002997002997,
+          "q75": 0.999,
+          "values": [
+            0.998,
+            0.994005994005994,
+            1.0
+          ]
+        },
+        "routes_selected": {
+          "n": 3,
+          "mean": 1.6666666666666667,
+          "median": 2.0,
+          "min": 1.0,
+          "max": 2.0,
+          "q25": 1.5,
+          "q75": 2.0,
+          "values": [
+            2.0,
+            2.0,
+            1.0
+          ]
+        },
+        "stable_top_route_start": {
+          "n": 3,
+          "mean": 14.0,
+          "median": 4.0,
+          "min": 1.0,
+          "max": 37.0,
+          "q25": 2.5,
+          "q75": 20.5,
+          "values": [
+            4.0,
+            37.0,
+            1.0
+          ]
+        },
+        "irreversible_single_viable_start": {
+          "n": 3,
+          "mean": 17.333333333333332,
+          "median": 7.0,
+          "min": 5.0,
+          "max": 40.0,
+          "q25": 6.0,
+          "q75": 23.5,
+          "values": [
+            5.0,
+            40.0,
+            7.0
+          ]
+        },
+        "viable_routes_at_start": {
+          "n": 3,
+          "mean": 4.0,
+          "median": 4.0,
+          "min": 3.0,
+          "max": 5.0,
+          "q25": 3.5,
+          "q75": 4.5,
+          "values": [
+            5.0,
+            4.0,
+            3.0
+          ]
+        },
+        "dead_routes_at_start": {
+          "n": 3,
+          "mean": 4.0,
+          "median": 4.0,
+          "min": 3.0,
+          "max": 5.0,
+          "q25": 3.5,
+          "q75": 4.5,
+          "values": [
+            3.0,
+            4.0,
+            5.0
+          ]
+        },
+        "initial_rank_of_top_route": {
+          "n": 3,
+          "mean": 1.6666666666666667,
+          "median": 2.0,
+          "min": 1.0,
+          "max": 2.0,
+          "q25": 1.5,
+          "q75": 2.0,
+          "values": [
+            2.0,
+            2.0,
+            1.0
+          ]
+        },
+        "initial_rank_of_final_best_route": {
+          "n": 3,
+          "mean": 1.6666666666666667,
+          "median": 2.0,
+          "min": 1.0,
+          "max": 2.0,
+          "q25": 1.5,
+          "q75": 2.0,
+          "values": [
+            2.0,
+            2.0,
+            1.0
+          ]
+        },
+        "initial_top_second_gap_over_s": {
+          "n": 3,
+          "mean": 0.14271370038383363,
+          "median": 0.05377856139229759,
+          "min": 0.026842366330518477,
+          "max": 0.34752017342868485,
+          "q25": 0.04031046386140803,
+          "q75": 0.20064936741049122,
+          "values": [
+            0.05377856139229759,
+            0.026842366330518477,
+            0.34752017342868485
+          ]
+        },
+        "initial_q_range_over_s": {
+          "n": 3,
+          "mean": 5.331039597191424,
+          "median": 6.05922033718959,
+          "min": 3.7612935179711893,
+          "max": 6.172604936413492,
+          "q25": 4.91025692758039,
+          "q75": 6.115912636801541,
+          "values": [
+            3.7612935179711893,
+            6.05922033718959,
+            6.172604936413492
+          ]
+        },
+        "initial_q_sd_over_s": {
+          "n": 3,
+          "mean": 1.6136572948259373,
+          "median": 1.8133611747975444,
+          "min": 1.1607501631371555,
+          "max": 1.8668605465431118,
+          "q25": 1.48705566896735,
+          "q75": 1.840110860670328,
+          "values": [
+            1.1607501631371555,
+            1.8668605465431118,
+            1.8133611747975444
+          ]
+        },
+        "initial_best_tie_count": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "routes_with_zero_search_visits": {
+          "n": 3,
+          "mean": 6.333333333333333,
+          "median": 6.0,
+          "min": 6.0,
+          "max": 7.0,
+          "q25": 6.0,
+          "q75": 6.5,
+          "values": [
+            6.0,
+            6.0,
+            7.0
+          ]
+        },
+        "routes_with_at_most_five_visits": {
+          "n": 3,
+          "mean": 6.666666666666667,
+          "median": 7.0,
+          "min": 6.0,
+          "max": 7.0,
+          "q25": 6.5,
+          "q75": 7.0,
+          "values": [
+            7.0,
+            6.0,
+            7.0
+          ]
+        },
+        "routes_with_positive_observed_gain": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "observed_route_best_range_over_s": {
+          "n": 3,
+          "mean": 7.061280270211942,
+          "median": 7.953871812565184,
+          "min": 4.816376997227699,
+          "max": 8.413592000842941,
+          "q25": 6.385124404896441,
+          "q75": 8.183731906704063,
+          "values": [
+            4.816376997227699,
+            8.413592000842941,
+            7.953871812565184
+          ]
+        },
+        "root_macro_family_count": {
+          "n": 3,
+          "mean": 2.0,
+          "median": 2.0,
+          "min": 2.0,
+          "max": 2.0,
+          "q25": 2.0,
+          "q75": 2.0,
+          "values": [
+            2.0,
+            2.0,
+            2.0
+          ]
+        },
+        "root_dominant_macro_share": {
+          "n": 3,
+          "mean": 0.8333333333333334,
+          "median": 0.875,
+          "min": 0.75,
+          "max": 0.875,
+          "q25": 0.8125,
+          "q75": 0.875,
+          "values": [
+            0.75,
+            0.875,
+            0.875
+          ]
+        },
+        "root_signature_count": {
+          "n": 3,
+          "mean": 3.3333333333333335,
+          "median": 3.0,
+          "min": 3.0,
+          "max": 4.0,
+          "q25": 3.0,
+          "q75": 3.5,
+          "values": [
+            4.0,
+            3.0,
+            3.0
+          ]
+        },
+        "root_mean_pairwise_tag_distance": {
+          "n": 3,
+          "mean": 0.35714285714285715,
+          "median": 0.3630952380952381,
+          "min": 0.31547619047619047,
+          "max": 0.3928571428571429,
+          "q25": 0.3392857142857143,
+          "q75": 0.37797619047619047,
+          "values": [
+            0.3928571428571429,
+            0.31547619047619047,
+            0.3630952380952381
+          ]
+        },
+        "root_to_final_tag_distance": {
+          "n": 3,
+          "mean": 0.6111111111111112,
+          "median": 0.6666666666666667,
+          "min": 0.33333333333333337,
+          "max": 0.8333333333333334,
+          "q25": 0.5,
+          "q75": 0.75,
+          "values": [
+            0.8333333333333334,
+            0.6666666666666667,
+            0.33333333333333337
+          ]
+        }
+      },
+      "runs": [
+        {
+          "n_decisions": 1000,
+          "top_route": 7,
+          "final_best_route": 7,
+          "top_route_is_final_best_route": true,
+          "top_route_share": 0.998,
+          "routes_selected": 2,
+          "stable_top_route_start": 4,
+          "irreversible_single_viable_start": 5,
+          "viable_routes_at_start": 5,
+          "dead_routes_at_start": 3,
+          "initial_best_route": 2,
+          "initial_best_is_top_route": false,
+          "initial_rank_of_top_route": 2,
+          "initial_rank_of_final_best_route": 2,
+          "initial_top_second_gap": 0.043700548369612235,
+          "initial_top_second_gap_over_s": 0.05377856139229759,
+          "initial_q_range_over_s": 3.7612935179711893,
+          "initial_q_sd_over_s": 1.1607501631371555,
+          "initial_best_tie_count": 1,
+          "s": 0.8126016620420646,
+          "route_visits": {
+            "0": 0,
+            "1": 0,
+            "2": 2,
+            "3": 0,
+            "4": 0,
+            "5": 0,
+            "6": 0,
+            "7": 998
+          },
+          "routes_with_zero_search_visits": 6,
+          "routes_with_at_most_five_visits": 7,
+          "routes_with_positive_observed_gain": 1,
+          "observed_route_best_range_over_s": 4.816376997227699,
+          "root_macro_family_count": 2,
+          "root_dominant_macro_share": 0.75,
+          "root_signature_count": 4,
+          "root_mean_pairwise_tag_distance": 0.3928571428571429,
+          "root_to_final_macro_changed": true,
+          "root_to_final_tag_distance": 0.8333333333333334,
+          "run": "v9_7_20260814_150927_tsp_construct_rep1"
+        },
+        {
+          "n_decisions": 1001,
+          "top_route": 1,
+          "final_best_route": 1,
+          "top_route_is_final_best_route": true,
+          "top_route_share": 0.994005994005994,
+          "routes_selected": 2,
+          "stable_top_route_start": 37,
+          "irreversible_single_viable_start": 40,
+          "viable_routes_at_start": 4,
+          "dead_routes_at_start": 4,
+          "initial_best_route": 7,
+          "initial_best_is_top_route": false,
+          "initial_rank_of_top_route": 2,
+          "initial_rank_of_final_best_route": 2,
+          "initial_top_second_gap": 0.01447995844899097,
+          "initial_top_second_gap_over_s": 0.026842366330518477,
+          "initial_q_range_over_s": 6.05922033718959,
+          "initial_q_sd_over_s": 1.8668605465431118,
+          "initial_best_tie_count": 1,
+          "s": 0.5394441857582413,
+          "route_visits": {
+            "0": 0,
+            "1": 995,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0,
+            "6": 0,
+            "7": 6
+          },
+          "routes_with_zero_search_visits": 6,
+          "routes_with_at_most_five_visits": 6,
+          "routes_with_positive_observed_gain": 1,
+          "observed_route_best_range_over_s": 8.413592000842941,
+          "root_macro_family_count": 2,
+          "root_dominant_macro_share": 0.875,
+          "root_signature_count": 3,
+          "root_mean_pairwise_tag_distance": 0.31547619047619047,
+          "root_to_final_macro_changed": true,
+          "root_to_final_tag_distance": 0.6666666666666667,
+          "run": "v9_7_20260814_150927_tsp_construct_rep2"
+        },
+        {
+          "n_decisions": 996,
+          "top_route": 1,
+          "final_best_route": 1,
+          "top_route_is_final_best_route": true,
+          "top_route_share": 1.0,
+          "routes_selected": 1,
+          "stable_top_route_start": 1,
+          "irreversible_single_viable_start": 7,
+          "viable_routes_at_start": 3,
+          "dead_routes_at_start": 5,
+          "initial_best_route": 1,
+          "initial_best_is_top_route": true,
+          "initial_rank_of_top_route": 1,
+          "initial_rank_of_final_best_route": 1,
+          "initial_top_second_gap": 0.18746773698979968,
+          "initial_top_second_gap_over_s": 0.34752017342868485,
+          "initial_q_range_over_s": 6.172604936413492,
+          "initial_q_sd_over_s": 1.8133611747975444,
+          "initial_best_tie_count": 1,
+          "s": 0.5394441857582413,
+          "route_visits": {
+            "0": 0,
+            "1": 996,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0,
+            "6": 0,
+            "7": 0
+          },
+          "routes_with_zero_search_visits": 7,
+          "routes_with_at_most_five_visits": 7,
+          "routes_with_positive_observed_gain": 1,
+          "observed_route_best_range_over_s": 7.953871812565184,
+          "root_macro_family_count": 2,
+          "root_dominant_macro_share": 0.875,
+          "root_signature_count": 3,
+          "root_mean_pairwise_tag_distance": 0.3630952380952381,
+          "root_to_final_macro_changed": false,
+          "root_to_final_tag_distance": 0.33333333333333337,
+          "run": "v9_7_20260814_150927_tsp_construct_rep3"
+        }
+      ]
+    },
+    "cvrp_aco": {
+      "n_runs": 3,
+      "initial_best_is_top_route_count": 3,
+      "top_route_is_final_best_route_count": 3,
+      "root_to_final_macro_changed_count": 3,
+      "distributions": {
+        "top_route_share": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "routes_selected": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "stable_top_route_start": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "irreversible_single_viable_start": {
+          "n": 3,
+          "mean": 1.3333333333333333,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 2.0,
+          "q25": 1.0,
+          "q75": 1.5,
+          "values": [
+            1.0,
+            2.0,
+            1.0
+          ]
+        },
+        "viable_routes_at_start": {
+          "n": 3,
+          "mean": 1.3333333333333333,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 2.0,
+          "q25": 1.0,
+          "q75": 1.5,
+          "values": [
+            1.0,
+            2.0,
+            1.0
+          ]
+        },
+        "dead_routes_at_start": {
+          "n": 3,
+          "mean": 6.666666666666667,
+          "median": 7.0,
+          "min": 6.0,
+          "max": 7.0,
+          "q25": 6.5,
+          "q75": 7.0,
+          "values": [
+            7.0,
+            6.0,
+            7.0
+          ]
+        },
+        "initial_rank_of_top_route": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "initial_rank_of_final_best_route": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "initial_top_second_gap_over_s": {
+          "n": 3,
+          "mean": 1.384751942518655,
+          "median": 1.5646936680571475,
+          "min": 0.5120626099230238,
+          "max": 2.0774995495757937,
+          "q25": 1.0383781389900857,
+          "q75": 1.8210966088164706,
+          "values": [
+            2.0774995495757937,
+            0.5120626099230238,
+            1.5646936680571475
+          ]
+        },
+        "initial_q_range_over_s": {
+          "n": 3,
+          "mean": 6.225541825149799,
+          "median": 5.957809988769663,
+          "min": 5.478131932851222,
+          "max": 7.240683553828512,
+          "q25": 5.717970960810442,
+          "q75": 6.599246771299088,
+          "values": [
+            7.240683553828512,
+            5.478131932851222,
+            5.957809988769663
+          ]
+        },
+        "initial_q_sd_over_s": {
+          "n": 3,
+          "mean": 2.0506678520864083,
+          "median": 1.9403241908768138,
+          "min": 1.80997786846311,
+          "max": 2.401701496919301,
+          "q25": 1.8751510296699618,
+          "q75": 2.1710128438980574,
+          "values": [
+            2.401701496919301,
+            1.80997786846311,
+            1.9403241908768138
+          ]
+        },
+        "initial_best_tie_count": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "routes_with_zero_search_visits": {
+          "n": 3,
+          "mean": 7.0,
+          "median": 7.0,
+          "min": 7.0,
+          "max": 7.0,
+          "q25": 7.0,
+          "q75": 7.0,
+          "values": [
+            7.0,
+            7.0,
+            7.0
+          ]
+        },
+        "routes_with_at_most_five_visits": {
+          "n": 3,
+          "mean": 7.0,
+          "median": 7.0,
+          "min": 7.0,
+          "max": 7.0,
+          "q25": 7.0,
+          "q75": 7.0,
+          "values": [
+            7.0,
+            7.0,
+            7.0
+          ]
+        },
+        "routes_with_positive_observed_gain": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "observed_route_best_range_over_s": {
+          "n": 3,
+          "mean": 9.684001028938113,
+          "median": 10.325910053149434,
+          "min": 7.537329161188553,
+          "max": 11.188763872476352,
+          "q25": 8.931619607168994,
+          "q75": 10.757336962812893,
+          "values": [
+            10.325910053149434,
+            7.537329161188553,
+            11.188763872476352
+          ]
+        },
+        "root_macro_family_count": {
+          "n": 3,
+          "mean": 2.6666666666666665,
+          "median": 3.0,
+          "min": 2.0,
+          "max": 3.0,
+          "q25": 2.5,
+          "q75": 3.0,
+          "values": [
+            3.0,
+            2.0,
+            3.0
+          ]
+        },
+        "root_dominant_macro_share": {
+          "n": 3,
+          "mean": 0.625,
+          "median": 0.625,
+          "min": 0.5,
+          "max": 0.75,
+          "q25": 0.5625,
+          "q75": 0.6875,
+          "values": [
+            0.5,
+            0.75,
+            0.625
+          ]
+        },
+        "root_signature_count": {
+          "n": 3,
+          "mean": 3.6666666666666665,
+          "median": 4.0,
+          "min": 3.0,
+          "max": 4.0,
+          "q25": 3.5,
+          "q75": 4.0,
+          "values": [
+            4.0,
+            3.0,
+            4.0
+          ]
+        },
+        "root_mean_pairwise_tag_distance": {
+          "n": 3,
+          "mean": 0.46428571428571425,
+          "median": 0.5357142857142857,
+          "min": 0.31547619047619047,
+          "max": 0.5416666666666666,
+          "q25": 0.4255952380952381,
+          "q75": 0.5386904761904762,
+          "values": [
+            0.5357142857142857,
+            0.31547619047619047,
+            0.5416666666666666
+          ]
+        },
+        "root_to_final_tag_distance": {
+          "n": 3,
+          "mean": 0.7555555555555555,
+          "median": 0.6666666666666667,
+          "min": 0.6,
+          "max": 1.0,
+          "q25": 0.6333333333333333,
+          "q75": 0.8333333333333334,
+          "values": [
+            0.6666666666666667,
+            0.6,
+            1.0
+          ]
+        }
+      },
+      "runs": [
+        {
+          "n_decisions": 1020,
+          "top_route": 1,
+          "final_best_route": 1,
+          "top_route_is_final_best_route": true,
+          "top_route_share": 1.0,
+          "routes_selected": 1,
+          "stable_top_route_start": 1,
+          "irreversible_single_viable_start": 1,
+          "viable_routes_at_start": 1,
+          "dead_routes_at_start": 7,
+          "initial_best_route": 1,
+          "initial_best_is_top_route": true,
+          "initial_rank_of_top_route": 1,
+          "initial_rank_of_final_best_route": 1,
+          "initial_top_second_gap": 2.121656637707007,
+          "initial_top_second_gap_over_s": 2.0774995495757937,
+          "initial_q_range_over_s": 7.240683553828512,
+          "initial_q_sd_over_s": 2.401701496919301,
+          "initial_best_tie_count": 1,
+          "s": 1.0212549206762667,
+          "route_visits": {
+            "0": 0,
+            "1": 1020,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0,
+            "6": 0,
+            "7": 0
+          },
+          "routes_with_zero_search_visits": 7,
+          "routes_with_at_most_five_visits": 7,
+          "routes_with_positive_observed_gain": 1,
+          "observed_route_best_range_over_s": 10.325910053149434,
+          "root_macro_family_count": 3,
+          "root_dominant_macro_share": 0.5,
+          "root_signature_count": 4,
+          "root_mean_pairwise_tag_distance": 0.5357142857142857,
+          "root_to_final_macro_changed": true,
+          "root_to_final_tag_distance": 0.6666666666666667,
+          "run": "v9_7_20260814_150927_cvrp_aco_rep1"
+        },
+        {
+          "n_decisions": 1009,
+          "top_route": 1,
+          "final_best_route": 1,
+          "top_route_is_final_best_route": true,
+          "top_route_share": 1.0,
+          "routes_selected": 1,
+          "stable_top_route_start": 1,
+          "irreversible_single_viable_start": 2,
+          "viable_routes_at_start": 2,
+          "dead_routes_at_start": 6,
+          "initial_best_route": 1,
+          "initial_best_is_top_route": true,
+          "initial_rank_of_top_route": 1,
+          "initial_rank_of_final_best_route": 1,
+          "initial_top_second_gap": 0.7652149033429794,
+          "initial_top_second_gap_over_s": 0.5120626099230238,
+          "initial_q_range_over_s": 5.478131932851222,
+          "initial_q_sd_over_s": 1.80997786846311,
+          "initial_best_tie_count": 1,
+          "s": 1.4943776181158999,
+          "route_visits": {
+            "0": 0,
+            "1": 1009,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0,
+            "6": 0,
+            "7": 0
+          },
+          "routes_with_zero_search_visits": 7,
+          "routes_with_at_most_five_visits": 7,
+          "routes_with_positive_observed_gain": 1,
+          "observed_route_best_range_over_s": 7.537329161188553,
+          "root_macro_family_count": 2,
+          "root_dominant_macro_share": 0.75,
+          "root_signature_count": 3,
+          "root_mean_pairwise_tag_distance": 0.31547619047619047,
+          "root_to_final_macro_changed": true,
+          "root_to_final_tag_distance": 0.6,
+          "run": "v9_7_20260814_150927_cvrp_aco_rep2"
+        },
+        {
+          "n_decisions": 1023,
+          "top_route": 3,
+          "final_best_route": 3,
+          "top_route_is_final_best_route": true,
+          "top_route_share": 1.0,
+          "routes_selected": 1,
+          "stable_top_route_start": 1,
+          "irreversible_single_viable_start": 1,
+          "viable_routes_at_start": 1,
+          "dead_routes_at_start": 7,
+          "initial_best_route": 3,
+          "initial_best_is_top_route": true,
+          "initial_rank_of_top_route": 1,
+          "initial_rank_of_final_best_route": 1,
+          "initial_top_second_gap": 1.6219399616284136,
+          "initial_top_second_gap_over_s": 1.5646936680571475,
+          "initial_q_range_over_s": 5.957809988769663,
+          "initial_q_sd_over_s": 1.9403241908768138,
+          "initial_best_tie_count": 1,
+          "s": 1.0365862626915003,
+          "route_visits": {
+            "0": 0,
+            "1": 0,
+            "2": 0,
+            "3": 1023,
+            "4": 0,
+            "5": 0,
+            "6": 0,
+            "7": 0
+          },
+          "routes_with_zero_search_visits": 7,
+          "routes_with_at_most_five_visits": 7,
+          "routes_with_positive_observed_gain": 1,
+          "observed_route_best_range_over_s": 11.188763872476352,
+          "root_macro_family_count": 3,
+          "root_dominant_macro_share": 0.625,
+          "root_signature_count": 4,
+          "root_mean_pairwise_tag_distance": 0.5416666666666666,
+          "root_to_final_macro_changed": true,
+          "root_to_final_tag_distance": 1.0,
+          "run": "v9_7_20260814_150927_cvrp_aco_rep3"
+        }
+      ]
+    },
+    "op_aco": {
+      "n_runs": 3,
+      "initial_best_is_top_route_count": 3,
+      "top_route_is_final_best_route_count": 3,
+      "root_to_final_macro_changed_count": 1,
+      "distributions": {
+        "top_route_share": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "routes_selected": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "stable_top_route_start": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "irreversible_single_viable_start": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "viable_routes_at_start": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "dead_routes_at_start": {
+          "n": 3,
+          "mean": 7.0,
+          "median": 7.0,
+          "min": 7.0,
+          "max": 7.0,
+          "q25": 7.0,
+          "q75": 7.0,
+          "values": [
+            7.0,
+            7.0,
+            7.0
+          ]
+        },
+        "initial_rank_of_top_route": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "initial_rank_of_final_best_route": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "initial_top_second_gap_over_s": {
+          "n": 3,
+          "mean": 1.4923841236362418,
+          "median": 1.2875536480686594,
+          "min": 1.1758530183727138,
+          "max": 2.0137457044673526,
+          "q25": 1.2317033332206866,
+          "q75": 1.650649676268006,
+          "values": [
+            1.1758530183727138,
+            1.2875536480686594,
+            2.0137457044673526
+          ]
+        },
+        "initial_q_range_over_s": {
+          "n": 3,
+          "mean": 16.077299361516847,
+          "median": 16.460481099656395,
+          "min": 12.44094488188982,
+          "max": 19.330472103004325,
+          "q25": 14.450712990773107,
+          "q75": 17.89547660133036,
+          "values": [
+            12.44094488188982,
+            19.330472103004325,
+            16.460481099656395
+          ]
+        },
+        "initial_q_sd_over_s": {
+          "n": 3,
+          "mean": 4.752279553226346,
+          "median": 4.7901545969883355,
+          "min": 3.601970634025909,
+          "max": 5.864713428664794,
+          "q25": 4.196062615507122,
+          "q75": 5.327434012826565,
+          "values": [
+            3.601970634025909,
+            5.864713428664794,
+            4.7901545969883355
+          ]
+        },
+        "initial_best_tie_count": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "routes_with_zero_search_visits": {
+          "n": 3,
+          "mean": 7.0,
+          "median": 7.0,
+          "min": 7.0,
+          "max": 7.0,
+          "q25": 7.0,
+          "q75": 7.0,
+          "values": [
+            7.0,
+            7.0,
+            7.0
+          ]
+        },
+        "routes_with_at_most_five_visits": {
+          "n": 3,
+          "mean": 7.0,
+          "median": 7.0,
+          "min": 7.0,
+          "max": 7.0,
+          "q25": 7.0,
+          "q75": 7.0,
+          "values": [
+            7.0,
+            7.0,
+            7.0
+          ]
+        },
+        "routes_with_positive_observed_gain": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "observed_route_best_range_over_s": {
+          "n": 3,
+          "mean": 20.251769223506635,
+          "median": 19.718213058419284,
+          "min": 15.19160104986883,
+          "max": 25.84549356223179,
+          "q25": 17.45490705414406,
+          "q75": 22.781853310325538,
+          "values": [
+            15.19160104986883,
+            25.84549356223179,
+            19.718213058419284
+          ]
+        },
+        "root_macro_family_count": {
+          "n": 3,
+          "mean": 2.0,
+          "median": 2.0,
+          "min": 2.0,
+          "max": 2.0,
+          "q25": 2.0,
+          "q75": 2.0,
+          "values": [
+            2.0,
+            2.0,
+            2.0
+          ]
+        },
+        "root_dominant_macro_share": {
+          "n": 3,
+          "mean": 0.7083333333333334,
+          "median": 0.75,
+          "min": 0.625,
+          "max": 0.75,
+          "q25": 0.6875,
+          "q75": 0.75,
+          "values": [
+            0.625,
+            0.75,
+            0.75
+          ]
+        },
+        "root_signature_count": {
+          "n": 3,
+          "mean": 3.6666666666666665,
+          "median": 4.0,
+          "min": 3.0,
+          "max": 4.0,
+          "q25": 3.5,
+          "q75": 4.0,
+          "values": [
+            4.0,
+            3.0,
+            4.0
+          ]
+        },
+        "root_mean_pairwise_tag_distance": {
+          "n": 3,
+          "mean": 0.42063492063492064,
+          "median": 0.4226190476190476,
+          "min": 0.380952380952381,
+          "max": 0.45833333333333337,
+          "q25": 0.4017857142857143,
+          "q75": 0.44047619047619047,
+          "values": [
+            0.45833333333333337,
+            0.380952380952381,
+            0.4226190476190476
+          ]
+        },
+        "root_to_final_tag_distance": {
+          "n": 3,
+          "mean": 0.6111111111111112,
+          "median": 0.6666666666666667,
+          "min": 0.5,
+          "max": 0.6666666666666667,
+          "q25": 0.5833333333333334,
+          "q75": 0.6666666666666667,
+          "values": [
+            0.5,
+            0.6666666666666667,
+            0.6666666666666667
+          ]
+        }
+      },
+      "runs": [
+        {
+          "n_decisions": 1018,
+          "top_route": 2,
+          "final_best_route": 2,
+          "top_route_is_final_best_route": true,
+          "top_route_share": 1.0,
+          "routes_selected": 1,
+          "stable_top_route_start": 1,
+          "irreversible_single_viable_start": 1,
+          "viable_routes_at_start": 1,
+          "dead_routes_at_start": 7,
+          "initial_best_route": 2,
+          "initial_best_is_top_route": true,
+          "initial_rank_of_top_route": 1,
+          "initial_rank_of_final_best_route": 1,
+          "initial_top_second_gap": 0.4480000000000022,
+          "initial_top_second_gap_over_s": 1.1758530183727138,
+          "initial_q_range_over_s": 12.44094488188982,
+          "initial_q_sd_over_s": 3.601970634025909,
+          "initial_best_tie_count": 1,
+          "s": 0.38099999999999845,
+          "route_visits": {
+            "0": 0,
+            "1": 0,
+            "2": 1018,
+            "3": 0,
+            "4": 0,
+            "5": 0,
+            "6": 0,
+            "7": 0
+          },
+          "routes_with_zero_search_visits": 7,
+          "routes_with_at_most_five_visits": 7,
+          "routes_with_positive_observed_gain": 1,
+          "observed_route_best_range_over_s": 15.19160104986883,
+          "root_macro_family_count": 2,
+          "root_dominant_macro_share": 0.625,
+          "root_signature_count": 4,
+          "root_mean_pairwise_tag_distance": 0.45833333333333337,
+          "root_to_final_macro_changed": true,
+          "root_to_final_tag_distance": 0.5,
+          "run": "v9_7_20260814_150927_op_aco_rep1"
+        },
+        {
+          "n_decisions": 1030,
+          "top_route": 1,
+          "final_best_route": 1,
+          "top_route_is_final_best_route": true,
+          "top_route_share": 1.0,
+          "routes_selected": 1,
+          "stable_top_route_start": 1,
+          "irreversible_single_viable_start": 1,
+          "viable_routes_at_start": 1,
+          "dead_routes_at_start": 7,
+          "initial_best_route": 1,
+          "initial_best_is_top_route": true,
+          "initial_rank_of_top_route": 1,
+          "initial_rank_of_final_best_route": 1,
+          "initial_top_second_gap": 0.29999999999999716,
+          "initial_top_second_gap_over_s": 1.2875536480686594,
+          "initial_q_range_over_s": 19.330472103004325,
+          "initial_q_sd_over_s": 5.864713428664794,
+          "initial_best_tie_count": 1,
+          "s": 0.23299999999999965,
+          "route_visits": {
+            "0": 0,
+            "1": 1030,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0,
+            "6": 0,
+            "7": 0
+          },
+          "routes_with_zero_search_visits": 7,
+          "routes_with_at_most_five_visits": 7,
+          "routes_with_positive_observed_gain": 1,
+          "observed_route_best_range_over_s": 25.84549356223179,
+          "root_macro_family_count": 2,
+          "root_dominant_macro_share": 0.75,
+          "root_signature_count": 3,
+          "root_mean_pairwise_tag_distance": 0.380952380952381,
+          "root_to_final_macro_changed": false,
+          "root_to_final_tag_distance": 0.6666666666666667,
+          "run": "v9_7_20260814_150927_op_aco_rep2"
+        },
+        {
+          "n_decisions": 1024,
+          "top_route": 0,
+          "final_best_route": 0,
+          "top_route_is_final_best_route": true,
+          "top_route_share": 1.0,
+          "routes_selected": 1,
+          "stable_top_route_start": 1,
+          "irreversible_single_viable_start": 1,
+          "viable_routes_at_start": 1,
+          "dead_routes_at_start": 7,
+          "initial_best_route": 0,
+          "initial_best_is_top_route": true,
+          "initial_rank_of_top_route": 1,
+          "initial_rank_of_final_best_route": 1,
+          "initial_top_second_gap": 0.5859999999999985,
+          "initial_top_second_gap_over_s": 2.0137457044673526,
+          "initial_q_range_over_s": 16.460481099656395,
+          "initial_q_sd_over_s": 4.7901545969883355,
+          "initial_best_tie_count": 1,
+          "s": 0.2909999999999995,
+          "route_visits": {
+            "0": 1024,
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0,
+            "6": 0,
+            "7": 0
+          },
+          "routes_with_zero_search_visits": 7,
+          "routes_with_at_most_five_visits": 7,
+          "routes_with_positive_observed_gain": 1,
+          "observed_route_best_range_over_s": 19.718213058419284,
+          "root_macro_family_count": 2,
+          "root_dominant_macro_share": 0.75,
+          "root_signature_count": 4,
+          "root_mean_pairwise_tag_distance": 0.4226190476190476,
+          "root_to_final_macro_changed": false,
+          "root_to_final_tag_distance": 0.6666666666666667,
+          "run": "v9_7_20260814_150927_op_aco_rep3"
+        }
+      ]
+    },
+    "online_bin_packing": {
+      "n_runs": 3,
+      "initial_best_is_top_route_count": 0,
+      "top_route_is_final_best_route_count": 3,
+      "root_to_final_macro_changed_count": 3,
+      "distributions": {
+        "top_route_share": {
+          "n": 3,
+          "mean": 0.9247724037027265,
+          "median": 0.9352306182531894,
+          "min": 0.858987090367428,
+          "max": 0.9800995024875622,
+          "q25": 0.8971088543103087,
+          "q75": 0.9576650603703758,
+          "values": [
+            0.9800995024875622,
+            0.858987090367428,
+            0.9352306182531894
+          ]
+        },
+        "routes_selected": {
+          "n": 3,
+          "mean": 7.0,
+          "median": 7.0,
+          "min": 7.0,
+          "max": 7.0,
+          "q25": 7.0,
+          "q75": 7.0,
+          "values": [
+            7.0,
+            7.0,
+            7.0
+          ]
+        },
+        "stable_top_route_start": {
+          "n": 3,
+          "mean": 93.0,
+          "median": 87.0,
+          "min": 24.0,
+          "max": 168.0,
+          "q25": 55.5,
+          "q75": 127.5,
+          "values": [
+            24.0,
+            168.0,
+            87.0
+          ]
+        },
+        "irreversible_single_viable_start": {
+          "n": 3,
+          "mean": 117.0,
+          "median": 147.0,
+          "min": 28.0,
+          "max": 176.0,
+          "q25": 87.5,
+          "q75": 161.5,
+          "values": [
+            28.0,
+            176.0,
+            147.0
+          ]
+        },
+        "viable_routes_at_start": {
+          "n": 3,
+          "mean": 7.666666666666667,
+          "median": 8.0,
+          "min": 7.0,
+          "max": 8.0,
+          "q25": 7.5,
+          "q75": 8.0,
+          "values": [
+            7.0,
+            8.0,
+            8.0
+          ]
+        },
+        "dead_routes_at_start": {
+          "n": 3,
+          "mean": 0.3333333333333333,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 1.0,
+          "q25": 0.0,
+          "q75": 0.5,
+          "values": [
+            1.0,
+            0.0,
+            0.0
+          ]
+        },
+        "initial_rank_of_top_route": {
+          "n": 3,
+          "mean": 5.333333333333333,
+          "median": 5.0,
+          "min": 4.0,
+          "max": 7.0,
+          "q25": 4.5,
+          "q75": 6.0,
+          "values": [
+            4.0,
+            7.0,
+            5.0
+          ]
+        },
+        "initial_rank_of_final_best_route": {
+          "n": 3,
+          "mean": 5.333333333333333,
+          "median": 5.0,
+          "min": 4.0,
+          "max": 7.0,
+          "q25": 4.5,
+          "q75": 6.0,
+          "values": [
+            4.0,
+            7.0,
+            5.0
+          ]
+        },
+        "initial_top_second_gap_over_s": {
+          "n": 3,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "q25": 0.0,
+          "q75": 0.0,
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "initial_q_range_over_s": {
+          "n": 3,
+          "mean": 1.0157959843943287,
+          "median": 0.5398230088495575,
+          "min": 0.5398230088495575,
+          "max": 1.967741935483871,
+          "q25": 0.5398230088495575,
+          "q75": 1.2537824721667143,
+          "values": [
+            1.967741935483871,
+            0.5398230088495575,
+            0.5398230088495575
+          ]
+        },
+        "initial_q_sd_over_s": {
+          "n": 3,
+          "mean": 0.3346609726169709,
+          "median": 0.17852967917581863,
+          "min": 0.17795557898603429,
+          "max": 0.6474976596890598,
+          "q25": 0.17824262908092647,
+          "q75": 0.4130136694324392,
+          "values": [
+            0.6474976596890598,
+            0.17795557898603429,
+            0.17852967917581863
+          ]
+        },
+        "initial_best_tie_count": {
+          "n": 3,
+          "mean": 6.333333333333333,
+          "median": 6.0,
+          "min": 6.0,
+          "max": 7.0,
+          "q25": 6.0,
+          "q75": 6.5,
+          "values": [
+            6.0,
+            6.0,
+            7.0
+          ]
+        },
+        "routes_with_zero_search_visits": {
+          "n": 3,
+          "mean": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 1.0,
+          "q25": 1.0,
+          "q75": 1.0,
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "routes_with_at_most_five_visits": {
+          "n": 3,
+          "mean": 3.0,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 7.0,
+          "q25": 1.0,
+          "q75": 4.0,
+          "values": [
+            7.0,
+            1.0,
+            1.0
+          ]
+        },
+        "routes_with_positive_observed_gain": {
+          "n": 3,
+          "mean": 1.3333333333333333,
+          "median": 1.0,
+          "min": 1.0,
+          "max": 2.0,
+          "q25": 1.0,
+          "q75": 1.5,
+          "values": [
+            1.0,
+            2.0,
+            1.0
+          ]
+        },
+        "observed_route_best_range_over_s": {
+          "n": 3,
+          "mean": 1.6891711866019603,
+          "median": 0.8938053097345132,
+          "min": 0.8672566371681416,
+          "max": 3.306451612903226,
+          "q25": 0.8805309734513274,
+          "q75": 2.1001284613188695,
+          "values": [
+            3.306451612903226,
+            0.8938053097345132,
+            0.8672566371681416
+          ]
+        },
+        "root_macro_family_count": {
+          "n": 3,
+          "mean": 2.0,
+          "median": 2.0,
+          "min": 2.0,
+          "max": 2.0,
+          "q25": 2.0,
+          "q75": 2.0,
+          "values": [
+            2.0,
+            2.0,
+            2.0
+          ]
+        },
+        "root_dominant_macro_share": {
+          "n": 3,
+          "mean": 0.5416666666666666,
+          "median": 0.5,
+          "min": 0.5,
+          "max": 0.625,
+          "q25": 0.5,
+          "q75": 0.5625,
+          "values": [
+            0.5,
+            0.5,
+            0.625
+          ]
+        },
+        "root_signature_count": {
+          "n": 3,
+          "mean": 6.0,
+          "median": 6.0,
+          "min": 5.0,
+          "max": 7.0,
+          "q25": 5.5,
+          "q75": 6.5,
+          "values": [
+            7.0,
+            6.0,
+            5.0
+          ]
+        },
+        "root_mean_pairwise_tag_distance": {
+          "n": 3,
+          "mean": 0.5972222222222222,
+          "median": 0.5833333333333334,
+          "min": 0.5654761904761905,
+          "max": 0.6428571428571429,
+          "q25": 0.5744047619047619,
+          "q75": 0.6130952380952381,
+          "values": [
+            0.6428571428571429,
+            0.5833333333333334,
+            0.5654761904761905
+          ]
+        },
+        "root_to_final_tag_distance": {
+          "n": 3,
+          "mean": 0.638888888888889,
+          "median": 0.75,
+          "min": 0.33333333333333337,
+          "max": 0.8333333333333334,
+          "q25": 0.5416666666666667,
+          "q75": 0.7916666666666667,
+          "values": [
+            0.8333333333333334,
+            0.75,
+            0.33333333333333337
+          ]
+        }
+      },
+      "runs": [
+        {
+          "n_decisions": 1005,
+          "top_route": 4,
+          "final_best_route": 4,
+          "top_route_is_final_best_route": true,
+          "top_route_share": 0.9800995024875622,
+          "routes_selected": 7,
+          "stable_top_route_start": 24,
+          "irreversible_single_viable_start": 28,
+          "viable_routes_at_start": 7,
+          "dead_routes_at_start": 1,
+          "initial_best_route": 0,
+          "initial_best_is_top_route": false,
+          "initial_rank_of_top_route": 4,
+          "initial_rank_of_final_best_route": 4,
+          "initial_top_second_gap": 0.0,
+          "initial_top_second_gap_over_s": 0.0,
+          "initial_q_range_over_s": 1.967741935483871,
+          "initial_q_sd_over_s": 0.6474976596890598,
+          "initial_best_tie_count": 6,
+          "s": 15.5,
+          "route_visits": {
+            "0": 4,
+            "1": 2,
+            "2": 4,
+            "3": 4,
+            "4": 985,
+            "5": 3,
+            "6": 3,
+            "7": 0
+          },
+          "routes_with_zero_search_visits": 1,
+          "routes_with_at_most_five_visits": 7,
+          "routes_with_positive_observed_gain": 1,
+          "observed_route_best_range_over_s": 3.306451612903226,
+          "root_macro_family_count": 2,
+          "root_dominant_macro_share": 0.5,
+          "root_signature_count": 7,
+          "root_mean_pairwise_tag_distance": 0.6428571428571429,
+          "root_to_final_macro_changed": true,
+          "root_to_final_tag_distance": 0.8333333333333334,
+          "run": "v9_7_20260814_150927_online_bin_packing_rep1"
+        },
+        {
+          "n_decisions": 1007,
+          "top_route": 7,
+          "final_best_route": 7,
+          "top_route_is_final_best_route": true,
+          "top_route_share": 0.858987090367428,
+          "routes_selected": 7,
+          "stable_top_route_start": 168,
+          "irreversible_single_viable_start": 176,
+          "viable_routes_at_start": 8,
+          "dead_routes_at_start": 0,
+          "initial_best_route": 0,
+          "initial_best_is_top_route": false,
+          "initial_rank_of_top_route": 7,
+          "initial_rank_of_final_best_route": 7,
+          "initial_top_second_gap": 0.0,
+          "initial_top_second_gap_over_s": 0.0,
+          "initial_q_range_over_s": 0.5398230088495575,
+          "initial_q_sd_over_s": 0.17795557898603429,
+          "initial_best_tie_count": 6,
+          "s": 56.5,
+          "route_visits": {
+            "0": 19,
+            "1": 19,
+            "2": 19,
+            "3": 19,
+            "4": 19,
+            "5": 47,
+            "6": 0,
+            "7": 865
+          },
+          "routes_with_zero_search_visits": 1,
+          "routes_with_at_most_five_visits": 1,
+          "routes_with_positive_observed_gain": 2,
+          "observed_route_best_range_over_s": 0.8938053097345132,
+          "root_macro_family_count": 2,
+          "root_dominant_macro_share": 0.5,
+          "root_signature_count": 6,
+          "root_mean_pairwise_tag_distance": 0.5833333333333334,
+          "root_to_final_macro_changed": true,
+          "root_to_final_tag_distance": 0.75,
+          "run": "v9_7_20260814_150927_online_bin_packing_rep2"
+        },
+        {
+          "n_decisions": 1019,
+          "top_route": 4,
+          "final_best_route": 4,
+          "top_route_is_final_best_route": true,
+          "top_route_share": 0.9352306182531894,
+          "routes_selected": 7,
+          "stable_top_route_start": 87,
+          "irreversible_single_viable_start": 147,
+          "viable_routes_at_start": 8,
+          "dead_routes_at_start": 0,
+          "initial_best_route": 0,
+          "initial_best_is_top_route": false,
+          "initial_rank_of_top_route": 5,
+          "initial_rank_of_final_best_route": 5,
+          "initial_top_second_gap": 0.0,
+          "initial_top_second_gap_over_s": 0.0,
+          "initial_q_range_over_s": 0.5398230088495575,
+          "initial_q_sd_over_s": 0.17852967917581863,
+          "initial_best_tie_count": 7,
+          "s": 56.5,
+          "route_visits": {
+            "0": 11,
+            "1": 11,
+            "2": 11,
+            "3": 11,
+            "4": 953,
+            "5": 0,
+            "6": 11,
+            "7": 11
+          },
+          "routes_with_zero_search_visits": 1,
+          "routes_with_at_most_five_visits": 1,
+          "routes_with_positive_observed_gain": 1,
+          "observed_route_best_range_over_s": 0.8672566371681416,
+          "root_macro_family_count": 2,
+          "root_dominant_macro_share": 0.625,
+          "root_signature_count": 5,
+          "root_mean_pairwise_tag_distance": 0.5654761904761905,
+          "root_to_final_macro_changed": true,
+          "root_to_final_tag_distance": 0.33333333333333337,
+          "run": "v9_7_20260814_150927_online_bin_packing_rep3"
+        }
+      ]
+    }
+  },
+  "proposal": {
+    "tsp_construct": {
+      "n_runs": 3,
+      "final_best_birth_intent": {
+        "refine": 3
+      },
+      "first_entry_final_family_intent": {
+        "refine": 1,
+        "explore": 2
+      },
+      "root_to_final_changed_entry_intent": {
+        "refine": 1,
+        "explore": 1
+      },
+      "final_path_macro_switches_by_intent": {
+        "refine": 10,
+        "explore": 2
+      },
+      "summary": {
+        "refine": {
+          "attempts": 2082,
+          "new_child_count": 1626,
+          "invalid_count": 428,
+          "improve_count": 303,
+          "improve_rate_per_attempt": 0.14553314121037464,
+          "global_breakthrough_count": 43,
+          "global_breakthrough_rate_per_attempt": 0.020653218059558116,
+          "global_gain": 1.9621186039000413,
+          "median_global_increment": 0.014216213951858236,
+          "largest_global_increment": 0.5254445477279646,
+          "median_change_lines": 82.0,
+          "median_dq": 0.0,
+          "tag_switch_rate": 0.23616236162361623,
+          "macro_switch_count": 121,
+          "macro_switch_rate": 0.07441574415744158,
+          "median_tag_distance": 0.0,
+          "child_reexpanded_rate": 0.8118081180811808,
+          "dead_on_arrival_count": 221,
+          "dead_on_arrival_rate": 0.13591635916359163,
+          "child_has_descendant_rate": 0.7527675276752768,
+          "descendant_beats_parent_rate_all_children": 0.2878228782287823,
+          "descendant_beats_parent_rate_if_expanded": 0.38235294117647056,
+          "regress_child_count": 691,
+          "regress_rescued_above_parent_count": 109,
+          "regress_rescued_above_parent_rate": 0.1577424023154848,
+          "final_path_child_count": 231
+        },
+        "explore": {
+          "attempts": 915,
+          "new_child_count": 709,
+          "invalid_count": 205,
+          "improve_count": 38,
+          "improve_rate_per_attempt": 0.041530054644808745,
+          "global_breakthrough_count": 10,
+          "global_breakthrough_rate_per_attempt": 0.01092896174863388,
+          "global_gain": 1.126190149632456,
+          "median_global_increment": 0.07408024068765595,
+          "largest_global_increment": 0.45533620528339114,
+          "median_change_lines": 237.0,
+          "median_dq": -0.7127407321058161,
+          "tag_switch_rate": 0.6544428772919605,
+          "macro_switch_count": 264,
+          "macro_switch_rate": 0.3723554301833568,
+          "median_tag_distance": 0.33333333333333337,
+          "child_reexpanded_rate": 0.34837799717912554,
+          "dead_on_arrival_count": 396,
+          "dead_on_arrival_rate": 0.5585331452750353,
+          "child_has_descendant_rate": 0.29055007052186177,
+          "descendant_beats_parent_rate_all_children": 0.08744710860366714,
+          "descendant_beats_parent_rate_if_expanded": 0.30097087378640774,
+          "regress_child_count": 590,
+          "regress_rescued_above_parent_count": 18,
+          "regress_rescued_above_parent_rate": 0.030508474576271188,
+          "final_path_child_count": 30
+        },
+        "by_macro_transition": {
+          "macro_switch": {
+            "n": 385,
+            "improve_rate": 0.06493506493506493,
+            "global_breakthrough_rate": 0.015584415584415584,
+            "child_has_descendant_rate": 0.16103896103896104,
+            "dead_on_arrival_rate": 0.7350649350649351,
+            "descendant_beats_parent_rate_all_children": 0.05974025974025974
+          },
+          "macro_stay": {
+            "n": 1950,
+            "improve_rate": 0.1594871794871795,
+            "global_breakthrough_rate": 0.024102564102564103,
+            "child_has_descendant_rate": 0.7015384615384616,
+            "dead_on_arrival_rate": 0.1712820512820513,
+            "descendant_beats_parent_rate_all_children": 0.26
+          }
+        },
+        "global_gain_share": {
+          "refine": 0.6353375781018374,
+          "explore": 0.36466242189816256
+        }
+      }
+    },
+    "cvrp_aco": {
+      "n_runs": 3,
+      "final_best_birth_intent": {
+        "refine": 3
+      },
+      "first_entry_final_family_intent": {
+        "explore": 3
+      },
+      "root_to_final_changed_entry_intent": {
+        "explore": 3
+      },
+      "final_path_macro_switches_by_intent": {
+        "refine": 14,
+        "explore": 12
+      },
+      "summary": {
+        "refine": {
+          "attempts": 2124,
+          "new_child_count": 1980,
+          "invalid_count": 53,
+          "improve_count": 779,
+          "improve_rate_per_attempt": 0.3667608286252354,
+          "global_breakthrough_count": 79,
+          "global_breakthrough_rate_per_attempt": 0.0371939736346516,
+          "global_gain": 9.079585802609202,
+          "median_global_increment": 0.04139021154254863,
+          "largest_global_increment": 1.3297485823479462,
+          "median_change_lines": 10.0,
+          "median_dq": -0.009147801610067674,
+          "tag_switch_rate": 0.08484848484848485,
+          "macro_switch_count": 45,
+          "macro_switch_rate": 0.022727272727272728,
+          "median_tag_distance": 0.0,
+          "child_reexpanded_rate": 0.9232323232323232,
+          "dead_on_arrival_count": 76,
+          "dead_on_arrival_rate": 0.03838383838383838,
+          "child_has_descendant_rate": 0.8878787878787879,
+          "descendant_beats_parent_rate_all_children": 0.43686868686868685,
+          "descendant_beats_parent_rate_if_expanded": 0.4920364050056883,
+          "regress_child_count": 1043,
+          "regress_rescued_above_parent_count": 227,
+          "regress_rescued_above_parent_rate": 0.21764141898370087,
+          "final_path_child_count": 390
+        },
+        "explore": {
+          "attempts": 928,
+          "new_child_count": 786,
+          "invalid_count": 136,
+          "improve_count": 20,
+          "improve_rate_per_attempt": 0.021551724137931036,
+          "global_breakthrough_count": 8,
+          "global_breakthrough_rate_per_attempt": 0.008620689655172414,
+          "global_gain": 2.570770127159811,
+          "median_global_increment": 0.15728679471041218,
+          "largest_global_increment": 1.1129919217160413,
+          "median_change_lines": 238.5,
+          "median_dq": -5.187105872328159,
+          "tag_switch_rate": 0.7480916030534351,
+          "macro_switch_count": 384,
+          "macro_switch_rate": 0.48854961832061067,
+          "median_tag_distance": 0.25,
+          "child_reexpanded_rate": 0.0737913486005089,
+          "dead_on_arrival_count": 683,
+          "dead_on_arrival_rate": 0.8689567430025446,
+          "child_has_descendant_rate": 0.06997455470737914,
+          "descendant_beats_parent_rate_all_children": 0.039440203562340966,
+          "descendant_beats_parent_rate_if_expanded": 0.5636363636363636,
+          "regress_child_count": 759,
+          "regress_rescued_above_parent_count": 14,
+          "regress_rescued_above_parent_rate": 0.01844532279314888,
+          "final_path_child_count": 17
+        },
+        "by_macro_transition": {
+          "macro_switch": {
+            "n": 429,
+            "improve_rate": 0.053613053613053616,
+            "global_breakthrough_rate": 0.02097902097902098,
+            "child_has_descendant_rate": 0.11421911421911422,
+            "dead_on_arrival_rate": 0.8181818181818182,
+            "descendant_beats_parent_rate_all_children": 0.0675990675990676
+          },
+          "macro_stay": {
+            "n": 2337,
+            "improve_rate": 0.31407787762088146,
+            "global_breakthrough_rate": 0.03337612323491656,
+            "child_has_descendant_rate": 0.754813863928113,
+            "dead_on_arrival_rate": 0.17458279845956354,
+            "descendant_beats_parent_rate_all_children": 0.37098844672657255
+          }
+        },
+        "global_gain_share": {
+          "refine": 0.7793397778868735,
+          "explore": 0.22066022211312653
+        }
+      }
+    },
+    "op_aco": {
+      "n_runs": 3,
+      "final_best_birth_intent": {
+        "refine": 3
+      },
+      "first_entry_final_family_intent": {
+        "refine": 1,
+        "explore": 2
+      },
+      "root_to_final_changed_entry_intent": {
+        "refine": 1
+      },
+      "final_path_macro_switches_by_intent": {
+        "refine": 15,
+        "explore": 7
+      },
+      "summary": {
+        "refine": {
+          "attempts": 2142,
+          "new_child_count": 1967,
+          "invalid_count": 80,
+          "improve_count": 134,
+          "improve_rate_per_attempt": 0.06255835667600373,
+          "global_breakthrough_count": 27,
+          "global_breakthrough_rate_per_attempt": 0.012605042016806723,
+          "global_gain": 2.8039999999999967,
+          "median_global_increment": 0.051999999999997826,
+          "largest_global_increment": 0.5199999999999978,
+          "median_change_lines": 53.0,
+          "median_dq": -0.2719999999999967,
+          "tag_switch_rate": 0.1759023894255211,
+          "macro_switch_count": 237,
+          "macro_switch_rate": 0.12048805287239452,
+          "median_tag_distance": 0.0,
+          "child_reexpanded_rate": 0.3787493645144891,
+          "dead_on_arrival_count": 953,
+          "dead_on_arrival_rate": 0.48449415353329944,
+          "child_has_descendant_rate": 0.3746822572445348,
+          "descendant_beats_parent_rate_all_children": 0.099644128113879,
+          "descendant_beats_parent_rate_if_expanded": 0.26594301221166894,
+          "regress_child_count": 1441,
+          "regress_rescued_above_parent_count": 34,
+          "regress_rescued_above_parent_rate": 0.02359472588480222,
+          "final_path_child_count": 158
+        },
+        "explore": {
+          "attempts": 930,
+          "new_child_count": 854,
+          "invalid_count": 67,
+          "improve_count": 12,
+          "improve_rate_per_attempt": 0.012903225806451613,
+          "global_breakthrough_count": 5,
+          "global_breakthrough_rate_per_attempt": 0.005376344086021506,
+          "global_gain": 0.7099999999999973,
+          "median_global_increment": 0.15800000000000125,
+          "largest_global_increment": 0.3099999999999987,
+          "median_change_lines": 198.0,
+          "median_dq": -0.8890000000000002,
+          "tag_switch_rate": 0.7049180327868853,
+          "macro_switch_count": 460,
+          "macro_switch_rate": 0.5386416861826698,
+          "median_tag_distance": 0.33333333333333337,
+          "child_reexpanded_rate": 0.10772833723653395,
+          "dead_on_arrival_count": 732,
+          "dead_on_arrival_rate": 0.8571428571428571,
+          "child_has_descendant_rate": 0.10772833723653395,
+          "descendant_beats_parent_rate_all_children": 0.03395784543325527,
+          "descendant_beats_parent_rate_if_expanded": 0.31521739130434784,
+          "regress_child_count": 795,
+          "regress_rescued_above_parent_count": 6,
+          "regress_rescued_above_parent_rate": 0.007547169811320755,
+          "final_path_child_count": 21
+        },
+        "by_macro_transition": {
+          "macro_switch": {
+            "n": 697,
+            "improve_rate": 0.024390243902439025,
+            "global_breakthrough_rate": 0.005738880918220947,
+            "child_has_descendant_rate": 0.1133428981348637,
+            "dead_on_arrival_rate": 0.8479196556671449,
+            "descendant_beats_parent_rate_all_children": 0.03730272596843615
+          },
+          "macro_stay": {
+            "n": 2124,
+            "improve_rate": 0.059322033898305086,
+            "global_breakthrough_rate": 0.013182674199623353,
+            "child_has_descendant_rate": 0.3531073446327684,
+            "dead_on_arrival_rate": 0.5150659133709982,
+            "descendant_beats_parent_rate_all_children": 0.09369114877589454
+          }
+        },
+        "global_gain_share": {
+          "refine": 0.797951052931133,
+          "explore": 0.20204894706886697
+        }
+      }
+    },
+    "online_bin_packing": {
+      "n_runs": 3,
+      "final_best_birth_intent": {
+        "refine": 3
+      },
+      "first_entry_final_family_intent": {
+        "explore": 2,
+        "refine": 1
+      },
+      "root_to_final_changed_entry_intent": {
+        "explore": 2,
+        "refine": 1
+      },
+      "final_path_macro_switches_by_intent": {
+        "explore": 11,
+        "refine": 13
+      },
+      "summary": {
+        "refine": {
+          "attempts": 2109,
+          "new_child_count": 2033,
+          "invalid_count": 7,
+          "improve_count": 613,
+          "improve_rate_per_attempt": 0.29065908013276437,
+          "global_breakthrough_count": 27,
+          "global_breakthrough_rate_per_attempt": 0.012802275960170697,
+          "global_gain": 46.25,
+          "median_global_increment": 0.5,
+          "largest_global_increment": 9.25,
+          "median_change_lines": 8.0,
+          "median_dq": 0.0,
+          "tag_switch_rate": 0.07083128381701918,
+          "macro_switch_count": 107,
+          "macro_switch_rate": 0.05263157894736842,
+          "median_tag_distance": 0.0,
+          "child_reexpanded_rate": 0.8844072798819479,
+          "dead_on_arrival_count": 113,
+          "dead_on_arrival_rate": 0.05558288243974422,
+          "child_has_descendant_rate": 0.8553861288735858,
+          "descendant_beats_parent_rate_all_children": 0.3462862764387605,
+          "descendant_beats_parent_rate_if_expanded": 0.4048303622771708,
+          "regress_child_count": 903,
+          "regress_rescued_above_parent_count": 149,
+          "regress_rescued_above_parent_rate": 0.16500553709856036,
+          "final_path_child_count": 258
+        },
+        "explore": {
+          "attempts": 922,
+          "new_child_count": 845,
+          "invalid_count": 69,
+          "improve_count": 58,
+          "improve_rate_per_attempt": 0.06290672451193059,
+          "global_breakthrough_count": 11,
+          "global_breakthrough_rate_per_attempt": 0.01193058568329718,
+          "global_gain": 13.0,
+          "median_global_increment": 0.75,
+          "largest_global_increment": 3.25,
+          "median_change_lines": 112.0,
+          "median_dq": -18.25,
+          "tag_switch_rate": 0.4414201183431953,
+          "macro_switch_count": 312,
+          "macro_switch_rate": 0.36923076923076925,
+          "median_tag_distance": 0.0,
+          "child_reexpanded_rate": 0.33727810650887574,
+          "dead_on_arrival_count": 303,
+          "dead_on_arrival_rate": 0.3585798816568047,
+          "child_has_descendant_rate": 0.32662721893491126,
+          "descendant_beats_parent_rate_all_children": 0.10295857988165681,
+          "descendant_beats_parent_rate_if_expanded": 0.31521739130434784,
+          "regress_child_count": 738,
+          "regress_rescued_above_parent_count": 32,
+          "regress_rescued_above_parent_rate": 0.04336043360433604,
+          "final_path_child_count": 37
+        },
+        "by_macro_transition": {
+          "macro_switch": {
+            "n": 419,
+            "improve_rate": 0.11217183770883055,
+            "global_breakthrough_rate": 0.011933174224343675,
+            "child_has_descendant_rate": 0.315035799522673,
+            "dead_on_arrival_rate": 0.33890214797136037,
+            "descendant_beats_parent_rate_all_children": 0.1288782816229117
+          },
+          "macro_stay": {
+            "n": 2459,
+            "improve_rate": 0.23749491663277755,
+            "global_breakthrough_rate": 0.013420089467263115,
+            "child_has_descendant_rate": 0.7657584383895892,
+            "dead_on_arrival_rate": 0.11142740951606345,
+            "descendant_beats_parent_rate_all_children": 0.2997153314355429
+          }
+        },
+        "global_gain_share": {
+          "refine": 0.7805907172995781,
+          "explore": 0.21940928270042195
+        }
+      }
+    }
+  },
+  "history_effect_conditions": {
+    "quality_strata": {
+      "tsp_construct": {
+        "low": {
+          "n_anchors": 6,
+          "paired_delta_q_effect": 1.0419986739741052,
+          "bootstrap_ci95": [
+            -1.0222779792251349,
+            4.271539651580306
+          ]
+        },
+        "middle": {
+          "n_anchors": 6,
+          "paired_delta_q_effect": 1.492061166588366,
+          "bootstrap_ci95": [
+            0.608838298404517,
+            2.8042821894958174
+          ]
+        },
+        "high": {
+          "n_anchors": 6,
+          "paired_delta_q_effect": 1.1653589681532377,
+          "bootstrap_ci95": [
+            0.19720933335382576,
+            2.2278547163563407
+          ]
+        }
+      },
+      "cvrp_aco": {
+        "low": {
+          "n_anchors": 6,
+          "paired_delta_q_effect": 3.724148874570836,
+          "bootstrap_ci95": [
+            2.2105004536888258,
+            5.486884268973406
+          ]
+        },
+        "middle": {
+          "n_anchors": 6,
+          "paired_delta_q_effect": 5.248929343689284,
+          "bootstrap_ci95": [
+            2.3451465259912068,
+            8.057070090843824
+          ]
+        },
+        "high": {
+          "n_anchors": 6,
+          "paired_delta_q_effect": 3.9196396374717515,
+          "bootstrap_ci95": [
+            -0.3509775468056529,
+            7.614982022228197
+          ]
+        }
+      },
+      "op_aco": {
+        "low": {
+          "n_anchors": 6,
+          "paired_delta_q_effect": 0.1045,
+          "bootstrap_ci95": [
+            -0.23005555555555537,
+            0.479888888888888
+          ]
+        },
+        "middle": {
+          "n_anchors": 6,
+          "paired_delta_q_effect": 0.4064444444444437,
+          "bootstrap_ci95": [
+            0.15177777777777635,
+            0.776555555555555
+          ]
+        },
+        "high": {
+          "n_anchors": 6,
+          "paired_delta_q_effect": 0.24050000000000102,
+          "bootstrap_ci95": [
+            0.08822222222222276,
+            0.3979444444444453
+          ]
+        }
+      },
+      "online_bin_packing": {
+        "low": {
+          "n_anchors": 6,
+          "paired_delta_q_effect": 88.56944444444446,
+          "bootstrap_ci95": [
+            -67.29166666666667,
+            318.52777777777777
+          ]
+        },
+        "middle": {
+          "n_anchors": 6,
+          "paired_delta_q_effect": 56.583333333333336,
+          "bootstrap_ci95": [
+            -56.56944444444445,
+            192.0
+          ]
+        },
+        "high": {
+          "n_anchors": 6,
+          "paired_delta_q_effect": 190.375,
+          "bootstrap_ci95": [
+            11.0,
+            392.84722222222223
+          ]
+        }
+      }
+    },
+    "exploratory_correlations": {
+      "cvrp_aco": {
+        "n_anchors": 18,
+        "spearman_with_parent_path_effect": {
+          "depth": -0.07743934950413432,
+          "source_iteration": -0.015487869900826864,
+          "formation_event_count": null,
+          "history_improve_fraction": -0.24790949427082778,
+          "history_regress_fraction": 0.10835946074286641,
+          "path_net_gain": -0.37048503611971106,
+          "path_positive_gain": -0.3065015479876161,
+          "path_negative_gain": 0.061013574138160935,
+          "last_step_dq": -0.21820108717206707
+        }
+      },
+      "online_bin_packing": {
+        "n_anchors": 18,
+        "spearman_with_parent_path_effect": {
+          "depth": 0.05064605570108303,
+          "source_iteration": -0.058823529411764705,
+          "formation_event_count": 0.39735970711951313,
+          "history_improve_fraction": 0.16089150611442768,
+          "history_regress_fraction": 0.023703359961928967,
+          "path_net_gain": 0.133048177624246,
+          "path_positive_gain": 0.1804063181501218,
+          "path_negative_gain": 0.019844773400014712,
+          "last_step_dq": 0.1486011680037093
+        }
+      },
+      "op_aco": {
+        "n_anchors": 18,
+        "spearman_with_parent_path_effect": {
+          "depth": 0.3892617968407818,
+          "source_iteration": 0.6594427244582043,
+          "formation_event_count": 0.44635743925412974,
+          "history_improve_fraction": -0.5782556899842336,
+          "history_regress_fraction": -0.09804571620616073,
+          "path_net_gain": -0.4490444406674012,
+          "path_positive_gain": -0.6373533996569566,
+          "path_negative_gain": -0.21173502016814486,
+          "last_step_dq": -0.33803405367234723
+        }
+      },
+      "tsp_construct": {
+        "n_anchors": 18,
+        "spearman_with_parent_path_effect": {
+          "depth": 0.23426212590299278,
+          "source_iteration": 0.13835830444738664,
+          "formation_event_count": 0.1362932551272764,
+          "history_improve_fraction": 0.03696879453226125,
+          "history_regress_fraction": -0.1551223417365236,
+          "path_net_gain": -0.009287925696594427,
+          "path_positive_gain": -0.05263157894736842,
+          "path_negative_gain": -0.2590299277605779,
+          "last_step_dq": -0.24264329511295418
+        }
+      }
+    },
+    "boundary": "Quality strata were built into the paired probe. Correlations with path features are post hoc, use only 18 anchors per task, and are descriptive rather than validated effect modifiers."
+  },
+  "classification_audit": {
+    "tsp_construct": {
+      "v9_7_20260814_150927_tsp_construct_rep1": {
+        "root_families": {
+          "0": "lookahead_score",
+          "1": "local_score",
+          "2": "local_score",
+          "3": "local_score",
+          "4": "local_score",
+          "5": "local_score",
+          "6": "lookahead_score",
+          "7": "local_score"
+        },
+        "root_tags": {
+          "0": [
+            "destination_aware",
+            "one_step_lookahead",
+            "stage_adaptive"
+          ],
+          "1": [
+            "destination_aware"
+          ],
+          "2": [
+            "destination_aware",
+            "stage_adaptive"
+          ],
+          "3": [
+            "destination_aware",
+            "stage_adaptive"
+          ],
+          "4": [
+            "destination_aware"
+          ],
+          "5": [
+            "destination_aware"
+          ],
+          "6": [
+            "destination_aware",
+            "one_step_lookahead"
+          ],
+          "7": [
+            "destination_aware"
+          ]
+        },
+        "final_route": 7,
+        "final_family": "explicit_search",
+        "final_tags": [
+          "beam_search",
+          "candidate_screening",
+          "destination_aware",
+          "exact_dp",
+          "tour_rollout",
+          "two_opt"
+        ],
+        "final_path": {
+          "root_family": "local_score",
+          "final_family": "explicit_search",
+          "root_to_final_macro_changed": true,
+          "first_entry_final_family_intent": "refine",
+          "macro_switches_by_intent": {
+            "refine": 1
+          },
+          "transition_count": 90,
+          "first_entry_final_family_event": {
+            "anchor_id": 19,
+            "intent": "refine",
+            "idea": "Replace the computationally expensive and potentially inaccurate Nearest Neighbor lookahead with a more robust estimation using Minimum Spanning Tree (MST) bounds and angle-based geometric heuristics. This reduces variance in path estimation and improves local decision quality by considering the glo",
+            "outcome": "plateau",
+            "dq": 0.0,
+            "order": 22,
+            "parent_family": "local_score",
+            "child_family": "explicit_search",
+            "parent_tags": [
+              "destination_aware"
+            ],
+            "child_tags": [
+              "destination_aware",
+              "exact_dp"
+            ]
+          }
+        }
+      },
+      "v9_7_20260814_150927_tsp_construct_rep2": {
+        "root_families": {
+          "0": "local_score",
+          "1": "local_score",
+          "2": "local_score",
+          "3": "local_score",
+          "4": "local_score",
+          "5": "lookahead_score",
+          "6": "local_score",
+          "7": "local_score"
+        },
+        "root_tags": {
+          "0": [
+            "destination_aware"
+          ],
+          "1": [
+            "destination_aware"
+          ],
+          "2": [
+            "destination_aware",
+            "stage_adaptive"
+          ],
+          "3": [
+            "destination_aware"
+          ],
+          "4": [
+            "destination_aware"
+          ],
+          "5": [
+            "destination_aware",
+            "one_step_lookahead"
+          ],
+          "6": [
+            "destination_aware",
+            "stage_adaptive"
+          ],
+          "7": [
+            "destination_aware"
+          ]
+        },
+        "final_route": 1,
+        "final_family": "completion_rollout",
+        "final_tags": [
+          "destination_aware",
+          "tour_rollout",
+          "two_opt"
+        ],
+        "final_path": {
+          "root_family": "local_score",
+          "final_family": "completion_rollout",
+          "root_to_final_macro_changed": true,
+          "first_entry_final_family_intent": "explore",
+          "macro_switches_by_intent": {
+            "refine": 2,
+            "explore": 1
+          },
+          "transition_count": 79,
+          "first_entry_final_family_event": {
+            "anchor_id": 117,
+            "intent": "explore",
+            "idea": "Replace the heuristic scoring with a stochastic beam search that explores multiple partial tour extensions in parallel, selecting the one with the lowest estimated total tour cost (using Nearest Neighbor heuristic for the remainder) to make globally optimal choices.",
+            "outcome": "improve",
+            "dq": 0.48350208788881943,
+            "order": 122,
+            "parent_family": "local_score",
+            "child_family": "completion_rollout",
+            "parent_tags": [
+              "destination_aware",
+              "stage_adaptive"
+            ],
+            "child_tags": [
+              "destination_aware",
+              "tour_rollout"
+            ]
+          }
+        }
+      },
+      "v9_7_20260814_150927_tsp_construct_rep3": {
+        "root_families": {
+          "0": "local_score",
+          "1": "local_score",
+          "2": "local_score",
+          "3": "local_score",
+          "4": "lookahead_score",
+          "5": "local_score",
+          "6": "local_score",
+          "7": "local_score"
+        },
+        "root_tags": {
+          "0": [
+            "destination_aware",
+            "stage_adaptive"
+          ],
+          "1": [
+            "destination_aware",
+            "stage_adaptive"
+          ],
+          "2": [
+            "destination_aware"
+          ],
+          "3": [
+            "destination_aware"
+          ],
+          "4": [
+            "destination_aware",
+            "one_step_lookahead"
+          ],
+          "5": [
+            "destination_aware",
+            "stage_adaptive"
+          ],
+          "6": [
+            "destination_aware"
+          ],
+          "7": [
+            "destination_aware",
+            "stage_adaptive"
+          ]
+        },
+        "final_route": 1,
+        "final_family": "local_score",
+        "final_tags": [
+          "candidate_screening",
+          "destination_aware",
+          "stage_adaptive"
+        ],
+        "final_path": {
+          "root_family": "local_score",
+          "final_family": "local_score",
+          "root_to_final_macro_changed": false,
+          "first_entry_final_family_intent": "explore",
+          "macro_switches_by_intent": {
+            "refine": 7,
+            "explore": 1
+          },
+          "transition_count": 93,
+          "first_entry_final_family_event": {
+            "anchor_id": 86,
+            "intent": "explore",
+            "idea": "Replace heuristic candidate selection with a Cheapest Insertion heuristic. For each unvisited node, calculate the \"insertion cost\" (the increase in tour length if inserted immediately after current node). Select the node with the minimum insertion cost. This avoids the complex and noisy regret/simul",
+            "outcome": "regress",
+            "dq": -0.043904309075459835,
+            "order": 107,
+            "parent_family": "lookahead_score",
+            "child_family": "local_score",
+            "parent_tags": [
+              "destination_aware",
+              "one_step_lookahead"
+            ],
+            "child_tags": [
+              "destination_aware"
+            ]
+          }
+        }
+      }
+    },
+    "cvrp_aco": {
+      "v9_7_20260814_150927_cvrp_aco_rep1": {
+        "root_families": {
+          "0": "capacity_distance",
+          "1": "capacity_distance",
+          "2": "angular_radial",
+          "3": "capacity_distance",
+          "4": "distance_only",
+          "5": "angular_radial",
+          "6": "capacity_distance",
+          "7": "angular_radial"
+        },
+        "root_tags": {
+          "0": [
+            "demand_capacity"
+          ],
+          "1": [
+            "demand_capacity",
+            "pair_feasibility"
+          ],
+          "2": [
+            "angular_geometry",
+            "demand_capacity"
+          ],
+          "3": [
+            "demand_capacity"
+          ],
+          "4": [],
+          "5": [
+            "angular_geometry",
+            "demand_capacity"
+          ],
+          "6": [
+            "demand_capacity"
+          ],
+          "7": [
+            "angular_geometry",
+            "demand_capacity"
+          ]
+        },
+        "final_route": 1,
+        "final_family": "sweep_partition",
+        "final_tags": [
+          "angular_geometry",
+          "demand_capacity",
+          "depot_radial",
+          "neighborhood_density",
+          "pair_feasibility",
+          "sweep_partition"
+        ],
+        "final_path": {
+          "root_family": "capacity_distance",
+          "final_family": "sweep_partition",
+          "root_to_final_macro_changed": true,
+          "first_entry_final_family_intent": "explore",
+          "macro_switches_by_intent": {
+            "refine": 2,
+            "explore": 3
+          },
+          "transition_count": 120,
+          "first_entry_final_family_event": {
+            "anchor_id": 74,
+            "intent": "explore",
+            "idea": "Replace K-Means clustering with a fast, geometric sweep-based clustering that respects capacity constraints. This method sorts customers by angle from the depot and greedily packs them into \"sectors\" (routes) until capacity is reached, which naturally creates spatially coherent clusters suitable for",
+            "outcome": "improve",
+            "dq": 1.1129919217160413,
+            "order": 82,
+            "parent_family": "capacity_distance",
+            "child_family": "sweep_partition",
+            "parent_tags": [
+              "demand_capacity",
+              "pair_feasibility"
+            ],
+            "child_tags": [
+              "angular_geometry",
+              "demand_capacity",
+              "sweep_partition"
+            ]
+          }
+        }
+      },
+      "v9_7_20260814_150927_cvrp_aco_rep2": {
+        "root_families": {
+          "0": "capacity_distance",
+          "1": "capacity_distance",
+          "2": "angular_radial",
+          "3": "capacity_distance",
+          "4": "capacity_distance",
+          "5": "angular_radial",
+          "6": "capacity_distance",
+          "7": "capacity_distance"
+        },
+        "root_tags": {
+          "0": [
+            "demand_capacity"
+          ],
+          "1": [
+            "demand_capacity",
+            "pair_feasibility"
+          ],
+          "2": [
+            "angular_geometry",
+            "demand_capacity"
+          ],
+          "3": [
+            "demand_capacity"
+          ],
+          "4": [
+            "demand_capacity"
+          ],
+          "5": [
+            "angular_geometry",
+            "demand_capacity"
+          ],
+          "6": [
+            "demand_capacity"
+          ],
+          "7": [
+            "demand_capacity"
+          ]
+        },
+        "final_route": 1,
+        "final_family": "spatial_cluster",
+        "final_tags": [
+          "angular_geometry",
+          "demand_capacity",
+          "depot_radial",
+          "neighborhood_density",
+          "pair_feasibility"
+        ],
+        "final_path": {
+          "root_family": "capacity_distance",
+          "final_family": "spatial_cluster",
+          "root_to_final_macro_changed": true,
+          "first_entry_final_family_intent": "explore",
+          "macro_switches_by_intent": {
+            "refine": 7,
+            "explore": 7
+          },
+          "transition_count": 155,
+          "first_entry_final_family_event": {
+            "anchor_id": 36,
+            "intent": "explore",
+            "idea": "Replace the multiplicative angular heuristic (which distorts distance-based priors unpredictably) with an additive \"Sweep-Neighbor\" bonus that explicitly identifies nodes adjacent in angular order around the depot. This creates a strong, localized bias for forming convex, sweeping routes, which is t",
+            "outcome": "improve",
+            "dq": 0.0743291053752344,
+            "order": 38,
+            "parent_family": "angular_radial",
+            "child_family": "spatial_cluster",
+            "parent_tags": [
+              "angular_geometry",
+              "demand_capacity",
+              "depot_radial",
+              "pair_feasibility"
+            ],
+            "child_tags": [
+              "angular_geometry",
+              "demand_capacity",
+              "depot_radial",
+              "neighborhood_density",
+              "pair_feasibility"
+            ]
+          }
+        }
+      },
+      "v9_7_20260814_150927_cvrp_aco_rep3": {
+        "root_families": {
+          "0": "capacity_distance",
+          "1": "angular_radial",
+          "2": "capacity_distance",
+          "3": "distance_only",
+          "4": "capacity_distance",
+          "5": "angular_radial",
+          "6": "capacity_distance",
+          "7": "capacity_distance"
+        },
+        "root_tags": {
+          "0": [
+            "demand_capacity",
+            "depot_radial",
+            "pair_feasibility"
+          ],
+          "1": [
+            "angular_geometry",
+            "demand_capacity"
+          ],
+          "2": [
+            "demand_capacity"
+          ],
+          "3": [],
+          "4": [
+            "demand_capacity"
+          ],
+          "5": [
+            "angular_geometry",
+            "demand_capacity"
+          ],
+          "6": [
+            "demand_capacity"
+          ],
+          "7": [
+            "demand_capacity"
+          ]
+        },
+        "final_route": 3,
+        "final_family": "savings_geometry",
+        "final_tags": [
+          "angular_geometry",
+          "clarke_wright_savings",
+          "demand_capacity",
+          "pair_feasibility"
+        ],
+        "final_path": {
+          "root_family": "distance_only",
+          "final_family": "savings_geometry",
+          "root_to_final_macro_changed": true,
+          "first_entry_final_family_intent": "explore",
+          "macro_switches_by_intent": {
+            "refine": 5,
+            "explore": 2
+          },
+          "transition_count": 134,
+          "first_entry_final_family_event": {
+            "anchor_id": 213,
+            "intent": "explore",
+            "idea": "Introduce a dynamic \"Look-Ahead\" heuristic using greedy savings estimation. Instead of relying solely on static geometric/demand priors, estimate the cost of including an edge in a potential route by simulating the nearest neighbor insertion of the destination node given the source's demand. This ef",
+            "outcome": "improve",
+            "dq": 0.0032437637050648505,
+            "order": 228,
+            "parent_family": "angular_radial",
+            "child_family": "savings_geometry",
+            "parent_tags": [
+              "angular_geometry",
+              "demand_capacity",
+              "pair_feasibility"
+            ],
+            "child_tags": [
+              "angular_geometry",
+              "clarke_wright_savings",
+              "demand_capacity",
+              "pair_feasibility"
+            ]
+          }
+        }
+      }
+    },
+    "op_aco": {
+      "v9_7_20260814_150927_op_aco_rep1": {
+        "root_families": {
+          "0": "feasibility_density",
+          "1": "prize_distance",
+          "2": "feasibility_density",
+          "3": "prize_distance",
+          "4": "prize_distance",
+          "5": "prize_distance",
+          "6": "prize_distance",
+          "7": "feasibility_density"
+        },
+        "root_tags": {
+          "0": [
+            "prize_distance",
+            "return_feasibility"
+          ],
+          "1": [
+            "budget_pressure",
+            "prize_distance"
+          ],
+          "2": [
+            "nonlinear_emphasis",
+            "prize_distance",
+            "return_feasibility"
+          ],
+          "3": [
+            "prize_distance"
+          ],
+          "4": [
+            "prize_distance"
+          ],
+          "5": [
+            "prize_distance"
+          ],
+          "6": [
+            "budget_pressure",
+            "prize_distance"
+          ],
+          "7": [
+            "prize_distance",
+            "return_feasibility"
+          ]
+        },
+        "final_route": 2,
+        "final_family": "target_direction",
+        "final_tags": [
+          "budget_pressure",
+          "directional_targets",
+          "neighborhood_potential",
+          "nonlinear_emphasis",
+          "prize_distance",
+          "return_feasibility"
+        ],
+        "final_path": {
+          "root_family": "feasibility_density",
+          "final_family": "target_direction",
+          "root_to_final_macro_changed": true,
+          "first_entry_final_family_intent": "refine",
+          "macro_switches_by_intent": {
+            "refine": 4
+          },
+          "transition_count": 56,
+          "first_entry_final_family_event": {
+            "anchor_id": 50,
+            "intent": "refine",
+            "idea": "Enhance the heuristic by incorporating a directional bias towards nodes with higher prizes and penalizing moves that deviate significantly from the most promising direction. Use a composite score combining prize-to-distance ratio, budget feasibility, and a directional efficiency term based on the an",
+            "outcome": "improve",
+            "dq": 0.17800000000000082,
+            "order": 53,
+            "parent_family": "budget_feasible_density",
+            "child_family": "target_direction",
+            "parent_tags": [
+              "budget_pressure",
+              "nonlinear_emphasis",
+              "prize_distance",
+              "return_feasibility"
+            ],
+            "child_tags": [
+              "budget_pressure",
+              "directional_targets",
+              "nonlinear_emphasis",
+              "prize_distance",
+              "return_feasibility"
+            ]
+          }
+        }
+      },
+      "v9_7_20260814_150927_op_aco_rep2": {
+        "root_families": {
+          "0": "prize_distance",
+          "1": "prize_distance",
+          "2": "feasibility_density",
+          "3": "prize_distance",
+          "4": "prize_distance",
+          "5": "prize_distance",
+          "6": "prize_distance",
+          "7": "feasibility_density"
+        },
+        "root_tags": {
+          "0": [
+            "budget_pressure",
+            "prize_distance"
+          ],
+          "1": [
+            "budget_pressure",
+            "prize_distance"
+          ],
+          "2": [
+            "prize_distance",
+            "return_feasibility"
+          ],
+          "3": [
+            "prize_distance"
+          ],
+          "4": [
+            "prize_distance"
+          ],
+          "5": [
+            "prize_distance"
+          ],
+          "6": [
+            "prize_distance"
+          ],
+          "7": [
+            "prize_distance",
+            "return_feasibility"
+          ]
+        },
+        "final_route": 1,
+        "final_family": "prize_distance",
+        "final_tags": [
+          "nonlinear_emphasis",
+          "prize_distance"
+        ],
+        "final_path": {
+          "root_family": "prize_distance",
+          "final_family": "prize_distance",
+          "root_to_final_macro_changed": false,
+          "first_entry_final_family_intent": "explore",
+          "macro_switches_by_intent": {
+            "refine": 10,
+            "explore": 3
+          },
+          "transition_count": 81,
+          "first_entry_final_family_event": {
+            "anchor_id": 22,
+            "intent": "explore",
+            "idea": "Replace static cluster and slack heuristics with a dynamic \"Greedy Extension Value\". For each candidate node `j`, estimate the additional prize collectible by greedily extending the tour `i->j` using a nearest-neighbor heuristic within the remaining budget. This directly estimates the marginal contr",
+            "outcome": "improve",
+            "dq": 0.3099999999999987,
+            "order": 24,
+            "parent_family": "neighborhood_potential",
+            "child_family": "prize_distance",
+            "parent_tags": [
+              "neighborhood_potential",
+              "prize_distance"
+            ],
+            "child_tags": [
+              "prize_distance"
+            ]
+          }
+        }
+      },
+      "v9_7_20260814_150927_op_aco_rep3": {
+        "root_families": {
+          "0": "prize_distance",
+          "1": "feasibility_density",
+          "2": "prize_distance",
+          "3": "prize_distance",
+          "4": "prize_distance",
+          "5": "prize_distance",
+          "6": "feasibility_density",
+          "7": "prize_distance"
+        },
+        "root_tags": {
+          "0": [
+            "budget_pressure",
+            "prize_distance"
+          ],
+          "1": [
+            "nonlinear_emphasis",
+            "prize_distance",
+            "return_feasibility"
+          ],
+          "2": [
+            "prize_distance"
+          ],
+          "3": [
+            "prize_distance"
+          ],
+          "4": [
+            "prize_distance"
+          ],
+          "5": [
+            "budget_pressure",
+            "prize_distance"
+          ],
+          "6": [
+            "prize_distance",
+            "return_feasibility"
+          ],
+          "7": [
+            "prize_distance"
+          ]
+        },
+        "final_route": 0,
+        "final_family": "prize_distance",
+        "final_tags": [
+          "nonlinear_emphasis",
+          "prize_distance"
+        ],
+        "final_path": {
+          "root_family": "prize_distance",
+          "final_family": "prize_distance",
+          "root_to_final_macro_changed": false,
+          "first_entry_final_family_intent": "explore",
+          "macro_switches_by_intent": {
+            "explore": 4,
+            "refine": 1
+          },
+          "transition_count": 44,
+          "first_entry_final_family_event": {
+            "anchor_id": 190,
+            "intent": "explore",
+            "idea": "Replace the complex multi-component heuristic with a cleaner, more robust \"Prize-per-Unit-Remaining-Budget\" metric. This directly optimizes the local greedy choice for OP by estimating the effective cost of visiting a node (distance out + expected return) vs. the prize gained. It simplifies the logi",
+            "outcome": "plateau",
+            "dq": 0.0,
+            "order": 207,
+            "parent_family": "feasibility_density",
+            "child_family": "prize_distance",
+            "parent_tags": [
+              "prize_distance",
+              "return_feasibility"
+            ],
+            "child_tags": [
+              "prize_distance"
+            ]
+          }
+        }
+      }
+    },
+    "online_bin_packing": {
+      "v9_7_20260814_150927_online_bin_packing_rep1": {
+        "root_families": {
+          "0": "best_fit",
+          "1": "fragmentation_best_fit",
+          "2": "fragmentation_best_fit",
+          "3": "best_fit",
+          "4": "best_fit",
+          "5": "fragmentation_best_fit",
+          "6": "best_fit",
+          "7": "fragmentation_best_fit"
+        },
+        "root_tags": {
+          "0": [
+            "piecewise_bands"
+          ],
+          "1": [
+            "best_fit",
+            "fragmentation_control",
+            "piecewise_bands"
+          ],
+          "2": [
+            "best_fit",
+            "fragmentation_control"
+          ],
+          "3": [
+            "best_fit"
+          ],
+          "4": [
+            "best_fit"
+          ],
+          "5": [
+            "balance_spread",
+            "fragmentation_control",
+            "piecewise_bands"
+          ],
+          "6": [
+            "best_fit",
+            "piecewise_bands"
+          ],
+          "7": [
+            "fragmentation_control",
+            "piecewise_bands"
+          ]
+        },
+        "final_route": 4,
+        "final_family": "online_distribution",
+        "final_tags": [
+          "best_fit",
+          "distribution_model",
+          "fragmentation_control",
+          "future_fit",
+          "piecewise_bands",
+          "stateful_history"
+        ],
+        "final_path": {
+          "root_family": "best_fit",
+          "final_family": "online_distribution",
+          "root_to_final_macro_changed": true,
+          "first_entry_final_family_intent": "explore",
+          "macro_switches_by_intent": {
+            "explore": 3,
+            "refine": 1
+          },
+          "transition_count": 128,
+          "first_entry_final_family_event": {
+            "anchor_id": 461,
+            "intent": "explore",
+            "idea": "Shift from heuristic scoring to a probabilistic fit estimator. Instead of arbitrary bonuses/penalties, estimate the probability that the remaining space can be fully utilized by future items based on the distribution of item sizes seen so far. Favor bins where the remaining space is likely to match ",
+            "outcome": "improve",
+            "dq": 0.5,
+            "order": 474,
+            "parent_family": "fragmentation_best_fit",
+            "child_family": "online_distribution",
+            "parent_tags": [
+              "best_fit",
+              "fragmentation_control",
+              "piecewise_bands"
+            ],
+            "child_tags": [
+              "best_fit",
+              "distribution_model",
+              "fragmentation_control",
+              "future_fit",
+              "piecewise_bands",
+              "stateful_history"
+            ]
+          }
+        }
+      },
+      "v9_7_20260814_150927_online_bin_packing_rep2": {
+        "root_families": {
+          "0": "fragmentation_best_fit",
+          "1": "fragmentation_best_fit",
+          "2": "best_fit",
+          "3": "best_fit",
+          "4": "fragmentation_best_fit",
+          "5": "best_fit",
+          "6": "fragmentation_best_fit",
+          "7": "best_fit"
+        },
+        "root_tags": {
+          "0": [
+            "best_fit",
+            "fragmentation_control",
+            "piecewise_bands"
+          ],
+          "1": [
+            "best_fit",
+            "fragmentation_control"
+          ],
+          "2": [
+            "best_fit"
+          ],
+          "3": [
+            "best_fit"
+          ],
+          "4": [
+            "balance_spread",
+            "fragmentation_control",
+            "piecewise_bands"
+          ],
+          "5": [
+            "best_fit",
+            "piecewise_bands"
+          ],
+          "6": [
+            "fragmentation_control",
+            "piecewise_bands"
+          ],
+          "7": [
+            "best_fit"
+          ]
+        },
+        "final_route": 7,
+        "final_family": "future_gap_model",
+        "final_tags": [
+          "best_fit",
+          "fragmentation_control",
+          "future_fit",
+          "piecewise_bands"
+        ],
+        "final_path": {
+          "root_family": "best_fit",
+          "final_family": "future_gap_model",
+          "root_to_final_macro_changed": true,
+          "first_entry_final_family_intent": "explore",
+          "macro_switches_by_intent": {
+            "explore": 7,
+            "refine": 10
+          },
+          "transition_count": 80,
+          "first_entry_final_family_event": {
+            "anchor_id": 90,
+            "intent": "explore",
+            "idea": "Implement Adaptive First Fit Decreasing (AFFD) style heuristic by clustering items into sizes and assigning specific bin \"targets\" or tiers, but since we only have remaining capacities, we use a hybrid approach: prioritize bins that leave a \"useful\" remainder (multiples of common item sizes or large",
+            "outcome": "plateau",
+            "dq": 0.0,
+            "order": 91,
+            "parent_family": "best_fit",
+            "child_family": "future_gap_model",
+            "parent_tags": [
+              "best_fit"
+            ],
+            "child_tags": [
+              "best_fit",
+              "future_fit"
+            ]
+          }
+        }
+      },
+      "v9_7_20260814_150927_online_bin_packing_rep3": {
+        "root_families": {
+          "0": "fragmentation_best_fit",
+          "1": "best_fit",
+          "2": "best_fit",
+          "3": "fragmentation_best_fit",
+          "4": "best_fit",
+          "5": "fragmentation_best_fit",
+          "6": "best_fit",
+          "7": "best_fit"
+        },
+        "root_tags": {
+          "0": [
+            "best_fit",
+            "fragmentation_control"
+          ],
+          "1": [
+            "best_fit"
+          ],
+          "2": [
+            "best_fit"
+          ],
+          "3": [
+            "balance_spread",
+            "fragmentation_control",
+            "piecewise_bands"
+          ],
+          "4": [
+            "best_fit",
+            "piecewise_bands"
+          ],
+          "5": [
+            "fragmentation_control",
+            "piecewise_bands"
+          ],
+          "6": [
+            "best_fit"
+          ],
+          "7": [
+            "best_fit"
+          ]
+        },
+        "final_route": 4,
+        "final_family": "fragmentation_best_fit",
+        "final_tags": [
+          "best_fit",
+          "fragmentation_control",
+          "piecewise_bands"
+        ],
+        "final_path": {
+          "root_family": "best_fit",
+          "final_family": "fragmentation_best_fit",
+          "root_to_final_macro_changed": true,
+          "first_entry_final_family_intent": "refine",
+          "macro_switches_by_intent": {
+            "refine": 2,
+            "explore": 1
+          },
+          "transition_count": 88,
+          "first_entry_final_family_event": {
+            "anchor_id": 55,
+            "intent": "refine",
+            "idea": "Switch from Best Fit to First Fit Decreasing logic with a fragmentation penalty. Instead of minimizing remaining space (which can create hard-to-fill fragments), prefer bins where the remaining space after insertion is either large enough to be useful or zero. Specifically, penalize bins that leave ",
+            "outcome": "improve",
+            "dq": 4.25,
+            "order": 56,
+            "parent_family": "best_fit",
+            "child_family": "fragmentation_best_fit",
+            "parent_tags": [
+              "best_fit",
+              "piecewise_bands"
+            ],
+            "child_tags": [
+              "best_fit",
+              "fragmentation_control",
+              "piecewise_bands"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
