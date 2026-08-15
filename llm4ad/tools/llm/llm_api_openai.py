@@ -127,6 +127,7 @@ class OpenAIAPI(LLM):
             if not self.api_key or self.api_key == "EMPTY"
             else {"Authorization": f"Bearer {self.api_key}"}
         )
+        timeout = min(float(self.timeout), 30.0)
         last_error: Exception | None = None
         for _ in range(TOKENIZE_RETRY_LIMIT):
             try:
@@ -134,10 +135,14 @@ class OpenAIAPI(LLM):
                     tokenize_url,
                     json=payload,
                     headers=headers,
-                    timeout=min(float(self.timeout), 30.0),
+                    timeout=timeout,
                 )
                 response.raise_for_status()
                 count = self._token_count_from_payload(response.json())
+                if count == 0:
+                    count = self._llamacpp_token_count(
+                        tokenize_url, payload, headers, timeout
+                    )
                 if count == 0 and payload:
                     raise ValueError("tokenizer returned no tokens for non-empty text")
                 return count
@@ -146,6 +151,43 @@ class OpenAIAPI(LLM):
         raise TokenizationError(
             f"model tokenizer failed after {TOKENIZE_RETRY_LIMIT} attempts"
         ) from last_error
+
+    def _llamacpp_token_count(
+        self,
+        tokenize_url: str,
+        payload: dict[str, Any],
+        headers: dict[str, str],
+        timeout: float,
+    ) -> int:
+        """llama.cpp /tokenize expects ``content``; chat prompts need /apply-template."""
+        text = payload.get("prompt")
+        if not isinstance(text, str) or not text:
+            messages = payload.get("messages")
+            if not messages:
+                return 0
+            apply_url = tokenize_url.rsplit("/", 1)[0] + "/apply-template"
+            template_payload = {
+                key: value for key, value in payload.items() if key != "prompt"
+            }
+            response = requests.post(
+                apply_url,
+                json=template_payload,
+                headers=headers,
+                timeout=timeout,
+            )
+            response.raise_for_status()
+            rendered = response.json()
+            text = rendered.get("prompt") if isinstance(rendered, dict) else None
+            if not isinstance(text, str) or not text:
+                return 0
+        response = requests.post(
+            tokenize_url,
+            json={"content": text},
+            headers=headers,
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        return self._token_count_from_payload(response.json())
 
     @property
     def token_count_mode(self) -> str:

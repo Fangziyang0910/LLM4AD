@@ -256,3 +256,87 @@ def test_openai_api_raises_after_tokenizer_retry_limit(monkeypatch):
     with pytest.raises(openai_api.TokenizationError, match="after 3 attempts"):
         llm.count_tokens("你好")
     assert len(calls) == 3
+
+
+def test_openai_api_counts_tokens_via_llamacpp_content_field(monkeypatch):
+    install_fake_openai(monkeypatch, make_response())
+    calls = []
+
+    class EmptyThenContent:
+        @staticmethod
+        def raise_for_status():
+            return None
+
+        def __init__(self, payload):
+            self._payload = payload
+
+        def json(self):
+            return self._payload
+
+    def fake_post(url, **kwargs):
+        calls.append((url, kwargs["json"]))
+        body = kwargs["json"]
+        if body.get("content") == "hello world":
+            return EmptyThenContent({"tokens": [1, 2, 3, 4]})
+        return EmptyThenContent({"tokens": []})
+
+    monkeypatch.setattr(
+        openai_api, "requests", SimpleNamespace(post=fake_post), raising=False
+    )
+    llm = OpenAIAPI(
+        base_url="http://127.0.0.1:8001/v1",
+        api_key="EMPTY",
+        model="Qwen3.8-27B",
+    )
+
+    assert llm.count_tokens("hello world") == 4
+    assert calls[0] == (
+        "http://127.0.0.1:8001/tokenize",
+        {"model": "Qwen3.8-27B", "prompt": "hello world"},
+    )
+    assert calls[1] == (
+        "http://127.0.0.1:8001/tokenize",
+        {"content": "hello world"},
+    )
+
+
+def test_openai_api_counts_chat_prompt_via_llamacpp_apply_template(monkeypatch):
+    install_fake_openai(monkeypatch, make_response())
+    calls = []
+
+    class FakeResponse:
+        @staticmethod
+        def raise_for_status():
+            return None
+
+        def __init__(self, payload):
+            self._payload = payload
+
+        def json(self):
+            return self._payload
+
+    def fake_post(url, **kwargs):
+        body = kwargs["json"]
+        calls.append((url, body))
+        if url.endswith("/apply-template"):
+            return FakeResponse({"prompt": "<|im_start|>user\nhello<|im_end|>\n"})
+        if body.get("content"):
+            return FakeResponse({"tokens": list(range(9))})
+        return FakeResponse({"tokens": []})
+
+    monkeypatch.setattr(
+        openai_api, "requests", SimpleNamespace(post=fake_post), raising=False
+    )
+    llm = OpenAIAPI(
+        base_url="http://127.0.0.1:8001/v1",
+        api_key="EMPTY",
+        model="Qwen3.8-27B",
+        enable_thinking=False,
+    )
+
+    assert llm.count_prompt_tokens("hello") == 9
+    assert calls[1][0] == "http://127.0.0.1:8001/apply-template"
+    assert calls[2] == (
+        "http://127.0.0.1:8001/tokenize",
+        {"content": "<|im_start|>user\nhello<|im_end|>\n"},
+    )
