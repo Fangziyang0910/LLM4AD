@@ -529,10 +529,31 @@ class TraceAADV97:
         if pending.stage == "search" and pending.iteration is not None:
             self._iteration = max(self._iteration, pending.iteration + 1)
 
-        self._update_best(program)
+        is_new_best, _ = self._update_best(program)
+        if (
+            is_new_best
+            and program is not None
+            and self._log is not None
+            and hasattr(self._log, "record_best")
+        ):
+            self._log.record_best(
+                code=program.code,
+                fitness=program.fitness,
+                eval_count=self._n_eval,
+                iteration=pending.iteration,
+                order=pending.order,
+                program_id=program.id,
+            )
         self._pending = None
         save_checkpoint(self)
-        self._record_attempt(attempt, response=pending.response, code=code, error=error, evaluated=evaluated)
+        self._record_attempt(
+            attempt,
+            response=pending.response,
+            code=code,
+            error=error,
+            evaluated=evaluated,
+            is_new_best=is_new_best,
+        )
         return attempt
 
     def _place(
@@ -607,12 +628,27 @@ class TraceAADV97:
         code: str | None,
         error: str | None,
         evaluated: bool,
+        is_new_best: bool = False,
     ) -> None:
         if self._log is None:
             return
         status = "ok"
         if attempt.kind == "invalid":
             status = "parse_failed" if not evaluated else "eval_failed"
+
+        route_id = None
+        if attempt.anchor_id is not None:
+            route_id = self._forest.get_anchor(attempt.anchor_id).root_id
+        elif attempt.child_id is not None:
+            route_id = self._forest.get_anchor(attempt.child_id).root_id
+
+        best = (
+            None
+            if self._best_id is None
+            else self._forest.get_program(self._best_id)
+        )
+        best_fitness = None if best is None else best.fitness
+
         self._log.record_candidate(
             attempt_id=attempt.id,
             order=attempt.order,
@@ -636,6 +672,11 @@ class TraceAADV97:
             program=code or "",
             raw_response=response,
             error=error,
+            eval_count=self._n_eval,
+            route_id=route_id,
+            best_fitness=best_fitness,
+            is_new_best=is_new_best,
+            budget=self._budget,
         )
 
     def _log_choice(self, choice: Choice, intent: Intent) -> None:
