@@ -1,0 +1,452 @@
+# TraceAAD V9.8：算法假设发现、发展与计算分配
+
+> 状态：机制设计稿，尚未实现、尚未产生正式结果。当前可运行方法仍是 [V9.7](TraceAAD-v9.7完整机制设计.md)。
+> 设计依据：正统 V9.7 批次 `20260814_150927` 的[搜索几何诊断](../analysis/TraceAAD-V9.7搜索几何诊断.md)、[机制有效性分析](../analysis/TraceAAD-V9.7机制有效性与任务异质性.md)、固定锚点来时路实验与[研究认识](../knowledge/研究认识.md)。
+> 版本目标：同时重构 proposal 与 allocation 的接口，但保留可分别识别两层贡献的实验对照。
+
+## 1. 问题、动机与方法区别
+
+自动算法设计在有限真实评价预算下反复修改已有程序。搜索对象具有算法结构：搜索空间由若干潜在算法簇构成，一次局部修改可能继续在族内开发，也可能进入另一种设计原则。新机制的初始实现经常不成熟，即时质量常有回撤，其价值需要经过若干次继续开发才能显现。有限预算下，系统既要提出新的算法假设，也要把足够计算交给有发展迹象的假设。
+
+常见的逐步搜索把每个候选立即放回同一个质量排序。该做法适合修改尺度相近的同族优化；当一次操作改变核心算法结构时，即时质量同时承担了当前水平与未来潜力两种含义。V9.7 在路线层和锚点层都使用历史最好质量加同一个一步尺度，因而形成两个不可恢复区：低于路线前沿的来源失去未来预算，跨簇 child 也可能在得到第一次继续生成之前因即时退步被永久淘汰（早期截断/即时早夭）。
+
+V9.8 将搜索过程组织为三个相互连接的动作：
+
+1. **Hypothesis discovery**：Explore 改变核心决策原则，提出替代算法假设，并创建新的操作性投资单位；
+2. **Hypothesis development**：Refine 在该单位内部继续实现、修正和深化；
+3. **Compute allocation**：用发现（Discovery）、短期延续（Continuation）和当前最好（Exploitation）三个独立通道配置计算。
+
+轨迹仍是方法的核心信息结构。它记录一个算法假设怎样产生、怎样被实现、哪些修改有效，以及它获得过多少发展机会。Hypothesis 是轨迹上的操作分段，用于使 proposal 产生的结构边界与 allocation 使用的投资边界对齐；它不构成第三个科学研究对象。两个核心对象仍是轨迹条件生成 $P(x_{t+1}\mid x_t,h_t,o_t)$ 与轨迹感知的计算分配 $\mu(a_t\mid\mathcal H_t)$。
+
+## 2. V9.7 的三个错位与 V9.8 的设计回答
+
+| V9.7 错位 | 已有证据 | V9.8 设计回答 |
+| --- | --- | --- |
+| 投资单位错位 | Route 表示共同根来源；最终最好程序有 9/12 次改变所在根的静态宏簇 | Root 只产生初始 hypothesis；每个有效 Explore 新程序动态创建子 hypothesis |
+| 价值度量错位 | $q$ 与 $q^*$ 只表示已经达到的质量；96 条路线中有 64 条没有 bootstrap 后续段 | 设立固定前瞻探测窗口，直接测量 block gain 与 parent recovery，再决定延续分配 |
+| 时间尺度错位 | Explore 的即时退步更大，36%–87% 的 Explore child 出生即淘汰 | Explore child 与原父代分开竞争，并保证 3 次受保护 Refine probe；跨边界退步不进入局部锚点比较 |
+
+V9.8 不在线判断真实 algorithm family。静态宏簇目前只是离线代理，Refine 也可能发生实际换簇，Explore 也可能没有改变真实机制。当前版本使用**操作性 hypothesis**：生成意图决定边界，实际 family switch 作为诊断量检查这一定义的构念效度。
+
+## 3. 证据、设计假设与实现选择
+
+三类内容必须分开。
+
+### 3.1 已有证据支持的保留项
+
+- 当前完整程序与匹配的父代来时路构成默认生成上下文；已有子代尝试不常驻提示。
+- 一次模型决策只产生一个 `Idea + Code`，随后立即评价、更新并重新决策。
+- Refine 在完整搜索中具有更高即时 improve；Explore 更常改变静态宏簇，并贡献一部分大幅全局突破。
+- 非单调状态保留为事实；regress 不自动获得正信用。
+- 正式比较继续使用 1000 次真实 evaluator 调用，生成调用、token 和墙钟成本另报。
+
+### 3.2 V9.8 新增的待验证假设
+
+- Explore 定义的边界能形成比 root route 更接近算法假设的投资单位。`[待验证]`
+- 三次受保护 Refine 足以识别一部分延迟价值，并显著降低 V9.7 的右删失。`[待验证]`
+- 最近一次等长 Refine block 的前沿增益能提供短期 continuation 信号。`[待验证]`
+- 固定发现通道、continuation 通道与 exploitation 通道的组合，优于将三者压入同一个标量。`[待验证]`
+- 从全局最好程序发起 Explore 能在保持强实现基线的同时产生足够的替代 hypothesis。`[待验证]`
+
+### 3.3 协议常数
+
+| 常数 | V9.8 设计值 | 作用 | 证据地位 |
+| :---: | :---: | :--- | :--- |
+| $B$ | 1000 eval | 正式真实评价预算 | 沿用统一协议 |
+| $K_0$ | 8 | 初始 root hypothesis 数 | 为与 V9.7 可比而保留 |
+| $H_{\text{probe}}$ | 3 | 新 hypothesis 的受保护 Refine 尝试数 | 机制设计选择，需做 0/3/5 对照 |
+| $H_{\text{cont}}$ | 2 | 一次 continuation block 尝试数 | 机制设计选择 |
+| $H_{\text{exploit}}$ | 2 | 一次 exploitation block 尝试数 | 机制设计选择 |
+| $L_h$ | 8 | 最大历史事件数 | 沿用 V9.7 上下文上限 |
+
+这些常数定义协议，不代表已找到最优比例。不得根据单次结果或目标干预率事后调整后再把同一批次写成验证。
+
+## 4. 搜索状态与假设拓扑表示
+
+### 4.1 程序与锚点
+
+**程序** $x$ 是评价器执行过的一份唯一代码，保存原始 fitness、有向质量 $q(x)$、长度和首次发现顺序。最大化任务取原始 fitness，最小化任务取其相反数，搜索内部统一为越大越好：
+$$
+q(x) = \begin{cases} \text{fitness}(x), & \text{任务为最大化}, \\ -\text{fitness}(x), & \text{任务为最小化}. \end{cases}
+$$
+
+**锚点** $a$ 是程序在一条具体形成路径中的位置，记录五元组：
+$$a = \langle x(a), \text{parent}(a), \text{event}(a), z(a), n_R(a)\rangle$$
+其中 $z(a)$ 为所属 hypothesis，$n_R(a)$ 为自该锚点发起的 Refine 生成计数。同一代码沿不同历史到达时仍保留不同锚点；程序评价事实复用，路径事实不混合。
+
+### 4.2 操作性 hypothesis
+
+Hypothesis $z$ 是由一个入口锚点和其内部 Refine 后代组成的局部开发区域。每个 hypothesis 保存：
+
+- 唯一 `hypothesis_id`；
+- 入口锚点 $a_0(z)$；
+- 父 hypothesis 与创建它的 Explore 事件；
+- 创建前父锚点质量 $q_{\text{base}}(z) = q(\text{parent}(a_0(z)))$；
+- hypothesis 内全部锚点与 Refine 事件；
+- 已获得的 probe、continuation 与 exploitation 尝试数；
+- 最近一次完整 Refine block 的前沿增益 $g_j(z)$；
+- 当前最好锚点与质量 $q^*(z) = \max_{a \in z} q(a)$。
+
+初始根各自创建一个 root hypothesis。之后的身份传播规则为：
+$$
+z(a') = \begin{cases} z(a), & o = \text{Refine}, \\ \operatorname{NewHypothesis}(z(a), a'), & o = \text{Explore}. \end{cases}
+$$
+
+第二种情况只在 Explore 形成一份全局未见、有效且可执行的新程序时发生。无效、no-op、祖先返回、重复父子关系和全局代码重复都记录为尝试，不创建新的 hypothesis，也不获得 probe 槽位。
+
+这条规则使 hypothesis identity 在操作上稳定：Refine 发展当前假设，Explore 提出替代假设。它不声称意图标签等于真实 family。Refine 发生的静态换簇和 Explore 未换簇都必须在离线诊断中报告。
+
+### 4.3 Hypothesis 图与内部树
+
+全部 hypothesis 构成一棵动态发现图。Root hypothesis 没有父 hypothesis；Explore 从 $z_i$ 的某个锚点创建 $z_j$ 时，记录有向边 $z_i \to z_j$。该边表示替代假设的生成来源，不把 $z_j$ 的后续成功回传为 $z_i$ 或 Explore Idea 的因果信用。
+
+每个 hypothesis 内部是一棵单父代锚点树。只有 Refine 产生的 child 进入该内部树。这样，Explore 边负责 discovery，内部 Refine 边负责 development，两种时间尺度在状态结构上分开。
+
+### 4.4 增益与前瞻观测指标
+
+一次模型响应形成一个原子尝试，保存 lane、intent、父锚点、Idea、实际代码差异、有效性、评价结果和生成顺序。`improve / plateau / regress / invalid` 始终相对直接父锚点定义。
+
+连续交给同一 hypothesis 的固定数量 Refine 尝试构成一个 block。设第 $j$ 个 block 开始与结束时的 hypothesis 前沿分别为 $q^*_{j-1}(z)$ 与 $q^*_j(z)$，观察到的 block gain 为：
+$$g_j(z) = q^*_j(z) - q^*_{j-1}(z) \ge 0$$
+
+对 Explore 创建的 hypothesis，probe 完成后的 parent recovery 与 internal development 分别为：
+$$R_{\text{probe}}(z) = q^*_{\text{probe}}(z) - q_{\text{base}}(z)$$
+$$D_{\text{probe}}(z) = q^*_{\text{probe}}(z) - q(a_0(z))$$
+
+$R_{\text{probe}}$ 回答短续段是否越过原父代，$D_{\text{probe}}$ 回答新假设自身能否被 Refine 推进。两者都只描述已测量的短续段，不外推无限预算 ceiling。
+
+## 5. 初始化与局部尺度估计
+
+搜索建立 $K_0=8$ 个有效且代码互异的根程序。每个根创建一个 root hypothesis。代码互异仍是最小实现条件，不被解释为八个真实算法簇。
+
+每个 root hypothesis 依次获得 $H_{\text{probe}}=3$ 次受保护 Refine。初始化采用等长 probe，目的有三项：
+1. 为每个初始投资单位留下可比较的早期续段；
+2. 避免根质量一次抽样直接决定全部长期预算；
+3. 为 hypothesis 内局部 Refine 尺度和第一次 block gain 提供观测。
+
+V9.8 删除跨 hypothesis 共享的全局尺度 $s$。对 hypothesis $z$，收集其内部所有成功形成新 child 的 Refine 边：
+$$D_R(z) = \left\{ |q(x') - q(x)| \;\middle|\; x \xrightarrow{\text{Refine}} x', \; x, x' \in z \right\}$$
+
+局部尺度为：
+$$
+s_R(z) = \begin{cases} \operatorname{median}(D_R(z)), & D_R(z) \neq \varnothing, \\ 0, & D_R(z) = \varnothing. \end{cases}
+$$
+
+它只用于同一 hypothesis 内的 Refine 锚点选择，不比较不同 hypothesis，也不评价 Explore 的跨边界退步。新证据写入后在线重算中位数。
+
+## 6. 生成提议设计
+
+### 6.1 Refine：发展当前算法假设
+
+Refine 的搜索语义是保持当前核心设计原则，改善其实现、组件配合或局部决策。默认指令为：
+
+> Develop the current algorithmic hypothesis. Preserve its central design principle and make one focused change that improves, completes, or repairs its implementation, using the recorded development path as evidence.
+
+一个有效 Refine child 继承父锚点的 hypothesis。修改幅度本身不定义 Refine；实际静态机制是否保持由离线诊断检查。
+
+### 6.2 Explore：提出替代算法假设
+
+Explore 的搜索语义是改变核心决策原则，提出一份可以继续发展的替代实现。默认指令为：
+
+> Propose one coherent alternative algorithmic hypothesis. Change the central decision principle rather than tuning parameters or adding cosmetic complexity. The result must be a complete valid implementation that later Refine steps can develop.
+
+一个全局未见、有效且可执行的 Explore child 创建新 hypothesis。其入口质量可以低于父代；该事实不会获得正奖励，只触发固定、有限的 probe，以测量延迟价值。
+
+### 6.3 输出契约
+
+模型仍只做一次新 `Idea + Code` 决策，不输出价值判断、family 标签、分配建议或多步 rollout。
+
+````text
+Idea: <one short statement of the implemented mechanism>
+Code:
+```python
+<one complete executable implementation>
+```
+````
+
+Code 是有效候选的硬条件；Idea 缺失时记录为 `unavailable`，不单独使候选无效。Idea 是声明，实际代码是机制事实。若二者不一致，状态、重复判断和离线机制标注均以代码为准。
+
+## 7. 历史决策视图
+
+V9.8 保留 V9.7 已识别有效的“当前完整算法 + 匹配来时路”。对任意锚点，沿真实结构父链回溯，展示最近 $L_h=8$ 个形成事件；窗口可以跨过 hypothesis boundary，不丢弃 Explore 之前仍位于最近八步内的真实历史。
+
+每条事件写出：当时声明的 Idea、父子实际代码的紧凑修改（增删行数及样例行）、`improve / plateau / regress` 结局以及父子真实分数：
+
+```text
+[History i] Formation step
+Idea: <declared idea>
+Change: +x/-y lines; removed: `...` | `...`; added: `...` | `...`
+Result: improve | plateau | regress
+Fitness: parent -> child
+```
+
+Explore 生成从当前父锚点出发，看到该锚点的最近父链；其有效 child 在后续 Refine 中继续看到同一条真实路径，直到更近的形成事件自然把旧事件挤出八步窗口。Hypothesis boundary 只提供结构标记，不替换、总结或重写既有事件。
+
+历史压缩只改变模型视图，不删除事实层。上下文超限时从最早事件开始删除；任务契约与当前完整代码始终保留。该规则使 V9.8 的来时路内容尽量保持与 V9.7 可比，把主要变化留在 intent 语义和 allocation。
+
+## 8. 三通道计算分配
+
+### 8.1 三个独立计算通道
+
+V9.8 不再用一个总分同时决定 discovery、continuation 与 exploitation。正式搜索按固定循环执行三个通道：
+
+```mermaid
+flowchart LR
+    subgraph Cycle [调度周期: 8 步响应槽位]
+        D[1. Discovery 槽位 <br/> 1 Explore] --> P[2. Probe 队列 <br/> 3 Refine]
+        P --> C[3. Continuation 块 <br/> 2 Refine]
+        C --> E[4. Exploitation 块 <br/> 2 Refine]
+    end
+```
+
+1. **Discovery packet**：一次 Explore；若创建新 hypothesis，立即给予 $H_{\text{probe}}=3$ 次 Refine；
+2. **Continuation block**：向具有未消费正 block gain 的 hypothesis 给予 $H_{\text{cont}}=2$ 次 Refine；
+3. **Exploitation block**：向当前 $q^*$ 最高的 hypothesis 给予 $H_{\text{exploit}}=2$ 次 Refine。
+
+一个成功 discovery 循环包含 8 个模型响应槽位：1 次 Explore、3 次受保护 Refine、2 次 continuation Refine、2 次 exploitation Refine。固定循环替代 V9.7 的独立 0.7/0.3 随机抽取。它的比例是第一版协议常数，评价时必须报告实际 intent、有效候选和 evaluator 调用构成。
+
+### 8.2 Discovery packet
+
+Discovery 从当前全局最好程序所在 hypothesis 发起；锚点取真实 $q$ 最高者，同分时依次偏好更短、发现更早。Explore 成功创建新 hypothesis 后，probe queue 具有最高调度优先级，连续完成三次原子 Refine 尝试。每次尝试后都真实评价、更新状态并重新选择该 hypothesis 内的锚点。
+
+从全局最好程序发起使不同 Explore proposal 共享较强的实现基线，减少“父代本身很差”对新假设评价的混杂。它也可能缩窄 proposal 来源，因此属于待验证实现选择；诊断必须报告 Explore parent 的 hypothesis 集中度，后续可与“从 continuation leader 发起”做单因素对照。
+
+只有在剩余 evaluator 预算至少为 $1+H_{\text{probe}}$ 时才启动 discovery。该检查为最坏情况保留四次真实评价，因此一个已创建的新 hypothesis 不会因运行接近终点而拿不到承诺的 probe。
+
+若 Explore 无效、no-op、重复或返回已见程序，当前 packet 不创建 hypothesis。原本的三个 probe 槽位转换为 coverage block，交给累计 Refine 尝试数最少的已有 hypothesis；同分时优先 $q^*$ 更高、创建更早者。失败的 Explore 仍完整记录，并占用一个生成响应槽位。
+
+### 8.3 Continuation block
+
+每个完成的 Refine block 产生一个最新 $g_j(z)$。当 $g_j(z)>0$ 时，hypothesis 获得一张未消费 continuation ticket。Continuation 通道选择正 block gain 最大的 ticket；同分时依次选择 $q^*$ 更高、累计 Refine 尝试更少、创建更早的 hypothesis。
+
+选中前先消费旧 ticket，再运行两次 Refine，完成后用新 block gain 决定是否产生下一张 ticket。一次局部恢复只能支持一次后续投资；只有新的实际前沿增益才能连续取得 continuation 预算。
+
+若没有正 gain ticket，continuation block 转为 coverage block，选择累计 Refine 尝试最少的 hypothesis。该回退用于继续收集可比较续段，不把零增益解释为正潜力。
+
+Continuation 通道只占固定的一部分响应槽位。它可能选择当前质量较低但仍在推进的 hypothesis；exploitation 通道独立保留对高质量前沿的投资，从结构上限制 V9.1 式“低质量回弹吞掉全部预算”的风险。
+
+V9.8 第一版不从 V9.7 的选择性日志训练 continuation predictor。它通过等长 block 主动测量观测，再用刚刚实现的前沿增益决定是否继续分配。该量仍是短期已实现价值（realized value）；待强制续段实验积累足够数据后，才讨论学习式 $V_H$ 估计。
+
+### 8.4 Exploitation block
+
+Exploitation 通道选择 $q^*(z)$ 最高的 hypothesis。同分时依次偏好累计 Refine 尝试更少、创建更早者。选中后运行两次 Refine，每次重新选择 hypothesis 内锚点。
+
+当前质量只控制 exploitation 通道，不关闭 discovery，也不取消新 hypothesis 的 probe。即使某个 hypothesis 长期保持全局最好，它也只能稳定获得 exploitation 份额；其他 hypothesis 仍可通过固定 discovery、protected probe 与正 block gain 获得计算。
+
+### 8.5 Hypothesis 内锚点选择
+
+三个 Refine 通道在选定 hypothesis 后使用同一局部规则。锚点 $a$ 的 Refine 次数为 $n_R(a)$，分数为：
+$$S^{\text{local}}(a \mid z) = q(a) + \frac{s_R(z)}{\sqrt{n_R(a) + 1}}$$
+
+选择分数最高的锚点；同分时优先 Refine 次数更少、创建更早。该分数只比较同一 hypothesis 内的实现状态。Explore 创建的新 hypothesis 以自己的入口锚点开始，原父代不进入其局部候选集合，因此跨假设的即时质量落差不会造成即时淘汰。
+
+Probe、continuation 和 exploitation 都在每次 Refine 后重新计算 $s_R(z)$ 与锚点分数。一次 block 是多次原子决策的调度承诺，不是单次模型调用生成多步代码。
+
+## 9. 更新、缓存、预算与停止
+
+### 9.1 状态更新
+
+每个响应完成后按以下顺序更新：
+
+1. 解析 Idea 与完整代码；
+2. 检查 no-op、祖先返回、重复关系与全局代码缓存；
+3. 对新程序调用 evaluator，并写入程序事实；
+4. 按 intent 继承或创建 hypothesis；
+5. 写入锚点、形成事件、局部尺度与 hypothesis 前沿；
+6. block 完成时计算 $g_j$、$R_{\text{probe}}$、$D_{\text{probe}}$ 与 ticket；
+7. 追加写入 `evaluations.csv` 流水并输出控制台单行进度；
+8. 若产生全局新最优，更新 `best_program.py` 并追加写入 `best_curve.csv`；
+9. 原子写入 checkpoint 后进入下一个原子尝试。
+
+### 9.2 重复程序
+
+Refine 返回已见但非父代、非祖先且尚无当前父子关系的程序时，可复用评价并在当前 hypothesis 创建新锚点，因为相同程序在不同来时路下仍具有不同生成条件。
+
+Explore 返回任何全局已见程序时只记录缓存命中与来源，不创建新 hypothesis。该规则防止同一可执行算法因不同 Explore 文本重复获得 probe 预算。是否应允许“同代码、不同历史”的 Explore hypothesis 属于后续消融，不在 V9.8 第一版引入。
+
+### 9.3 两类成本
+
+正式预算 $B=1000$ 只计算真实 evaluator 调用。解析失败、no-op、祖先返回、重复关系和缓存命中不消耗 evaluator 预算，但会：
+
+- 消耗一个 block 响应槽位；
+- 增加对应锚点与 hypothesis 的生成尝试数；
+- 计入 intent 有效率与生成成本；
+- 推进可恢复的 scheduler cycle 状态。
+
+因此同一 eval 预算下，不同方法的 LLM 调用、token 与墙钟成本可能不同，必须分列报告。
+
+### 9.4 停止与最终程序
+
+搜索在 1000 次真实评价耗尽时停止。最后不足以启动完整 discovery packet 时，不再创建新 hypothesis，剩余预算交替执行 continuation 与 exploitation 的原子 Refine，直到 evaluator 预算耗尽。
+
+最终程序从全部唯一程序中按任务真实目标选择。完全同分时依次偏好代码更短、发现更早。Hypothesis 状态、lane、ticket、probe recovery 和访问次数都不参与最终排序。
+
+## 10. 完整算法
+
+```text
+Input: task, evaluator, LLM, evaluator budget B = 1000
+
+Generate K0 = 8 valid code-unique roots.
+Create one root hypothesis for each root.
+For each root hypothesis:
+    run H_probe = 3 atomic Refine attempts;
+    update local anchors, s_R, q*, and the latest block gain.
+
+While evaluator budget remains:
+    If at least 1 + H_probe evaluator calls remain:
+        choose the globally best anchor;
+        run one Explore attempt;
+        if it creates a globally new valid program:
+            create a child hypothesis;
+            run H_probe = 3 protected atomic Refine attempts there;
+        else:
+            run a 3-attempt coverage block on the least-developed hypothesis.
+
+    If evaluator budget remains:
+        choose the largest unconsumed positive block-gain ticket;
+        if none exists, choose the least-developed hypothesis;
+        run H_cont = 2 atomic Refine attempts.
+
+    If evaluator budget remains:
+        choose the hypothesis with highest q*;
+        run H_exploit = 2 atomic Refine attempts.
+
+    After every response and evaluation:
+        record the event, update facts, and save resumable state.
+
+Near the budget boundary, stop opening hypotheses and alternate
+continuation and exploitation until B is exhausted.
+
+Return the globally best unique program by the true objective.
+```
+
+## 11. 可恢复性与工件保存
+
+### 11.1 核心工件文件体系
+
+V9.8 采用精简的工件存储体系，每次运行在 `<run_dir>/` 下直接生成：
+
+- `best_program.py`：当前/最终全局最优算法的纯 Python 文件（包含 Fitness、发现步数与时间注释，开箱即用）；
+- `evaluations.csv`：每次评估的轻量流式表格记录（包含 eval_count、sample_order、lane、hypothesis_id、intent、parent_fitness、child_fitness、outcome、is_new_best 等，便于 Excel / Pandas 直接分析）；
+- `best_curve.csv`：收敛轨迹数据点（记录每次产生新最优时的评价步数与分数，直接用于画图）；
+- `logs/summary.json`：运行结束时的全局统计汇总；
+- `logs/errors.jsonl`：异常与 Traceback 捕获；
+- `checkpoints/latest.json`：原子断点（支持无缝断点续训）。
+
+### 11.2 实时控制台进度监控
+
+运行期间终端单行输出易读流水，直观展示当前调度通道与评估状态：
+- Discovery / Probe: `[Eval 045/1000] Probe H3 (1/3)  | 120.30 -> 118.50 [IMPROVE] | ★ New Best: 118.50`
+- Continuation: `[Eval 046/1000] Cont H2 (2/2)   | 118.50 -> 125.10 [REGRESS] | Best: 118.50`
+- Exploitation: `[Eval 047/1000] Exploit H1 (1/2) | Cached (no_op)             | Best: 118.50`
+
+### 11.3 Checkpoint 状态定义
+
+原子 Checkpoint 必须保存完整恢复状态：
+
+- 程序、锚点、hypothesis 图和全部尝试；
+- 当前 scheduler lane、cycle index 与 block 内剩余槽位；
+- 未完成 probe queue；
+- 每个 hypothesis 的 $q^*$、$s_R$、累计 Refine 尝试、最近 block gain 和 ticket 状态；
+- evaluator 调用数、模型响应数、generation seed 序列与 pending response；
+- 当前全局最好程序 ID。
+
+日志保存事实与当时决策输入；family 标签、行为距离和 hindsight subtree value 全部离线计算，不写回在线状态。
+
+## 12. 实现不变量与测试要求
+
+1. 有效新 Explore child 恰好创建一个新 hypothesis；Refine child 必须继承父 hypothesis。
+2. 新 hypothesis 的 probe 在任何跨 hypothesis 质量竞争之前完成，且恰好包含三个响应槽位。
+3. 新 hypothesis 的局部候选集合不包含创建它的原父代。
+4. $s_R(z)$ 只读取 hypothesis 内有效 Refine 边，不读取 root gap、Explore edge 或其他 hypothesis。
+5. 一张正 gain ticket 最多触发一次 continuation block；完成的新 block 决定下一张 ticket。
+6. 固定 seed、相同 checkpoint 与相同 pending response 必须恢复出相同 lane、intent、anchor 和 generation seed。
+7. Invalid、duplicate 与 cached 的 evaluator 预算、响应槽位和访问计数语义必须分别测试。
+8. 接近预算终点时不得创建无法完成三次 probe 的新 hypothesis。
+9. 每个模型响应只包含一个 `Idea + Code`；block 不得实现成一次多候选或多步 rollout。
+10. 最终选择只读真实任务目标与确定性 tie-break。
+
+## 13. 实验识别方案
+
+V9.8 可以在最终版本中同时改变 proposal 与 allocation；证据链仍按两个对象分别建立。
+
+### 13.1 Stage P：Proposal 与短续段
+
+**P1：固定锚点意图实验。** 固定当前代码、parent path、采样 seed、输出契约和 evaluator，配对比较 Refine 与 Explore。主要过程量为有效率、immediate $\Delta q$、静态宏簇切换、行为切换和代码修改规模。该实验检验 intent 是否改变 transition kernel，不检验完整搜索收益。
+
+**P2：Explore 强制续段实验。** 对同一批 Explore 新程序运行五次原子 Refine，并在 $H=0,3,5$ 读取嵌套结果：
+$$V_H(x') = \max_{0 \le h \le H} q(x'_h) - q(x)$$
+
+其中 $x$ 是 Explore 的原父代，$x'_0=x'$；每一步按 V9.8 局部规则在该 hypothesis 内重新选择锚点。实验同时报告相对 Explore child 的内部增益、相对原父代的 recovery、有效后代数和最终 family。$H=0,3,5$ 共用同一条已生成 continuation 前缀，避免把三个 horizon 当作独立样本。实验单位是源锚点或 Explore child；同一 child 的五步结果不是五个独立重复。
+
+**P3：History × Intent 因子实验。** 采用 `code-only / parent-path` 与 `Refine / Explore` 的 $2\times2$ 配对设计，检验来时路是在帮助 Refine 聚焦，还是同时压缩 Explore 的换簇质量。任务与锚点质量层作为预先定义的 block，运行顺序和采样 seed 配对。
+
+### 13.2 Stage A：Allocation
+
+Allocation 实验固定 V9.8 的提示、intent 定义、root 生成和单步输出契约。按以下顺序比较：
+
+| 对照 | 唯一变化 | 回答的问题 |
+| :--- | :--- | :--- |
+| Single vs $K_0$-Uniform | 初始池规模 | 多个起点是否有 pool value |
+| Route-Uniform vs Hypothesis-Uniform | 投资单位 | 动态 Explore boundary 是否比 root provenance 更适合分配 |
+| Hypothesis-Uniform $H=0$ vs $H=3$ | 最小续段 | 延迟评价是否改善换簇 child 的 realized value |
+| Hypothesis-Uniform $H=3$ vs V9.8 三通道 | 自适应路由 | block gain 与独立 exploitation 是否增加 routing value |
+| V9.7 vs 完整 V9.8 | 联合系统 | 最终有限预算行为与 held-out 是否改善 |
+
+Uniform 对照按等长 Refine block 轮转，不读取质量或 block gain。比较三通道时，proposal kernel 和总 evaluator 预算保持一致；不同选择造成的后续候选差异属于 allocation 的真实下游效应。
+
+所有 allocation 臂都构建相同的 hypothesis 标签和历史决策视图。`Route-Uniform` 只在预算落点上忽略 hypothesis 边界、按 root provenance 轮转，因此与 `Hypothesis-Uniform` 的差异限于投资单位。
+
+### 13.3 重复、阻断与报告
+
+- 正式搜索以独立 run seed 为重复单位，每方法每任务至少三次；同一运行内的锚点、候选和 block 都是嵌套过程观测，不作为独立重复。
+- 按 task × replicate 构造配对 block，平衡运行时段与服务容量。所有服务源统一记为 Qwen3.6-27B，不把服务名当成模型差异。
+- 搜索过程报告 100/250/500/1000 eval 的 best-at-budget、hypothesis 数、probe recovery、ticket 命中、lane 预算份额、无效与缓存比例。
+- 最终性能只使用完成的 held-out `results.json`，报告三重复均值与样本标准差。搜索 best、固定锚点 probe 和未完成运行不得替代正式结论。
+- 同时报告 evaluator 调用、LLM 响应、prompt/output token、缓存与墙钟时间。
+
+### 13.4 结论门槛
+
+每个新机制依次回答：
+1. **机制运行**：hypothesis 是否创建、probe 是否完成、三个 lane 是否实际获得预算；
+2. **机制改变行为**：是否降低 Explore 右删失、改变换簇后的 recovery 与 hypothesis 覆盖；
+3. **机制改善搜索**：是否提高 best-at-budget；
+4. **机制改善最终质量**：held-out 是否在独立重复上同向改善。
+
+联合 V9.8 的最终结果不能自动归因给 hypothesis unit、protected probe、block gain 或新 prompt 中任何单项。
+
+## 14. 解释边界
+
+- Hypothesis 是由 operator boundary 定义的在线投资单位，不是真实算法 family 的已验证标签。
+- 三次 probe 是最小测量窗口。它保证 observation opportunity，不保证足以识别长期 ceiling。
+- 正 block gain 是已观察到的短期发展证据，不是无偏的长期价值估计，也不应沿祖先回传。
+- 固定 discovery 循环保护的是提议类型的测量机会；regress 本身没有正奖励。持续投资仍需要新的 block gain 或进入 exploitation 前沿。
+- 局部 $q+s_R/\sqrt{n_R+1}$ 只处理 hypothesis 内 Refine 状态，不承担跨 hypothesis coverage 或 Explore 容忍。
+- 真实 family、novelty 与行为距离在 V9.8 中只作离线诊断。没有经过固定锚点与跨任务验证前，不进入在线硬门控、合并或拒绝规则。
+- 全局代码新颖不保证语义新颖。代码不同但机制重复的 Explore 仍可能创建多个 hypothesis 并消耗 probe；这一成本计入 Explore 有效率与 pool 诊断，不通过未经验证的在线聚类提前隐藏。
+- V9.8 的完整 held-out 评价只支持联合协议；proposal 与 allocation 的独立主张以 Stage P 和 Stage A 的对应对照为准。
+
+## 15. 与 V9.7 的最小差异表
+
+| 维度 | V9.7 | V9.8 设计 |
+| :--- | :--- | :--- |
+| 长期投资单位 | Root route | 动态 Explore-defined hypothesis |
+| Explore child 身份 | 原 route 内普通 anchor | 新 hypothesis 入口 |
+| 最小续段 | 无 | 3 次受保护 Refine |
+| 跨单位分配 | $q^*+s/\sqrt{N+1}$ | 固定 discovery + block-gain continuation + $q^*$ exploitation |
+| 局部分配 | 全局共享 $s$ | hypothesis 内 Refine 尺度 $s_R(z)$ |
+| 意图调度 | 独立 0.7/0.3 抽取 | 1 + 3 + 2 + 2 的可恢复循环 |
+| 历史视图 | 最近 8 条完整父链事件 | 同一父链窗口，增加 intent 与 hypothesis boundary 标记 |
+| Family 标签 | 离线诊断 | 仍只离线诊断 |
+
+## 相关文档
+
+- [TraceAAD V9.7 完整机制](TraceAAD-v9.7完整机制设计.md)
+- [V9.7 搜索几何诊断](../analysis/TraceAAD-V9.7搜索几何诊断.md)
+- [V9.7 机制有效性与任务异质性](../analysis/TraceAAD-V9.7机制有效性与任务异质性.md)
+- [固定锚点单步生成识别实验](../experiments/TraceAAD-固定锚点单步生成识别实验.md)
+- [研究认识](../knowledge/研究认识.md)
+- [L0 状态表示](../research/L0-状态表示.md)
+- [L2 预算分配](../research/L2-预算分配.md)
+- [L3 单步生成](../research/L3-单步生成.md)
+- [BaSE 阅读笔记](../references/LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md)
