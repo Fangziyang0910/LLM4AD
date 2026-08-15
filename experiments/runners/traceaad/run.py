@@ -721,9 +721,16 @@ def _v96_method_params(spec: RunSpec) -> dict[str, object]:
     }
 
 
+def _v97_logical_model_name(spec: RunSpec) -> str:
+    model = spec.model.lower()
+    if "qwen3.8" in model:
+        return "Qwen3.8-27B"
+    return V97_LOGICAL_MODEL_NAME
+
+
 def _v97_generator_environment(spec: RunSpec) -> dict[str, object]:
     return {
-        "logical_model_name": V97_LOGICAL_MODEL_NAME,
+        "logical_model_name": _v97_logical_model_name(spec),
         "temperature": 1.0,
         "max_new_tokens": spec.llm_output_tokens,
         "sampling_seed": spec.seed,

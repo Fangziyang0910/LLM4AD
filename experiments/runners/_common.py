@@ -65,7 +65,7 @@ class BackendProfile:
 BACKENDS: dict[BackendName, BackendProfile] = {
     "local": BackendProfile(
         base_url="http://127.0.0.1:8001/v1",
-        model="Qwen3.6-27B",
+        model="Qwen3.8-27B",
         no_proxy="127.0.0.1,localhost,::1",
     ),
     "server1": BackendProfile(
@@ -95,7 +95,7 @@ BACKEND_CAPACITY: dict[BackendName, int] = {
     "server1": 0,  # 暂时不用
     "server3": 9,
     "server3b": 9,
-    "local": 0,  # 暂时不用
+    "local": 3,  # llama.cpp 32k × 3 slots; 正式调度仍只用 PRIMARY_BACKENDS
 }
 PRIMARY_BACKENDS: tuple[BackendName, ...] = ("server3", "server3b")
 # Host:port markers only — `--backend` matching uses detect_backend().
