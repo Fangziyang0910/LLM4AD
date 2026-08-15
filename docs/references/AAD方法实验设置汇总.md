@@ -40,7 +40,7 @@
 | ShinkaEvolve | Circle packing；AIME scaffold；ALE-Bench LITE；MoE LBL | 150 eval（Circle）；75 eval（AIME）；50 eval（ALE）；20 eval（MoE） | 多模型 UCB | AlphaEvolve、OpenEvolve、EoH |
 | DeltaEvolve | BBOB；Hexagon Packing；Symbolic Regression；PDE Solver；Efficient Convolution | 100 eval | LLM 集成 | Parallel Sampling、AlphaEvolve |
 | CORAL | Math×6（Circle Packing、Signal Processing、Erdős Overlap、MMD-16-2、MMD-14-3、3rd Autocorr）；System×5（EPLB、PRISM、LLM-SQL、Txn Sched.、Cloudcast）；Stress×2（Kernel Engineering、Polyominoes） | 100 iter 或 3h 墙钟 | Claude Opus 等 | OpenEvolve、ShinkaEvolve、EvoX |
-| BaSE | Circle Packing；MinMaxDist；Heilbronn Triangle | 512 eval | Qwen3 / Llama | OpenEvolve、ShinkaEvolve、greedy |
+| BaSE | Circle Packing；MinMaxDist；Heilbronn Triangle | 512 LLM 调用 | Qwen3 / Llama | OpenEvolve、ShinkaEvolve、greedy |
 | AutoEP | TSP；CVRP；FSSP；UAV-IoT | 非启发式设计预算（调参循环） | Qwen3-30B | PT、GLEET、EoH、ReEvo |
 
 ---
