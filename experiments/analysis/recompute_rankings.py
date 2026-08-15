@@ -1,11 +1,11 @@
-"""从正式测试工件重算跨规模平均名次（十五方法同场 / 单版本上场）。
+"""从正式测试工件重算跨规模平均名次（代表性同场 / 单版本上场）。
 
 数据源为各任务目录下 `eval_best_*` 的 `results.json`（逐 run 的 eval_objective），
 与 `docs/experiments/实验总汇.md` 记录的口径一致。规模共 15 个
 （TSP/CVRP/OP 各 3 + OBP 6），每规模在参与方法内排名，并列取平均名次。
 
-单版本上场为 1 个 TraceAAD + 5 个外部对照（MCTS-AHD、PathWise、EoH、ReEvo、
-CALM (w/o GRPO)）共 6 方法，与实验配置中的正式对照一致。
+整体同场只放入三个代表性 TraceAAD（V8、V9、V9.7）与 5 个外部对照，共 8 方法。
+单版本上场为 1 个 TraceAAD + 5 个外部对照共 6 方法，用于比较全部内部版本。
 
 CVRP 的 MCTS-AHD 官方结果可通过 `--cvrp-mcts batch1|batch2` 切换：
 batch1 用 20260711/12 批次（test_50/100 取 eval_20260712_all3，test_200 取
@@ -54,7 +54,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V8.3": ["traceaad_v8_3/eval_best_20260805_final"],
         "V9": ["traceaad_v9/version9/eval_best_20260807_123753"],
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
-        "V9.7": ["traceaad_v9_7/eval_best_20260814_1020"],
+        "V9.7": ["traceaad_v9_7/eval_best_20260815_parentpath"],
     },
     "cvrp_aco": {
         "MCTS-AHD": ["mcts_ahd/eval_20260712_all3", "mcts_ahd/eval_best_20260804_test200"],
@@ -71,7 +71,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V8.3": ["traceaad_v8_3/eval_best_20260805_final", "traceaad_v8_3/eval_best_20260804_test200"],
         "V9": ["traceaad_v9/version9/eval_best_20260807_123753", "traceaad_v9/version9/eval_best_20260804_test200"],
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
-        "V9.7": ["traceaad_v9_7/eval_best_20260814_1020"],
+        "V9.7": ["traceaad_v9_7/eval_best_20260815_parentpath"],
     },
     "op_aco": {
         "MCTS-AHD": ["mcts_ahd/eval_best_20260725_104402"],
@@ -88,7 +88,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V8.3": ["traceaad_v8_3/eval_best_20260805_final"],
         "V9": ["traceaad_v9/version9/eval_best_20260807_123753"],
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
-        "V9.7": ["traceaad_v9_7/eval_best_20260814_1020"],
+        "V9.7": ["traceaad_v9_7/eval_best_20260815_parentpath"],
     },
     "online_bin_packing": {
         "MCTS-AHD": ["mcts_ahd/eval_best_20260726_111852"],
@@ -105,31 +105,17 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V8.3": ["traceaad_v8_3/eval_best_20260805_final"],
         "V9": ["traceaad_v9/version9/eval_best_20260807_123753"],
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
-        "V9.7": ["traceaad_v9_7/eval_best_20260814_1020"],
+        "V9.7": ["traceaad_v9_7/eval_best_20260815_parentpath"],
     },
 }
 
 MCTS_CVRP_BATCH2 = "mcts_ahd/eval_best_20260812_cvrp_local"
 
-OFFICIAL = [
-    "MCTS-AHD",
-    "PathWise",
-    "V4",
-    "V5",
-    "V6",
-    "V7",
-    "V8",
-    "V8.2",
-    "V8.3",
-    "V9",
-    "V9.6",
-    "V9.7",
-    "EoH",
-    "ReEvo",
-    "CALM",
-]
-
 BASELINES = ["MCTS-AHD", "PathWise", "EoH", "ReEvo", "CALM"]
+TRACEAAD_ALL = ["V4", "V5", "V6", "V7", "V8", "V8.2", "V8.3", "V9", "V9.6", "V9.7"]
+TRACEAAD_REPRESENTATIVE = ["V8", "V9", "V9.7"]
+FIELD = TRACEAAD_REPRESENTATIVE + BASELINES
+ALL_METHODS = TRACEAAD_ALL + BASELINES
 
 
 def load_means(task: str, method: str, cvrp_mcts: str) -> dict[str, float]:
@@ -192,30 +178,30 @@ def main() -> None:
     args = ap.parse_args()
 
     scales: list[tuple[str, int]] = []
-    mu: dict[str, list[float]] = {m: [] for m in OFFICIAL}
+    mu: dict[str, list[float]] = {m: [] for m in ALL_METHODS}
     for task, scale_names, direction, _ in TASKS:
-        for m in OFFICIAL:
+        for m in ALL_METHODS:
             means = load_means(task, m, args.cvrp_mcts)
             mu[m].extend(means[s] for s in scale_names)
         scales.extend((s, direction) for s in scale_names)
 
     n_scales = len(scales)
-    print(f"MCTS-AHD CVRP = {args.cvrp_mcts}；{n_scales} 规模 × {len(OFFICIAL)} 方法\n")
+    print(f"MCTS-AHD CVRP = {args.cvrp_mcts}；{n_scales} 规模 × {len(FIELD)} 方法（代表性同场）\n")
 
-    rank_sum = {m: 0.0 for m in OFFICIAL}
+    rank_sum = {m: 0.0 for m in FIELD}
     for j in range(n_scales):
-        r = average_rank([mu[m][j] for m in OFFICIAL], scales[j][1])
-        for i, m in enumerate(OFFICIAL):
+        r = average_rank([mu[m][j] for m in FIELD], scales[j][1])
+        for i, m in enumerate(FIELD):
             rank_sum[m] += r[i]
-    field13 = {m: rank_sum[m] / n_scales for m in OFFICIAL}
+    field_avg = {m: rank_sum[m] / n_scales for m in FIELD}
 
-    print("=== 1. 全部方法同场（15 规模平均名次）===")
-    for m in sorted(field13, key=lambda m: field13[m]):
-        print(f"  {m:<12s} {field13[m]:.3f}")
+    print("=== 1. 代表性方法同场（V8 / V9 / V9.7 + 5 外部对照）===")
+    for m in sorted(field_avg, key=lambda m: field_avg[m]):
+        print(f"  {m:<12s} {field_avg[m]:.3f}")
 
     print("\n=== 2. 单版本上场（6 方法同场：1 TraceAAD + 5 外部对照）===")
     print(f"{'版本':<6s} {'平均名次':>8s} {'6方法中':>6s} {'名次差':>7s} {'相对基线优势':>10s}")
-    for v in ["V4", "V5", "V6", "V7", "V8", "V8.2", "V8.3", "V9", "V9.6", "V9.7"]:
+    for v in TRACEAAD_ALL:
         field = [v] + BASELINES
         rs = {m: 0.0 for m in field}
         for j in range(n_scales):

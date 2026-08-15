@@ -73,7 +73,7 @@ RUN_GLOBS = {
     "cvrp_aco": {
         "TraceAAD V9": ["traceaad_v9/version9/*_v9_*_rep*"],
         "TraceAAD V9.6": ["traceaad_v9_6/v9_6_20260812_191011_*_rep*"],
-        "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260813_184519_*_rep*"],
+        "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "MCTS-AHD": [
             "mcts_ahd/20260812_113425_cvrp_local_rep1",
             "mcts_ahd/20260812_113425_cvrp_local_rep2",
