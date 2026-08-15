@@ -20,7 +20,16 @@ def trim_braced_thought(response: str) -> str | None:
         bracketed_texts = re.findall(r"\{.*?\}", response)
         return bracketed_texts[0]
     except Exception:
-        return None
+        pass
+    # Fallback: 当 LLM 不输出花括号格式的思想时（如关闭思考的模型直接输出
+    # 纯代码），用函数 docstring 作为思想的替代，避免样本被误拒。
+    try:
+        doc_match = re.search(r'"""(.*?)"""', response, re.S)
+        if doc_match:
+            return doc_match.group(1).strip()
+    except Exception:
+        pass
+    return None
 
 
 def sample_thought_and_function(

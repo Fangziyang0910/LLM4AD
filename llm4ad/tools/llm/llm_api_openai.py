@@ -184,9 +184,17 @@ class OpenAIAPI(LLM):
     ) -> dict[str, Any]:
         extra_body = copy.deepcopy(self.extra_body)
         if self.enable_thinking is not None:
+            # Both top-level (DeepSeek official gateway) and chat_template_kwargs
+            # (vLLM) are set so either server recognizes the thinking flag.
+            extra_body.setdefault("enable_thinking", self.enable_thinking)
             chat_template_kwargs = dict(extra_body.get("chat_template_kwargs", {}))
             chat_template_kwargs.setdefault("enable_thinking", self.enable_thinking)
             extra_body["chat_template_kwargs"] = chat_template_kwargs
+            # DeepSeek official request format, honored by opencode.ai zen/go.
+            extra_body.setdefault(
+                "thinking",
+                {"type": "enabled" if self.enable_thinking else "disabled"},
+            )
         if request_extra_body:
             self._deep_update(extra_body, request_extra_body)
         return extra_body
