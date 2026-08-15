@@ -33,63 +33,6 @@ from llm4ad.method.traceaad_v9 import (
     TraceAADV9,
 )
 from llm4ad.method.traceaad_v9.operators import DEFAULT_OPERATORS as V9_OPERATORS
-from llm4ad.method.traceaad_v9_5 import (
-    CHECKPOINT_VERSION as V95_CHECKPOINT_VERSION,
-    PROTOCOL_ID as V95_PROTOCOL_ID,
-    RunArtifacts as V95RunArtifacts,
-    TraceAADV95,
-)
-from llm4ad.method.traceaad_v9_5.prompt import (
-    PROMPT_RENDERER_VERSION as V95_PROMPT_RENDERER_VERSION,
-    prompt_renderer_hash as v95_prompt_renderer_hash,
-)
-from llm4ad.method.traceaad_v9_5.schema import (
-    BUDGET_POLICY_ID as V95_BUDGET_POLICY_ID,
-    CANDIDATE_ACCOUNTING_POLICY_ID as V95_CANDIDATE_ACCOUNTING_POLICY_ID,
-    CANDIDATE_MULTIPLICITY_POLICY_ID as V95_CANDIDATE_MULTIPLICITY_POLICY_ID,
-    EVIDENCE_SELECTOR_ID as V95_EVIDENCE_SELECTOR_ID,
-    GENERATION_POLICY_ID as V95_GENERATION_POLICY_ID,
-    INITIALIZATION_POLICY_ID as V95_INITIALIZATION_POLICY_ID,
-    NORMALIZATION_POLICY_ID as V95_NORMALIZATION_POLICY_ID,
-    OPTIMISM_SCALE_POLICY_ID as V95_OPTIMISM_SCALE_POLICY_ID,
-    STATE_IDENTITY_POLICY_ID as V95_STATE_IDENTITY_POLICY_ID,
-    STOP_POLICY_ID as V95_STOP_POLICY_ID,
-)
-from llm4ad.method.traceaad_v9_5.traceaad import (
-    DEFAULT_DIFF_EXCERPT_CHARS as V95_DIFF_EXCERPT_CHARS,
-    INITIAL_ROOT_COUNT as V95_INITIAL_ROOT_COUNT,
-    LOGICAL_MODEL_NAME as V95_LOGICAL_MODEL_NAME,
-    MAX_EVIDENCE_ITEMS as V95_MAX_EVIDENCE_ITEMS,
-    evaluation_contract_hash as v95_evaluation_contract_hash,
-)
-from llm4ad.method.traceaad_v9_6 import (
-    CHECKPOINT_VERSION as V96_CHECKPOINT_VERSION,
-    PROTOCOL_ID as V96_PROTOCOL_ID,
-    RunArtifacts as V96RunArtifacts,
-    TraceAADV96,
-)
-from llm4ad.method.traceaad_v9_6.prompt import (
-    PROMPT_RENDERER_VERSION as V96_PROMPT_RENDERER_VERSION,
-    prompt_renderer_hash as v96_prompt_renderer_hash,
-)
-from llm4ad.method.traceaad_v9_6.schema import (
-    BUDGET_POLICY_ID as V96_BUDGET_POLICY_ID,
-    CANDIDATE_ACCOUNTING_POLICY_ID as V96_CANDIDATE_ACCOUNTING_POLICY_ID,
-    CANDIDATE_MULTIPLICITY_POLICY_ID as V96_CANDIDATE_MULTIPLICITY_POLICY_ID,
-    GENERATION_POLICY_ID as V96_GENERATION_POLICY_ID,
-    HISTORY_SELECTOR_ID as V96_HISTORY_SELECTOR_ID,
-    INITIALIZATION_POLICY_ID as V96_INITIALIZATION_POLICY_ID,
-    NORMALIZATION_POLICY_ID as V96_NORMALIZATION_POLICY_ID,
-    OPTIMISM_SCALE_POLICY_ID as V96_OPTIMISM_SCALE_POLICY_ID,
-    STATE_IDENTITY_POLICY_ID as V96_STATE_IDENTITY_POLICY_ID,
-    STOP_POLICY_ID as V96_STOP_POLICY_ID,
-)
-from llm4ad.method.traceaad_v9_6.traceaad import (
-    INITIAL_ROOT_COUNT as V96_INITIAL_ROOT_COUNT,
-    LOGICAL_MODEL_NAME as V96_LOGICAL_MODEL_NAME,
-    MAX_HISTORY_EVENTS as V96_MAX_HISTORY_EVENTS,
-    evaluation_contract_hash as v96_evaluation_contract_hash,
-)
 from llm4ad.method.traceaad_v9_7 import (
     CHECKPOINT_VERSION as V97_CHECKPOINT_VERSION,
     INITIAL_ROOT_COUNT as V97_INITIAL_ROOT_COUNT,
@@ -115,20 +58,17 @@ from .._common import (
     write_run_config as write_run_config_file,
 )
 
-VersionName = Literal["v4", "v5", "v8", "v9", "v9_5", "v9_6", "v9_7"]
+VersionName = Literal["v4", "v5", "v8", "v9", "v9_7"]
 
 VERSIONS: tuple[VersionName, ...] = (
     "v4",
     "v5",
     "v8",
     "v9",
-    "v9_5",
-    "v9_6",
     "v9_7",
 )
 V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
 V9_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V9_OPERATORS]
-V95_TOTAL_CONTEXT_TOKENS = 32768
 
 
 @dataclass(frozen=True, slots=True)
@@ -198,10 +138,6 @@ def make_run_spec(
         n_init=(
             V97_INITIAL_ROOT_COUNT
             if version == "v9_7"
-            else V96_INITIAL_ROOT_COUNT
-            if version == "v9_6"
-            else V95_INITIAL_ROOT_COUNT
-            if version == "v9_5"
             else 10
             if version in {"v8", "v9"}
             else 30
@@ -212,8 +148,8 @@ def make_run_spec(
         output_tokens=output_tokens,
         action_max_tokens=action_max_tokens,
         context_token_limit=(
-            V95_TOTAL_CONTEXT_TOKENS
-            if context_token_limit is None and version in {"v9_5", "v9_6", "v9_7"}
+            32768
+            if context_token_limit is None and version == "v9_7"
             else 24576
             if context_token_limit is None
             else context_token_limit
@@ -228,10 +164,6 @@ def make_run_spec(
         raise ValueError("budget must be positive")
     if spec.n_init <= 0:
         raise ValueError("n_init must be positive")
-    if spec.version == "v9_5" and spec.n_init != V95_INITIAL_ROOT_COUNT:
-        raise ValueError("TraceAAD V9.5 requires exactly eight initial roots")
-    if spec.version == "v9_6" and spec.n_init != V96_INITIAL_ROOT_COUNT:
-        raise ValueError("TraceAAD V9.6 requires exactly eight initial roots")
     if spec.version == "v9_7" and spec.n_init != V97_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.7 requires exactly eight initial roots")
     if spec.eval_workers is not None and spec.eval_workers <= 0:
@@ -271,37 +203,6 @@ def build_method(
             context_limit=spec.context_token_limit,
             max_history=V97_MAX_HISTORY_EVENTS,
             seed=spec.seed,
-            resume_from=resume_from,
-            checkpoint_dir=run_dir / "checkpoints",
-        )
-    if spec.version == "v9_6":
-        return TraceAADV96(
-            llm=llm,
-            evaluation=evaluation,
-            artifacts=V96RunArtifacts(run_dir=run_dir),
-            evaluator_call_budget=spec.budget,
-            initial_root_count=spec.n_init,
-            code_max_tokens=spec.llm_output_tokens,
-            context_token_limit=spec.context_token_limit,
-            max_history_events=V96_MAX_HISTORY_EVENTS,
-            transport_retry_limit=3,
-            generation_seed=spec.seed,
-            resume_from=resume_from,
-            checkpoint_dir=run_dir / "checkpoints",
-        )
-    if spec.version == "v9_5":
-        return TraceAADV95(
-            llm=llm,
-            evaluation=evaluation,
-            artifacts=V95RunArtifacts(run_dir=run_dir),
-            candidate_search_budget=spec.budget,
-            initial_root_count=spec.n_init,
-            code_max_tokens=spec.llm_output_tokens,
-            context_token_limit=spec.context_token_limit,
-            max_evidence_items=V95_MAX_EVIDENCE_ITEMS,
-            diff_excerpt_chars=V95_DIFF_EXCERPT_CHARS,
-            transport_retry_limit=3,
-            generation_seed=spec.seed,
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
         )
@@ -378,46 +279,26 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     if actual != expected:
         raise ValueError(f"resume config mismatch: expected {expected}, found {actual}")
     if spec.version not in {
-        "v8", "v9", "v9_5", "v9_6", "v9_7"
+        "v8", "v9", "v9_7"
     }:
         return
     _, task_kwargs = build_task(spec.task, spec.eval_workers)
     normalized_task_kwargs = json.loads(json.dumps(task_kwargs, sort_keys=True))
-    if spec.version in {"v9_5", "v9_6", "v9_7"}:
-        expected_method_params = (
-            _v97_method_params(spec)
-            if spec.version == "v9_7"
-            else _v96_method_params(spec)
-            if spec.version == "v9_6"
-            else _v95_method_params(spec)
-        )
+    if spec.version == "v9_7":
+        expected_method_params = _v97_method_params(spec)
         expected_protocol = {
             "task_eval": normalized_task_kwargs,
             "method_params": expected_method_params,
+            "generator_environment": _v97_generator_environment(spec),
         }
-        if spec.version == "v9_5":
-            expected_protocol["generator_environment"] = _v95_generator_environment(
-                spec
-            )
-        if spec.version == "v9_6":
-            expected_protocol["generator_environment"] = _v96_generator_environment(
-                spec
-            )
-        if spec.version == "v9_7":
-            expected_protocol["generator_environment"] = _v97_generator_environment(
-                spec
-            )
         actual_protocol = {
             "task_eval": payload.get("task_eval"),
             "method_params": {
                 key: payload.get("method_params", {}).get(key)
                 for key in expected_method_params
             },
+            "generator_environment": payload.get("generator_environment"),
         }
-        if spec.version in {"v9_5", "v9_6", "v9_7"}:
-            actual_protocol["generator_environment"] = payload.get(
-                "generator_environment"
-            )
         if actual_protocol != expected_protocol:
             raise ValueError(
                 f"resume config mismatch for TraceAAD {spec.version.upper()}; "
@@ -520,10 +401,6 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     method_params: dict[str, object]
     if spec.version == "v9_7":
         method_params = _v97_method_params(spec)
-    elif spec.version == "v9_6":
-        method_params = _v96_method_params(spec)
-    elif spec.version == "v9_5":
-        method_params = _v95_method_params(spec)
     elif spec.version in {"v8", "v9"}:
         method_params = {
             "protocol_id": (
@@ -600,10 +477,6 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     }
     if spec.version == "v9_7":
         payload["generator_environment"] = _v97_generator_environment(spec)
-    elif spec.version == "v9_6":
-        payload["generator_environment"] = _v96_generator_environment(spec)
-    elif spec.version == "v9_5":
-        payload["generator_environment"] = _v95_generator_environment(spec)
     else:
         payload["backend"] = spec.backend
         payload["llm"] = llm_payload(
@@ -614,111 +487,6 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
             temperature=1.0,
         )
     write_run_config_file(run_dir, payload)
-
-
-def _v95_generator_environment(spec: RunSpec) -> dict[str, object]:
-    return {
-        "logical_model_name": V95_LOGICAL_MODEL_NAME,
-        "temperature": 1.0,
-        "top_p": None,
-        "top_k": None,
-        "max_new_tokens": spec.llm_output_tokens,
-        "sampling_seed": spec.seed,
-        "sampling_seed_support": True,
-        "max_total_context": spec.context_token_limit,
-        "tokenizer_identity": None,
-        "tokenizer_version": None,
-        "chat_template_hash": None,
-        "serving_api": "OpenAI-compatible chat completions",
-        "serving_api_version": None,
-        "prompt_renderer_version": V95_PROMPT_RENDERER_VERSION,
-        "prompt_renderer_hash": v95_prompt_renderer_hash(),
-    }
-
-
-def _v95_method_params(spec: RunSpec) -> dict[str, object]:
-    evaluation, _ = build_task(spec.task, spec.eval_workers)
-    return {
-        "protocol_id": V95_PROTOCOL_ID,
-        "checkpoint_schema_version": V95_CHECKPOINT_VERSION,
-        "candidate_search_budget": spec.budget,
-        "candidate_budget_unit": "completed_candidate_response",
-        "initial_root_count": spec.n_init,
-        "max_evidence_items": V95_MAX_EVIDENCE_ITEMS,
-        "diff_excerpt_chars": V95_DIFF_EXCERPT_CHARS,
-        "logical_model_name": V95_LOGICAL_MODEL_NAME,
-        "evaluator_contract_hash": v95_evaluation_contract_hash(evaluation),
-        "deterministic_fitness_cache": True,
-        "maximize": True,
-        "code_max_tokens": spec.llm_output_tokens,
-        "context_token_limit": spec.context_token_limit,
-        "transport_retry_limit": 3,
-        "generation_seed": spec.seed,
-        "evidence_selector_id": V95_EVIDENCE_SELECTOR_ID,
-        "generation_policy_id": V95_GENERATION_POLICY_ID,
-        "candidate_multiplicity_policy_id": V95_CANDIDATE_MULTIPLICITY_POLICY_ID,
-        "budget_policy_id": V95_BUDGET_POLICY_ID,
-        "initialization_policy_id": V95_INITIALIZATION_POLICY_ID,
-        "optimism_scale_policy_id": V95_OPTIMISM_SCALE_POLICY_ID,
-        "state_identity_policy_id": V95_STATE_IDENTITY_POLICY_ID,
-        "candidate_accounting_policy_id": V95_CANDIDATE_ACCOUNTING_POLICY_ID,
-        "stop_policy_id": V95_STOP_POLICY_ID,
-        "normalization_policy_id": V95_NORMALIZATION_POLICY_ID,
-        "prompt_renderer_version": V95_PROMPT_RENDERER_VERSION,
-        "prompt_renderer_hash": v95_prompt_renderer_hash(),
-    }
-
-
-def _v96_generator_environment(spec: RunSpec) -> dict[str, object]:
-    return {
-        "logical_model_name": V96_LOGICAL_MODEL_NAME,
-        "temperature": 1.0,
-        "top_p": None,
-        "top_k": None,
-        "max_new_tokens": spec.llm_output_tokens,
-        "sampling_seed": spec.seed,
-        "sampling_seed_support": True,
-        "max_total_context": spec.context_token_limit,
-        "tokenizer_identity": None,
-        "tokenizer_version": None,
-        "chat_template_hash": None,
-        "serving_api": "OpenAI-compatible chat completions",
-        "serving_api_version": None,
-        "prompt_renderer_version": V96_PROMPT_RENDERER_VERSION,
-        "prompt_renderer_hash": v96_prompt_renderer_hash(),
-    }
-
-
-def _v96_method_params(spec: RunSpec) -> dict[str, object]:
-    evaluation, _ = build_task(spec.task, spec.eval_workers)
-    return {
-        "protocol_id": V96_PROTOCOL_ID,
-        "checkpoint_schema_version": V96_CHECKPOINT_VERSION,
-        "evaluator_call_budget": spec.budget,
-        "budget_unit": "real_evaluator_call",
-        "initial_root_count": spec.n_init,
-        "max_history_events": V96_MAX_HISTORY_EVENTS,
-        "logical_model_name": V96_LOGICAL_MODEL_NAME,
-        "evaluator_contract_hash": v96_evaluation_contract_hash(evaluation),
-        "deterministic_fitness_cache": True,
-        "maximize": True,
-        "code_max_tokens": spec.llm_output_tokens,
-        "context_token_limit": spec.context_token_limit,
-        "transport_retry_limit": 3,
-        "generation_seed": spec.seed,
-        "history_selector_id": V96_HISTORY_SELECTOR_ID,
-        "generation_policy_id": V96_GENERATION_POLICY_ID,
-        "candidate_multiplicity_policy_id": V96_CANDIDATE_MULTIPLICITY_POLICY_ID,
-        "budget_policy_id": V96_BUDGET_POLICY_ID,
-        "initialization_policy_id": V96_INITIALIZATION_POLICY_ID,
-        "optimism_scale_policy_id": V96_OPTIMISM_SCALE_POLICY_ID,
-        "state_identity_policy_id": V96_STATE_IDENTITY_POLICY_ID,
-        "candidate_accounting_policy_id": V96_CANDIDATE_ACCOUNTING_POLICY_ID,
-        "stop_policy_id": V96_STOP_POLICY_ID,
-        "normalization_policy_id": V96_NORMALIZATION_POLICY_ID,
-        "prompt_renderer_version": V96_PROMPT_RENDERER_VERSION,
-        "prompt_renderer_hash": v96_prompt_renderer_hash(),
-    }
 
 
 def _v97_logical_model_name(spec: RunSpec) -> str:

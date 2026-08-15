@@ -11,8 +11,6 @@ from llm4ad.method.traceaad_v5 import TraceAADV5
 from llm4ad.method.traceaad_v8 import PROTOCOL_ID as V8_PROTOCOL_ID
 from llm4ad.method.traceaad_v8 import TraceAADV8
 from llm4ad.method.traceaad_v9 import TraceAADV9
-from llm4ad.method.traceaad_v9_5 import TraceAADV95
-from llm4ad.method.traceaad_v9_6 import TraceAADV96
 from llm4ad.method.traceaad_v9_7 import TraceAADV97
 
 
@@ -35,8 +33,6 @@ def test_unified_runner_builds_each_task_and_version(
         "v5": TraceAADV5,
         "v8": TraceAADV8,
         "v9": TraceAADV9,
-        "v9_5": TraceAADV95,
-        "v9_6": TraceAADV96,
         "v9_7": TraceAADV97,
     }[version]
     assert isinstance(method, expected_type)
@@ -57,12 +53,8 @@ def test_unified_runner_builds_each_task_and_version(
             assert method._action_max_tokens == 1024
         else:
             assert spec.n_init == 8
-            if version == "v9_7":
-                assert method._n_roots == 8
-                assert method._context_limit == 32768
-            else:
-                assert method._initial_root_count == 8
-                assert method._context_token_limit == 32768
+            assert method._n_roots == 8
+            assert method._context_limit == 32768
             assert not hasattr(method, "_operators")
         assert not hasattr(method, "_global_experience")
 
