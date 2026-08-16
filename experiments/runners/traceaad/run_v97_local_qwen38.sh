@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# 12路 V9.7 Qwen3.8 + resume已跑700轮；1分钟轮询
+# V9.7 Qwen3.8：TSP / OBP / OP 各三路，OP 结束后退出，不启动 CVRP。
+# CVRP 与远程 V9.8/V9.9 抢本机评价核，本批不再续跑。
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -12,8 +13,8 @@ LOG_DIR="${REPO_ROOT}/experiments/_logs"
 mkdir -p "$LOG_DIR"
 BATCH_LOG="${LOG_DIR}/${BATCH}_sequential.log"
 
-TASKS=(tsp_construct online_bin_packing op_aco cvrp_aco)
-TASK_SHORT=(tsp obp op cvrp)
+TASKS=(tsp_construct online_bin_packing op_aco)
+TOTAL=$(( ${#TASKS[@]} * 3 ))
 
 log() {
     printf '[%s] %s\n' "$(date '+%F %T')" "$*" | tee -a "$BATCH_LOG"
@@ -82,7 +83,7 @@ launch_one() {
     log "launched/resumed $run_name"
 }
 
-log "=== Starting 12路 V9.7 on Qwen3.8 (POLL=${POLL_SEC}s) ==="
+log "=== Starting ${TOTAL}-run V9.7 on Qwen3.8 (no CVRP, POLL=${POLL_SEC}s) ==="
 
 while true; do
     running_n=0
@@ -108,7 +109,12 @@ while true; do
         done
     done
 
-    log "done=${done_n}/12 running=${running_n} pending=${#pending[@]}"
+    log "done=${done_n}/${TOTAL} running=${running_n} pending=${#pending[@]}"
+
+    if (( done_n == TOTAL && running_n == 0 && ${#pending[@]} == 0 )); then
+        log "TSP/OBP/OP finished; CVRP skipped. launcher exiting."
+        exit 0
+    fi
 
     for spec in "${pending[@]}"; do
         if [[ "$running_n" -ge "$MAX_CONCURRENT" ]]; then break; fi
