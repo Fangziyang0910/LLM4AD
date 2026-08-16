@@ -1,4 +1,4 @@
-"""Launch and continuously fill a four-task, three-repeat V9.8 batch."""
+"""Launch and continuously fill a four-task, three-repeat V9.9 batch."""
 
 from __future__ import annotations
 
@@ -10,8 +10,6 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-
-from llm4ad.method.traceaad_v9_8 import AllocationPolicy
 
 from .._common import (
     PRIMARY_BACKENDS,
@@ -33,14 +31,11 @@ class Item:
     run_dir: Path
 
 
-def build_plan(
-    *, batch: str, repeats: int, session_prefix: str, allocation_policy: str
-) -> list[Item]:
-    policy_tag = allocation_policy.replace("hypothesis_", "h_").replace("route_", "r_")
+def build_plan(*, batch: str, repeats: int, session_prefix: str) -> list[Item]:
     items: list[Item] = []
     for repeat in range(1, repeats + 1):
         for task in TASKS:
-            run_name = f"v9_8_{batch}_{task}_{policy_tag}_rep{repeat}"
+            run_name = f"v9_9_{batch}_{task}_rep{repeat}"
             items.append(
                 Item(
                     task=task,
@@ -48,7 +43,7 @@ def build_plan(
                     seed=repeat - 1,
                     session=f"{session_prefix}_{TASK_SHORT[task]}_r{repeat}",
                     run_name=run_name,
-                    run_dir=REPO_ROOT / "experiments" / task / "traceaad_v9_8" / run_name,
+                    run_dir=REPO_ROOT / "experiments" / task / "traceaad_v9_9" / run_name,
                 )
             )
     return items
@@ -83,9 +78,7 @@ def _done(item: Item) -> bool:
     )
 
 
-def launch(
-    item: Item, *, backend: str, allocation_policy: str, dry_run: bool
-) -> None:
+def launch(item: Item, *, backend: str, dry_run: bool) -> None:
     resume = item.run_dir.exists()
     command = [
         sys.executable,
@@ -94,7 +87,7 @@ def launch(
         "--task",
         item.task,
         "--version",
-        "v9_8",
+        "v9_9",
         "--backend",
         backend,
         "--budget",
@@ -103,8 +96,6 @@ def launch(
         str(item.repeat),
         "--seed",
         str(item.seed),
-        "--allocation-policy",
-        allocation_policy,
     ]
     if resume:
         command.extend(("--resume-from", str(item.run_dir)))
@@ -133,12 +124,8 @@ def launch(
     )
 
 
-def fill_once(
-    plan: list[Item], *, backends: tuple[str, ...], allocation_policy: str, dry_run: bool
-) -> int:
-    remaining = {
-        name: free for name, free in free_slots().items() if name in backends
-    }
+def fill_once(plan: list[Item], *, backends: tuple[str, ...], dry_run: bool) -> int:
+    remaining = {name: free for name, free in free_slots().items() if name in backends}
     launched = 0
     for item in plan:
         if _done(item) or _running(item):
@@ -146,12 +133,7 @@ def fill_once(
         backend = select_backend(remaining)
         if backend is None:
             break
-        launch(
-            item,
-            backend=backend,
-            allocation_policy=allocation_policy,
-            dry_run=dry_run,
-        )
+        launch(item, backend=backend, dry_run=dry_run)
         remaining[backend] -= 1
         launched += 1
     return launched
@@ -168,23 +150,17 @@ def main() -> None:
         help="restrict filling to one backend "
         "(default: balance across server3 and server3b)",
     )
-    parser.add_argument(
-        "--allocation-policy",
-        choices=tuple(item.value for item in AllocationPolicy),
-        default=AllocationPolicy.FULL.value,
-    )
-    parser.add_argument("--session-prefix", default="v98")
+    parser.add_argument("--session-prefix", default="v99")
     parser.add_argument("--watch", action="store_true")
     parser.add_argument("--watch-interval", type=int, default=60)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if args.repeats != 3:
-        raise ValueError("formal V9.8 batch requires exactly three repeats")
+        raise ValueError("formal V9.9 batch requires exactly three repeats")
     plan = build_plan(
         batch=args.batch,
         repeats=args.repeats,
         session_prefix=args.session_prefix,
-        allocation_policy=args.allocation_policy,
     )
     backends = (args.backend,) if args.backend else PRIMARY_BACKENDS
     while True:
@@ -197,12 +173,7 @@ def main() -> None:
         )
         if done == len(plan):
             return
-        fill_once(
-            plan,
-            backends=backends,
-            allocation_policy=args.allocation_policy,
-            dry_run=args.dry_run,
-        )
+        fill_once(plan, backends=backends, dry_run=args.dry_run)
         if not args.watch or args.dry_run:
             return
         time.sleep(args.watch_interval)
