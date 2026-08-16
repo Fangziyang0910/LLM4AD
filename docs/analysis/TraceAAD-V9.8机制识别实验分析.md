@@ -115,13 +115,33 @@ Hypothesis 至少包含三个可分问题：Explore boundary 如何划分 trajec
 
 H1/H3 与 H5 方向的变化可以产生一个新的探索性假设：早期在 segment 内回访多个锚点，出现清晰领先谱系后转向 child-chain commitment。当前样本量、嵌套 horizon 和协议差异都不支持将它写成已观察 dynamics；它只是后续 adaptive local policy 的预注册候选。
 
-## 7. 对 V9.8 设计的直接影响
+## 7. 对 V9.8 的证据分层
 
-1. 保留 Refine / Explore 的搜索角色划分。它已改变静态机制切换、修改规模和即时质量分布。
-2. 保留 parent path 作为 Refine 的默认生成条件。对 Explore 则只作为当前 baseline，不把其作用写成已确认机制；后续以 operator-specific context 作为独立提议层问题。
-3. 不恢复 protected probe。P3 说明部分 child 需要额外机会，但 CVRP 的低 recovery 与任务差异也说明固定赠送深度可能低效；V9.8 用逐步宽限参与每次在线重选仍是更小的待验证机制。
-4. 不把 P3 结果当作 $C$ 或 $M$ 的效果。P3 强制给定续段机会，没有比较有无 $C$ 时完整搜索实际选择了谁，也没有检验历史平均 gain 是否预测下一份计算的收益。
-5. 不把特定 hypothesis-level 局部规则的负结果外推为 hypothesis 表示的负结果。Boundary、聚合统计和局部锚点 policy 需要分开识别。
+### 7.1 已有直接行为证据
+
+- Refine / Explore 的角色划分可以保留。两种指令稳定改变了静态机制代理切换、修改规模和即时质量；这支持两种 proposal role，不识别真实 algorithm family。
+- Parent path 可以作为 Refine 的默认 development context。对 Explore 则只能作为当前可比 baseline，其价值需要在 operator-specific context 实验中单独识别。
+
+### 7.2 只支持问题动机
+
+- Explore 更常触发静态机制代理切换，因而将其作为新 trajectory segment 的操作边界有行为依据；该边界是否比 root route 更适合聚合分配状态，Stage P 没有回答。
+- P3 证明“跨边界的低即时质量不能一律当作零续段价值”，因而支持延迟容忍问题的存在。它不支持 $c_R$ 的差额形式、平方根衰减或任何固定续段深度。简言之，P3 支持 $C$ 要解决的问题，不支持 $C$ 这个解法。
+- 五步强制续段在 OBP 观察到的 parent recovery 增量远高于 CVRP，因此不恢复 protected probe。V9.8 用有限、衰减且每步重新竞争的宽限作为更小的待验证回答。
+
+### 7.3 尚无对应证据
+
+- $M$ 仍是启发式设计。P3 中“child 能继续改善”不等于“历史平均 gain 能预测下一份计算的价值”。
+- Hypothesis 聚合是否优于 route 聚合，仍需要 Route-$Q+U$ 与 Hypothesis-$Q+U$ 对照。Hypothesis-level 局部重选未胜出只限于锚点 policy，不能外推到 boundary 或聚合统计。
+- 固定 `0.7/0.3` 只是控制条件，Stage P 没有识别 operator 频率。
+
+### 7.4 任务差异应拆成两个可测属性
+
+Stage P 显示，“任务是否适合 trajectory”过于粗糙。至少需要分开：
+
+1. **跨边界提议几何**：Explore 改变机制代理、修改规模和入口质量的联合分布；
+2. **有限视野可恢复性**：在给定 horizon 和续段 policy 下，初始退步的新段能否恢复到来源父代。
+
+P3 中 internal gain 与 parent recovery 的分离说明，“新方向内部还能改”不等于“它能在有限预算内追上已有方向”。这两个属性共同决定跨边界宽限的可能收益，但当前只有固定锚点与五步干预下的局部估计，不能升格为任务的不变属性。
 
 ## 8. 证据边界与后续识别
 
