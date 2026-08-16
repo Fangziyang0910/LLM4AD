@@ -1,8 +1,9 @@
 # TraceAAD V9.8：逐步轨迹分配与假设引导生成
 
-> 状态：机制重构稿，尚未实现、尚未产生正式结果。当前可运行方法仍是 [V9.7](TraceAAD-v9.7完整机制设计.md)。
+> 状态：机制已实现并通过四任务真实 smoke；Stage P 机制识别实验已完成，1000-eval 正式批次 `20260815_225000` 已启动但尚未完成。[V9.7](TraceAAD-v9.7完整机制设计.md) 仍是当前已有正式结果的版本。
 > 设计依据：正统 V9.7 批次 `20260814_150927` 的[搜索几何诊断](../analysis/TraceAAD-V9.7搜索几何诊断.md)、[机制有效性分析](../analysis/TraceAAD-V9.7机制有效性与任务异质性.md)、固定锚点来时路实验、[BaSE 阅读笔记](../references/LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md)与[研究认识](../knowledge/研究认识.md)。
 > 版本边界：V9.8 保留“一次选择、一次生成、一次评价、一次更新”的原子循环。此前设计中的 protected probe、ticket、measurement block、三通道固定循环和 `1+3+2+2` 不再属于在线方法。
+> 实现入口：`llm4ad/method/traceaad_v9_8/` 与 `experiments.runners.traceaad.run --version v9_8`。P1/P2 使用逐响应生成—评价流水线，协议见 [V9.8 机制识别实验](../experiments/TraceAAD-V9.8机制识别实验.md)。
 
 ## 1. 核心问题与设计收缩
 
@@ -378,7 +379,7 @@ Return the globally best unique program by the true objective.
 
 ### 11.1 Stage P：先识别 proposal kernel
 
-**P1：固定锚点 Intent 实验。** 固定当前代码、parent path、采样 seed、输出契约和 evaluator，配对比较 Refine 与 Explore。报告有效率、immediate $\Delta q$、静态宏簇切换、行为切换和代码修改规模。它检验 operator 是否改变 transition kernel，不检验完整搜索收益。
+**P1：固定锚点 Intent 实验。** 固定当前代码、parent path、采样 seed、输出契约和 evaluator，配对比较 Refine 与 Explore。报告有效率、immediate $\Delta q$、静态宏簇切换、行为切换和代码修改规模。它检验 operator 是否改变所测 proposal behavior，不识别完整 kernel、真实 family transition 或完整搜索收益。
 
 **P2：History × Intent 因子实验。** 使用 `code-only / parent-path` 与 `Refine / Explore` 的 $2\times2$ 配对设计，检验 parent path 是否分别帮助两种 operator。任务和锚点质量层作为预先定义的 block；采样 seed 与运行顺序配对。
 
@@ -425,12 +426,15 @@ Allocation 实验固定由 Stage P 确认的 prompt、operator 定义、root 生
 ## 12. 解释边界
 
 - Hypothesis 是 Explore 开启的轨迹分段，不是真实 algorithm family，也不自动拥有预算权利。
+- Stage P 中 hypothesis-level 局部重选未稳定优于 child-chain；该结果只评价局部续段 policy，不评价 Explore boundary 或 segment 聚合统计。
 - $c_R$ 是跨边界实现回撤的衰减 prior。它最多恢复到来源基线，不证明低质量 child 有潜力，也可能给无价值的结构改写额外机会。
+- Stage P 只确认一部分跨边界 child 具有任务相关的有限续段价值；它不支持 $c_R$ 的差额形式、平方根衰减或任何固定赠送深度。Development opportunity 不等于 guaranteed budget。
 - $u_o$ 是访问不足启发式，不是统计置信区间；$s_0$ 只来自八次 Refine bootstrap。
 - $m_R$ 是历史平均 realized gain，可能偏爱容易进步区间，不等于下一份计算的边际价值。
 - 第一版仍固定 operator prior，因此没有解决何时应 Refine、何时应 Explore 的自适应分配问题。
 - 每一步重新选择消除了未来预算锁定，但不保证延迟价值一定被观察。来源较弱的新 hypothesis 仍可能一次 Refine 都得不到。
 - Explore 只读取局部 formation path，不知道全局已经探索过什么；语义区域重访仍是 proposal 侧开放问题。
+- Parent path 对 Refine 有跨任务正向机制证据，对 Explore 的作用不稳定。第一版共享该上下文是可比 baseline，不是 operator-independent 最优性主张；后续的设计对象是 operator-conditioned context policy。
 - 静态 family、行为距离、hindsight subtree success 和强制续段结果只作离线诊断，不写回在线信用。
 - V9.8 的正式 held-out 只能评价联合协议；proposal 与 allocation 的独立主张分别依赖 Stage P 和 Stage A。
 
