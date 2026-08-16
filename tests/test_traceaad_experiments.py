@@ -175,6 +175,40 @@ def test_v8_resume_rejects_changed_experiment_configuration(tmp_path: Path) -> N
         run.resolve_run_dir(changed)
 
 
+def test_aco_tasks_default_to_four_local_eval_workers() -> None:
+    from experiments.runners._common import DEFAULT_ACO_EVAL_WORKERS, build_task
+
+    assert DEFAULT_ACO_EVAL_WORKERS == 4
+    cvrp, cvrp_kwargs = build_task("cvrp_aco", None)
+    op, op_kwargs = build_task("op_aco", None)
+    assert cvrp.n_workers == 4
+    assert op.n_workers == 4
+    assert cvrp_kwargs["n_workers"] == 4
+    assert op_kwargs["n_workers"] == 4
+
+
+def test_v99_resume_allows_eval_worker_count_change(tmp_path: Path) -> None:
+    run_dir = tmp_path / "v99"
+    run_dir.mkdir()
+    original = run.make_run_spec(
+        task="cvrp_aco",
+        version="v9_9",
+        eval_workers=10,
+        experiments_root=tmp_path,
+    )
+    run.write_run_config(original, run_dir, run_dir.name)
+    changed = run.make_run_spec(
+        task="cvrp_aco",
+        version="v9_9",
+        eval_workers=2,
+        resume_from=run_dir,
+        experiments_root=tmp_path,
+    )
+    resolved, _, resumed = run.resolve_run_dir(changed)
+    assert resumed
+    assert resolved == run_dir
+
+
 def test_old_task_specific_traceaad_runners_are_removed() -> None:
     for task in run.TASKS:
         for version in run.VERSIONS:

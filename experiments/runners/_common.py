@@ -108,6 +108,10 @@ BACKEND_MARKERS: dict[BackendName, tuple[str, ...]] = {
 }
 
 LLM_TIMEOUT_SECONDS = 600
+# Local ACO parallelism only; seeded scores do not depend on this count.
+# Sized for 18 concurrent searches on a 32-core host: 4 workers cover
+# CVRP's 10 train instances in three rounds without the old 10-worker pileup.
+DEFAULT_ACO_EVAL_WORKERS = 4
 
 
 # ---------------------------------------------------------------------------
@@ -176,7 +180,7 @@ def build_task(task: TaskName, eval_workers: int | None) -> tuple[Any, dict[str,
             "n_ants": 30,
             "n_iterations": 100,
             "aco_seed": 1234,
-            "n_workers": eval_workers or 10,
+            "n_workers": eval_workers or DEFAULT_ACO_EVAL_WORKERS,
         }
         return CVRPACOEvaluation(**kwargs), kwargs
     kwargs = {
@@ -185,7 +189,7 @@ def build_task(task: TaskName, eval_workers: int | None) -> tuple[Any, dict[str,
         "n_ants": 20,
         "n_iterations": 50,
         "aco_seed": 1234,
-        "n_workers": eval_workers or 5,
+        "n_workers": eval_workers or DEFAULT_ACO_EVAL_WORKERS,
     }
     return OPACOEvaluation(**kwargs), kwargs
 
