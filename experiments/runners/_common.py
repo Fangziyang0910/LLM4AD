@@ -346,15 +346,21 @@ def _process_cmdlines() -> list[str]:
         capture_output=True,
         text=True,
     )
-    lines = []
+    lines: set[str] = set()
     for line in result.stdout.splitlines():
         text = line.strip()
         if not text or "uv run" in text or "python" not in text:
             continue
         if "experiments." not in text and "run_experiment" not in text:
             continue
-        lines.append(text)
-    return lines
+        if ".launch" in text:
+            # Capacity watchers orchestrate jobs but never call an LLM backend.
+            continue
+        # SecureEvaluator workers inherit the parent's complete command line.
+        # Count one logical LLM client command, not every forked evaluator
+        # process. Distinct runs and shards retain distinct CLI arguments.
+        lines.add(text)
+    return sorted(lines)
 
 
 def detect_backend(cmdline: str) -> BackendName | None:

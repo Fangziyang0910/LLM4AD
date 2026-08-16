@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import subprocess
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
@@ -43,6 +45,20 @@ from llm4ad.method.traceaad_v9_7 import (
     RunArtifacts as V97RunArtifacts,
     TraceAADV97,
 )
+from llm4ad.method.traceaad_v9_8 import (
+    CHECKPOINT_VERSION as V98_CHECKPOINT_VERSION,
+    DEFAULT_MAX_CONSECUTIVE_ERRORS as V98_DEFAULT_MAX_CONSECUTIVE_ERRORS,
+    DEFAULT_MAX_RESPONSES as V98_DEFAULT_MAX_RESPONSES,
+    INITIAL_ROOT_COUNT as V98_INITIAL_ROOT_COUNT,
+    LOGICAL_MODEL_NAME as V98_LOGICAL_MODEL_NAME,
+    MAX_HISTORY_EVENTS as V98_MAX_HISTORY_EVENTS,
+    PROTOCOL_ID as V98_PROTOCOL_ID,
+    REFINE_PROBABILITY as V98_REFINE_PROBABILITY,
+    SCORE_FORMULA_VERSION as V98_SCORE_FORMULA_VERSION,
+    AllocationPolicy as V98AllocationPolicy,
+    RunArtifacts as V98RunArtifacts,
+    TraceAADV98,
+)
 
 from .._common import (
     BACKENDS,
@@ -58,7 +74,7 @@ from .._common import (
     write_run_config as write_run_config_file,
 )
 
-VersionName = Literal["v4", "v5", "v8", "v9", "v9_7"]
+VersionName = Literal["v4", "v5", "v8", "v9", "v9_7", "v9_8"]
 
 VERSIONS: tuple[VersionName, ...] = (
     "v4",
@@ -66,6 +82,7 @@ VERSIONS: tuple[VersionName, ...] = (
     "v8",
     "v9",
     "v9_7",
+    "v9_8",
 )
 V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
 V9_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V9_OPERATORS]
@@ -89,6 +106,9 @@ class RunSpec:
     repeat: int | None = None
     run_name: str | None = None
     resume_from: Path | None = None
+    allocation_policy: str = V98AllocationPolicy.FULL.value
+    max_responses: int = V98_DEFAULT_MAX_RESPONSES
+    max_consecutive_errors: int = V98_DEFAULT_MAX_CONSECUTIVE_ERRORS
     experiments_root: Path = EXPERIMENTS_ROOT
 
     @property
@@ -124,6 +144,9 @@ def make_run_spec(
     repeat: int | None = None,
     run_name: str | None = None,
     resume_from: Path | None = None,
+    allocation_policy: str = V98AllocationPolicy.FULL.value,
+    max_responses: int = V98_DEFAULT_MAX_RESPONSES,
+    max_consecutive_errors: int = V98_DEFAULT_MAX_CONSECUTIVE_ERRORS,
     experiments_root: Path = EXPERIMENTS_ROOT,
 ) -> RunSpec:
     profile = resolve_backend(backend, base_url, model, no_proxy)
@@ -138,6 +161,8 @@ def make_run_spec(
         n_init=(
             V97_INITIAL_ROOT_COUNT
             if version == "v9_7"
+            else V98_INITIAL_ROOT_COUNT
+            if version == "v9_8"
             else 10
             if version in {"v8", "v9"}
             else 30
@@ -149,7 +174,7 @@ def make_run_spec(
         action_max_tokens=action_max_tokens,
         context_token_limit=(
             32768
-            if context_token_limit is None and version == "v9_7"
+            if context_token_limit is None and version in {"v9_7", "v9_8"}
             else 24576
             if context_token_limit is None
             else context_token_limit
@@ -158,6 +183,9 @@ def make_run_spec(
         repeat=repeat,
         run_name=run_name,
         resume_from=None if resume_from is None else resume_from.resolve(),
+        allocation_policy=allocation_policy,
+        max_responses=max_responses,
+        max_consecutive_errors=max_consecutive_errors,
         experiments_root=experiments_root.resolve(),
     )
     if spec.budget <= 0:
@@ -166,6 +194,12 @@ def make_run_spec(
         raise ValueError("n_init must be positive")
     if spec.version == "v9_7" and spec.n_init != V97_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.7 requires exactly eight initial roots")
+    if spec.version == "v9_8" and spec.n_init != V98_INITIAL_ROOT_COUNT:
+        raise ValueError("TraceAAD V9.8 requires exactly eight initial roots")
+    if spec.version == "v9_8":
+        V98AllocationPolicy(spec.allocation_policy)
+        if spec.max_responses <= 0 or spec.max_consecutive_errors <= 0:
+            raise ValueError("V9.8 safety limits must be positive")
     if spec.eval_workers is not None and spec.eval_workers <= 0:
         raise ValueError("eval_workers must be positive")
     if spec.llm_output_tokens <= 0:
@@ -203,6 +237,23 @@ def build_method(
             context_limit=spec.context_token_limit,
             max_history=V97_MAX_HISTORY_EVENTS,
             seed=spec.seed,
+            resume_from=resume_from,
+            checkpoint_dir=run_dir / "checkpoints",
+        )
+    if spec.version == "v9_8":
+        return TraceAADV98(
+            llm=llm,
+            evaluation=evaluation,
+            artifacts=V98RunArtifacts(run_dir=run_dir),
+            budget=spec.budget,
+            n_roots=spec.n_init,
+            max_tokens=spec.llm_output_tokens,
+            context_limit=spec.context_token_limit,
+            max_history=V98_MAX_HISTORY_EVENTS,
+            seed=spec.seed,
+            allocation_policy=spec.allocation_policy,
+            max_responses=spec.max_responses,
+            max_consecutive_errors=spec.max_consecutive_errors,
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
         )
@@ -279,17 +330,19 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     if actual != expected:
         raise ValueError(f"resume config mismatch: expected {expected}, found {actual}")
     if spec.version not in {
-        "v8", "v9", "v9_7"
+        "v8", "v9", "v9_7", "v9_8"
     }:
         return
     _, task_kwargs = build_task(spec.task, spec.eval_workers)
     normalized_task_kwargs = json.loads(json.dumps(task_kwargs, sort_keys=True))
-    if spec.version == "v9_7":
-        expected_method_params = _v97_method_params(spec)
+    if spec.version in {"v9_7", "v9_8"}:
+        expected_method_params = (
+            _v97_method_params(spec) if spec.version == "v9_7" else _v98_method_params(spec)
+        )
         expected_protocol = {
             "task_eval": normalized_task_kwargs,
             "method_params": expected_method_params,
-            "generator_environment": _v97_generator_environment(spec),
+            "generator_environment": _versioned_generator_environment(spec),
         }
         actual_protocol = {
             "task_eval": payload.get("task_eval"),
@@ -401,6 +454,8 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     method_params: dict[str, object]
     if spec.version == "v9_7":
         method_params = _v97_method_params(spec)
+    elif spec.version == "v9_8":
+        method_params = _v98_method_params(spec)
     elif spec.version in {"v8", "v9"}:
         method_params = {
             "protocol_id": (
@@ -475,8 +530,10 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         "task_eval": task_kwargs,
         "method_params": method_params,
     }
-    if spec.version == "v9_7":
-        payload["generator_environment"] = _v97_generator_environment(spec)
+    if spec.version in {"v9_7", "v9_8"}:
+        payload["generator_environment"] = _versioned_generator_environment(spec)
+        if spec.version == "v9_8":
+            payload["implementation"] = _v98_implementation_identity()
     else:
         payload["backend"] = spec.backend
         payload["llm"] = llm_payload(
@@ -489,16 +546,16 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     write_run_config_file(run_dir, payload)
 
 
-def _v97_logical_model_name(spec: RunSpec) -> str:
+def _versioned_logical_model_name(spec: RunSpec) -> str:
     model = spec.model.lower()
     if "qwen3.8" in model:
         return "Qwen3.8-27B"
-    return V97_LOGICAL_MODEL_NAME
+    return V98_LOGICAL_MODEL_NAME if spec.version == "v9_8" else V97_LOGICAL_MODEL_NAME
 
 
-def _v97_generator_environment(spec: RunSpec) -> dict[str, object]:
+def _versioned_generator_environment(spec: RunSpec) -> dict[str, object]:
     return {
-        "logical_model_name": _v97_logical_model_name(spec),
+        "logical_model_name": _versioned_logical_model_name(spec),
         "temperature": 1.0,
         "max_new_tokens": spec.llm_output_tokens,
         "sampling_seed": spec.seed,
@@ -519,6 +576,67 @@ def _v97_method_params(spec: RunSpec) -> dict[str, object]:
         "seed": spec.seed,
         "refine_probability": V97_REFINE_PROBABILITY,
         "explore_probability": 1.0 - V97_REFINE_PROBABILITY,
+    }
+
+
+def _v98_method_params(spec: RunSpec) -> dict[str, object]:
+    return {
+        "protocol_id": V98_PROTOCOL_ID,
+        "checkpoint_schema_version": V98_CHECKPOINT_VERSION,
+        "score_formula_version": V98_SCORE_FORMULA_VERSION,
+        "allocation_policy": spec.allocation_policy,
+        "budget": spec.budget,
+        "n_roots": spec.n_init,
+        "max_history": V98_MAX_HISTORY_EVENTS,
+        "maximize": True,
+        "max_tokens": spec.llm_output_tokens,
+        "context_limit": spec.context_token_limit,
+        "seed": spec.seed,
+        "refine_probability": V98_REFINE_PROBABILITY,
+        "explore_probability": 1.0 - V98_REFINE_PROBABILITY,
+        "max_responses": spec.max_responses,
+        "max_consecutive_errors": spec.max_consecutive_errors,
+    }
+
+
+def _v98_implementation_identity() -> dict[str, object]:
+    source_root = Path(__file__).resolve().parents[3]
+    paths = sorted((source_root / "llm4ad" / "method" / "traceaad_v9_8").glob("*.py"))
+    paths.extend(
+        [
+            Path(__file__).resolve(),
+            Path(__file__).with_name("v98_mechanism_probe.py"),
+            Path(__file__).with_name("v98_continuation_probe.py"),
+        ]
+    )
+    digest = hashlib.sha256()
+    for path in paths:
+        relative = path.relative_to(source_root)
+        digest.update(str(relative).encode())
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=source_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    dirty = bool(
+        subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=source_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    )
+    return {
+        "git_commit": commit,
+        "worktree_dirty": dirty,
+        "protocol_source_sha256": digest.hexdigest(),
+        "source_files": [str(path.relative_to(source_root)) for path in paths],
     }
 
 
@@ -558,6 +676,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--repeat", type=int)
     parser.add_argument("--run-name")
     parser.add_argument("--resume-from", type=Path)
+    parser.add_argument(
+        "--allocation-policy",
+        choices=tuple(item.value for item in V98AllocationPolicy),
+        default=V98AllocationPolicy.FULL.value,
+    )
+    parser.add_argument("--max-responses", type=int, default=V98_DEFAULT_MAX_RESPONSES)
+    parser.add_argument(
+        "--max-consecutive-errors",
+        type=int,
+        default=V98_DEFAULT_MAX_CONSECUTIVE_ERRORS,
+    )
     return parser
 
 
@@ -579,6 +708,9 @@ def spec_from_args(args: argparse.Namespace) -> RunSpec:
         repeat=args.repeat,
         run_name=args.run_name,
         resume_from=args.resume_from,
+        allocation_policy=args.allocation_policy,
+        max_responses=args.max_responses,
+        max_consecutive_errors=args.max_consecutive_errors,
     )
 
 

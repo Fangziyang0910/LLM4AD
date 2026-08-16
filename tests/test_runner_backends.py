@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 from experiments.runners import _common
 
@@ -50,3 +51,23 @@ def test_assign_backends_alternates_equal_primary_slots(monkeypatch) -> None:
         "server3",
         "server3b",
     ]
+
+
+def test_backend_usage_deduplicates_forked_evaluator_cmdlines(monkeypatch) -> None:
+    client = (
+        "/repo/.venv/bin/python3 -m experiments.runners.traceaad.run "
+        "--task tsp_construct --backend server3 --run-name run_a"
+    )
+    other = client.replace("run_a", "run_b")
+    launcher = (
+        "/repo/.venv/bin/python3 -m experiments.runners.traceaad.launch_v98 "
+        "--backend server3 --watch"
+    )
+    stdout = "\n".join((client, client, client, other, launcher)) + "\n"
+    monkeypatch.setattr(
+        _common.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(stdout=stdout),
+    )
+
+    assert _common.count_backend_usage()["server3"] == 2
