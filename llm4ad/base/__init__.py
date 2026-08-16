@@ -4,6 +4,11 @@ from .code import (
     Program,
     TextFunctionProgramConverter
 )
-from .evaluate import Evaluation, EvaluationOutcome, SecureEvaluator
+from .evaluate import (
+    Evaluation,
+    EvaluationOutcome,
+    SecureEvaluator,
+    set_kill_with_parent,
+)
 from .modify_code import ModifyCode
 from .sample import LLM, SampleTrimmer

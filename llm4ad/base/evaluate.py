@@ -20,16 +20,19 @@
 from __future__ import annotations
 
 import multiprocessing
+import os
 import queue
+import signal
 import sys
 import time
+import traceback
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Literal
 
 from .code import TextFunctionProgramConverter, Program
 from .modify_code import ModifyCode
-import traceback
 
 
 @dataclass(frozen=True)
@@ -145,6 +148,107 @@ class Evaluation(ABC):
         raise NotImplementedError('Must provide a evaluator for a function.')
 
 
+def set_kill_with_parent() -> None:
+    """Kill this process if its parent dies.
+
+    Secure-eval subprocesses and ACO pool workers call this so a timeout or
+    a killed search process cannot leave grandchildren attached to init.
+    """
+    if not sys.platform.startswith("linux"):
+        return
+    try:
+        import ctypes
+
+        libc = ctypes.CDLL("libc.so.6", use_errno=True)
+        pr_set_pdeathsig = 1
+        libc.prctl(pr_set_pdeathsig, int(signal.SIGKILL))
+        if os.getppid() == 1:
+            os.kill(os.getpid(), signal.SIGKILL)
+    except OSError:
+        return
+
+
+def _enter_eval_session() -> None:
+    if hasattr(os, "setsid"):
+        try:
+            os.setsid()
+        except OSError:
+            pass
+    set_kill_with_parent()
+
+
+def _descendant_pids(pid: int) -> list[int]:
+    proc = Path("/proc")
+    if not proc.is_dir():
+        return []
+    children_by_ppid: dict[int, list[int]] = {}
+    for entry in proc.iterdir():
+        if not entry.name.isdigit():
+            continue
+        child_pid = int(entry.name)
+        try:
+            text = (entry / "status").read_text()
+        except OSError:
+            continue
+        ppid = None
+        for line in text.splitlines():
+            if line.startswith("PPid:"):
+                ppid = int(line.split()[1])
+                break
+        if ppid is None:
+            continue
+        children_by_ppid.setdefault(ppid, []).append(child_pid)
+    found: list[int] = []
+    stack = list(children_by_ppid.get(pid, []))
+    while stack:
+        current = stack.pop()
+        found.append(current)
+        stack.extend(children_by_ppid.get(current, []))
+    return found
+
+
+def _signal_pid(pid: int, sig: int) -> None:
+    try:
+        os.kill(pid, sig)
+    except (ProcessLookupError, PermissionError, OSError):
+        return
+
+
+def _stop_eval_process(process: multiprocessing.Process) -> None:
+    """Terminate the evaluator and every nested ACO / spawn worker."""
+    pid = process.pid
+    if pid is None:
+        return
+    pgid = None
+    if hasattr(os, "getpgid"):
+        try:
+            candidate = os.getpgid(pid)
+        except (ProcessLookupError, PermissionError, OSError):
+            candidate = None
+        else:
+            if candidate == pid:
+                pgid = candidate
+    descendants = [] if pgid is not None else _descendant_pids(pid)
+
+    def _blast(sig: int) -> None:
+        if pgid is not None and hasattr(os, "killpg"):
+            try:
+                os.killpg(pgid, sig)
+                return
+            except (ProcessLookupError, PermissionError, OSError):
+                pass
+        for child in descendants:
+            _signal_pid(child, sig)
+        _signal_pid(pid, sig)
+
+    _blast(signal.SIGTERM)
+    process.join(timeout=5)
+    if pgid is None:
+        descendants = _descendant_pids(pid)
+    _blast(signal.SIGKILL)
+    process.join(timeout=5)
+
+
 class SecureEvaluator:
     def __init__(self,
                  evaluator: Evaluation,
@@ -227,11 +331,7 @@ class SecureEvaluator:
                         ),
                     )
                 finally:
-                    process.terminate()
-                    process.join(timeout=5)
-                    if process.is_alive():
-                        process.kill()
-                        process.join()
+                    _stop_eval_process(process)
                 return outcome
             else:
                 return self._evaluate_with_details(
@@ -273,6 +373,7 @@ class SecureEvaluator:
             result_queue: multiprocessing.Queue,
             **kwargs,
     ) -> None:
+        _enter_eval_session()
         try:
             if self._evaluator.exec_code:
                 all_globals_namespace = {}

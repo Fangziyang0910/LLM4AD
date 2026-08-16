@@ -5,7 +5,7 @@ from typing import Any, Callable
 
 import numpy as np
 
-from llm4ad.base import Evaluation
+from llm4ad.base import Evaluation, set_kill_with_parent
 from llm4ad.task.optimization.cvrp_aco.dataset import (
     CAPACITY,
     DEFAULT_SPLIT,
@@ -245,7 +245,9 @@ class CVRPACOEvaluation(Evaluation):
         else:
             workers = min(self.n_workers, len(jobs))
             context = multiprocessing.get_context("spawn")
-            with context.Pool(processes=workers) as pool:
+            with context.Pool(
+                processes=workers, initializer=set_kill_with_parent
+            ) as pool:
                 costs = pool.map(_run_aco_job, jobs)
         return -float(np.mean(costs))
 
