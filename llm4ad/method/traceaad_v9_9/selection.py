@@ -12,8 +12,8 @@ from .forest import Forest
 from .schema import (
     EXPLORE_PRIOR,
     LAMBDA_U,
+    MAX_HISTORY_EVENTS,
     PATH_HALF_LIFE,
-    PROTOCOL_ID,
     RANK_HALF_LIFE,
     REFINE_PRIOR,
     TEMPERATURE,
@@ -24,6 +24,7 @@ from .schema import (
 @dataclass(frozen=True, slots=True)
 class AnchorScore:
     anchor_id: int
+    program_id: int
     q: float
     n_refine: int
     n_explore: int
@@ -50,6 +51,7 @@ class Choice:
         return {
             "intent": self.intent.value,
             "selected_anchor_id": self.anchor_id,
+            "diagnostics": allocation_diagnostics(self.scores, self.anchor_id),
             "anchors": [asdict(item) for item in self.scores],
         }
 
@@ -81,15 +83,16 @@ def distance_grace(
     ranks: Mapping[int, float],
     *,
     half_life: float = PATH_HALF_LIFE,
+    max_distance: int = MAX_HISTORY_EVENTS,
 ) -> float:
     anchor = forest.get_anchor(anchor_id)
-    if anchor.parent_id is None:
+    if anchor.parent_id is None or max_distance <= 0:
         return 0.0
     current_rank = ranks[anchor.program_id]
     best = 0.0
     distance = 0
     current = anchor.parent_id
-    while current is not None:
+    while current is not None and distance < max_distance:
         distance += 1
         ancestor = forest.get_anchor(current)
         gap = max(ranks[ancestor.program_id] - current_rank, 0.0)
@@ -123,7 +126,9 @@ def geometric_rank_weights(
     return {anchor_id: weight / total for anchor_id, weight in weights.items()}
 
 
-def score_anchors(forest: Forest) -> tuple[AnchorScore, ...]:
+def score_anchors(
+    forest: Forest, *, max_distance: int = MAX_HISTORY_EVENTS
+) -> tuple[AnchorScore, ...]:
     live_ids = forest.live_program_ids()
     ranks = midrank_percentiles(
         {program_id: forest.get_program(program_id).q for program_id in live_ids}
@@ -133,7 +138,9 @@ def score_anchors(forest: Forest) -> tuple[AnchorScore, ...]:
         quality = ranks[anchor.program_id]
         u_refine = under_exposure(anchor.n_refine)
         u_explore = under_exposure(anchor.n_explore)
-        c_refine = distance_grace(forest, anchor.id, ranks) / math.sqrt(anchor.n_refine + 1)
+        c_refine = distance_grace(
+            forest, anchor.id, ranks, max_distance=max_distance
+        ) / math.sqrt(anchor.n_refine + 1)
         s_refine = quality + LAMBDA_U * u_refine + c_refine
         s_explore = quality + LAMBDA_U * u_explore
         w_refine = REFINE_PRIOR * math.exp(s_refine / TEMPERATURE)
@@ -142,6 +149,7 @@ def score_anchors(forest: Forest) -> tuple[AnchorScore, ...]:
         scored.append(
             AnchorScore(
                 anchor_id=anchor.id,
+                program_id=anchor.program_id,
                 q=quality,
                 n_refine=anchor.n_refine,
                 n_explore=anchor.n_explore,
@@ -173,7 +181,7 @@ def score_anchors(forest: Forest) -> tuple[AnchorScore, ...]:
 def unit_interval(seed: int | None, iteration: int, salt: str) -> float:
     token = "none" if seed is None else str(seed)
     digest = hashlib.sha256(
-        f"{PROTOCOL_ID}:{salt}:{token}:{iteration}".encode()
+        f"v9.9:{salt}:{token}:{iteration}".encode()
     ).digest()
     return int.from_bytes(digest[:8], "big") / 2**64
 
@@ -192,8 +200,60 @@ def sample_index(weights: Sequence[float], draw: float) -> int:
     return last
 
 
-def select(forest: Forest, *, seed: int | None, iteration: int) -> Choice:
-    scores = score_anchors(forest)
+def allocation_diagnostics(
+    scores: Sequence[AnchorScore], selected_anchor_id: int
+) -> dict[str, Any]:
+    if not scores:
+        return {}
+    ordered = sorted(scores, key=lambda item: (-item.mu, item.anchor_id))
+    ranks = {item.anchor_id: index for index, item in enumerate(ordered, start=1)}
+    by_program: dict[int, list[AnchorScore]] = {}
+    for item in scores:
+        by_program.setdefault(item.program_id, []).append(item)
+    multiplicity = {program_id: len(items) for program_id, items in by_program.items()}
+    program_mu = {
+        program_id: sum(item.mu for item in items)
+        for program_id, items in by_program.items()
+    }
+    selected = next(item for item in scores if item.anchor_id == selected_anchor_id)
+    top10 = ordered[:10]
+    repeated_mu = sum(
+        item.mu for item in scores if multiplicity[item.program_id] > 1
+    )
+    entropy = -sum(
+        item.mu * math.log(item.mu) for item in scores if item.mu > 0.0
+    )
+
+    def share(count: int) -> float:
+        return sum(item.mu for item in ordered[:count])
+
+    return {
+        "selected_rank": ranks[selected_anchor_id],
+        "selected_program_id": selected.program_id,
+        "selected_program_multiplicity": multiplicity[selected.program_id],
+        "selected_program_mu": program_mu[selected.program_id],
+        "n_anchors": len(scores),
+        "n_unique_programs": len(by_program),
+        "max_program_multiplicity": max(multiplicity.values()),
+        "top5_mu": share(5),
+        "top10_mu": share(10),
+        "top20_mu": share(20),
+        "top10_unique_programs": len({item.program_id for item in top10}),
+        "repeated_program_mu": repeated_mu,
+        "selection_entropy": entropy,
+        "selected_pi_explore": selected.pi_explore,
+        "selected_c_refine": selected.c_refine,
+    }
+
+
+def select(
+    forest: Forest,
+    *,
+    seed: int | None,
+    iteration: int,
+    max_distance: int = MAX_HISTORY_EVENTS,
+) -> Choice:
+    scores = score_anchors(forest, max_distance=max_distance)
     if not scores:
         raise ValueError("cannot allocate budget without an anchor")
     ordered = sorted(scores, key=lambda item: item.anchor_id)
@@ -209,6 +269,7 @@ def select(forest: Forest, *, seed: int | None, iteration: int) -> Choice:
 __all__ = [
     "AnchorScore",
     "Choice",
+    "allocation_diagnostics",
     "distance_grace",
     "geometric_rank_weights",
     "midrank_percentiles",

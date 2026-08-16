@@ -1,7 +1,6 @@
 """TraceAAD V9.9 public interface."""
 
 from .artifacts import RunArtifacts
-from .checkpoint import CHECKPOINT_VERSION
 from .schema import (
     DEFAULT_MAX_CONSECUTIVE_ERRORS,
     DEFAULT_MAX_RESPONSES,
@@ -11,17 +10,13 @@ from .schema import (
     LOGICAL_MODEL_NAME,
     MAX_HISTORY_EVENTS,
     PATH_HALF_LIFE,
-    PROTOCOL_ID,
     RANK_HALF_LIFE,
     REFINE_PRIOR,
-    ROOT_CANDIDATE_COUNT,
-    SCORE_FORMULA_VERSION,
     TEMPERATURE,
 )
 from .traceaad import TraceAADV99
 
 __all__ = [
-    "CHECKPOINT_VERSION",
     "DEFAULT_MAX_CONSECUTIVE_ERRORS",
     "DEFAULT_MAX_RESPONSES",
     "EXPLORE_PRIOR",
@@ -30,11 +25,8 @@ __all__ = [
     "LOGICAL_MODEL_NAME",
     "MAX_HISTORY_EVENTS",
     "PATH_HALF_LIFE",
-    "PROTOCOL_ID",
     "RANK_HALF_LIFE",
     "REFINE_PRIOR",
-    "ROOT_CANDIDATE_COUNT",
-    "SCORE_FORMULA_VERSION",
     "TEMPERATURE",
     "RunArtifacts",
     "TraceAADV99",

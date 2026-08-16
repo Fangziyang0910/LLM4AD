@@ -60,20 +60,14 @@ from llm4ad.method.traceaad_v9_8 import (
     TraceAADV98,
 )
 from llm4ad.method.traceaad_v9_9 import (
-    CHECKPOINT_VERSION as V99_CHECKPOINT_VERSION,
-    DEFAULT_MAX_CONSECUTIVE_ERRORS as V99_DEFAULT_MAX_CONSECUTIVE_ERRORS,
-    DEFAULT_MAX_RESPONSES as V99_DEFAULT_MAX_RESPONSES,
     EXPLORE_PRIOR as V99_EXPLORE_PRIOR,
     INITIAL_ROOT_COUNT as V99_INITIAL_ROOT_COUNT,
     LAMBDA_U as V99_LAMBDA_U,
     LOGICAL_MODEL_NAME as V99_LOGICAL_MODEL_NAME,
     MAX_HISTORY_EVENTS as V99_MAX_HISTORY_EVENTS,
     PATH_HALF_LIFE as V99_PATH_HALF_LIFE,
-    PROTOCOL_ID as V99_PROTOCOL_ID,
     RANK_HALF_LIFE as V99_RANK_HALF_LIFE,
     REFINE_PRIOR as V99_REFINE_PRIOR,
-    ROOT_CANDIDATE_COUNT as V99_ROOT_CANDIDATE_COUNT,
-    SCORE_FORMULA_VERSION as V99_SCORE_FORMULA_VERSION,
     TEMPERATURE as V99_TEMPERATURE,
     RunArtifacts as V99RunArtifacts,
     TraceAADV99,
@@ -219,7 +213,7 @@ def make_run_spec(
     if spec.version == "v9_8" and spec.n_init != V98_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.8 requires exactly eight initial roots")
     if spec.version == "v9_9" and spec.n_init != V99_INITIAL_ROOT_COUNT:
-        raise ValueError("TraceAAD V9.9 requires exactly eight official roots")
+        raise ValueError("TraceAAD V9.9 requires exactly eight independent roots")
     if spec.version == "v9_8":
         V98AllocationPolicy(spec.allocation_policy)
         if spec.max_responses <= 0 or spec.max_consecutive_errors <= 0:
@@ -291,7 +285,6 @@ def build_method(
             artifacts=V99RunArtifacts(run_dir=run_dir),
             budget=spec.budget,
             n_roots=spec.n_init,
-            n_root_candidates=V99_ROOT_CANDIDATE_COUNT,
             max_tokens=spec.llm_output_tokens,
             context_limit=spec.context_token_limit,
             max_history=V99_MAX_HISTORY_EVENTS,
@@ -364,6 +357,15 @@ def resolve_run_dir(spec: RunSpec) -> tuple[Path, str, bool]:
     return run_dir, run_name, False
 
 
+def _task_eval_protocol(task_eval: object) -> object:
+    """Compare evaluation semantics, not local ACO worker count."""
+    if not isinstance(task_eval, dict):
+        return task_eval
+    payload = dict(task_eval)
+    payload.pop("n_workers", None)
+    return json.loads(json.dumps(payload, sort_keys=True))
+
+
 def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     path = run_dir / "run_config.json"
     if not path.is_file():
@@ -387,12 +389,12 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         else:
             expected_method_params = _v99_method_params(spec)
         expected_protocol = {
-            "task_eval": normalized_task_kwargs,
+            "task_eval": _task_eval_protocol(normalized_task_kwargs),
             "method_params": expected_method_params,
             "generator_environment": _versioned_generator_environment(spec),
         }
         actual_protocol = {
-            "task_eval": payload.get("task_eval"),
+            "task_eval": _task_eval_protocol(payload.get("task_eval")),
             "method_params": {
                 key: payload.get("method_params", {}).get(key)
                 for key in expected_method_params
@@ -445,7 +447,7 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         expected_method_params["history_protocol"] = "matched_history"
     expected_protocol = {
         "backend": spec.backend,
-        "task_eval": normalized_task_kwargs,
+        "task_eval": _task_eval_protocol(normalized_task_kwargs),
         "llm": {
             "base_url": spec.base_url,
             "model": spec.model,
@@ -456,7 +458,7 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     }
     actual_protocol = {
         "backend": payload.get("backend"),
-        "task_eval": payload.get("task_eval"),
+        "task_eval": _task_eval_protocol(payload.get("task_eval")),
         "llm": {
             key: payload.get("llm", {}).get(key) for key in expected_protocol["llm"]
         },
@@ -583,8 +585,6 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         payload["generator_environment"] = _versioned_generator_environment(spec)
         if spec.version == "v9_8":
             payload["implementation"] = _v98_implementation_identity()
-        elif spec.version == "v9_9":
-            payload["implementation"] = _v99_implementation_identity()
     else:
         payload["backend"] = spec.backend
         payload["llm"] = llm_payload(
@@ -654,12 +654,8 @@ def _v98_method_params(spec: RunSpec) -> dict[str, object]:
 
 def _v99_method_params(spec: RunSpec) -> dict[str, object]:
     return {
-        "protocol_id": V99_PROTOCOL_ID,
-        "checkpoint_schema_version": V99_CHECKPOINT_VERSION,
-        "score_formula_version": V99_SCORE_FORMULA_VERSION,
         "budget": spec.budget,
         "n_roots": spec.n_init,
-        "n_root_candidates": V99_ROOT_CANDIDATE_COUNT,
         "max_history": V99_MAX_HISTORY_EVENTS,
         "maximize": True,
         "max_tokens": spec.llm_output_tokens,
@@ -673,41 +669,6 @@ def _v99_method_params(spec: RunSpec) -> dict[str, object]:
         "explore_prior": V99_EXPLORE_PRIOR,
         "max_responses": spec.max_responses,
         "max_consecutive_errors": spec.max_consecutive_errors,
-    }
-
-
-def _v99_implementation_identity() -> dict[str, object]:
-    source_root = Path(__file__).resolve().parents[3]
-    paths = sorted((source_root / "llm4ad" / "method" / "traceaad_v9_9").glob("*.py"))
-    paths.append(Path(__file__).resolve())
-    digest = hashlib.sha256()
-    for path in paths:
-        relative = path.relative_to(source_root)
-        digest.update(str(relative).encode())
-        digest.update(b"\0")
-        digest.update(path.read_bytes())
-        digest.update(b"\0")
-    commit = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=source_root,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-    dirty = bool(
-        subprocess.run(
-            ["git", "status", "--porcelain"],
-            cwd=source_root,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-    )
-    return {
-        "git_commit": commit,
-        "worktree_dirty": dirty,
-        "protocol_source_sha256": digest.hexdigest(),
-        "source_files": [str(path.relative_to(source_root)) for path in paths],
     }
 
 

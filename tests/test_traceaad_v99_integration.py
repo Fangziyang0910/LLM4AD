@@ -10,9 +10,6 @@ import pytest
 from experiments.runners.traceaad import launch_v99, run
 from llm4ad.base import Evaluation, LLM
 from llm4ad.method.traceaad_v9_9 import (
-    CHECKPOINT_VERSION,
-    PROTOCOL_ID,
-    ROOT_CANDIDATE_COUNT,
     RunArtifacts,
     TraceAADV99,
 )
@@ -136,6 +133,37 @@ def test_distance_grace_prefers_a_near_ancestor_over_a_distant_best() -> None:
     assert near > far
 
 
+def test_distance_grace_ignores_ancestors_beyond_the_parent_path_window() -> None:
+    forest = Forest(maximize=True)
+    root = forest.add_root(program_id=_program(forest, "root", 10.0, 1).id, order=1)
+    current = root
+    for index in range(12):
+        current = forest.add_child(
+            parent_id=current.id,
+            program_id=_program(forest, f"step-{index}", 5.0, index + 2).id,
+            attempt_id=forest.next_attempt_id(),
+            order=index + 2,
+        )
+    ranks = {root.program_id: 1.0}
+    for anchor in forest.anchors():
+        ranks.setdefault(anchor.program_id, 0.0)
+    assert distance_grace(forest, current.id, ranks, max_distance=8) == 0.0
+    unbounded = (2.0 ** (-12 / 4)) * 1.0
+    assert distance_grace(forest, current.id, ranks, max_distance=18) == pytest.approx(
+        unbounded
+    )
+
+
+def test_explore_can_lead_when_refine_is_saturated_and_untried() -> None:
+    forest = Forest(maximize=True)
+    root = forest.add_root(program_id=_program(forest, "root", 1.0, 1).id, order=1)
+    root.n_refine = 10_000
+    scores = {item.anchor_id: item for item in score_anchors(forest)}
+    assert scores[root.id].c_refine == 0.0
+    assert scores[root.id].pi_explore > 0.5
+    assert scores[root.id].pi_explore == pytest.approx(0.536, abs=0.01)
+
+
 def test_refine_grace_does_not_enter_explore_score() -> None:
     forest = Forest(maximize=True)
     root = forest.add_root(program_id=_program(forest, "root", 10.0, 1).id, order=1)
@@ -184,6 +212,10 @@ def test_joint_selection_is_deterministic_and_quality_cancels_in_operator_odds()
     assert scores[weak.id].pi_refine == pytest.approx(scores[strong.id].pi_refine)
     assert scores[weak.id].pi_refine == pytest.approx(0.7)
     assert math.isclose(sum(item.mu for item in first.scores), 1.0)
+    diagnostics = first.to_dict()["diagnostics"]
+    assert diagnostics["n_unique_programs"] == 2
+    assert diagnostics["max_program_multiplicity"] == 1
+    assert diagnostics["repeated_program_mu"] == 0.0
 
 
 def test_history_omits_hypothesis_markers() -> None:
@@ -235,7 +267,7 @@ def test_cached_code_creates_a_child_for_both_operators() -> None:
     assert other.program_id == seen.id
 
 
-def test_initialization_keeps_the_best_roots_and_skips_bootstrap(
+def test_initialization_keeps_all_roots_and_skips_bootstrap(
     tmp_path: Path,
 ) -> None:
     artifacts = RunArtifacts(tmp_path, console_output=False)
@@ -245,7 +277,6 @@ def test_initialization_keeps_the_best_roots_and_skips_bootstrap(
         artifacts=artifacts,
         budget=6,
         n_roots=2,
-        n_root_candidates=4,
         context_limit=32768,
         checkpoint_dir=tmp_path / "checkpoints",
         seed=1,
@@ -255,19 +286,12 @@ def test_initialization_keeps_the_best_roots_and_skips_bootstrap(
     summary = json.loads((tmp_path / "logs" / "summary.json").read_text())
     assert summary["status"] == "finished"
     assert summary["evaluator_call_count"] == 6
-    assert summary["n_root_candidates"] == 4
     assert summary["n_roots"] == 2
-    assert summary["n_discarded_roots"] == 2
     root_programs = [
         method._forest.get_program(method._forest.get_anchor(root_id).program_id)
         for root_id in method._forest.root_ids
     ]
-    discarded = [
-        method._forest.get_program(program_id)
-        for program_id in method._forest.discarded_program_ids
-    ]
-    assert {program.q for program in root_programs} == {3.0, 4.0}
-    assert {program.q for program in discarded} == {1.0, 2.0}
+    assert {program.q for program in root_programs} == {1.0, 2.0}
     assert all(anchor.parent_id is None for anchor in method._forest.anchors() if anchor.id in method._forest.root_ids)
     with (tmp_path / "evaluations.csv").open(newline="") as handle:
         stages = {row["stage"] for row in csv.DictReader(handle)}
@@ -288,17 +312,15 @@ def test_runner_builds_frozen_v99_and_records_config(tmp_path: Path) -> None:
     method = run.build_method(spec, tmp_path / "run")
     assert isinstance(method, TraceAADV99)
     assert method.search_configuration() == run._v99_method_params(spec)
-    assert method.search_configuration()["protocol_id"] == PROTOCOL_ID
-    assert method.search_configuration()["checkpoint_schema_version"] == CHECKPOINT_VERSION
     assert spec.n_init == 8
-    assert method._n_root_candidates == ROOT_CANDIDATE_COUNT
+    assert method._n_roots == 8
     run_dir, run_name, _ = run.resolve_run_dir(spec)
     run.write_run_config(spec, run_dir, run_name)
     payload = json.loads((run_dir / "run_config.json").read_text())
     assert payload["method"] == "traceaad_v9_9"
     assert payload["method_params"] == run._v99_method_params(spec)
     assert payload["generator_environment"]["logical_model_name"] == "Qwen3.6-27B"
-    assert len(payload["implementation"]["protocol_source_sha256"]) == 64
+    assert "implementation" not in payload
     assert "backend" not in payload and "llm" not in payload
     method._llm.close()
 
@@ -322,8 +344,6 @@ def test_end_to_end_v99_smoke_streams_facts_and_exhausts_eval_budget(
     assert summary["status"] == "finished"
     assert summary["evaluator_call_count"] == 20
     assert summary["n_roots"] == 8
-    assert summary["n_root_candidates"] == 12
-    assert summary["n_discarded_roots"] == 4
     assert (tmp_path / "checkpoints" / "latest.json").is_file()
     assert (tmp_path / "logs" / "events.jsonl").stat().st_size > 0
     with (tmp_path / "evaluations.csv").open(newline="") as handle:
@@ -345,7 +365,6 @@ def test_checkpoint_with_completed_pending_response_does_not_call_llm_again(
         evaluation=IncreasingEvaluation(),
         budget=20,
         n_roots=1,
-        n_root_candidates=1,
         context_limit=32768,
         checkpoint_dir=tmp_path / "source",
     )
@@ -355,7 +374,6 @@ def test_checkpoint_with_completed_pending_response_does_not_call_llm_again(
         order=1,
     )
     anchor = source._forest.add_root(program_id=program.id, order=1)
-    source._root_candidate_ids = [program.id]
     source._initialization_complete = True
     source._n_candidates = 1
     source._n_eval = 1
@@ -384,7 +402,6 @@ def test_checkpoint_with_completed_pending_response_does_not_call_llm_again(
         evaluation=IncreasingEvaluation(),
         budget=20,
         n_roots=1,
-        n_root_candidates=1,
         context_limit=32768,
         checkpoint_dir=tmp_path / "resumed",
     )
@@ -423,7 +440,6 @@ def test_pending_request_recovers_durably_logged_response_before_redraw(
         artifacts=artifacts,
         budget=20,
         n_roots=1,
-        n_root_candidates=1,
         context_limit=32768,
         checkpoint_dir=run_dir / "checkpoints",
     )
@@ -433,7 +449,6 @@ def test_pending_request_recovers_durably_logged_response_before_redraw(
         order=1,
     )
     anchor = method._forest.add_root(program_id=program.id, order=1)
-    method._root_candidate_ids = [program.id]
     method._initialization_complete = True
     method._pending = Pending(
         id=method._forest.next_attempt_id(),

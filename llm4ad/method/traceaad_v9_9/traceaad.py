@@ -9,7 +9,7 @@ from typing import Any
 
 from ...base import Evaluation, Function, LLM, SecureEvaluator, TextFunctionProgramConverter
 from .artifacts import RunArtifacts
-from .checkpoint import CHECKPOINT_VERSION, load_checkpoint, save_checkpoint
+from .checkpoint import load_checkpoint, save_checkpoint
 from .forest import Forest, is_better
 from .history import drop_oldest, one_line, parent_path, render_path
 from .prompt import (
@@ -26,11 +26,8 @@ from .schema import (
     LAMBDA_U,
     MAX_HISTORY_EVENTS,
     PATH_HALF_LIFE,
-    PROTOCOL_ID,
     RANK_HALF_LIFE,
     REFINE_PRIOR,
-    ROOT_CANDIDATE_COUNT,
-    SCORE_FORMULA_VERSION,
     TEMPERATURE,
     Anchor,
     Attempt,
@@ -55,7 +52,6 @@ class TraceAADV99:
         budget: int = 1000,
         *,
         n_roots: int = INITIAL_ROOT_COUNT,
-        n_root_candidates: int = ROOT_CANDIDATE_COUNT,
         maximize: bool = True,
         max_tokens: int = 8192,
         context_limit: int | None = None,
@@ -67,12 +63,8 @@ class TraceAADV99:
         resume_from: str | Path | None = None,
         debug_mode: bool = False,
     ) -> None:
-        if min(budget, n_roots, n_root_candidates, max_tokens, max_history) <= 0:
-            raise ValueError(
-                "budget, n_roots, n_root_candidates, max_tokens, and max_history must be positive"
-            )
-        if n_root_candidates < n_roots:
-            raise ValueError("n_root_candidates must be at least n_roots")
+        if min(budget, n_roots, max_tokens, max_history) <= 0:
+            raise ValueError("budget, n_roots, max_tokens, and max_history must be positive")
         if context_limit is None or context_limit <= 0:
             raise ValueError("context_limit must be explicitly positive")
         if max_responses <= 0 or max_consecutive_errors <= 0:
@@ -96,7 +88,6 @@ class TraceAADV99:
         self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode)
         self._budget = budget
         self._n_roots = n_roots
-        self._n_root_candidates = n_root_candidates
         self._maximize = maximize
         self._max_tokens = max_tokens
         self._context_limit = context_limit
@@ -113,7 +104,6 @@ class TraceAADV99:
         self._n_eval = 0
         self._iteration = 0
         self._initialization_complete = False
-        self._root_candidate_ids: list[int] = []
         self._best_id: int | None = None
         self._consecutive_errors = 0
         self._search_aborted = False
@@ -126,12 +116,8 @@ class TraceAADV99:
 
     def search_configuration(self) -> dict[str, Any]:
         return {
-            "protocol_id": PROTOCOL_ID,
-            "checkpoint_schema_version": CHECKPOINT_VERSION,
-            "score_formula_version": SCORE_FORMULA_VERSION,
             "budget": self._budget,
             "n_roots": self._n_roots,
-            "n_root_candidates": self._n_root_candidates,
             "max_history": self._max_history,
             "maximize": self._maximize,
             "max_tokens": self._max_tokens,
@@ -162,7 +148,12 @@ class TraceAADV99:
                 return
 
             while self._has_budget() and self._can_respond():
-                choice = select(self._forest, seed=self._seed, iteration=self._iteration)
+                choice = select(
+                    self._forest,
+                    seed=self._seed,
+                    iteration=self._iteration,
+                    max_distance=self._max_history,
+                )
                 prompt = self._prompt(choice.anchor_id, choice.intent)
                 self._request(
                     prompt,
@@ -201,8 +192,6 @@ class TraceAADV99:
                     n_programs=len(self._forest.programs()),
                     n_anchors=len(self._forest.anchors()),
                     n_roots=len(self._forest.root_ids),
-                    n_root_candidates=len(self._root_candidate_ids),
-                    n_discarded_roots=len(self._forest.discarded_program_ids),
                     n_attempts=len(self._forest.attempts()),
                     n_iterations=self._iteration,
                     initialization_complete=self._initialization_complete,
@@ -216,7 +205,7 @@ class TraceAADV99:
 
     def _initialize(self) -> None:
         while (
-            len(self._root_candidate_ids) < self._n_root_candidates
+            len(self._forest.root_ids) < self._n_roots
             and self._has_budget()
             and self._can_respond()
         ):
@@ -236,34 +225,20 @@ class TraceAADV99:
                 selection=None,
             )
 
-        if len(self._root_candidate_ids) < self._n_root_candidates:
+        if len(self._forest.root_ids) < self._n_roots:
             save_checkpoint(self)
             return
-        self._select_official_roots()
         self._initialization_complete = True
-        save_checkpoint(self)
-
-    def _select_official_roots(self) -> None:
-        if self._forest.root_ids:
-            return
-        programs = [self._forest.get_program(program_id) for program_id in self._root_candidate_ids]
-        ranked = sorted(
-            programs,
-            key=lambda program: (program.q, -program.length, -program.order),
-            reverse=True,
-        )
-        selected = ranked[: self._n_roots]
-        discarded = ranked[self._n_roots :]
-        for program in selected:
-            self._forest.add_root(program_id=program.id, order=program.order)
-        self._forest.discarded_program_ids = [program.id for program in discarded]
         if self._log is not None:
             self._log.record_decision(
-                "roots_selected",
+                "roots_initialized",
                 response_id="initialization",
-                selected_program_ids=[program.id for program in selected],
-                discarded_program_ids=list(self._forest.discarded_program_ids),
+                selected_program_ids=[
+                    self._forest.get_anchor(root_id).program_id
+                    for root_id in self._forest.root_ids
+                ],
             )
+        save_checkpoint(self)
 
     def _prompt(self, anchor_id: int, intent: Intent) -> str:
         anchor = self._forest.get_anchor(anchor_id)
@@ -536,8 +511,6 @@ class TraceAADV99:
             iteration=pending.iteration,
         )
         self._forest.add_attempt(attempt)
-        if kind == "root_candidate" and program is not None:
-            self._root_candidate_ids.append(program.id)
         if pending.stage == "search" and pending.iteration is not None:
             self._iteration = max(self._iteration, pending.iteration + 1)
 
@@ -617,7 +590,8 @@ class TraceAADV99:
         assert code is not None and fitness is not None
         program = self._forest.add_program(code=code, fitness=fitness, order=pending.order)
         if parent_anchor is None:
-            return program, None, "root_candidate"
+            root = self._forest.add_root(program_id=program.id, order=pending.order)
+            return program, root, "root"
         child = self._forest.add_child(
             parent_id=parent_anchor.id,
             program_id=program.id,

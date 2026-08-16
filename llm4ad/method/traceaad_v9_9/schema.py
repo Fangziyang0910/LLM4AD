@@ -6,12 +6,9 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Final
 
-PROTOCOL_ID: Final[str] = "traceaad-v9.9-anchor-operator-joint"
-SCORE_FORMULA_VERSION: Final[str] = "anchor-joint-q-u-c-v1"
 REFINE_PRIOR: Final[float] = 0.7
 EXPLORE_PRIOR: Final[float] = 0.3
 INITIAL_ROOT_COUNT: Final[int] = 8
-ROOT_CANDIDATE_COUNT: Final[int] = 12
 MAX_HISTORY_EVENTS: Final[int] = 8
 LOGICAL_MODEL_NAME: Final[str] = "Qwen3.6-27B"
 DEFAULT_MAX_RESPONSES: Final[int] = 5000
@@ -19,7 +16,7 @@ DEFAULT_MAX_CONSECUTIVE_ERRORS: Final[int] = 50
 LAMBDA_U: Final[float] = 0.25
 PATH_HALF_LIFE: Final[float] = 4.0
 RANK_HALF_LIFE: Final[float] = 5.0
-TEMPERATURE: Final[float] = 0.5
+TEMPERATURE: Final[float] = 0.25
 
 
 class Intent(StrEnum):
@@ -111,11 +108,8 @@ __all__ = [
     "LOGICAL_MODEL_NAME",
     "MAX_HISTORY_EVENTS",
     "PATH_HALF_LIFE",
-    "PROTOCOL_ID",
     "RANK_HALF_LIFE",
     "REFINE_PRIOR",
-    "ROOT_CANDIDATE_COUNT",
-    "SCORE_FORMULA_VERSION",
     "TEMPERATURE",
     "Anchor",
     "Attempt",

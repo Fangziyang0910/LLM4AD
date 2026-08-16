@@ -30,7 +30,6 @@ class Forest:
         self._attempts: dict[int, Attempt] = {}
         self._relations: set[tuple[int, int]] = set()
         self.root_ids: list[int] = []
-        self.discarded_program_ids: list[int] = []
         self._next_program_id = 0
         self._next_anchor_id = 0
         self._next_attempt_id = 0
@@ -152,7 +151,6 @@ class Forest:
             "next_anchor_id": self._next_anchor_id,
             "next_attempt_id": self._next_attempt_id,
             "root_ids": list(self.root_ids),
-            "discarded_program_ids": list(self.discarded_program_ids),
             "programs": [asdict(item) for item in self.programs()],
             "anchors": [asdict(item) for item in self.anchors()],
             "attempts": [asdict(item) for item in self.attempts()],
@@ -177,9 +175,6 @@ class Forest:
             attempt = Attempt(**converted)
             forest._attempts[attempt.id] = attempt
         forest.root_ids = [int(item) for item in payload["root_ids"]]
-        forest.discarded_program_ids = [
-            int(item) for item in payload.get("discarded_program_ids", [])
-        ]
         forest._next_program_id = int(payload["next_program_id"])
         forest._next_anchor_id = int(payload["next_anchor_id"])
         forest._next_attempt_id = int(payload["next_attempt_id"])

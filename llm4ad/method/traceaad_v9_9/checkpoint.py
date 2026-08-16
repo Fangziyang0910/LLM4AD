@@ -10,9 +10,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .forest import Forest
-from .schema import PROTOCOL_ID, Pending
-
-CHECKPOINT_VERSION = 1
+from .schema import Pending
 
 
 def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
@@ -53,8 +51,6 @@ def _pending_from_dict(item: Mapping[str, Any] | None) -> Pending | None:
 
 def dump_state(method) -> dict[str, Any]:
     return {
-        "version": CHECKPOINT_VERSION,
-        "protocol_id": PROTOCOL_ID,
         "config": method.search_configuration(),
         "forest": method._forest.to_dict(),
         "pending": None if method._pending is None else asdict(method._pending),
@@ -62,7 +58,6 @@ def dump_state(method) -> dict[str, Any]:
         "n_eval": method._n_eval,
         "iteration": method._iteration,
         "initialization_complete": method._initialization_complete,
-        "root_candidate_ids": list(method._root_candidate_ids),
         "best_id": method._best_id,
         "consecutive_errors": method._consecutive_errors,
         "search_aborted": method._search_aborted,
@@ -71,10 +66,6 @@ def dump_state(method) -> dict[str, Any]:
 
 
 def load_state(method, payload: Mapping[str, Any]) -> None:
-    if payload.get("version") != CHECKPOINT_VERSION:
-        raise ValueError("unsupported TraceAAD V9.9 checkpoint version")
-    if payload.get("protocol_id") != PROTOCOL_ID:
-        raise ValueError("checkpoint protocol does not match TraceAAD V9.9")
     if payload.get("config") != method.search_configuration():
         raise ValueError("checkpoint configuration does not match")
     method._forest = Forest.from_dict(payload["forest"])
@@ -83,7 +74,6 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     method._n_eval = int(payload["n_eval"])
     method._iteration = int(payload["iteration"])
     method._initialization_complete = bool(payload["initialization_complete"])
-    method._root_candidate_ids = [int(item) for item in payload["root_candidate_ids"]]
     method._best_id = None if payload["best_id"] is None else int(payload["best_id"])
     method._consecutive_errors = int(payload.get("consecutive_errors", 0))
     method._search_aborted = bool(payload.get("search_aborted", False))
@@ -105,4 +95,4 @@ def load_checkpoint(method, path: str | Path) -> Path:
     return checkpoint
 
 
-__all__ = ["CHECKPOINT_VERSION", "dump_state", "load_checkpoint", "save_checkpoint"]
+__all__ = ["dump_state", "load_checkpoint", "save_checkpoint"]
