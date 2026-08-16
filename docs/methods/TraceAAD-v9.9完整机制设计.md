@@ -1,6 +1,6 @@
 # TraceAAD V9.9：轨迹优先的锚点—算子联合决策
 
-> 状态：机制已实现，尚未获得完整搜索结果。[V9.8](TraceAAD-v9.8完整机制设计.md) 仍是已完成 Stage P 的对照版本，已有正式结果仍以 [V9.7](TraceAAD-v9.7完整机制设计.md) 为准。实现入口：`llm4ad/method/traceaad_v9_9/` 与 `experiments.runners.traceaad.run --version v9_9`。
+> 状态：机制已实现，局部协议已收口，尚未获得完整搜索结果。[V9.8](TraceAAD-v9.8完整机制设计.md) 仍是已完成 Stage P 的对照版本，已有正式结果仍以 [V9.7](TraceAAD-v9.7完整机制设计.md) 为准。实现入口：`llm4ad/method/traceaad_v9_9/` 与 `experiments.runners.traceaad.run --version v9_9`。
 > 设计依据：[V9.7 搜索几何诊断](../analysis/TraceAAD-V9.7搜索几何诊断.md)、[V9.8 机制识别实验分析](../analysis/TraceAAD-V9.8机制识别实验分析.md)、[固定锚点单步生成实验](../experiments/TraceAAD-固定锚点单步生成识别实验.md)、[BaSE 阅读笔记](../references/LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md)与[研究认识](../knowledge/研究认识.md)。
 > 版本边界：V9.9 保留“一次选择、一次生成、一次评价、一次更新”的原子循环。在线分配不再使用 root route 或 Explore-defined hypothesis 聚合，而是直接对锚点—算子组合建模。
 
@@ -88,9 +88,7 @@ V9.9 不维护 route 或 hypothesis 级在线信用。root provenance、静态�
 
 ## 3. 初始化
 
-初始化独立生成并真实评价 12 个有效且代码互异的根候选。12 个候选使用相同的从零设计算法指令和不同采样种子；生成某个候选时不展示其他候选、已有搜索历史或全局总结。
-
-按有向质量 $q$ 选择前 8 个候选作为正式根锚点。完全同分时依次偏好代码更短、生成更早的候选。未入选的 4 个只保留评价事实，不进入搜索状态或后续预算竞争。12 次真实评价全部计入正式预算。
+初始化独立生成并真实评价 8 个有效且代码互异的根。8 个根使用相同的从零设计算法指令和不同采样种子；生成某个根时不展示其他候选、已有搜索历史或全局总结。全部 8 个根进入搜索状态，由在线分配决定后续命运。初始化不做质量筛选，也不丢弃任何有效互异根。
 
 初始化不预先规划多种策略，不使用在线聚类、机制标签、embedding 或额外 judge。代码互异只是最低条件；多次独立采样只增加起点多样性的机会，不保证算法簇覆盖。
 
@@ -141,19 +139,19 @@ $$
 
 ### 4.3 距离衰减的 Refine 回撤宽限
 
-记祖先锚点 $b$ 到当前锚点 $a$ 的形成步数为 $d(a,b)$。来时路上的历史质量差按代数距离衰减：
+记祖先锚点 $b$ 到当前锚点 $a$ 的形成步数为 $d(a,b)$，最近 8 个祖先为 $\mathrm{Anc}_8(a)$。来时路上的历史质量差按代数距离衰减，并且只读取与生成上下文相同的轨迹窗口：
 
 $$
 D_h(a)
 =
-\max_{b\prec a}
+\max_{b\in\mathrm{Anc}_8(a)}
 2^{-d(a,b)/h}
 [Q(b)-Q(a)]_+,
 \qquad
 h=4.
 $$
 
-相距 1、4、8 和 18 代的祖先分别保留约 $84\%$、$50\%$、$25\%$ 和 $4.4\%$ 的影响。系统选择距离衰减后最大的质量差，因此最近一个稍好的祖先可以比很远的历史最好祖先更有作用。
+路径短于 8 步时，$\mathrm{Anc}_8(a)$ 就是全部祖先。相距 1、4 和 8 代的祖先分别保留约 $84\%$、$50\%$ 和 $25\%$ 的影响；第 9 代及更远的祖先不进入 $D_h$。系统选择窗口内距离衰减后最大的质量差，因此最近一个稍好的祖先可以比窗口内更远的历史最好祖先更有作用。
 
 Refine 宽限还随当前锚点的 Refine 响应数衰减：
 
@@ -164,9 +162,9 @@ C_R(a)
 {\sqrt{n_R(a)+1}}.
 $$
 
-若当前锚点已不低于所有祖先，或锚点为根，则 $C_R(a)=0$。该项只进入 Refine，避免暂时退步的状态在获得打磨机会前被立即淘汰，同时不鼓励从未站稳的状态继续 Explore。
+若当前锚点已不低于最近 8 个祖先，或锚点为根，则 $C_R(a)=0$。该项只进入 Refine，避免暂时退步的状态在获得打磨机会前被立即淘汰，同时不鼓励从未站稳的状态继续 Explore。
 
-距离使用形成路径上的代数，不使用全局迭代时间。锚点休眠时代码没有变化，算子尝试次数和父代关系都不随等待而遗忘。
+距离使用形成路径上的代数，不使用全局迭代时间。锚点休眠时代码没有变化，算子尝试次数和父代关系都不随等待而遗忘。生成提示若因上下文超限再删更早事件，分配仍使用协议窗口 8，不跟运行时截断耦合。
 
 ### 4.4 两个优先级
 
@@ -205,7 +203,7 @@ $$
 $$
 
 $$
-T=0.5.
+T=0.25.
 $$
 
 定义锚点总权重：
@@ -214,13 +212,19 @@ $$
 A(a)=\bar W_R(a)+\bar W_E(a).
 $$
 
-基础比例只规定两个优先级相同时的算子倾向，不固定实际运行中的算子比例。Explore 优先级比 Refine 高约
+基础比例规定两个优先级相同时的算子倾向。由于 $Q$ 在锚点内抵消，
 
 $$
-0.5\log\frac{0.7}{0.3}\approx0.424
+S_E(a)-S_R(a)=0.25\bigl(U_E(a)-U_R(a)\bigr)-C_R(a)\le 0.25.
 $$
 
-时，两种算子的条件概率相等。
+$T=0.25$ 时，Explore 成为该锚点首选算子需要
+
+$$
+S_E-S_R>0.25\log\frac{0.7}{0.3}\approx0.212.
+$$
+
+因此默认仍是 Refine 主导；当 Refine 已大量尝试、Explore 几乎未试、且没有回撤宽限时，Explore 可以略高于 $50\%$，理论上限约 $53.8\%$。$C_R>0$ 时 Explore 份额被进一步压低。实际运行比例由锚点状态决定，但不在线学习算子回报。
 
 ### 5.2 几何秩锚点分配
 
@@ -350,7 +354,7 @@ Invalid、no-op、祖先返回以及当前父锚点已经连接过的重复程�
 
 ## 9. 预算、停止与最终程序
 
-正式预算为 1000 次真实 evaluator 调用，其中包含初始化 12 次评价。模型响应若没有启动新的真实评价，不消耗 evaluator 预算，但仍增加起始锚点的算子计数。
+正式预算为 1000 次真实 evaluator 调用，其中包含初始化 8 次评价。模型响应若没有启动新的真实评价，不消耗 evaluator 预算，但仍增加起始锚点的算子计数。
 
 搜索不因长期没有改善而提前停止。评价预算耗尽后，从全部已评价的唯一程序中按真实任务目标选择全局最好程序。锚点优先级、算子概率、访问次数和形成深度都不参与最终排序。
 
@@ -359,8 +363,8 @@ Invalid、no-op、祖先返回以及当前父锚点已经连接过的重复程�
 ```text
 Input: task, evaluator, LLM, evaluator budget B = 1000
 
-Independently generate and evaluate 12 valid code-unique root candidates.
-Keep the best 8 by directed quality as root anchors.
+Independently generate and evaluate 8 valid code-unique roots.
+Keep all 8 as root anchors.
 Initialize every root with an empty path and zero Refine/Explore counts.
 
 While evaluator budget remains:
@@ -368,7 +372,7 @@ While evaluator budget remains:
 
     For every anchor:
         Compute operator-specific under-exposure U_R and U_E.
-        Compute distance-decayed Refine grace C_R from its parent path.
+        Compute distance-decayed Refine grace C_R from the recent 8 ancestors.
         Compute S_R and S_E.
         Compute conditional weights W_R and W_E and total weight A.
 
@@ -389,14 +393,13 @@ Return the globally best evaluated unique program by the true objective.
 
 ## 11. 固定参数
 
-- 根候选数：12；
-- 正式根数：8；
+- 独立根数：8，全部保留；
 - 真实评价预算：1000；
-- parent path 最大事件数：8；
+- parent path 与回撤宽限窗口：最近 8 个形成事件 / 祖先；
 - 算子尝试不足权重：$\lambda_U=0.25$；
 - 来时路距离半衰期：$h=4$；
 - Refine/Explore 基础倾向：`0.7/0.3`；
-- 条件权重温度：$T=0.5$；
+- 条件权重温度：$T=0.25$；
 - 锚点排名半衰期：$h_A=5$。
 
 ## 12. 实现不变量
@@ -406,7 +409,7 @@ Return the globally best evaluated unique program by the true objective.
 3. 在线评分只读取当前质量、匹配来时路和当前锚点的算子响应次数。
 4. 已有子代结果、后代成功、route、hypothesis、算法簇与程序复杂度不进入评分。
 5. 所有锚点在几何秩分配中保持非零概率；不得用 Top-K 硬截断替代。
-6. 来时路影响按形成代数衰减；全局等待时间不改变父代关系或算子计数。
+6. 来时路影响按形成代数衰减，并且只读取最近 8 个祖先；全局等待时间不改变父代关系或算子计数。
 7. 当前质量同时进入两个算子优先级，不直接规定算子类型。
 8. Refine 与 Explore 使用相同的 parent-path 上下文，只改变生成意图。
 9. 根没有来时路，不执行强制 bootstrap。
@@ -420,8 +423,20 @@ Return the globally best evaluated unique program by the true objective.
 - 跨边界宽限改为锚点来时路上按代数距离与 Refine 次数共同衰减的回撤宽限；
 - 锚点质量从原始 $q$ 改为当前唯一程序的中秩百分位；
 - 锚点分配从 argmax 改为全量几何秩概率，不设置 Top-K；
-- 初始化从 8 roots 加逐根 bootstrap 改为 12 个独立候选中取前 8，不执行 bootstrap；
-- Refine/Explore 基础倾向仍为 `0.7/0.3`，但实际比例由锚点条件分数动态改变；
-- parent path 与单次 `Idea + Code` 生成协议保持不变。
+- 初始化从 8 roots 加逐根 bootstrap 改为 8 个独立根全部保留，不执行 bootstrap，也不做初始化质量筛选；
+- Refine/Explore 基础倾向仍为 `0.7/0.3`，$T=0.25$ 使 Explore 仅在明显欠尝试且无回撤宽限时可以略高于 $50\%$；
+- 回撤宽限只扫描与 parent path 相同的最近 8 个祖先，$h=4$ 保持不变；
+- parent path 与单次 `Idea + Code` 生成协议保持不变；Refine 与 Explore 继续共享同一轨迹上下文。
+
+## 14. 首轮过程记录，不进入在线决策
+
+同代码经不同形成路径到达时，仍作为不同锚点竞争。几何秩 $h_A=5$ 保持不变。二者都不在首轮改公式。每次选择必须记录：
+
+- 所选锚点的程序副本数 $m(x)=|\{a:x(a)=x\}|$，以及该程序的合计 $\mu$；
+- top-5 / top-10 / top-20 的 $\mu$ 合计，以及 top-10 中的唯一程序数；
+- 副本数大于 1 的程序所占据的总 $\mu$；
+- 选择熵、所选锚点秩、$P(E\mid a)$ 与 $C_R(a)$。
+
+若 top-10 长期只有很少的唯一程序，再考虑把 $\mu(a)$ 按 $m(x(a))$ 摊还；现在不加这条修正。$h_A$ 是否过激进，也只根据实际集中度与被救回路线的最低秩事后判断。
 
 V9.9 是新的联合协议。其未来完整结果只能评价整体搜索行为；在没有单因素对照时，不能把性能变化归因于任一分数项、初始化或概率化规则。
