@@ -112,3 +112,27 @@ def test_obp_best_sample_can_be_truncated_at_the_formal_budget(tmp_path):
 
     assert len(records) == 1
     assert best["sample_order"] == 1
+
+
+def test_best_program_summary_supports_local_traceaad_layout(tmp_path):
+    run_dir = tmp_path / "traceaad_local_run"
+    logs_dir = run_dir / "logs"
+    logs_dir.mkdir(parents=True)
+    (logs_dir / "summary.json").write_text(
+        json.dumps(
+            {
+                "status": "finished",
+                "search_aborted": False,
+                "best_score": -7.0,
+                "best_sample_order": 42,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "best_program.py").write_text("def f():\n    return 1\n", encoding="utf-8")
+
+    best, records = pick_best_sample(run_dir, max_sample_order=1000)
+
+    assert len(records) == 1
+    assert best["sample_order"] == 42
+    assert best["program"].startswith("def f")
