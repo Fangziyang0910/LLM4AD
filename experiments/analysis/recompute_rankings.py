@@ -4,7 +4,7 @@
 与 `docs/experiments/实验总汇.md` 记录的口径一致。规模共 15 个
 （TSP/CVRP/OP 各 3 + OBP 6），每规模在参与方法内排名，并列取平均名次。
 
-整体同场只放入三个代表性 TraceAAD（V8、V9、V9.7）与 5 个外部对照，共 8 方法。
+整体同场放入四个代表性 TraceAAD（V8、V9、V9.7、V9.8）与 5 个外部对照，共 9 方法。
 单版本上场为 1 个 TraceAAD + 5 个外部对照共 6 方法，用于比较全部内部版本。
 
 CVRP 的 MCTS-AHD 官方结果可通过 `--cvrp-mcts batch1|batch2` 切换：
@@ -55,6 +55,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9": ["traceaad_v9/version9/eval_best_20260807_123753"],
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
         "V9.7": ["traceaad_v9_7/eval_best_20260815_parentpath"],
+        "V9.8": ["traceaad_v9_8/eval_best_20260817_v98_complete"],
     },
     "cvrp_aco": {
         "MCTS-AHD": ["mcts_ahd/eval_20260712_all3", "mcts_ahd/eval_best_20260804_test200"],
@@ -72,6 +73,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9": ["traceaad_v9/version9/eval_best_20260807_123753", "traceaad_v9/version9/eval_best_20260804_test200"],
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
         "V9.7": ["traceaad_v9_7/eval_best_20260815_parentpath"],
+        "V9.8": ["traceaad_v9_8/eval_best_20260817_v98_complete"],
     },
     "op_aco": {
         "MCTS-AHD": ["mcts_ahd/eval_best_20260725_104402"],
@@ -89,6 +91,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9": ["traceaad_v9/version9/eval_best_20260807_123753"],
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
         "V9.7": ["traceaad_v9_7/eval_best_20260815_parentpath"],
+        "V9.8": ["traceaad_v9_8/eval_best_20260817_v98_complete"],
     },
     "online_bin_packing": {
         "MCTS-AHD": ["mcts_ahd/eval_best_20260726_111852"],
@@ -106,14 +109,15 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9": ["traceaad_v9/version9/eval_best_20260807_123753"],
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
         "V9.7": ["traceaad_v9_7/eval_best_20260815_parentpath"],
+        "V9.8": ["traceaad_v9_8/eval_best_20260817_v98_complete"],
     },
 }
 
 MCTS_CVRP_BATCH2 = "mcts_ahd/eval_best_20260812_cvrp_local"
 
 BASELINES = ["MCTS-AHD", "PathWise", "EoH", "ReEvo", "CALM"]
-TRACEAAD_ALL = ["V4", "V5", "V6", "V7", "V8", "V8.2", "V8.3", "V9", "V9.6", "V9.7"]
-TRACEAAD_REPRESENTATIVE = ["V8", "V9", "V9.7"]
+TRACEAAD_ALL = ["V4", "V5", "V6", "V7", "V8", "V8.2", "V8.3", "V9", "V9.6", "V9.7", "V9.8"]
+TRACEAAD_REPRESENTATIVE = ["V8", "V9", "V9.7", "V9.8"]
 FIELD = TRACEAAD_REPRESENTATIVE + BASELINES
 ALL_METHODS = TRACEAAD_ALL + BASELINES
 
@@ -195,7 +199,7 @@ def main() -> None:
             rank_sum[m] += r[i]
     field_avg = {m: rank_sum[m] / n_scales for m in FIELD}
 
-    print("=== 1. 代表性方法同场（V8 / V9 / V9.7 + 5 外部对照）===")
+    print("=== 1. 代表性方法同场（V8 / V9 / V9.7 / V9.8 + 5 外部对照）===")
     for m in sorted(field_avg, key=lambda m: field_avg[m]):
         print(f"  {m:<12s} {field_avg[m]:.3f}")
 

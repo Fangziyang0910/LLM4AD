@@ -1,6 +1,6 @@
 # TraceAAD V9.8 机制识别实验
 
-> 状态：Stage P 已完成。P1/P2 批次为 `20260815_221500_v98_p1_p2`，P3 批次为 `20260816_001100_v98_p3`；结果见[机制识别实验分析](../analysis/TraceAAD-V9.8机制识别实验分析.md)。完整 V9.8 的 1000-eval 批次 `20260815_225000` 已在 server3 启动但尚未完成，当前只构成运行事实，不构成性能证据。
+> 状态：Stage P 与正式性能批次均已完成。P1/P2 批次为 `20260815_221500_v98_p1_p2`，P3 批次为 `20260816_001100_v98_p3`；结果见[机制识别实验分析](../analysis/TraceAAD-V9.8机制识别实验分析.md)。正式 1000-eval 批次 `20260815_225000` 已完成四任务三重复搜索和 held-out，结果已集成到四个任务主结果表及跨任务总体、单独排名。
 
 ## 1. 识别对象
 
@@ -60,5 +60,7 @@ P3 只使用 P1/P2 中 `parent_path × Explore` 条件下有效且非 no-op 的 
 - 分析入口：`experiments/analysis/analyze_v98_mechanism_probe.py`；
 - 正式方法入口：`experiments.runners.traceaad.run --version v9_8`。
 - 正式联合批次：`20260815_225000`，四任务 × 三重复，由 `experiments.runners.traceaad.launch_v98` 持续补位。
+
+完整 held-out 工件均在各任务的 `traceaad_v9_8/eval_best_20260817_v98_complete/results.json`：TSP、CVRP、OP、Online Bin Packing 各三重复。四组测试均使用统一 `experiments/evaluate_best.py` 入口和 16 个 worker（OBP 为 6 个尺度、每尺度 5 个实例）；V9.8 run 的 `best_program.py` 与 `logs/summary.json` 由评估辅助层直接读取。
 
 原始工件只保留本地。Stage P 的结论只从冻结后的完整工件形成；正式搜索完成前仍只报告运行状态，不从中间曲线形成性能结论。

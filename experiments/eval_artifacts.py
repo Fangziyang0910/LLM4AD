@@ -1,7 +1,8 @@
 """Shared helpers for locating finished-run summaries and scored samples.
 
-Supports both the profiler layout (`logs/run_summary.json` + `logs/samples/`)
-and TraceAAD V8 layout (`logs/summary.json` + `artifacts/candidates.jsonl`).
+Supports the profiler layout (`logs/run_summary.json` + `logs/samples/`),
+TraceAAD V8/V9 layout (`logs/summary.json` + `artifacts/candidates.jsonl`),
+and the V9.8 explicit `best_program.py` artifact.
 """
 
 from __future__ import annotations
@@ -57,6 +58,26 @@ def load_scored_samples(
                 except json.JSONDecodeError as error:
                     raise RuntimeError(f"Cannot parse {candidates_path}: {error}") from error
                 records.extend(_filter_scored([record], max_sample_order=max_sample_order))
+
+    # V9.8 writes the selected final program explicitly and keeps its score and
+    # response order in the completed run summary, without the legacy candidates
+    # JSONL stream. Treat this as a single auditable scored sample.
+    if not records:
+        best_program_path = run_dir / "best_program.py"
+        summary_path = run_dir / "logs" / "summary.json"
+        if best_program_path.exists() and summary_path.exists():
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            score = summary.get("best_score")
+            sample_order = summary.get("best_response_order")
+            if isinstance(score, (int, float)) and isinstance(sample_order, int):
+                if max_sample_order is None or sample_order <= max_sample_order:
+                    records.append(
+                        {
+                            "program": best_program_path.read_text(encoding="utf-8"),
+                            "score": score,
+                            "sample_order": sample_order,
+                        }
+                    )
 
     return records
 

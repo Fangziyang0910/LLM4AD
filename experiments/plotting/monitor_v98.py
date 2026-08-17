@@ -397,14 +397,33 @@ function render(state) {
   document.getElementById("tasks").innerHTML = html;
 }
 
+window.onerror = function (msg) {
+  const meta = document.getElementById("meta");
+  if (meta) { meta.textContent = "脚本错误: " + msg; meta.classList.add("err"); }
+};
+
+async function fetchState() {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const res = await fetch("/state", { signal: ctrl.signal });
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function tick() {
   try {
-    const res = await fetch("/state");
-    render(await res.json());
+    render(await fetchState());
     document.getElementById("meta").classList.remove("err");
   } catch (e) {
-    document.getElementById("meta").textContent = "连接失败: " + e + "，重试中…";
-    document.getElementById("meta").classList.add("err");
+    const meta = document.getElementById("meta");
+    const hint = e && e.name === "AbortError"
+      ? "拉取超时（8 秒）。若浏览器走了代理，请把 10.150.68.218 加入直连/排除列表后刷新"
+      : "连接失败: " + e;
+    meta.textContent = hint;
+    meta.classList.add("err");
   }
 }
 tick();
@@ -422,6 +441,7 @@ def make_handler(monitor: Monitor) -> type[BaseHTTPRequestHandler]:
                 body = json.dumps(monitor.payload()).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
+                self.send_header("Cache-Control", "no-store")
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
@@ -429,6 +449,7 @@ def make_handler(monitor: Monitor) -> type[BaseHTTPRequestHandler]:
                 body = PAGE.encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
