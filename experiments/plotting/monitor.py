@@ -12,7 +12,10 @@ never touch the filesystem (stdlib only, no dependencies):
 
 Runs are grouped by method version (from the method directory name); the page
 shows one tab per version with evaluation progress and best-so-far evolution.
-Read-only with respect to run directories; safe to start while a batch runs.
+Curves are plotted against evaluator count (the budget axis), smoke run
+directories are skipped, and ETAs use a recent sample window so outage gaps
+around a resume do not deflate the rate. Read-only with respect to run
+directories; safe to start while a batch runs.
 """
 
 from __future__ import annotations
@@ -49,6 +52,11 @@ STATUS_CODE = {"ok": 0, "eval_failed": 1, "parse_failed": 2}
 STALE_AFTER_S = 30 * 60
 
 POLL_INTERVAL_S = 10.0
+# Rate window for ETAs: (n_evals gain) / (wall time) over recent monitor
+# samples, so outage gaps before a resume do not deflate the rate. Falls back
+# to the full-span average until the window holds this much span.
+RATE_WINDOW_S = 3600.0
+RATE_MIN_SPAN_S = 600.0
 
 
 def _f(value) -> float | None:
@@ -92,11 +100,12 @@ class RunState:
                 rep = int(part[3:])
         self.rep = rep if rep is not None else 0
         self.budget = self._read_budget()
-        self.pts: list[list] = []  # [order, fitness, status_code]
+        self.pts: list[list] = []  # [eval_count, fitness, status_code]
         self.n_evals = 0
         self.first_ts: float | None = None
         self.last_ts: float | None = None
         self.best: float | None = None
+        self.samples: list[list] = []  # [timestamp, n_evals] for the rate window
 
     def _read_budget(self) -> int:
         try:
@@ -117,20 +126,17 @@ class RunState:
             with eval_csv.open(encoding="utf-8", newline="") as handle:
                 for row in csv.DictReader(handle):
                     try:
-                        order = int(row.get("response_order") or 0)
+                        count = int(row.get("eval_count") or 0)
                     except ValueError:
                         continue
                     pts.append(
                         [
-                            order,
+                            count,
                             _f(row.get("child_fitness")),
                             STATUS_CODE.get(row.get("status") or "ok", 0),
                         ]
                     )
-                    try:
-                        n_evals = max(n_evals, int(row.get("eval_count") or 0))
-                    except ValueError:
-                        pass
+                    n_evals = max(n_evals, count)
                     row_best = _f(row.get("best_fitness"))
                     if row_best is not None:
                         best = row_best
@@ -157,6 +163,24 @@ class RunState:
             self.last_ts = eval_csv.stat().st_mtime
         except OSError:
             self.last_ts = None
+        now = time.time()
+        self.samples = [s for s in self.samples if now - s[0] <= RATE_WINDOW_S]
+        self.samples.append([now, self.n_evals])
+
+    def _rate_per_hour(self) -> float | None:
+        """Eval rate from recent samples when available, full span otherwise."""
+        now = time.time()
+        window = [s for s in self.samples if now - s[0] <= RATE_WINDOW_S]
+        if len(window) >= 2 and window[-1][0] - window[0][0] >= RATE_MIN_SPAN_S:
+            span_h = (window[-1][0] - window[0][0]) / 3600
+            if span_h > 0:
+                return (window[-1][1] - window[0][1]) / span_h
+            return None
+        if self.first_ts and self.last_ts and self.n_evals >= 2:
+            span_h = (self.last_ts - self.first_ts) / 3600
+            if span_h > 0:
+                return self.n_evals / span_h
+        return None
 
     def _finished(self) -> bool:
         try:
@@ -184,6 +208,7 @@ class RunState:
             "first_ts": self.first_ts,
             "last_ts": self.last_ts,
             "n_evals": self.n_evals,
+            "rate_per_hour": self._rate_per_hour(),
             "best": self.best,
             "pts": self.pts,
         }
@@ -199,6 +224,7 @@ class Monitor:
             for run_dir in sorted(EXPERIMENTS_ROOT.glob(pattern)):
                 if (
                     run_dir.is_dir()
+                    and "smoke" not in run_dir.name
                     and (run_dir / "evaluations.csv").is_file()
                     and run_dir not in self.states
                 ):
@@ -289,7 +315,16 @@ function bestSeries(run) {
   }
   return best;
 }
+function versionKey(v) {
+  const m = /^V(\d+)\.(\d+)$/.exec(v);
+  return m ? [+m[1], +m[2]] : [0, 0];
+}
+function cmpVersion(a, b) {
+  const ka = versionKey(a), kb = versionKey(b);
+  return ka[0] - kb[0] || ka[1] - kb[1] || a.localeCompare(b);
+}
 function ratePerHour(run) {
+  if (run.rate_per_hour != null) return run.rate_per_hour;
   if (!run.first_ts || !run.last_ts || run.n_evals < 2) return null;
   const hours = (run.last_ts - run.first_ts) / 3600;
   return hours > 0 ? run.n_evals / hours : null;
@@ -375,7 +410,7 @@ function render(state) {
   const byVersion = {};
   for (const r of state.runs)
     (byVersion[r.version] = byVersion[r.version] || []).push(r);
-  const versions = Object.keys(byVersion).sort();
+  const versions = Object.keys(byVersion).sort(cmpVersion);
   if (!versions.length) {
     document.getElementById("meta").textContent = "没有匹配的 run";
     return;
