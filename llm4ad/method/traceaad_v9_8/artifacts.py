@@ -49,6 +49,16 @@ BEST_CURVE_CSV_HEADER = [
     "timestamp",
 ]
 
+# Full anchor-table snapshots are written into population.csv every N
+# evaluations instead of embedding the table in every event (see
+# _distill_selection).
+POPULATION_SNAPSHOT_EVERY = 50
+
+# response_finalized fields stored elsewhere: programs/{program_id}.py keeps
+# the code, llm_calls.jsonl keeps the raw response, and the diff is derivable
+# from the two program files.
+_EVENT_REDUNDANT_FIELDS = ("program", "raw_response", "diff")
+
 
 def _now() -> datetime:
     return datetime.now().astimezone()
@@ -66,6 +76,28 @@ def _format_fitness(value: float | None) -> str:
     return "N/A" if value is None else f"{value:.6g}"
 
 
+def _distill_selection(selection: dict[str, Any]) -> dict[str, Any]:
+    """Per-decision selection context without the full anchor table.
+
+    The anchor table grows linearly with the population, so embedding it in
+    every finalized event costs O(n^2) bytes per run; population.csv keeps
+    the full evolution via periodic snapshots instead.
+    """
+    distilled = {k: v for k, v in selection.items() if k != "anchors"}
+    anchors = selection.get("anchors")
+    selected_id = selection.get("selected_anchor_id")
+    if isinstance(anchors, list):
+        distilled["selected_anchor"] = next(
+            (
+                anchor
+                for anchor in anchors
+                if isinstance(anchor, dict) and anchor.get("anchor_id") == selected_id
+            ),
+            None,
+        )
+    return distilled
+
+
 class RunArtifacts:
     def __init__(self, run_dir: str | Path, *, console_output: bool = True) -> None:
         self._run_dir = Path(run_dir)
@@ -79,6 +111,7 @@ class RunArtifacts:
         self._responses: dict[str, str] = {}
         self._evaluation_response_ids: set[str] = set()
         self._best_response_ids: set[str] = set()
+        self._population_writer: csv.writer | None = None
 
         self._open_csv("evaluations", self._run_dir / "evaluations.csv", EVALUATIONS_CSV_HEADER)
         self._open_csv("best_curve", self._run_dir / "best_curve.csv", BEST_CURVE_CSV_HEADER)
@@ -214,6 +247,37 @@ class RunArtifacts:
         )
         path.write_text(header + code.rstrip() + "\n", encoding="utf-8")
 
+    def _snapshot_population(self, row: dict[str, Any]) -> None:
+        selection = row.get("selection")
+        anchors = selection.get("anchors") if isinstance(selection, dict) else None
+        if not isinstance(anchors, list) or not anchors:
+            return
+        eval_count = row.get("eval_count")
+        if not isinstance(eval_count, int):
+            return
+        if eval_count <= 0 or eval_count % POPULATION_SNAPSHOT_EVERY:
+            return
+        keys = sorted(
+            {key for anchor in anchors if isinstance(anchor, dict) for key in anchor}
+        )
+        if self._population_writer is None:
+            path = self._run_dir / "population.csv"
+            exists = path.exists() and path.stat().st_size > 0
+            handle = path.open("a", encoding="utf-8", newline="")
+            writer = csv.writer(handle)
+            if not exists:
+                writer.writerow(["eval_count", "timestamp", *keys])
+                handle.flush()
+            self._files["population"] = handle
+            self._population_writer = writer
+        stamp = _now().isoformat()
+        for anchor in anchors:
+            if isinstance(anchor, dict):
+                self._population_writer.writerow(
+                    [eval_count, stamp] + [anchor.get(key, "") for key in keys]
+                )
+        self._files["population"].flush()
+
     def record_candidate(self, **row: Any) -> None:
         response_id = str(row["response_id"])
         outcome = row.get("outcome")
@@ -225,7 +289,13 @@ class RunArtifacts:
             **row,
             "outcome": outcome_text,
         }
+        for field in _EVENT_REDUNDANT_FIELDS:
+            event_payload.pop(field, None)
+        selection = row.get("selection")
+        if isinstance(selection, dict):
+            event_payload["selection"] = _distill_selection(selection)
         self._append_jsonl("events", event_payload)
+        self._snapshot_population(row)
 
         if row.get("evaluator_called") and response_id not in self._evaluation_response_ids:
             parent_q = row.get("parent_q")
