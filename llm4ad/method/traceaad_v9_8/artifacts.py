@@ -49,10 +49,27 @@ BEST_CURVE_CSV_HEADER = [
     "timestamp",
 ]
 
-# Full anchor-table snapshots are written into population.csv every N
-# evaluations instead of embedding the table in every event (see
+# Full table snapshots from selection are written into population files
+# every N evaluations instead of embedding the tables in every event (see
 # _distill_selection).
 POPULATION_SNAPSHOT_EVERY = 50
+
+# selection keys holding per-row tables that grow with the search, mapped to
+# (row id field, selection id field, distilled event field, snapshot file).
+_SELECTION_TABLES = {
+    "anchors": (
+        "anchor_id",
+        "selected_anchor_id",
+        "selected_anchor",
+        "population.csv",
+    ),
+    "hypotheses": (
+        "hypothesis_id",
+        "selected_hypothesis_id",
+        "selected_hypothesis",
+        "population_hypotheses.csv",
+    ),
+}
 
 # response_finalized fields stored elsewhere: programs/{program_id}.py keeps
 # the code, llm_calls.jsonl keeps the raw response, and the diff is derivable
@@ -77,24 +94,25 @@ def _format_fitness(value: float | None) -> str:
 
 
 def _distill_selection(selection: dict[str, Any]) -> dict[str, Any]:
-    """Per-decision selection context without the full anchor table.
+    """Per-decision selection context without the growing row tables.
 
-    The anchor table grows linearly with the population, so embedding it in
-    every finalized event costs O(n^2) bytes per run; population.csv keeps
-    the full evolution via periodic snapshots instead.
+    The tables grow linearly with the search, so embedding them in every
+    finalized event costs O(n^2) bytes per run; their full evolution is
+    preserved by periodic population snapshots instead.
     """
-    distilled = {k: v for k, v in selection.items() if k != "anchors"}
-    anchors = selection.get("anchors")
-    selected_id = selection.get("selected_anchor_id")
-    if isinstance(anchors, list):
-        distilled["selected_anchor"] = next(
-            (
-                anchor
-                for anchor in anchors
-                if isinstance(anchor, dict) and anchor.get("anchor_id") == selected_id
-            ),
-            None,
-        )
+    distilled = {k: v for k, v in selection.items() if k not in _SELECTION_TABLES}
+    for table, (row_id, id_field, out_field, _) in _SELECTION_TABLES.items():
+        rows = selection.get(table)
+        selected = selection.get(id_field)
+        if isinstance(rows, list):
+            distilled[out_field] = next(
+                (
+                    row
+                    for row in rows
+                    if isinstance(row, dict) and row.get(row_id) == selected
+                ),
+                None,
+            )
     return distilled
 
 
@@ -111,7 +129,7 @@ class RunArtifacts:
         self._responses: dict[str, str] = {}
         self._evaluation_response_ids: set[str] = set()
         self._best_response_ids: set[str] = set()
-        self._population_writer: csv.writer | None = None
+        self._population_writers: dict[str, Any] = {}
 
         self._open_csv("evaluations", self._run_dir / "evaluations.csv", EVALUATIONS_CSV_HEADER)
         self._open_csv("best_curve", self._run_dir / "best_curve.csv", BEST_CURVE_CSV_HEADER)
@@ -186,6 +204,9 @@ class RunArtifacts:
             self._event_ids.add(str(event_id))
 
     def record_request(self, *, response_id: str, **payload: Any) -> None:
+        selection = payload.get("selection")
+        if isinstance(selection, dict):
+            payload["selection"] = _distill_selection(selection)
         self._append_jsonl(
             "events",
             {
@@ -199,6 +220,9 @@ class RunArtifacts:
 
     def record_decision(self, event: str, **payload: Any) -> None:
         response_id = payload.get("response_id", "unknown")
+        selection = payload.get("selection")
+        if isinstance(selection, dict):
+            payload["selection"] = _distill_selection(selection)
         self._append_jsonl(
             "events",
             {
@@ -249,34 +273,38 @@ class RunArtifacts:
 
     def _snapshot_population(self, row: dict[str, Any]) -> None:
         selection = row.get("selection")
-        anchors = selection.get("anchors") if isinstance(selection, dict) else None
-        if not isinstance(anchors, list) or not anchors:
+        if not isinstance(selection, dict):
             return
         eval_count = row.get("eval_count")
         if not isinstance(eval_count, int):
             return
         if eval_count <= 0 or eval_count % POPULATION_SNAPSHOT_EVERY:
             return
-        keys = sorted(
-            {key for anchor in anchors if isinstance(anchor, dict) for key in anchor}
-        )
-        if self._population_writer is None:
-            path = self._run_dir / "population.csv"
-            exists = path.exists() and path.stat().st_size > 0
-            handle = path.open("a", encoding="utf-8", newline="")
-            writer = csv.writer(handle)
-            if not exists:
-                writer.writerow(["eval_count", "timestamp", *keys])
-                handle.flush()
-            self._files["population"] = handle
-            self._population_writer = writer
         stamp = _now().isoformat()
-        for anchor in anchors:
-            if isinstance(anchor, dict):
-                self._population_writer.writerow(
-                    [eval_count, stamp] + [anchor.get(key, "") for key in keys]
-                )
-        self._files["population"].flush()
+        for table, (_, _, _, filename) in _SELECTION_TABLES.items():
+            rows = selection.get(table)
+            if not isinstance(rows, list) or not rows:
+                continue
+            keys = sorted(
+                {key for row_ in rows if isinstance(row_, dict) for key in row_}
+            )
+            writer = self._population_writers.get(table)
+            if writer is None:
+                path = self._run_dir / filename
+                exists = path.exists() and path.stat().st_size > 0
+                handle = path.open("a", encoding="utf-8", newline="")
+                writer = csv.writer(handle)
+                if not exists:
+                    writer.writerow(["eval_count", "timestamp", *keys])
+                    handle.flush()
+                self._files[f"population:{table}"] = handle
+                self._population_writers[table] = writer
+            for entry in rows:
+                if isinstance(entry, dict):
+                    writer.writerow(
+                        [eval_count, stamp] + [entry.get(key, "") for key in keys]
+                    )
+            self._files[f"population:{table}"].flush()
 
     def record_candidate(self, **row: Any) -> None:
         response_id = str(row["response_id"])
