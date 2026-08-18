@@ -145,7 +145,7 @@ Refine/Explore 二分把连续的修改尺度压成两个端点，且两端共�
 
 - V9.9 批次 `20260816_154200`：`experiments/<task>/traceaad_v9_9/v9_9_*_rep*/logs/events.jsonl`、`logs/summary.json`。
 - V9.7 批次 `20260814_150927`：`experiments/<task>/traceaad_v9_7/v9_7_*_rep*/artifacts/decisions.jsonl`、`artifacts/candidates.jsonl`。
-- held-out 与快照：各任务[结果汇总](../experiments/实验总汇.md)任务页。
+- held-out 与快照：[实验结果](../experiments/实验结果.md)。
 - 四版本性能对照：[V9.9 与 V9.8–V9.7–V9 综合对比](TraceAAD-V9.9与V9.8-V9.7-V9综合对比.md)、[V9.9 研究逻辑](TraceAAD-V9.9研究逻辑、设计优点与警惕事项.md)。
 
 相关文档：
