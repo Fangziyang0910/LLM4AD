@@ -56,6 +56,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
         "V9.7": ["traceaad_v9_7/eval_best_20260815_parentpath"],
         "V9.8": ["traceaad_v9_8/eval_best_20260817_v98_complete"],
+        "V9.9": ["traceaad_v9_9/eval_best_20260817_v99_complete"],
     },
     "cvrp_aco": {
         "MCTS-AHD": ["mcts_ahd/eval_20260712_all3", "mcts_ahd/eval_best_20260804_test200"],
@@ -74,6 +75,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
         "V9.7": ["traceaad_v9_7/eval_best_20260815_parentpath"],
         "V9.8": ["traceaad_v9_8/eval_best_20260817_v98_complete"],
+        "V9.9": ["traceaad_v9_9/eval_best_20260818_v99_complete"],
     },
     "op_aco": {
         "MCTS-AHD": ["mcts_ahd/eval_best_20260725_104402"],
@@ -92,6 +94,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
         "V9.7": ["traceaad_v9_7/eval_best_20260815_parentpath"],
         "V9.8": ["traceaad_v9_8/eval_best_20260817_v98_complete"],
+        "V9.9": ["traceaad_v9_9/eval_best_20260817_v99_complete"],
     },
     "online_bin_packing": {
         "MCTS-AHD": ["mcts_ahd/eval_best_20260726_111852"],
@@ -110,13 +113,14 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
         "V9.7": ["traceaad_v9_7/eval_best_20260815_parentpath"],
         "V9.8": ["traceaad_v9_8/eval_best_20260817_v98_complete"],
+        "V9.9": ["traceaad_v9_9/eval_best_20260816_v99"],
     },
 }
 
 MCTS_CVRP_BATCH2 = "mcts_ahd/eval_best_20260812_cvrp_local"
 
 BASELINES = ["MCTS-AHD", "PathWise", "EoH", "ReEvo", "CALM"]
-TRACEAAD_ALL = ["V4", "V5", "V6", "V7", "V8", "V8.2", "V8.3", "V9", "V9.6", "V9.7", "V9.8"]
+TRACEAAD_ALL = ["V4", "V5", "V6", "V7", "V8", "V8.2", "V8.3", "V9", "V9.6", "V9.7", "V9.8", "V9.9"]
 TRACEAAD_REPRESENTATIVE = ["V8", "V9", "V9.7", "V9.8"]
 FIELD = TRACEAAD_REPRESENTATIVE + BASELINES
 ALL_METHODS = TRACEAAD_ALL + BASELINES
