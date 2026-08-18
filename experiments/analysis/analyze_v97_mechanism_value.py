@@ -685,7 +685,6 @@ def plot_curves(result: dict[str, Any]) -> None:
     fig.legend(handles, labels, loc="lower center", ncol=6, frameon=False, fontsize=8)
     fig.tight_layout(rect=(0, 0.07, 1, 1))
     fig.savefig(OUT / "fig1_best_so_far.png", dpi=200)
-    fig.savefig(OUT / "fig1_best_so_far.pdf")
     plt.close(fig)
 
 
@@ -718,7 +717,6 @@ def plot_efficiency(result: dict[str, Any]) -> None:
     axes[0].legend(frameon=False, fontsize=8)
     fig.tight_layout()
     fig.savefig(OUT / "fig2_refresh_timing.png", dpi=200)
-    fig.savefig(OUT / "fig2_refresh_timing.pdf")
     plt.close(fig)
 
 
@@ -749,7 +747,6 @@ def plot_generation(result: dict[str, Any]) -> None:
     axes[0].legend(frameon=False, fontsize=8)
     fig.tight_layout()
     fig.savefig(OUT / "fig3_generation_stats.png", dpi=200)
-    fig.savefig(OUT / "fig3_generation_stats.pdf")
     plt.close(fig)
 
 
@@ -779,7 +776,6 @@ def plot_lineage(result: dict[str, Any]) -> None:
     axes[0].legend(frameon=False, fontsize=8)
     fig.tight_layout()
     fig.savefig(OUT / "fig4_lineage_and_routes.png", dpi=200)
-    fig.savefig(OUT / "fig4_lineage_and_routes.pdf")
     plt.close(fig)
 
 
@@ -814,7 +810,6 @@ def plot_probe(result: dict[str, Any]) -> None:
     axes[0].legend(frameon=False, fontsize=8)
     fig.tight_layout()
     fig.savefig(OUT / "fig5_probe_behavior.png", dpi=200)
-    fig.savefig(OUT / "fig5_probe_behavior.pdf")
     plt.close(fig)
 
 

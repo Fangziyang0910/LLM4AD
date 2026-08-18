@@ -183,7 +183,7 @@ def load_curve(run: Path, method: str) -> np.ndarray:
 
 
 def plot_task(task: str) -> Path:
-    out = ROOT / "docs" / "experiments" / task
+    out = ROOT / "docs" / "experiments" / "figures"
     out.mkdir(parents=True, exist_ok=True)
 
     fig, ax = plt.subplots(figsize=(6.75, 3.95))
@@ -244,9 +244,8 @@ def plot_task(task: str) -> Path:
         columnspacing=1.3,
         labelspacing=0.45,
     )
-    png = out / "搜索曲线.png"
+    png = out / f"{task}.png"
     fig.savefig(png, dpi=300, bbox_inches="tight")
-    fig.savefig(out / "搜索曲线.pdf", bbox_inches="tight")
     plt.close(fig)
     return png
 
