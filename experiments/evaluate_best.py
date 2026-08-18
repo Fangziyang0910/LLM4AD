@@ -438,7 +438,19 @@ def _run_batch(
         key = spec["unit_key"](unit)
         rows: list[dict[str, Any]] = []
         for row in run_records:
-            result = spec["eval_unit"](row["program"], unit, timeout, workers)
+            try:
+                result = spec["eval_unit"](row["program"], unit, timeout, workers)
+            except Exception as exc:
+                rows.append(
+                    {
+                        "run_name": row["run_name"],
+                        "best_sample_order": row["best_sample_order"],
+                        "best_operator": row["best_operator"],
+                        "eval_failed": str(exc),
+                        "program_path": row["program_path"],
+                    }
+                )
+                continue
             if isinstance(result, tuple) and len(result) == 3:
                 score, seconds, values = result
             else:
@@ -459,13 +471,14 @@ def _run_batch(
                 entry["bins_used_mean"] = -score
             rows.append(entry)
 
-        objectives = [entry["eval_objective"] for entry in rows]
-        scores = [entry["eval_score"] for entry in rows]
+        ok_rows = [entry for entry in rows if "eval_objective" in entry]
+        objectives = [entry["eval_objective"] for entry in ok_rows]
+        scores = [entry["eval_score"] for entry in ok_rows]
         container[key] = {
             "results": rows,
             "summary": {
                 "num_runs": len(rows),
-                "num_successful_eval_runs": len(rows),
+                "num_successful_eval_runs": len(ok_rows),
                 "mean_eval_score": _mean_std(scores)["mean"],
                 "sample_std_eval_score": _mean_std(scores)["sample_std"],
                 "mean_eval_objective": _mean_std(objectives)["mean"],
