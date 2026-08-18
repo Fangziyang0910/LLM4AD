@@ -40,7 +40,7 @@ TraceAAD 的两个核心研究对象是**轨迹条件生成**与**轨迹感知�
 | `docs/analysis/` | 版本机制分析与一次性诊断报告，注明所依据的批次与时点；结论回写 research 或 knowledge |
 | `docs/knowledge/研究认识.md` | 跨问题、跨版本可复用的科学认识，未验证判断标记 `[待验证]` |
 | `docs/methods/` | 有效版本的完整规范（V9-Core、V9.5–V9.7）；V2–V9.4 压缩为《历史机制探索》一份 |
-| `docs/experiments/` | 实验协议、method × task 覆盖状态与已完成的权威结果，按 task 聚合 |
+| `docs/experiments/` | 实验协议、覆盖状态与四任务权威结果（`实验结果.md` 统一承载），搜索曲线图在 `figures/` 以 task 命名 |
 | `docs/references/` | 论文与原始实现调研 |
 | `docs/worklog/` | 日期、事件和链接，不复制分析过程 |
 
