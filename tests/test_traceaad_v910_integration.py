@@ -230,6 +230,43 @@ def test_regressed_child_stays_pending_until_window_depth_is_reached() -> None:
     assert action.settled_order == 5
 
 
+def test_response_age_settlement_closes_unvisited_child() -> None:
+    forest = Forest(maximize=True)
+    root = forest.add_root(program_id=_program(forest, "root", 5.0, 1).id, order=1)
+    action_id = forest.next_action_id()
+    child = forest.add_child(
+        parent_id=root.id,
+        program_id=_program(forest, "child", 4.0, 2).id,
+        action_id=action_id,
+        order=2,
+    )
+    action = _action(
+        action_id,
+        anchor_id=root.id,
+        child_id=child.id,
+        program_id=child.program_id,
+        order=2,
+    )
+    forest.add_action(action)
+
+    assert settle_pending_actions(
+        forest, now_order=5, child_window=3, settlement_mode="response_age"
+    ) == (action,)
+    assert action.result == 0
+    assert action.status is ActionStatus.SETTLED
+
+
+def test_uniform_allocation_ignores_sampled_arm_weights() -> None:
+    forest = Forest(maximize=True)
+    forest.add_root(program_id=_program(forest, "root1", 1.0, 1).id, order=1)
+    forest.add_root(program_id=_program(forest, "root2", 2.0, 2).id, order=2)
+
+    choice = select(forest, seed=11, order=3, allocation_mode="uniform")
+
+    assert len({round(item.omega, 12) for item in choice.arms}) == 1
+    assert sum(item.omega for item in choice.arms) == pytest.approx(1.0)
+
+
 def test_descendant_recovery_inside_the_window_settles_success() -> None:
     forest = Forest(maximize=True)
     root = forest.add_root(program_id=_program(forest, "root", 5.0, 1).id, order=1)

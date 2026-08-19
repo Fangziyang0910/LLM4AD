@@ -138,6 +138,9 @@ class RunSpec:
     allocation_policy: str = V98AllocationPolicy.FULL.value
     max_responses: int = V98_DEFAULT_MAX_RESPONSES
     max_consecutive_errors: int = V98_DEFAULT_MAX_CONSECUTIVE_ERRORS
+    v910_child_window: int | None = None
+    v910_settlement_mode: str = "depth"
+    v910_allocation_mode: str = "thompson"
     experiments_root: Path = EXPERIMENTS_ROOT
 
     @property
@@ -176,6 +179,9 @@ def make_run_spec(
     allocation_policy: str = V98AllocationPolicy.FULL.value,
     max_responses: int = V98_DEFAULT_MAX_RESPONSES,
     max_consecutive_errors: int = V98_DEFAULT_MAX_CONSECUTIVE_ERRORS,
+    v910_child_window: int | None = None,
+    v910_settlement_mode: str = "depth",
+    v910_allocation_mode: str = "thompson",
     experiments_root: Path = EXPERIMENTS_ROOT,
 ) -> RunSpec:
     profile = resolve_backend(backend, base_url, model, no_proxy)
@@ -219,6 +225,9 @@ def make_run_spec(
         allocation_policy=allocation_policy,
         max_responses=max_responses,
         max_consecutive_errors=max_consecutive_errors,
+        v910_child_window=v910_child_window,
+        v910_settlement_mode=v910_settlement_mode,
+        v910_allocation_mode=v910_allocation_mode,
         experiments_root=experiments_root.resolve(),
     )
     if spec.budget <= 0:
@@ -329,6 +338,13 @@ def build_method(
             seed=spec.seed,
             max_responses=spec.max_responses,
             max_consecutive_errors=spec.max_consecutive_errors,
+            child_window=(
+                V910_CHILD_WINDOW
+                if spec.v910_child_window is None
+                else spec.v910_child_window
+            ),
+            settlement_mode=spec.v910_settlement_mode,
+            allocation_mode=spec.v910_allocation_mode,
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
         )
@@ -729,7 +745,13 @@ def _v910_method_params(spec: RunSpec) -> dict[str, object]:
         "refine_prior": V910_REFINE_PRIOR,
         "explore_prior": V910_EXPLORE_PRIOR,
         "recency_half_life": V910_RECENCY_HALF_LIFE,
-        "child_window": V910_CHILD_WINDOW,
+        "child_window": (
+            V910_CHILD_WINDOW
+            if spec.v910_child_window is None
+            else spec.v910_child_window
+        ),
+        "settlement_mode": spec.v910_settlement_mode,
+        "allocation_mode": spec.v910_allocation_mode,
         "parent_chain_window": V910_PARENT_CHAIN_WINDOW,
         "parent_chain_half_life": V910_PARENT_CHAIN_HALF_LIFE,
         "max_responses": spec.max_responses,
@@ -825,6 +847,17 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=V98_DEFAULT_MAX_CONSECUTIVE_ERRORS,
     )
+    parser.add_argument("--v910-child-window", type=int)
+    parser.add_argument(
+        "--v910-settlement-mode",
+        choices=("depth", "response_age"),
+        default="depth",
+    )
+    parser.add_argument(
+        "--v910-allocation-mode",
+        choices=("thompson", "uniform"),
+        default="thompson",
+    )
     return parser
 
 
@@ -849,6 +882,9 @@ def spec_from_args(args: argparse.Namespace) -> RunSpec:
         allocation_policy=args.allocation_policy,
         max_responses=args.max_responses,
         max_consecutive_errors=args.max_consecutive_errors,
+        v910_child_window=args.v910_child_window,
+        v910_settlement_mode=args.v910_settlement_mode,
+        v910_allocation_mode=args.v910_allocation_mode,
     )
 
 

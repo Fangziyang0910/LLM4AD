@@ -99,7 +99,13 @@ def start_quality(forest: Forest, action: Action) -> float:
     return forest.get_program(anchor.program_id).q
 
 
-def settle_pending_actions(forest: Forest, *, now_order: int) -> tuple[Action, ...]:
+def settle_pending_actions(
+    forest: Forest,
+    *,
+    now_order: int,
+    child_window: int = CHILD_WINDOW,
+    settlement_mode: str = "depth",
+) -> tuple[Action, ...]:
     """Settle pending actions against their current short-delay observation window.
 
     Settlement is one-way: an action settles at most once, either as a success
@@ -108,6 +114,10 @@ def settle_pending_actions(forest: Forest, *, now_order: int) -> tuple[Action, .
     without such a descendant. Childless actions (invalid, no-op, ancestral
     return, repeated connection) settle as immediate failures.
     """
+    if child_window < 0:
+        raise ValueError("child_window must be non-negative")
+    if settlement_mode not in {"depth", "response_age"}:
+        raise ValueError(f"unknown settlement_mode: {settlement_mode}")
     settled: list[Action] = []
     for action in forest.actions():
         if action.status is not ActionStatus.PENDING:
@@ -117,15 +127,22 @@ def settle_pending_actions(forest: Forest, *, now_order: int) -> tuple[Action, .
             action.settle(0, now_order)
             settled.append(action)
             continue
-        best_q, depth = forest.window_stats(action.child_id, max_depth=CHILD_WINDOW)
+        best_q, depth = forest.window_stats(action.child_id, max_depth=child_window)
         action.observed_depth = depth
         action.window_best_q = best_q
         if best_q > start_quality(forest, action):
             action.settle(1, now_order)
-            settled.append(action)
-        elif depth >= CHILD_WINDOW:
+        elif (
+            depth >= child_window
+            or (
+                settlement_mode == "response_age"
+                and now_order - action.order >= child_window
+            )
+        ):
             action.settle(0, now_order)
-            settled.append(action)
+        else:
+            continue
+        settled.append(action)
     return tuple(settled)
 
 
@@ -191,7 +208,11 @@ def sample_index(weights: Sequence[float], draw: float) -> int:
 
 
 def score_arms(
-    forest: Forest, *, now_order: int, seed: int | None
+    forest: Forest,
+    *,
+    now_order: int,
+    seed: int | None,
+    allocation_mode: str = "thompson",
 ) -> tuple[ArmScore, ...]:
     """Sample one Beta draw per joint arm and normalize into the joint allocation."""
     arms: list[ArmScore] = []
@@ -213,8 +234,14 @@ def score_arms(
                     theta=beta_quantile(draw, posterior.a_post, posterior.b_post),
                 )
             )
+    if allocation_mode not in {"thompson", "uniform"}:
+        raise ValueError(f"unknown allocation_mode: {allocation_mode}")
     total = math.fsum(item.theta for item in arms)
-    if not math.isfinite(total) or total <= 0.0:
+    if allocation_mode == "uniform":
+        even = 1.0 / len(arms)
+        for item in arms:
+            item.omega = even
+    elif not math.isfinite(total) or total <= 0.0:
         even = 1.0 / len(arms)
         for item in arms:
             item.omega = even
@@ -306,9 +333,17 @@ def allocation_diagnostics(
     }
 
 
-def select(forest: Forest, *, seed: int | None, order: int) -> Choice:
+def select(
+    forest: Forest,
+    *,
+    seed: int | None,
+    order: int,
+    allocation_mode: str = "thompson",
+) -> Choice:
     """Jointly select one anchor-intent arm for the response at the given order."""
-    arms = score_arms(forest, now_order=order, seed=seed)
+    arms = score_arms(
+        forest, now_order=order, seed=seed, allocation_mode=allocation_mode
+    )
     if not arms:
         raise ValueError("cannot allocate budget without an anchor")
     ordered = sorted(arms, key=lambda item: (item.anchor_id, item.intent.value))

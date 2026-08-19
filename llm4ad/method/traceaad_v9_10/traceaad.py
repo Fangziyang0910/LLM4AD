@@ -61,6 +61,9 @@ class TraceAADV910:
         seed: int | None = 0,
         max_responses: int = DEFAULT_MAX_RESPONSES,
         max_consecutive_errors: int = DEFAULT_MAX_CONSECUTIVE_ERRORS,
+        child_window: int = CHILD_WINDOW,
+        settlement_mode: str = "depth",
+        allocation_mode: str = "thompson",
         checkpoint_dir: str | Path | None = None,
         resume_from: str | Path | None = None,
         debug_mode: bool = False,
@@ -71,6 +74,12 @@ class TraceAADV910:
             raise ValueError("context_limit must be explicitly positive")
         if max_responses <= 0 or max_consecutive_errors <= 0:
             raise ValueError("response and error safety limits must be positive")
+        if child_window < 0:
+            raise ValueError("child_window must be non-negative")
+        if settlement_mode not in {"depth", "response_age"}:
+            raise ValueError(f"unknown settlement_mode: {settlement_mode}")
+        if allocation_mode not in {"thompson", "uniform"}:
+            raise ValueError(f"unknown allocation_mode: {allocation_mode}")
         if (
             evaluation.use_numba_accelerate
             or evaluation.use_protected_div
@@ -97,6 +106,9 @@ class TraceAADV910:
         self._seed = seed
         self._max_responses = max_responses
         self._max_consecutive_errors = max_consecutive_errors
+        self._child_window = child_window
+        self._settlement_mode = settlement_mode
+        self._allocation_mode = allocation_mode
         self._checkpoint_dir = None if checkpoint_dir is None else Path(checkpoint_dir)
         llm.debug_mode = debug_mode
 
@@ -129,7 +141,9 @@ class TraceAADV910:
             "refine_prior": REFINE_PRIOR,
             "explore_prior": EXPLORE_PRIOR,
             "recency_half_life": RECENCY_HALF_LIFE,
-            "child_window": CHILD_WINDOW,
+            "child_window": self._child_window,
+            "settlement_mode": self._settlement_mode,
+            "allocation_mode": self._allocation_mode,
             "parent_chain_window": PARENT_CHAIN_WINDOW,
             "parent_chain_half_life": PARENT_CHAIN_HALF_LIFE,
             "max_responses": self._max_responses,
@@ -151,7 +165,12 @@ class TraceAADV910:
                 return
 
             while self._has_budget() and self._can_respond():
-                choice = select(self._forest, seed=self._seed, order=self._n_candidates + 1)
+                choice = select(
+                    self._forest,
+                    seed=self._seed,
+                    order=self._n_candidates + 1,
+                    allocation_mode=self._allocation_mode,
+                )
                 prompt = self._prompt(choice.anchor_id, choice.intent)
                 self._request(
                     prompt,
@@ -526,7 +545,12 @@ class TraceAADV910:
         newly_settled = (
             ()
             if action is None
-            else settle_pending_actions(self._forest, now_order=pending.order)
+            else settle_pending_actions(
+                self._forest,
+                now_order=pending.order,
+                child_window=self._child_window,
+                settlement_mode=self._settlement_mode,
+            )
         )
         if pending.stage == "search" and pending.iteration is not None:
             self._iteration = max(self._iteration, pending.iteration + 1)
