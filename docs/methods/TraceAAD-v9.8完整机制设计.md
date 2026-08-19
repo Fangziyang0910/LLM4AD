@@ -1,8 +1,8 @@
 # TraceAAD V9.8：逐步轨迹分配与假设引导生成
 
-> 状态：机制已实现并通过四任务真实 smoke；Stage P 机制识别实验已完成，1000-eval 正式批次 `20260815_225000` 已启动但尚未完成。[V9.7](TraceAAD-v9.7完整机制设计.md) 仍是当前已有正式结果的版本。
-> 设计依据：正统 V9.7 批次 `20260814_150927` 的[搜索几何诊断](../analysis/TraceAAD-V9.7搜索几何诊断.md)、[机制有效性分析](../analysis/TraceAAD-V9.7机制有效性与任务异质性.md)、固定锚点来时路实验、[BaSE 阅读笔记](../references/LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md)与[研究认识](../knowledge/研究认识.md)。
-> 版本边界：V9.8 保留“一次选择、一次生成、一次评价、一次更新”的原子循环。此前设计中的 protected probe、ticket、measurement block、三通道固定循环和 `1+3+2+2` 不再属于在线方法。
+> 机制识别（Stage P）与正式搜索的结论见 [V9.8 机制诊断](../analysis/TraceAAD-V9.8机制诊断.md)。
+> 设计依据：正统 V9.7 的[V9.7 机制诊断](../analysis/TraceAAD-V9.7机制诊断.md)、固定锚点来时路实验、[BaSE 阅读笔记](../references/LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md)与[研究认识](../knowledge/研究认识.md)。
+> 版本边界：V9.8 保留“一次选择、一次生成、一次评价、一次更新”的原子循环。
 > 实现入口：`llm4ad/method/traceaad_v9_8/` 与 `experiments.runners.traceaad.run --version v9_8`。P1/P2 使用逐响应生成—评价流水线，协议见 [V9.8 机制识别实验](../experiments/TraceAAD-V9.8机制识别实验.md)。
 
 ## 1. 核心问题与设计收缩
@@ -455,8 +455,7 @@ Allocation 实验固定由 Stage P 确认的 prompt、operator 定义、root 生
 ## 相关文档
 
 - [TraceAAD V9.7 完整机制](TraceAAD-v9.7完整机制设计.md)
-- [V9.7 搜索几何诊断](../analysis/TraceAAD-V9.7搜索几何诊断.md)
-- [V9.7 机制有效性与任务异质性](../analysis/TraceAAD-V9.7机制有效性与任务异质性.md)
+- [V9.7 机制诊断](../analysis/TraceAAD-V9.7机制诊断.md)
 - [固定锚点单步生成识别实验](../experiments/TraceAAD-固定锚点单步生成识别实验.md)
 - [研究认识](../knowledge/研究认识.md)
 - [L0 状态表示](../research/L0-状态表示.md)

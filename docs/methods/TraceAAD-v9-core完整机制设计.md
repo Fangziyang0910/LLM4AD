@@ -1,6 +1,6 @@
 # TraceAAD V9-Core：真实匹配历史与完整树搜索
 
-> 状态：历史版本，不定义当前方法。正式结果见[实验总汇](../experiments/实验总汇.md)，机制诊断见[版本谱系与实验事实](../analysis/TraceAAD-版本实验事实与机制诊断.md)。当前方法为 [V9.7](TraceAAD-v9.7完整机制设计.md)。
+> 历史版本。机制诊断见[V1–V9.4 机制诊断](../analysis/TraceAAD-V1-V9.4机制诊断.md)。
 
 ## 1. 科学目标
 

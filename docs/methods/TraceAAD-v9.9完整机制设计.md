@@ -1,8 +1,8 @@
 # TraceAAD V9.9：轨迹优先的锚点—算子联合决策
 
-> 状态：机制已实现，局部协议已收口，尚未获得完整搜索结果。[V9.8](TraceAAD-v9.8完整机制设计.md) 仍是已完成 Stage P 的对照版本，已有正式结果仍以 [V9.7](TraceAAD-v9.7完整机制设计.md) 为准。实现入口：`llm4ad/method/traceaad_v9_9/` 与 `experiments.runners.traceaad.run --version v9_9`。
-> 设计依据：[V9.7 搜索几何诊断](../analysis/TraceAAD-V9.7搜索几何诊断.md)、[V9.8 机制识别实验分析](../analysis/TraceAAD-V9.8机制识别实验分析.md)、[固定锚点单步生成实验](../experiments/TraceAAD-固定锚点单步生成识别实验.md)、[BaSE 阅读笔记](../references/LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md)与[研究认识](../knowledge/研究认识.md)。
-> 版本边界：V9.9 保留“一次选择、一次生成、一次评价、一次更新”的原子循环。在线分配不再使用 root route 或 Explore-defined hypothesis 聚合，而是直接对锚点—算子组合建模。
+> 实现入口：`llm4ad/method/traceaad_v9_9/` 与 `experiments.runners.traceaad.run --version v9_9`。过程诊断见 [V9.9 机制诊断](../analysis/TraceAAD-V9.9机制诊断.md)。
+> 设计依据：[V9.7 机制诊断](../analysis/TraceAAD-V9.7机制诊断.md)、[V9.8 机制诊断](../analysis/TraceAAD-V9.8机制诊断.md)、[固定锚点单步生成实验](../experiments/TraceAAD-固定锚点单步生成识别实验.md)、[BaSE 阅读笔记](../references/LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md)与[研究认识](../knowledge/研究认识.md)。
+> 版本边界：V9.9 保留“一次选择、一次生成、一次评价、一次更新”的原子循环，在线分配直接对锚点—算子组合建模。
 
 ## 1. 核心设计
 
@@ -439,4 +439,4 @@ Return the globally best evaluated unique program by the true objective.
 
 若 top-10 长期只有很少的唯一程序，再考虑把 $\mu(a)$ 按 $m(x(a))$ 摊还；现在不加这条修正。$h_A$ 是否过激进，也只根据实际集中度与被救回路线的最低秩事后判断。
 
-V9.9 是新的联合协议。其未来完整结果只能评价整体搜索行为；在没有单因素对照时，不能把性能变化归因于任一分数项、初始化或概率化规则。
+V9.9 是新的联合协议，完整结果评价整体搜索行为。
