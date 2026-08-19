@@ -18,8 +18,9 @@ V9.8 分两个证据层：Stage P 固定锚点机制识别（P1/P2 History × In
 
 #### 2.1 P1/P2：History × Intent
 
-- 72 个固定锚点，覆盖四任务、low / middle / high 三个质量层；
-- 每个锚点三次重复、四个条件，共 864 个响应；
+- 锚点抽自正统 V9.7 批次 `20260814_150927` 的三重复事实层，四任务按有向质量分成 low / middle / high 三层，每层 6 个代码互异锚点；
+- $2\times2$ 配对设计（History：code-only / parent-path × Intent：Refine / Explore），同一 `anchor × replicate` block 的四个条件共享采样 seed，条件顺序按预注册旋转并在 task × 质量层内打散；
+- 72 个固定锚点，每个锚点三次重复、四个条件，共 864 个响应；
 - 216 个 `anchor × replicate` block 全部包含四条件，每条件恰好 216 条；
 - 864 个唯一 trial ID 与 864 个原始模型调用一一对应；
 - 746 个有效响应，118 个无效响应，850 次真实 evaluator 调用；
@@ -159,7 +160,9 @@ P3 中 internal gain 与 parent recovery 的分离说明，“新方向内部还
 - P1/P2 协议：`experiments/generation_probe/20260815_221500_v98_p1_p2/probe_config.json`；
 - P1/P2 冻结分析：`experiments/generation_probe/20260815_221500_v98_p1_p2/analysis/summary.json`；
 - P3 协议：`experiments/generation_probe/20260816_001100_v98_p3/probe_config.json`；
-- P3 冻结分析：`experiments/generation_probe/20260816_001100_v98_p3/analysis/summary.json`。
+- P3 冻结分析：`experiments/generation_probe/20260816_001100_v98_p3/analysis/summary.json`；
+- 探针入口：`experiments.runners.traceaad.v98_mechanism_probe`（P1/P2）与 `experiments.runners.traceaad.v98_continuation_probe`（P3），分析入口 `experiments/analysis/analyze_v98_mechanism_probe.py`；
+- 正式 V9.8 批次 `20260815_225000`（四任务 × 三重复）由 `experiments.runners.traceaad.launch_v98` 调度，方法入口 `experiments.runners.traceaad.run --version v9_8`。
 
 ## TraceAAD V9.8 完整版本复盘与机制有效性分析
 

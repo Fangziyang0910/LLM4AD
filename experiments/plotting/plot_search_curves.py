@@ -1,6 +1,6 @@
-"""Plot per-task search curves for the 8-method comparison figure.
+"""Plot per-task search curves for the 7-method comparison figure.
 
-Methods: TraceAAD V9 / V9.6 / V9.7 (ours) + MCTS-AHD, PathWise, EoH, ReEvo, CALM.
+Methods: TraceAAD V9 / V9.7 (ours) + MCTS-AHD, PathWise, EoH, ReEvo, CALM.
 Each task gets one figure with best-so-far curves (mean + min-max band over 3 runs).
 """
 
@@ -25,10 +25,6 @@ METHODS = {
     "TraceAAD V9": {
         "color": "#D62728",
         "band": "#F5A9A9",
-    },
-    "TraceAAD V9.6": {
-        "color": "#2CA02C",
-        "band": "#B7DFB5",
     },
     "TraceAAD V9.7": {
         "color": "#FF7F0E",
@@ -62,7 +58,6 @@ BUDGET = 1000
 RUN_GLOBS = {
     "tsp_construct": {
         "TraceAAD V9": ["traceaad_v9/version9/*_v9_*_rep*"],
-        "TraceAAD V9.6": ["traceaad_v9_6/v9_6_20260812_191011_*_rep*"],
         "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "MCTS-AHD": ["mcts_ahd/20260709_2135*"],
         "PathWise": ["pathwise/20260730_1755_*_pw_rep*"],
@@ -72,7 +67,6 @@ RUN_GLOBS = {
     },
     "cvrp_aco": {
         "TraceAAD V9": ["traceaad_v9/version9/*_v9_*_rep*"],
-        "TraceAAD V9.6": ["traceaad_v9_6/v9_6_20260812_191011_*_rep*"],
         "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "MCTS-AHD": [
             "mcts_ahd/20260812_113425_cvrp_local_rep1",
@@ -86,7 +80,6 @@ RUN_GLOBS = {
     },
     "op_aco": {
         "TraceAAD V9": ["traceaad_v9/version9/*_v9_*_rep*"],
-        "TraceAAD V9.6": ["traceaad_v9_6/v9_6_20260812_191011_*_rep*"],
         "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "MCTS-AHD": ["mcts_ahd/*mctsahd_rep*"],
         "PathWise": ["pathwise/20260730_1755_*_pw_rep*"],
@@ -96,7 +89,6 @@ RUN_GLOBS = {
     },
     "online_bin_packing": {
         "TraceAAD V9": ["traceaad_v9/version9/*_v9_*_rep*"],
-        "TraceAAD V9.6": ["traceaad_v9_6/v9_6_20260812_191011_*_rep*"],
         "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "MCTS-AHD": ["mcts_ahd/*mctsahd_rep*"],
         "PathWise": ["pathwise/20260730_1755_*_pw_rep*"],
@@ -163,7 +155,7 @@ def _generic_points(run: Path) -> list[tuple[int, float]]:
 
 
 def load_curve(run: Path, method: str) -> np.ndarray:
-    if method in ("TraceAAD V9", "TraceAAD V9.6", "TraceAAD V9.7"):
+    if method in ("TraceAAD V9", "TraceAAD V9.7"):
         pts = _v9_points(run)
     elif method == "CALM":
         pts = _calm_points(run)
