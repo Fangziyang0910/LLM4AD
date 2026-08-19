@@ -98,6 +98,6 @@ V9.7 的优势至少来自已被单步证据支持的 parent-path 生成条件�
 
 ## 6. 数据来源
 
-- held-out 数字来自 [`实验结果.md`](../experiments/实验结果.md)；跨任务排名和比较协议来自 [`实验总汇.md`](../experiments/实验总汇.md)。
+- held-out 数字来自 [`实验结果.md`](../experiments/实验结果.md)；比较协议来自 [`实验配置.md`](../experiments/配置.md)。
 - 过程诊断来自 V9.10 checkpoint 的真实 `forest`，由 [`analyze_v910_failure.py`](../../experiments/analysis/analyze_v910_failure.py) 重放；它支持激活和删失判断，不单独证明因果收益。
 - 当前所有跨版本结果仍是描述性三重复均值与运行间变异，不构成显著性检验。

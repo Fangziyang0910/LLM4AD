@@ -1,7 +1,7 @@
 # TraceAAD V9.9：轨迹优先的锚点—算子联合决策
 
 > 实现入口：`llm4ad/method/traceaad_v9_9/` 与 `experiments.runners.traceaad.run --version v9_9`。过程诊断见 [V9.9 机制诊断](../analysis/TraceAAD-V9.9机制诊断.md)。
-> 设计依据：[V9.7 机制诊断](../analysis/TraceAAD-V9.7机制诊断.md)、[V9.8 机制诊断](../analysis/TraceAAD-V9.8机制诊断.md)、[固定锚点单步生成实验](../experiments/TraceAAD-固定锚点单步生成识别实验.md)、[BaSE 阅读笔记](../references/LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md)与[研究认识](../knowledge/研究认识.md)。
+> 设计依据：[V9.7 机制诊断](../analysis/TraceAAD-V9.7机制诊断.md)、[V9.8 机制诊断](../analysis/TraceAAD-V9.8机制诊断.md)、[固定锚点单步生成实验](../analysis/TraceAAD-固定锚点单步生成识别实验.md)、[BaSE 阅读笔记](../references/LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md)与[研究认识](../knowledge/研究认识.md)。
 > 版本边界：V9.9 保留“一次选择、一次生成、一次评价、一次更新”的原子循环，在线分配直接对锚点—算子组合建模。
 
 ## 1. 核心设计

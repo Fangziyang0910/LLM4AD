@@ -1,7 +1,7 @@
 # TraceAAD V9.10：轨迹条件生成与折扣 Thompson 联合分配
 
 > 结果未显示相对 V9/V9.7 的正向净收益，过程诊断见 [V9.10 机制诊断](../analysis/TraceAAD-V9.10机制诊断.md)。实现入口：`llm4ad/method/traceaad_v9_10/` 与 `experiments.runners.traceaad.run --version v9_10`（批量启动 `experiments.runners.traceaad.launch_v910`）。V9.10 以 [V9.9](TraceAAD-v9.9完整机制设计.md) 为直接基线，保留锚点、父子形成路径和 Refine/Explore 原子循环。
-> 设计依据：[V9.9 机制诊断](../analysis/TraceAAD-V9.9机制诊断.md)、[固定锚点单步生成实验](../experiments/TraceAAD-固定锚点单步生成识别实验.md)、[BaSE 笔记](../references/LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md)、[A2DEPT 笔记](../references/LLM自动算法设计方法阅读笔记/33-A2DEPT.md)与[研究认识](../knowledge/研究认识.md)。
+> 设计依据：[V9.9 机制诊断](../analysis/TraceAAD-V9.9机制诊断.md)、[固定锚点单步生成实验](../analysis/TraceAAD-固定锚点单步生成识别实验.md)、[BaSE 笔记](../references/LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md)、[A2DEPT 笔记](../references/LLM自动算法设计方法阅读笔记/33-A2DEPT.md)与[研究认识](../knowledge/研究认识.md)。
 
 ## 1. 核心判断
 

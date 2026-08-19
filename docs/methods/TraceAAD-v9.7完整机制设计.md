@@ -2,7 +2,7 @@
 
 本文定义 TraceAAD V9.7 的搜索表示、预算分配、父代来时路上下文与生成协议。过程问题按层次见 [research 索引](../research/README.md)。
 
-> 版本边界：正统 V9.7 是仅父代来时路的完整协议，进入[实验总汇](../experiments/实验总汇.md)第 4.1–4.2 节；V9.7-batch 使用 V9.6 的 `formation + direct attempts` 历史上下文，结果在各任务页。
+> 版本边界：正统 V9.7 是仅父代来时路的完整协议；V9.7-batch 使用 V9.6 的 `formation + direct attempts` 历史上下文，结果在[归档实验结果](../experiments/归档实验结果.md)。
 
 ## 1. 设计立场
 
