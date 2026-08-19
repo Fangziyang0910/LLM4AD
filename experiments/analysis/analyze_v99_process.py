@@ -1,6 +1,6 @@
 """V9.9 (batch 20260816_154200) process diagnostics over logs/events.jsonl.
 
-Reproduces the numbers cited in docs/analysis/TraceAAD-V9.9过程诊断与探索利用机制反思.md:
+Reproduces the numbers cited in docs/analysis/TraceAAD-V9.9机制诊断.md:
 
   A. allocation geometry by phase (entropy, top5/10/20 mu, selected rank, ...)
   B. operator share by phase + P(E|a) + C_R activation among refine selections
