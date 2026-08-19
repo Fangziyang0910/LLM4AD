@@ -353,19 +353,26 @@ function overviewRow(run) {
     `<td>${eta}</td></tr>`;
 }
 
+function pct5(sorted) {
+  const pos = (sorted.length - 1) * 0.05, i = Math.floor(pos), j = Math.ceil(pos);
+  return i === j ? sorted[i] : sorted[i] + (sorted[j] - sorted[i]) * (pos - i);
+}
 function overlayChart(runs) {
   const w = 940, h = 230, padL = 60, padR = 14, padT = 12, padB = 24;
-  let lo = Infinity, hi = -Infinity;
-  const series = runs.map(r => {
-    const b = bestSeries(r);
-    for (const v of b) if (v != null) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
-    return { r, b };
-  });
-  if (!isFinite(lo)) return "<div style='color:#bbb;padding:26px;text-align:center'>尚无有效评价</div>";
+  const series = runs.map(r => ({ r, b: bestSeries(r) }));
+  const all = [];
+  for (const { b } of series)
+    for (const v of b) if (v != null) all.push(v);
+  if (!all.length) return "<div style='color:#bbb;padding:26px;text-align:center'>尚无有效评价</div>";
+  all.sort((x, y) => x - y);
+  // 下界取第 5 百分位：warmup 首评可能差一个量级，取绝对最小值会把整条
+  // 曲线压成贴顶平线（与 plot_search_curves.py 的裁剪口径一致）；
+  // 低于下界的点钳制在底边而不是画出坐标区外。
+  let lo = pct5(all), hi = all[all.length - 1];
   const pad = (hi - lo) * 0.07 || 0.1; lo -= pad; hi += pad;
   const iw = w - padL - padR, ih = h - padT - padB;
   const sx = v => padL + v / BUDGET * iw;
-  const sy = v => padT + (1 - (v - lo) / (hi - lo)) * ih;
+  const sy = v => padT + (1 - Math.max(0, Math.min(1, (v - lo) / (hi - lo)))) * ih;
   let g = "";
   for (const t of [0, 250, 500, 750, 1000]) {
     g += `<line x1="${sx(t)}" y1="${padT}" x2="${sx(t)}" y2="${padT + ih}" stroke="#f2f2f2"/>` +
