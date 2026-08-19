@@ -1,7 +1,7 @@
 # v4flash 模型批次对比结果（独立记录）
 
 > 本页记录 **deepseek-v4-flash**（opencode.ai zen/go 网关，`https://opencode.ai/zen/go/v1`）作为搜索 LLM 的独立实验批次。
-> 与正式主实验（Qwen3.6-27B，3 次重复）**分开记录**：模型不同，不进入正式结果页与跨任务排名。
+> 与正式主实验（Qwen3.6-27B，3 次重复）**分开记录**：模型不同。
 > 正式口径见 [实验总汇](实验总汇.md) 与 [实验配置](配置.md)。
 
 ## 1. 批次设置
@@ -21,9 +21,9 @@
 
 **备注（LLM 网关调用）**：opencode.ai zen/go 网关是 DeepSeek 官方 API 风格（响应含 `reasoning_content`）。关闭思考必须发送 `thinking: {"type": "disabled"}`；`enable_thinking=False` 或 `chat_template_kwargs.enable_thinking=False` 不被识别，会导致模型全量思考、`content` 为空。本项目客户端已修改 `llm4ad/tools/llm/llm_api_openai.py` 的 `_merged_extra_body`，三种格式同时发送以兼容本网关与其他 vLLM 后端。
 
-## 2. 完成状态
+## 2. 批次构成
 
-两轮共 40 个实验（5 方法 × 4 task × 2 轮）搜索与测试集评估均已完成。
+两轮共 40 个实验（5 方法 × 4 task × 2 轮），搜索与测试集评估齐全。
 
 | 方法 | 每轮搜索状态 | 测试评估 |
 | --- | --- | --- |
