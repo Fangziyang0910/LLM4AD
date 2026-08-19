@@ -97,6 +97,19 @@ from llm4ad.method.traceaad_v9_11 import (
     RunArtifacts as V911RunArtifacts,
     TraceAADV911,
 )
+from llm4ad.method.traceaad_v9_12 import (
+    CHECKPOINT_VERSION as V912_CHECKPOINT_VERSION,
+    EXPLORE_PROBABILITY_MAX as V912_EXPLORE_PROBABILITY_MAX,
+    EXPLORE_PROBABILITY_MIN as V912_EXPLORE_PROBABILITY_MIN,
+    INITIAL_ROOT_COUNT as V912_INITIAL_ROOT_COUNT,
+    LOGICAL_MODEL_NAME as V912_LOGICAL_MODEL_NAME,
+    MAX_HISTORY_EVENTS as V912_MAX_HISTORY_EVENTS,
+    MIN_EXPLORE_REMAINING_EVALS as V912_MIN_EXPLORE_REMAINING_EVALS,
+    PROGRESS_WINDOW as V912_PROGRESS_WINDOW,
+    PROTOCOL_ID as V912_PROTOCOL_ID,
+    RunArtifacts as V912RunArtifacts,
+    TraceAADV912,
+)
 
 from .._common import (
     BACKENDS,
@@ -113,7 +126,7 @@ from .._common import (
 )
 
 VersionName = Literal[
-    "v4", "v5", "v8", "v9", "v9_7", "v9_8", "v9_9", "v9_10", "v9_11"
+    "v4", "v5", "v8", "v9", "v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12"
 ]
 
 VERSIONS: tuple[VersionName, ...] = (
@@ -126,6 +139,7 @@ VERSIONS: tuple[VersionName, ...] = (
     "v9_9",
     "v9_10",
     "v9_11",
+    "v9_12",
 )
 V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
 V9_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V9_OPERATORS]
@@ -218,6 +232,8 @@ def make_run_spec(
             if version == "v9_10"
             else V911_INITIAL_ROOT_COUNT
             if version == "v9_11"
+            else V912_INITIAL_ROOT_COUNT
+            if version == "v9_12"
             else 10
             if version in {"v8", "v9"}
             else 30
@@ -229,7 +245,7 @@ def make_run_spec(
         action_max_tokens=action_max_tokens,
         context_token_limit=(
             32768
-            if context_token_limit is None and version in {"v9_7", "v9_8", "v9_9", "v9_10", "v9_11"}
+            if context_token_limit is None and version in {"v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12"}
             else 24576
             if context_token_limit is None
             else context_token_limit
@@ -270,6 +286,8 @@ def make_run_spec(
             raise ValueError("V9.10 safety limits must be positive")
     if spec.version == "v9_11" and spec.n_init != V911_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.11 requires exactly eight initial roots")
+    if spec.version == "v9_12" and spec.n_init != V912_INITIAL_ROOT_COUNT:
+        raise ValueError("TraceAAD V9.12 requires exactly eight initial roots")
     if spec.eval_workers is not None and spec.eval_workers <= 0:
         raise ValueError("eval_workers must be positive")
     if spec.llm_output_tokens <= 0:
@@ -380,6 +398,20 @@ def build_method(
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
         )
+    if spec.version == "v9_12":
+        return TraceAADV912(
+            llm=llm,
+            evaluation=evaluation,
+            artifacts=V912RunArtifacts(run_dir=run_dir),
+            budget=spec.budget,
+            n_roots=spec.n_init,
+            max_tokens=spec.llm_output_tokens,
+            context_limit=spec.context_token_limit,
+            max_history=V912_MAX_HISTORY_EVENTS,
+            seed=spec.seed,
+            resume_from=resume_from,
+            checkpoint_dir=run_dir / "checkpoints",
+        )
     common = {
         "llm": llm,
         "evaluation": evaluation,
@@ -461,13 +493,11 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     actual = {key: payload.get(key) for key in expected}
     if actual != expected:
         raise ValueError(f"resume config mismatch: expected {expected}, found {actual}")
-    if spec.version not in {
-        "v8", "v9", "v9_7", "v9_8", "v9_9", "v9_10", "v9_11"
-    }:
+    if spec.version not in {"v8", "v9", "v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12"}:
         return
     _, task_kwargs = build_task(spec.task, spec.eval_workers)
     normalized_task_kwargs = json.loads(json.dumps(task_kwargs, sort_keys=True))
-    if spec.version in {"v9_7", "v9_8", "v9_9", "v9_10", "v9_11"}:
+    if spec.version in {"v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12"}:
         if spec.version == "v9_7":
             expected_method_params = _v97_method_params(spec)
         elif spec.version == "v9_8":
@@ -476,6 +506,8 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
             expected_method_params = _v99_method_params(spec)
         elif spec.version == "v9_11":
             expected_method_params = _v911_method_params(spec)
+        elif spec.version == "v9_12":
+            expected_method_params = _v912_method_params(spec)
         else:
             expected_method_params = _v910_method_params(spec)
         expected_protocol = {
@@ -601,6 +633,8 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         method_params = _v910_method_params(spec)
     elif spec.version == "v9_11":
         method_params = _v911_method_params(spec)
+    elif spec.version == "v9_12":
+        method_params = _v912_method_params(spec)
     elif spec.version in {"v8", "v9"}:
         method_params = {
             "protocol_id": (
@@ -675,7 +709,7 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         "task_eval": task_kwargs,
         "method_params": method_params,
     }
-    if spec.version in {"v9_7", "v9_8", "v9_9", "v9_10", "v9_11"}:
+    if spec.version in {"v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12"}:
         payload["generator_environment"] = _versioned_generator_environment(spec)
         if spec.version == "v9_8":
             payload["implementation"] = _v98_implementation_identity()
@@ -699,6 +733,8 @@ def _versioned_logical_model_name(spec: RunSpec) -> str:
         return V910_LOGICAL_MODEL_NAME
     if spec.version == "v9_11":
         return V911_LOGICAL_MODEL_NAME
+    if spec.version == "v9_12":
+        return V912_LOGICAL_MODEL_NAME
     if spec.version == "v9_9":
         return V99_LOGICAL_MODEL_NAME
     return V98_LOGICAL_MODEL_NAME if spec.version == "v9_8" else V97_LOGICAL_MODEL_NAME
@@ -813,6 +849,27 @@ def _v911_method_params(spec: RunSpec) -> dict[str, object]:
         "default_intent": "refine",
         "explore_trigger": "strict_global_stagnation",
         "landing_responses": 1,
+    }
+
+
+def _v912_method_params(spec: RunSpec) -> dict[str, object]:
+    return {
+        "protocol_id": V912_PROTOCOL_ID,
+        "checkpoint_schema_version": V912_CHECKPOINT_VERSION,
+        "budget": spec.budget,
+        "n_roots": spec.n_init,
+        "max_history": V912_MAX_HISTORY_EVENTS,
+        "maximize": True,
+        "max_tokens": spec.llm_output_tokens,
+        "context_limit": spec.context_token_limit,
+        "seed": spec.seed,
+        "progress_window": V912_PROGRESS_WINDOW,
+        "explore_probability_min": V912_EXPLORE_PROBABILITY_MIN,
+        "explore_probability_max": V912_EXPLORE_PROBABILITY_MAX,
+        "min_explore_remaining_evals": V912_MIN_EXPLORE_REMAINING_EVALS,
+        "default_intent": "refine",
+        "operator_policy": "recent_segment_refine_failure_evidence",
+        "explore_followup_responses": 1,
     }
 
 

@@ -1,149 +1,79 @@
-# TraceAAD V9.12：轨迹视图切换下的去锚探索
+# TraceAAD V9.12：进展条件的精炼与探索
 
-> V9.12 以 [V9.11](TraceAAD-v9.11完整机制设计.md) 为直接基线。设计依据是 [V9.11 机制诊断](../analysis/TraceAAD-V9.11机制诊断.md) 与[研究认识](../knowledge/研究认识.md)。本文是下一轮实现规范。
+> V9.12 以 [V9.11](TraceAAD-v9.11完整机制设计.md) 为直接基线。它保留 V9.11 的轨迹、路线—锚点选择、Refine / Explore 生成和一次探索后续改进，只把“何时使用 Explore”从固定停滞触发改为基于当前这段轨迹进展的概率选择。设计依据是 [研究认识](../knowledge/研究认识.md)、[V9.8 机制诊断](../analysis/TraceAAD-V9.8机制诊断.md) 和 [V9.11 机制诊断](../analysis/TraceAAD-V9.11机制诊断.md)。
 
 ## 1. 核心判断
 
-V9.11 已经让 Explore 在停滞时稳定发生，并让每个有效 Explore child 获得一次紧邻 Landing。当前主要瓶颈已经从“是否给探索机会”前移到“探索实际提出了什么方向”：Explore 经常改变静态机制宏簇，但即时质量很低，一次 Landing 虽经常改善 child，却很少恢复到 Explore 前父代。
+LLM 在自动算法设计中通常更擅长沿着一个已经可行的方向做局部改进。结构性探索不是每隔固定次数都应该发生的动作：一个方向正在持续产生改进时，继续 Refine 更符合有限预算的目标；沿当前方向继续 Refine 已经多次不能改善时，才逐渐提高 Explore 的概率。
 
-这说明增加探索次数或盲目延长着陆都不够直接。若 Explore 没有进入高价值算法簇，更多发展预算只会更深地开发错误方向。V9.12 因此只改变生成侧的一个条件：
+V9.12 因此只引入一个主要机制：
 
-**Refine 继续读取父代改进来时路；Explore 暂时不读取显式来时路，只根据任务、当前算法和真实 fitness 提出替代方向；Explore child 的紧邻 Landing 再恢复读取包含这次结构变化的完整来时路。**
+**根据当前这段来时路上的 Refine 进展，动态调整 Refine / Explore 的选择概率。**
 
-完整节律为：
+搜索节律由证据自然形成：
 
 ```text
-有全局进展
-    -> 带父代来时路 Refine
+当前方向缺少失败积累，或最近 Refine 仍在改善
+    -> 主要采用 Refine
 
-连续 H=8 个响应无严格全局突破
-    -> 不展示父代来时路的 Explore
+最近 Refine 多次不能改善
+    -> 提高 Explore 概率
 
-Explore 形成有效 child
-    -> 恢复父代来时路的紧邻 Refine Landing
+Explore 形成有效新程序
+    -> 紧邻再给一次 Refine，避免第一版改写立即失去机会
 
-Landing 完成
-    -> 回到 V9.11 的常规选择与体制切换
+后续
+    -> 回到普通概率选择
 ```
 
-一句话概括为：**忘记来时路以离开当前方向，恢复来时路以形成新方向。**
+V9.12 不设“连续 H 次没有全局突破就必须 Explore”的硬规则。全局最好没有变化只是一个结果，不足以单独决定当前方向已经成熟。
 
 ## 2. 直觉与反直觉
 
-父代改进来时路已经显示出稳定的 Refine 单步价值。它告诉模型当前算法如何形成，哪些结构应被延续，以及下一处局部修改应与什么既有决策保持一致。因此它是一个有效的发展先验。
+直觉是：仍然有效的改进方向值得继续投入。
 
-同一份信息对 Explore 未必仍是帮助。Explore 被要求改变核心决策原则，但提示同时反复展示旧方向如何成功形成，会把生成分布拉回旧方向附近。模型在语言上声称“探索”，代码上仍可能只做较大的同族改写。历史越清楚，局部延续越容易；这对 Refine 是优势，对跨簇提议可能成为设计固着。
+反直觉是：探索不一定发生在全局停滞之后，而应由当前方向的局部改进是否仍然有效决定；全局最好暂时没有变化时，只要当前方向仍能产生局部改善，就不应强行打断它。
 
-V9.12 的直觉是：不同生成意图需要不同信息。它的反直觉是：**轨迹感知不等于始终展示更多轨迹；主动隐藏与当前决策冲突的历史，也是一种轨迹政策。**
+V9.12 也不把前期、中期、后期写成固定阶段。八个独立根已经提供了初始方向覆盖，之后的集中和重新开放由实际形成过程决定。
 
-V9.12 并不让 Explore 从零设计算法。当前完整代码已经包含历史形成的结果，任务与 fitness 仍然提供明确边界。去掉的是显式形成叙事，而不是当前算法事实。
+## 3. 研究对象
 
-## 3. 唯一新增机制：按意图切换轨迹视图
+### 3.1 轨迹条件生成
 
-### 3.1 轨迹事实保持完整
-
-V9.12 继续保存全部在线事实：程序、父子锚点、形成意图、声明 Idea、实际修改、真实评价、形成顺序以及 invalid、no-op、重复和祖先返回响应。
-
-设锚点 $a$ 的最近 8 条父链形成事件为
+给定锚点 $a$ 的当前程序 $x(a)$、匹配的父代形成路径 $h(a)$ 和生成意图 $o$，模型生成一个完整候选：
 
 $$
-\tau_8(a)
-=
-\operatorname{Tail}_8(\tau(a)).
+x_{t+1}
+\sim
+P(\cdot\mid x(a_t),h(a_t),o_t).
 $$
 
-V9.12 不删除或改写这些事实，只根据本轮生成意图构造不同的模型可见视图。
+Refine 负责延续和修正当前方向；Explore 负责改变核心决策原则或主要搜索结构。两种意图都继续读取当前锚点的父代来时路。V9.12 不采用“Explore 隐藏历史”的上下文改动，因为现有固定锚点结果没有证明父代来时路稳定伤害 Explore。
 
-### 3.2 Refine 视图
+### 3.2 轨迹感知的计算分配
 
-普通 Develop 与 Landing 都使用 Refine。其生成条件为
+每份预算仍然回答两个问题：从哪个形成路径中的锚点继续，以及在该锚点采用哪一种生成意图。
 
-$$
-h_R(a)=\tau_8(a).
-$$
+路线仍只表示根来源，锚点仍表示程序与形成路径的联合状态。路线和锚点不是在线算法簇标签；算法族和簇结构只作为离线解释对象，不进入 V9.12 控制。
 
-模型读取：
+## 4. 初始化与普通选择
 
-1. 任务定义与执行契约；
-2. 当前程序的真实 fitness；
-3. 当前完整代码；
-4. 最近 8 条父链形成事件，每条包含 `Intent + Idea + Compact Actual Change + Result`；
-5. Refine 意图与统一输出契约。
+初始化和 V9.11 相同：
 
-Refine 负责延续当前核心原则、利用形成历史中的有效结构，并完成一次聚焦改进。上下文超限时仍从最早形成事件开始删除。
-
-### 3.3 Explore 视图
-
-Explore 的显式轨迹视图为空：
-
-$$
-h_E(a)=\varnothing.
-$$
-
-模型只读取：
-
-1. 任务定义与执行契约；
-2. 当前程序的真实 fitness；
-3. 当前完整代码；
-4. Explore 意图与统一输出契约。
-
-Explore 提示要求模型识别当前算法所依赖的一个核心决策原则，并用不同原则、搜索结构或信息利用方式替换它。最终仍只输出一条简短 `Idea` 和一份完整 `Code`，不额外输出分析、反思、算法簇标签或证据。
-
-Explore 不读取：
-
-- 父代形成事件；
-- 当前锚点已有子代尝试；
-- 其他路线代码或结果；
-- 全局 Idea Bank；
-- 在线算法簇标签；
-- 模型生成的失败总结或局限摘要。
-
-因此 V9.12 不新增摘要器、judge、第二次模型调用或额外 token 阶段。视图切换是确定性的上下文选择，不是新的生成动作。
-
-### 3.4 Landing 重新形成记忆
-
-若 Explore 从 $a_p$ 形成有效 child $a_c$，形成事件
-
-$$
-e_E=\langle a_p,E,a_c,\mathrm{Idea},\mathrm{Change},\Delta q,\mathrm{Outcome},t\rangle
-$$
-
-立即进入 $\tau_8(a_c)$。紧邻 Landing 满足
-
-$$
-a_{t+1}=a_c,
-\qquad
-o_{t+1}=R,
-\qquad
-h_{t+1}=h_R(a_c).
-$$
-
-因此 Landing 能看到 Explore 实际改变了什么、结果如何，并在新形成的事实基础上继续修正。Explore 阶段对旧历史的去锚不会破坏新方向自己的来时路；一旦新方向产生，它立即重新成为可被后续生成利用的轨迹事实。
-
-## 4. 保持不变的 V9.11 骨架
-
-V9.12 除轨迹视图外，完整继承 V9.11。
-
-### 4.1 初始化
-
-1. 独立生成 8 个有效且代码互异的根；
-2. 每个根执行一次带父代来时路的 Refine bootstrap；
+1. 独立生成 8 个代码互异且有效的根；
+2. 每个根进行一次 Refine bootstrap；
 3. 用有效 bootstrap 的一步有向质量变化绝对值中位数估计共享尺度 $s_0$；
-4. 根与 bootstrap 的真实 evaluator 调用计入 1000 次正式预算。
+4. 根和 bootstrap 的真实 evaluator 调用计入 1000 次预算。
 
-### 4.2 常规路线与锚点选择
-
-路线仍只表示根来源，不被解释为算法簇。路线优先级为
+没有待处理探索后续改进时，路线与锚点选择保持 V9.11：
 
 $$
 S_t^{route}(r)
 =
 q_t^*(r)
 +
-\frac{s_0}{\sqrt{N_t(r)+1}}.
+\frac{s_0}{\sqrt{N_t(r)+1}},
 $$
-
-在选中路线内，锚点优先级为
 
 $$
 S_t^{anchor}(a)
@@ -153,200 +83,228 @@ q(x(a))
 \frac{s_0}{\sqrt{n_t(a)+1}}.
 $$
 
-分数仍只读取已经达到的质量和已经获得的生成机会，不加入趋势、成熟度、算法簇价值或长期信用。
+选择分数只表达当前质量和已获得的机会。V9.12 不在路线或锚点选择中加入趋势、算法簇、长期信用或后验。
 
-### 4.3 停滞触发
+这里也划清两个决策的职责：路线—锚点选择已经回答“哪个程序值得获得下一次预算”，算子选择只回答“对这个程序继续 Refine，还是尝试改变方向”。因此 V9.12 不再把当前程序的全局质量排名重复写入算子概率。否则，同一程序即使自身没有变化，也会因为后来产生了更多低质量程序而被动提高排名并改变 Explore 概率。
 
-记已完成正式搜索响应数为 $m$，最近一次严格全局突破和最近一次 Explore 的序号分别为 `last_progress_order` 与 `last_explore_order`。下一轮意图保持：
+### 4.1 代表性工作的机制取舍
+
+代表性方法提供了四种不同处理方式。EoH 用固定的探索与开发算子组合；HiFo-Prompt 根据全局停滞和文本多样性阈值在离散模式间切换；A2DEPT 为每个节点维护由父子结果更新的算子权重，并以 softmax 保留所有算子的非零概率；BaSE 在线读取不同轨迹的进展，把预算转向仍能改善的轨迹，但不改变轨迹内部的局部生成规则。
+
+V9.12 只吸收其中共同而朴素的原则：算子不应固定分配，最近进展应改变下一步概率，同时任何算子都不应被永久关闭。它不采用全局阈值硬切换，不累计带幅度的长期权重，也不引入第二套 bandit。TraceAAD 已经有路线—锚点分配，当前缺口只是让生成意图随所选轨迹的真实进展变化。
+
+## 5. 进展条件的算子概率
+
+### 5.1 当前这段来时路
+
+一次有效 Explore child 表示核心决策原则或主要结构发生了有意改变。Explore 之前的 Refine 成败描述旧方向，不能继续决定新方向的算子概率。因此，从当前锚点沿父链向上找到最近一次由 Explore 形成的锚点；该锚点至当前锚点构成当前这段来时路。若父链中没有 Explore，则从根开始。
+
+这只是按真实生成意图划分进展统计的作用范围，不是在线算法簇识别。Explore 没有形成有效 child 时也不会开启新段。
+
+### 5.2 Refine 是否仍然有效
+
+父子形成边只保存成功形成的程序，不能完整表达 Refine 是否仍然有效。V9.12 因此读取完整响应事实：从当前这段来时路中的锚点发出的 Refine 响应中，按发生时间取最近 $L=8$ 次。探索后的固定一次 Refine 是新方向的第一条真实进展观测，同样进入统计；旧方向的响应已经由 Explore 边界自然隔开，不需要再作特殊排除。
+
+对其中第 $i$ 次 Refine 响应定义：
 
 $$
-o_{m+1}
-=
+y_i=
 \begin{cases}
-R, & \mathrm{landing\_anchor}\neq\varnothing,\\
-E, & m-\max(\mathrm{last\_progress\_order},\mathrm{last\_explore\_order})\ge 8
-     \ \land\ B_{\mathrm{remain}}\ge 2,\\
-R, & \text{otherwise}.
+1, & \text{the response forms a child with } q_{child}>q_{start},\\
+0, & \text{otherwise}.
 \end{cases}
 $$
 
-严格全局突破才重置进展时钟；plateau 和同分择简不重置。每次完整 Explore 响应都会重置 Explore 时钟，避免失败响应触发连续 Explore。
+invalid、no-op、重复、祖先返回、评价失败、持平和退步都取 $y_i=0$；没有获得完整模型响应的传输失败不进入统计。
 
-### 4.4 一次 Landing
+定义 Refine 失败证据：
 
-有效 Explore child 仍固定获得一次紧邻 Refine。Landing 完成后无条件清除资格，无论它形成改进、持平、退步、invalid、no-op 或重复响应。Landing 不修改路线或锚点分数，也不产生长期特殊身份。
+$$
+F_t(a)
+=
+\frac{1}{L}
+\sum_{i=1}^{k(a)}(1-y_i),
+\qquad
+L=8,
+\qquad
+0\le k(a)\le L.
+$$
 
-## 5. 为什么当前不延长 Landing
+未出现的观测不补作失败。因而一次失败只贡献 $1/8$，连续获得足够多的不改善响应后 $F_t(a)$ 才逐渐接近 1；最近 Refine 重新产生改善时，旧失败会随着滚动窗口移出。
 
-V9.11 中 Landing 经常改善 Explore child，却很少恢复到 Explore 前父代。这说明一次 Landing 不是充分条件，但尚不能推出“固定三步”或“固定五步”就是正确机制。
+这个信号只回答“沿当前这段来时路继续 Refine 最近是否有效”，不估计算法方向的价值、未来收益或长期潜力。窗口长度与默认展示的 8 条形成历史一致，不引入第二个时间尺度。
 
-多步 Landing 需要回答何时停止。固定长度会继续用同一个 horizon 处理不同任务和算法簇；恢复父代才停止会在坏提议上消耗大量预算；只要局部改善就继续则可能长期发展一个上限较低的簇。三种规则都引入了新的分配判断，而当前最上游的问题仍是 Explore 是否提议了值得发展的方向。
+### 5.3 唯一的概率规则
 
-V9.12 因此先提高替代方向的提议质量，同时保留一次 Landing 作为最小兑现机会。若去锚 Explore 能产生更好的 child 或更有发展性的 child，一次 Landing 的价值也会随之改变。只有在该生成条件下仍稳定出现“命中好方向但一步无法兑现”，才有理由设计新的 episode 终止规则。
+V9.12 使用固定的稀疏探索下限和有限的探索上限：
 
-## 6. 为什么不加入“失败与局限摘要”
+$$
+p_E(a)
+=
+p_{min}
++
+(p_{max}-p_{min})F_t(a),
+$$
 
-“当前代码 + 已知失败或局限的压缩视图”是一个合理候选，但不是 V9.12 的首选。
+$$
+p_R(a)=1-p_E(a),
+$$
 
-第一，现有父链事实只记录已经发生的修改和评价，并不直接给出算法为何受限。把它压缩成“局限”需要模型推断或手工规则，摘要可能把错误解释重新写入生成条件。
+其中协议取
 
-第二，从当前锚点发出的 sibling failures 在受控单步实验中没有显示稳定的额外价值。把它们重新加入 Explore 会同时改变信息来源与压缩方式。
+$$
+p_{min}=0.10,
+\qquad
+p_{max}=0.30.
+$$
 
-第三，V9.12 需要一个清楚的机制边界：显式来时路对 Refine 保留，对 Explore 隐藏。加入失败摘要后，无法区分收益来自去锚还是来自新型反思信息。
+这条规则的行为含义是：
 
-因此 V9.12 使用最小视图。未来若需要限制 Explore 重复失败，应把失败摘要作为独立生成机制，而不是本版的补丁。
+- 新方向没有 Refine 失败积累，Explore 保持 10% 的稀疏机会；
+- 最近 Refine 仍在改善时，失败证据不增加，并随旧失败移出窗口而下降；
+- 最近 8 次 Refine 都不能改善时，Explore 概率提高到 30%；
+- Explore 永远不会变成确定性动作，Refine 也永远不会被完全删除。
 
-## 7. 完整原子循环
+每次选择锚点后，按照 $p_R(a)$ 和 $p_E(a)$ 独立抽取本轮生成意图。概率在每次响应完成后重新计算，不锁定未来的算子份额。
+
+Explore 只有在至少还剩 2 次真实评价时才允许执行，因为一次有效 Explore child 必须保留兑现紧邻 Refine 的预算。预算末尾若抽到 Explore，则本轮改为 Refine；这只是保证原子循环完整，不改变正常搜索阶段的概率规则。
+
+`0.10` 沿用 V9.11 持续停滞时约一成的稀疏 Explore 节律，`0.30` 不超过 V9.7 / V9.9 的基础 Explore 比例。二者是首轮协议边界，不是任务相关参数，也不是需要通过消融搜索的调参目标。即使局部 Refine 完全停止改善，Refine 仍然是普通决策中的多数算子。
+
+## 6. 探索后的最小后续机会
+
+如果 Explore 响应形成有效 child 锚点 $a_c$，下一次响应直接从 $a_c$ 采用 Refine，并读取包含这次实际变化的父代来时路：
+
+$$
+a_{t+1}=a_c,
+\qquad
+o_{t+1}=R.
+$$
+
+该后续机会只持续一次。完成后立即恢复普通路线—锚点选择和概率算子选择，无论后续程序改善、持平、退步、invalid、no-op 还是重复。
+
+这不是固定周期中的“着陆阶段”，只是对一次结构性改写的最小形成容忍：第一版代码分数较低时，不立即把它当作没有价值；一次后续修正仍不能使它竞争时，也不继续保护。
+
+若 Explore 没有形成有效 child，则不产生后续资格，下一轮直接进行普通概率选择。
+
+## 7. 生成上下文与输出
+
+Refine 与 Explore 都读取：
+
+1. 任务定义和执行契约；
+2. 当前程序的真实 fitness；
+3. 当前完整代码；
+4. 当前锚点最近 8 条父代形成事件；
+5. 本轮生成意图和统一输出契约。
+
+形成事件只记录真实发生的 `Intent + Idea + Compact Actual Change + Result`。从当前锚点发出的已有子代尝试、其他路线代码、全局总结和算法簇标签不进入默认提示。
+
+Refine 要求模型延续当前核心决策原则，作一个聚焦的改进或修复。Explore 要求模型改变核心决策原则、搜索结构或主要信息利用方式，避免只作参数微调或装饰性改写。两者均只输出一个简短 Idea 和一份完整可执行 Code。
+
+## 8. 完整原子循环
 
 ```text
 Initialize 8 code-unique roots.
-Refine each root once with Parent Improvement Path.
-Estimate the shared scale s0.
-
-Set last_progress_order = 0.
-Set last_explore_order = 0.
-Set landing_anchor = null.
-Set completed_search_responses = 0.
+Refine each root once and estimate s0.
+Set exploration_followup = null.
 
 While real evaluator budget remains:
-    If landing_anchor exists:
-        Select landing_anchor.
+    If exploration_followup exists:
+        Select exploration_followup.
         Set intent = Refine.
-        Set history_view = Parent Improvement Path.
+        Clear exploration_followup after this response.
     Else:
         Select one route by q_best + s0 / sqrt(N + 1).
         Select one anchor in that route by q + s0 / sqrt(n + 1).
 
-        If completed_search_responses
-           - max(last_progress_order, last_explore_order) >= 8
-           and at least 2 real evaluator calls remain:
-            Set intent = Explore.
-            Set history_view = Empty.
-        Else:
-            Set intent = Refine.
-            Set history_view = Parent Improvement Path.
+        Find the current trajectory segment after the latest valid Explore child.
+        Compute F(anchor) from up to 8 recent Refine responses
+        started from anchors in this segment.
+        Set p_explore = 0.10 + 0.20 * F(anchor).
+        Sample Refine or Explore using p_explore.
+        If fewer than 2 real evaluations remain, replace Explore with Refine.
 
-    Build Task + Current Fitness + Current Code + history_view + intent.
+    Build Task + Current Fitness + Current Code + Parent Improvement Path + intent.
     Generate one Idea + Code response.
     Parse, evaluate or reuse, and record all facts.
-    Increment completed_search_responses and set t to its new value.
 
-    If a strict global best is formed:
-        Set last_progress_order = t.
+    If this was Explore and a valid child anchor was formed:
+        Set exploration_followup to that child.
 
-    If intent is Explore:
-        Set last_explore_order = t.
-        If a valid child anchor is formed:
-            Set landing_anchor = that child.
-
-    Else if this was a landing response:
-        Clear landing_anchor.
-
-Return the globally best unique program by the true objective.
+Return the globally best unique program by the true task objective.
 ```
 
-每份模型响应仍只产生一个 `Idea + Code`，随后立即评价或复用并更新事实。V9.12 没有规划器、反思器、长期 rollout 或离线知识注入。
+传输失败没有完整响应时不增加机会计数；解析失败、invalid、no-op、重复和 evaluator 失败都作为本轮已发生的事实记录。只有有效 Explore child 才创建一次后续机会。
 
-## 8. 预期搜索行为
-
-### 8.1 Refine 行为应基本保持
-
-初始化、普通 Develop 和 Landing 的锚点、历史视图、提示职责与 V9.11 相同。V9.12 不以牺牲已知有效的局部发展能力换取全局多样性。
-
-### 8.2 Explore 的改变应发生在提议分布
-
-去掉显式形成历史后，Explore 应更少复述父链 Idea 或继续沿最近修改做扩大版局部调整。期望变化是替代核心决策原则的概率和有效替代方向的概率提高，而不是单纯追求更大的代码 diff 或更高的静态换簇率。
-
-### 8.3 轨迹在两阶段承担相反职责
-
-Explore 前，轨迹通过停滞状态决定何时暂时忘记旧形成叙事；Explore 后，新形成事件立即进入父链，轨迹又用于稳定刚产生的方向。轨迹同时参与生成条件与计算分配，但不再被当作所有生成意图的统一模板。
-
-### 8.4 任务差异由提议自然体现
-
-V9.12 不设置 task-specific 的 Explore 比例、簇标签或 Landing 长度。任务定义、当前程序、真实 fitness 和在线突破节律共同形成任务条件；模型在这一条件下提出替代机制。不同任务的优势算法簇仍可能具有不同提议概率，V9.12 的目标是减少由旧轨迹叙事额外造成的概率偏置，而不是宣称消除模型本身的算法先验。
-
-## 9. 主动删除的候选机制
+## 9. 机制边界
 
 V9.12 明确不加入：
 
-- Explore 专用总结器、critic、reflection 或第二次模型调用；
-- sibling failures、全局 Idea Bank、其他路线代码和语义检索；
-- 在线算法簇分类、embedding、novelty reward 或多样性配额；
-- task-specific 停滞窗口、探索比例和着陆长度；
-- 固定三步或五步 Landing rollout；
-- 恢复父代阈值、局部改善阈值和 episode 终止器；
-- Thompson Sampling、后验、父链信用、延迟 pending credit；
-- 对 V9.11 路线—锚点分数的同步修改。
+- 固定 `H=8` 的全局停滞触发；
+- 固定的全局 Explore 比例；
+- Thompson Sampling、Beta 后验、pending credit 或父链信用回传；
+- 算法簇标签、代码聚类、embedding、全局 Idea Bank 或 judge；
+- 任务特定的探索比例、质量阈值或后续长度；
+- 多步强制 rollout；
+- 对 Explore 使用另一套隐藏历史或失败摘要；
+- 趋势、成熟度、路线推进率等额外在线分数。
 
-这些对象有各自可能解决的问题，但同时加入会破坏 V9.12 的主要叙事：生成意图是否应决定模型看到哪一种轨迹视图。
+路线—锚点选择仍是 V9.11 的实现骨架。V9.12 只研究一个问题：**当前这段轨迹的局部进展，能否比固定周期更自然地决定 Refine / Explore 的比例。**
 
-## 10. 设计假设、预测与反证
+## 10. 预期搜索节律
 
-### 10.1 设计假设
+### 10.1 前期
 
-1. 父代形成历史对 Refine 是发展先验，对 Explore 可能是方向锚点。
-2. 当前代码与任务已经足够约束一次结构性 Explore，不需要显式父链保证可执行性。
-3. 更好的跨方向提议能提高后续一次 Landing 的有限预算价值。
+8 个独立根提供初始方向覆盖。新根及其早期后代缺少 Refine 停滞证据，因此主要进行 Refine，同时保留少量 Explore 概率。
 
-这些是机制设计假设，不是 V9.11 中期数据已经证明的事实。
+### 10.2 中期
 
-### 10.2 期望观察
+某些方向如果持续改善，其父链上的 $F_t(a)$ 较低，系统会把更多响应用于 Refine。新方向必须逐步积累 Refine 失败，才会提高下一次 Explore 概率，不会因为全局暂时停滞而被强行打断。
 
-- Refine 的有效率、即时改善率和轨迹深度大体保持 V9.11 水平；
-- Explore 的静态宏簇切换率可以提高或保持，但更重要的是 Explore--Landing 事件更常接近或超过 Explore 前父代；
-- Explore 或其后代对全局突破的贡献提高；
-- OP 等当前困难任务若主要受历史锚定影响，应比单纯增加 Explore 次数更容易出现新的有效方向。
+### 10.3 后期
 
-### 10.3 会否定或削弱本机制的观察
+当前方向如果仍然产生 Refine 改进，继续发展；如果最近 Refine 大多不再改善，Explore 概率上升，系统重新尝试替代方向。一次有效 Explore 会开启新的进展统计，避免旧方向的失败迫使新方向连续探索。这个过程不依赖人工定义的前期、中期和后期边界。
 
-- Explore 只产生更大、更差、不可修复的改写，说明父链主要提供任务相关约束而非锚定；
-- 宏簇切换增加，但 Landing 恢复与后续突破不变，说明新颖性不是当前瓶颈；
-- Explore 行为几乎不变，说明当前代码本身已足以锚定模型，显式来时路不是主要中介；
-- Explore child 更有潜力但仍普遍需要多步才能竞争，说明下一瓶颈确实转向发展 horizon；
-- 任务分化保持原样，说明主要限制更可能来自 LLM 对优势算法簇的基础提议概率或任务评价几何。
+## 11. 设计假设与不确定性
 
-## 11. 与 V9.11 的唯一协议差异
+### 11.1 设计假设
 
-| 决策位置 | V9.11 | V9.12 |
-| --- | --- | --- |
-| Develop / Refine | 当前代码 + 最近 8 条父代来时路 | 不变 |
-| Explore | 当前代码 + 最近 8 条父代来时路 | 当前代码，不展示父代来时路 |
-| Landing / Refine | Explore child + 包含 Explore 事件的来时路 | 不变 |
-| 触发与冷却 | 全局停滞 `H=8` | 不变 |
-| 常规分配 | V9.7 路线—锚点选择 | 不变 |
-| 着陆预算 | 一次紧邻 Refine | 不变 |
-| 额外模型调用 | 无 | 无 |
+1. 最近这段父链上的 Refine 成败可以粗粒度反映局部改进是否仍然有效。
+2. 有效 Explore 改变了生成方向，因此应重新开始累计 Refine 进展。
+3. 一次 Explore 后续 Refine 足以避免最明显的第一版代码早夭，同时不会形成长期预算承诺。
 
-因此 V9.12 不是新的分配器，也不是多步探索框架。它是 V9.11 上一个明确、单一的生成条件修改。
+这些假设是机制设计依据，不是已被 V9.12 验证的结论。
 
-## 12. 实现不变量
+### 11.2 可能的失败
 
-1. 轨迹事实完整保存；Explore 只改变模型可见视图，不改变落盘事实。
-2. Refine bootstrap、Develop 和 Landing 最多展示最近 8 条父链形成事件。
-3. Explore 提示中不出现父链形成事件或由其生成的替代摘要。
-4. Explore 仍看到完整当前代码、真实 fitness、任务契约和 Explore 指令。
-5. Explore child 的形成事件必须进入紧邻 Landing 的 parent path。
-6. 其余初始化、选择、停滞时钟、一次 Landing、评价、去重、checkpoint 和最终程序选择与 V9.11 一致。
-7. 正式预算仍为 1000 次真实 evaluator 调用；模型响应数、token 和墙钟成本单独记录。
-8. 协议标识必须明确区分 V9.11 与 V9.12，checkpoint 不跨版本恢复。
+- 当前方向仍有潜力，但连续随机失败使 $p_E$ 暂时升高；
+- 任务评价噪声使短窗口内的 $F_t(a)$ 不稳定；
+- 好方向需要多于一次后续 Refine，当前最小机会仍不足；
+- 路线—锚点选择的集中使概率算子只能在少数来源上发挥作用；
+- LLM 对某些任务的优势算法本来就很少提出，动态算子无法凭空创造这些方向。
 
-## 13. 首轮实验策略
+这些边界说明 V9.12 试图修复的是“探索时机”，不声称同时解决提议分布、发展长度和路线表示的所有问题。
 
-V9.12 的实现可以在 V9.11 后半程继续运行时开始，不需要等待其 held-out 结果。开始新正式批次前只要求一个小预算 smoke，确认：
+## 12. 首轮实验协议
 
-1. Explore 的 prompt 工件确实不包含父链事件；
-2. Develop 与 Landing 仍包含正确锚点的父链；
-3. Explore child 仍只获得一次 Landing；
-4. checkpoint 恢复后轨迹视图与体制状态不漂移。
+V9.12 作为完整版本运行，不先展开概率边界、窗口长度、路线选择和后续机会的消融矩阵。开始正式批次前做小预算 smoke，确认：
 
-smoke 通过后直接运行四任务三重复的完整版本，不先展开 `H`、历史长度、Landing 长度或任务配置消融。V9.11 继续完成，用作最终完整版本比较与过程参照；V9.12 的主结果仍需等待三重复搜索和 held-out 全部完成后进入权威结果页。
+1. 同一锚点在不同 Refine 进展状态下的 $p_E$ 能发生变化；
+2. 新锚点没有历史时使用 $p_E=p_{min}$；
+3. Explore 形成有效 child 后恰好获得一次后续 Refine；
+4. Explore 前的 Refine 结果不进入新方向的进展统计，后续 Refine 则进入；
+5. 后续响应完成后回到普通概率选择；
+6. checkpoint 恢复不会改变父链进展统计或算子概率。
 
-首轮过程分析只关注三个大问题：
+正式批次仍为四任务三重复、每次 1000 次真实 evaluator 调用。首轮过程分析只报告：
 
-1. Explore 是否提出不同且有效的替代方向；
-2. Explore child 经一次 Landing 后是否更接近已有竞争前沿；
-3. 任务分化是否从“频繁换簇但不兑现”转向更多实际突破。
+- $p_E$ 随局部 Refine 进展的分布；
+- Refine / Explore 的实际份额及其任务差异；
+- Explore child 与后续 Refine 的相对变化；
+- 预算从仍能 Refine 的方向转向需要改变方向的过程证据。
 
-## 14. 两句话方法说明
+最终性能仍以完整 held-out 结果为准。单次算子比例或某个局部统计不作为机制有效的充分证据。
 
-TraceAAD V9.12 认为同一条改进来时路对不同生成意图具有不同作用：它帮助 Refine 延续并修复当前方向，也可能把 Explore 锚定在已经形成的机制附近。方法在停滞时暂时隐藏显式来时路以提出替代算法，随后让新方向立即恢复由真实形成事件条件化的 Landing，从而以“去锚探索—重新成轨”的最小循环连接算法簇迁移与局部发展。
+## 13. 两句话方法说明
+
+TraceAAD V9.12 不按固定周期切换精炼与探索，而是读取当前这段改进来时路上的 Refine 是否仍然有效：仍有收益的方向继续发展，连续不能改善时才逐渐提高替代探索概率。结构性 Explore 形成有效程序后开启新的进展统计并获得一次紧邻 Refine，随后重新回到普通竞争，从而在有限预算下连接局部精炼与必要的方向变化。
