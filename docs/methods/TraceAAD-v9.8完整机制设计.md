@@ -1,7 +1,7 @@
 # TraceAAD V9.8：逐步轨迹分配与假设引导生成
 
 > 机制识别（Stage P）与正式搜索的结论见 [V9.8 机制诊断](../analysis/TraceAAD-V9.8机制诊断.md)。
-> 设计依据：正统 V9.7 的[V9.7 机制诊断](../analysis/TraceAAD-V9.7机制诊断.md)、固定锚点来时路实验、[BaSE 阅读笔记](../references/LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md)与[研究认识](../knowledge/研究认识.md)。
+> 设计依据：V9.7 的[V9.7 机制诊断](../analysis/TraceAAD-V9.7机制诊断.md)、固定锚点来时路实验、[BaSE 阅读笔记](../references/LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md)与[研究认识](../knowledge/研究认识.md)。
 > 版本边界：V9.8 保留“一次选择、一次生成、一次评价、一次更新”的原子循环。
 > 实现入口：`llm4ad/method/traceaad_v9_8/` 与 `experiments.runners.traceaad.run --version v9_8`。P1/P2 使用逐响应生成—评价流水线，协议与工件见 [V9.8 机制诊断](../analysis/TraceAAD-V9.8机制诊断.md)。
 

@@ -180,7 +180,7 @@ V9.9 的定位是：**一个比 V9.8 更贴合研究认识、值得继续验证�
 
 ## TraceAAD V9.9 过程诊断与探索—利用机制反思
 
-诊断依据 V9.9 正式批次全部 12 次运行的 `logs/events.jsonl` 决策事件，与 V9.7 正统批次的 `artifacts/decisions.jsonl`、`artifacts/candidates.jsonl` 同口径对照；诊断脚本：`experiments/analysis/analyze_v99_process.py`。
+诊断依据 V9.9 正式批次全部 12 次运行的 `logs/events.jsonl` 决策事件，与 V9.7 V9.7 批次的 `artifacts/decisions.jsonl`、`artifacts/candidates.jsonl` 同口径对照；诊断脚本：`experiments/analysis/analyze_v99_process.py`。
 
 ### 1. 核心判断
 
@@ -327,7 +327,7 @@ Refine/Explore 二分把连续的修改尺度压成两个端点，且两端共�
 
 ## TraceAAD V9.9、V9.8、V9.7 与 V9 综合对比
 
-比较对象为 V9、正统 V9.7、完整 V9.8 和 V9.9。
+比较对象为 V9、V9.7、完整 V9.8 和 V9.9。
 
 ### 1. 核心判断
 
