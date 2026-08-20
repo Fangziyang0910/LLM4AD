@@ -1,0 +1,1485 @@
+{
+  "snapshot_time": "2026-08-20T11:42:40+08:00",
+  "batch": "v9_12_20260819_130358",
+  "baselines": {
+    "v9_7": "v9_7_20260814_150927",
+    "v9_11": "v9_11_20260819_022200"
+  },
+  "tasks": {
+    "tsp_construct": {
+      "matched_eval_horizon": 1000,
+      "runs": [
+        {
+          "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/tsp_construct/traceaad_v9_12/v9_12_20260819_130358_tsp_construct_rep1",
+          "repeat": 1,
+          "checkpoint_mtime": "2026-08-19T20:28:48+08:00",
+          "status": "finished",
+          "n_eval": 1000,
+          "protocol_id": "traceaad-v9.12-progress-conditioned-operator",
+          "n_roots": 8,
+          "n_bootstrapped": 8,
+          "bootstrap_scale": 0.817663902903143,
+          "best_q": -5.8180706970664335,
+          "best_depth": 153,
+          "max_depth": 156,
+          "last_best_eval": 995,
+          "n_programs": 931,
+          "n_anchors": 931,
+          "never_selected_anchor_fraction": 0.2083780880773362,
+          "top_route_share": 0.998997995991984,
+          "n_probability_decisions": 843,
+          "probability_formula_mismatches": 0,
+          "budget_suppressed_explore": 0,
+          "probability_counts": {
+            "0.100": 109,
+            "0.125": 129,
+            "0.150": 95,
+            "0.175": 98,
+            "0.200": 81,
+            "0.225": 137,
+            "0.250": 127,
+            "0.275": 56,
+            "0.300": 11
+          },
+          "phase_operator": {
+            "early": {
+              "n": 276,
+              "mean_explore_probability": 0.16494565217391305,
+              "actual_explore_fraction": 0.213768115942029
+            },
+            "middle": {
+              "n": 287,
+              "mean_explore_probability": 0.1862369337979094,
+              "actual_explore_fraction": 0.17073170731707318
+            },
+            "late": {
+              "n": 280,
+              "mean_explore_probability": 0.20330357142857142,
+              "actual_explore_fraction": 0.22142857142857142
+            }
+          },
+          "mean_explore_probability": 0.18493475682087782,
+          "elevated_probability_decisions": 734,
+          "elevated_probability_fraction": 0.8706998813760379,
+          "actual_normal_explore": 170,
+          "actual_normal_explore_fraction": 0.20166073546856464,
+          "expected_normal_explore": 155.89999999999984,
+          "selection_changes_vs_fixed_0_10": 81,
+          "explores_avoided_vs_fixed_0_30": 95,
+          "n_history_prompts": 1006,
+          "history_prompt_nonempty_fraction": 0.9870775347912525,
+          "history_context_drop_count": 0,
+          "n_explore_attempts": 170,
+          "valid_explore_children": 155,
+          "explore_child_valid_fraction": 0.9117647058823529,
+          "explore_improve_parent": 12,
+          "explore_improve_parent_fraction": 0.07058823529411765,
+          "n_ordinary_refine_attempts": 673,
+          "ordinary_refine_improve": 173,
+          "ordinary_refine_improve_fraction": 0.25705794947994054,
+          "n_followup": 155,
+          "pending_followup": false,
+          "unconsumed_valid_explore_children": 0,
+          "followup_valid_fraction": 0.9483870967741935,
+          "followup_improved_explore_child": 115,
+          "followup_improved_explore_child_fraction": 0.7419354838709677,
+          "followup_recovered_source_parent": 40,
+          "followup_recovered_source_parent_fraction": 0.25806451612903225,
+          "followup_global_breakthrough": 5,
+          "followup_global_breakthrough_fraction": 0.03225806451612903
+        },
+        {
+          "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/tsp_construct/traceaad_v9_12/v9_12_20260819_130358_tsp_construct_rep2",
+          "repeat": 2,
+          "checkpoint_mtime": "2026-08-20T01:34:41+08:00",
+          "status": "finished",
+          "n_eval": 1000,
+          "protocol_id": "traceaad-v9.12-progress-conditioned-operator",
+          "n_roots": 8,
+          "n_bootstrapped": 8,
+          "bootstrap_scale": 1.196109801756509,
+          "best_q": -5.805818656107341,
+          "best_depth": 68,
+          "max_depth": 77,
+          "last_best_eval": 948,
+          "n_programs": 847,
+          "n_anchors": 847,
+          "never_selected_anchor_fraction": 0.2101534828807556,
+          "top_route_share": 1.0,
+          "n_probability_decisions": 850,
+          "probability_formula_mismatches": 0,
+          "budget_suppressed_explore": 0,
+          "probability_counts": {
+            "0.100": 51,
+            "0.125": 58,
+            "0.150": 61,
+            "0.175": 68,
+            "0.200": 114,
+            "0.225": 156,
+            "0.250": 151,
+            "0.275": 143,
+            "0.300": 48
+          },
+          "phase_operator": {
+            "early": {
+              "n": 283,
+              "mean_explore_probability": 0.19681978798586572,
+              "actual_explore_fraction": 0.21201413427561838
+            },
+            "middle": {
+              "n": 285,
+              "mean_explore_probability": 0.22789473684210526,
+              "actual_explore_fraction": 0.24912280701754386
+            },
+            "late": {
+              "n": 282,
+              "mean_explore_probability": 0.22030141843971632,
+              "actual_explore_fraction": 0.25177304964539005
+            }
+          },
+          "mean_explore_probability": 0.21502941176470589,
+          "elevated_probability_decisions": 799,
+          "elevated_probability_fraction": 0.94,
+          "actual_normal_explore": 202,
+          "actual_normal_explore_fraction": 0.2376470588235294,
+          "expected_normal_explore": 182.7749999999998,
+          "selection_changes_vs_fixed_0_10": 106,
+          "explores_avoided_vs_fixed_0_30": 63,
+          "n_history_prompts": 1015,
+          "history_prompt_nonempty_fraction": 0.9921182266009853,
+          "history_context_drop_count": 0,
+          "n_explore_attempts": 202,
+          "valid_explore_children": 157,
+          "explore_child_valid_fraction": 0.7772277227722773,
+          "explore_improve_parent": 3,
+          "explore_improve_parent_fraction": 0.01485148514851485,
+          "n_ordinary_refine_attempts": 648,
+          "ordinary_refine_improve": 150,
+          "ordinary_refine_improve_fraction": 0.23148148148148148,
+          "n_followup": 157,
+          "pending_followup": false,
+          "unconsumed_valid_explore_children": 0,
+          "followup_valid_fraction": 0.7770700636942676,
+          "followup_improved_explore_child": 71,
+          "followup_improved_explore_child_fraction": 0.45222929936305734,
+          "followup_recovered_source_parent": 9,
+          "followup_recovered_source_parent_fraction": 0.05732484076433121,
+          "followup_global_breakthrough": 1,
+          "followup_global_breakthrough_fraction": 0.006369426751592357
+        },
+        {
+          "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/tsp_construct/traceaad_v9_12/v9_12_20260819_130358_tsp_construct_rep3",
+          "repeat": 3,
+          "checkpoint_mtime": "2026-08-19T23:23:57+08:00",
+          "status": "finished",
+          "n_eval": 1000,
+          "protocol_id": "traceaad-v9.12-progress-conditioned-operator",
+          "n_roots": 8,
+          "n_bootstrapped": 8,
+          "bootstrap_scale": 0.5393677702355077,
+          "best_q": -5.952775676800121,
+          "best_depth": 140,
+          "max_depth": 162,
+          "last_best_eval": 828,
+          "n_programs": 891,
+          "n_anchors": 891,
+          "never_selected_anchor_fraction": 0.22783389450056116,
+          "top_route_share": 1.0,
+          "n_probability_decisions": 850,
+          "probability_formula_mismatches": 0,
+          "budget_suppressed_explore": 0,
+          "probability_counts": {
+            "0.100": 41,
+            "0.125": 45,
+            "0.150": 38,
+            "0.175": 57,
+            "0.200": 152,
+            "0.225": 177,
+            "0.250": 212,
+            "0.275": 111,
+            "0.300": 17
+          },
+          "phase_operator": {
+            "early": {
+              "n": 288,
+              "mean_explore_probability": 0.20711805555555557,
+              "actual_explore_fraction": 0.19791666666666666
+            },
+            "middle": {
+              "n": 291,
+              "mean_explore_probability": 0.2238831615120275,
+              "actual_explore_fraction": 0.2268041237113402
+            },
+            "late": {
+              "n": 271,
+              "mean_explore_probability": 0.21937269372693727,
+              "actual_explore_fraction": 0.25830258302583026
+            }
+          },
+          "mean_explore_probability": 0.21676470588235294,
+          "elevated_probability_decisions": 809,
+          "elevated_probability_fraction": 0.951764705882353,
+          "actual_normal_explore": 193,
+          "actual_normal_explore_fraction": 0.22705882352941176,
+          "expected_normal_explore": 184.2499999999987,
+          "selection_changes_vs_fixed_0_10": 98,
+          "explores_avoided_vs_fixed_0_30": 60,
+          "n_history_prompts": 1010,
+          "history_prompt_nonempty_fraction": 0.9920792079207921,
+          "history_context_drop_count": 0,
+          "n_explore_attempts": 193,
+          "valid_explore_children": 152,
+          "explore_child_valid_fraction": 0.7875647668393783,
+          "explore_improve_parent": 5,
+          "explore_improve_parent_fraction": 0.025906735751295335,
+          "n_ordinary_refine_attempts": 657,
+          "ordinary_refine_improve": 167,
+          "ordinary_refine_improve_fraction": 0.2541856925418569,
+          "n_followup": 152,
+          "pending_followup": false,
+          "unconsumed_valid_explore_children": 0,
+          "followup_valid_fraction": 0.8421052631578947,
+          "followup_improved_explore_child": 84,
+          "followup_improved_explore_child_fraction": 0.5526315789473685,
+          "followup_recovered_source_parent": 7,
+          "followup_recovered_source_parent_fraction": 0.046052631578947366,
+          "followup_global_breakthrough": 1,
+          "followup_global_breakthrough_fraction": 0.006578947368421052
+        }
+      ],
+      "pooled_mechanism": {
+        "n_probability_decisions": 2543,
+        "probability_formula_mismatches": 0,
+        "budget_suppressed_explore": 0,
+        "elevated_probability_decisions": 2342,
+        "actual_normal_explore": 565,
+        "selection_changes_vs_fixed_0_10": 285,
+        "explores_avoided_vs_fixed_0_30": 218,
+        "n_history_prompts": 3031,
+        "history_context_drop_count": 0,
+        "n_explore_attempts": 565,
+        "valid_explore_children": 464,
+        "explore_improve_parent": 20,
+        "n_ordinary_refine_attempts": 1978,
+        "ordinary_refine_improve": 490,
+        "n_followup": 464,
+        "followup_improved_explore_child": 270,
+        "followup_recovered_source_parent": 56,
+        "followup_global_breakthrough": 7,
+        "unconsumed_valid_explore_children": 0,
+        "probability_counts": {
+          "0.100": 201,
+          "0.125": 232,
+          "0.150": 194,
+          "0.175": 223,
+          "0.200": 347,
+          "0.225": 470,
+          "0.250": 490,
+          "0.275": 310,
+          "0.300": 76
+        },
+        "phase_operator": {
+          "early": {
+            "n": 847,
+            "mean_explore_probability": 0.18993506493506493,
+            "actual_explore_fraction": 0.2077922077922078
+          },
+          "middle": {
+            "n": 863,
+            "mean_explore_probability": 0.2126882966396292,
+            "actual_explore_fraction": 0.21552723059096177
+          },
+          "late": {
+            "n": 833,
+            "mean_explore_probability": 0.21428571428571427,
+            "actual_explore_fraction": 0.24369747899159663
+          }
+        },
+        "mean_explore_probability": 0.20563311049941016,
+        "elevated_probability_fraction": 0.9209594966574911,
+        "actual_normal_explore_fraction": 0.22217852929610696,
+        "selection_change_fraction_vs_fixed_0_10": 0.11207235548564687,
+        "avoidance_fraction_vs_fixed_0_30": 0.08572552103814393,
+        "explore_child_valid_fraction": 0.8212389380530973,
+        "explore_improve_parent_fraction": 0.035398230088495575,
+        "ordinary_refine_improve_fraction": 0.24772497472194135,
+        "followup_improved_explore_child_fraction": 0.5818965517241379,
+        "followup_recovered_source_parent_fraction": 0.1206896551724138,
+        "followup_global_breakthrough_fraction": 0.015086206896551725,
+        "top_route_share_range": [
+          0.998997995991984,
+          1.0
+        ],
+        "never_selected_anchor_fraction_range": [
+          0.2083780880773362,
+          0.22783389450056116
+        ],
+        "best_depth_range": [
+          68,
+          153
+        ]
+      },
+      "matched_eval_search": {
+        "v9_12": {
+          "q_by_repeat": [
+            -5.81807,
+            -5.80582,
+            -5.95278
+          ],
+          "mean_q": -5.85889,
+          "sample_sd_q": 0.08154149066579543
+        },
+        "v9_11": {
+          "q_by_repeat": [
+            -5.89631,
+            -5.95438,
+            -5.78868
+          ],
+          "mean_q": -5.87979,
+          "sample_sd_q": 0.08407618747302911
+        },
+        "v9_7": {
+          "q_by_repeat": [
+            -5.929723772951256,
+            -5.798938929517554,
+            -5.920629237975737
+          ],
+          "mean_q": -5.883097313481516,
+          "sample_sd_q": 0.07302501513299679
+        },
+        "v9_12_minus_v9_11": {
+          "mean_q_difference": 0.02090000000000014,
+          "repeat_differences": [
+            0.07824000000000009,
+            0.1485599999999998,
+            -0.16409999999999947
+          ],
+          "repeat_direction_better_equal_worse": [
+            2,
+            0,
+            1
+          ]
+        },
+        "v9_12_minus_v9_7": {
+          "mean_q_difference": 0.024207313481515946,
+          "repeat_differences": [
+            0.11165377295125634,
+            -0.006881070482445573,
+            -0.032150762024262924
+          ],
+          "repeat_direction_better_equal_worse": [
+            1,
+            0,
+            2
+          ]
+        }
+      }
+    },
+    "cvrp_aco": {
+      "matched_eval_horizon": 1000,
+      "runs": [
+        {
+          "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/cvrp_aco/traceaad_v9_12/v9_12_20260819_130358_cvrp_aco_rep1",
+          "repeat": 1,
+          "checkpoint_mtime": "2026-08-20T00:45:53+08:00",
+          "status": "finished",
+          "n_eval": 1000,
+          "protocol_id": "traceaad-v9.12-progress-conditioned-operator",
+          "n_roots": 8,
+          "n_bootstrapped": 8,
+          "bootstrap_scale": 1.9670100486070057,
+          "best_q": -8.986554403951166,
+          "best_depth": 179,
+          "max_depth": 186,
+          "last_best_eval": 946,
+          "n_programs": 976,
+          "n_anchors": 976,
+          "never_selected_anchor_fraction": 0.1762295081967213,
+          "top_route_share": 1.0,
+          "n_probability_decisions": 837,
+          "probability_formula_mismatches": 0,
+          "budget_suppressed_explore": 0,
+          "probability_counts": {
+            "0.100": 22,
+            "0.125": 33,
+            "0.150": 26,
+            "0.175": 83,
+            "0.200": 234,
+            "0.225": 246,
+            "0.250": 140,
+            "0.275": 48,
+            "0.300": 5
+          },
+          "phase_operator": {
+            "early": {
+              "n": 275,
+              "mean_explore_probability": 0.19172727272727272,
+              "actual_explore_fraction": 0.24
+            },
+            "middle": {
+              "n": 278,
+              "mean_explore_probability": 0.22553956834532374,
+              "actual_explore_fraction": 0.21942446043165467
+            },
+            "late": {
+              "n": 284,
+              "mean_explore_probability": 0.2154049295774648,
+              "actual_explore_fraction": 0.2147887323943662
+            }
+          },
+          "mean_explore_probability": 0.2109916367980884,
+          "elevated_probability_decisions": 815,
+          "elevated_probability_fraction": 0.973715651135006,
+          "actual_normal_explore": 188,
+          "actual_normal_explore_fraction": 0.22461170848267623,
+          "expected_normal_explore": 176.59999999999914,
+          "selection_changes_vs_fixed_0_10": 104,
+          "explores_avoided_vs_fixed_0_30": 75,
+          "n_history_prompts": 1019,
+          "history_prompt_nonempty_fraction": 0.9921491658488715,
+          "history_context_drop_count": 0,
+          "n_explore_attempts": 188,
+          "valid_explore_children": 174,
+          "explore_child_valid_fraction": 0.925531914893617,
+          "explore_improve_parent": 5,
+          "explore_improve_parent_fraction": 0.026595744680851064,
+          "n_ordinary_refine_attempts": 649,
+          "ordinary_refine_improve": 239,
+          "ordinary_refine_improve_fraction": 0.3682588597842835,
+          "n_followup": 174,
+          "pending_followup": false,
+          "unconsumed_valid_explore_children": 0,
+          "followup_valid_fraction": 0.9425287356321839,
+          "followup_improved_explore_child": 67,
+          "followup_improved_explore_child_fraction": 0.3850574712643678,
+          "followup_recovered_source_parent": 4,
+          "followup_recovered_source_parent_fraction": 0.022988505747126436,
+          "followup_global_breakthrough": 0,
+          "followup_global_breakthrough_fraction": 0.0
+        },
+        {
+          "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/cvrp_aco/traceaad_v9_12/v9_12_20260819_130358_cvrp_aco_rep2",
+          "repeat": 2,
+          "checkpoint_mtime": "2026-08-19T21:57:09+08:00",
+          "status": "finished",
+          "n_eval": 1000,
+          "protocol_id": "traceaad-v9.12-progress-conditioned-operator",
+          "n_roots": 8,
+          "n_bootstrapped": 8,
+          "bootstrap_scale": 0.7445136625288384,
+          "best_q": -8.91797003398948,
+          "best_depth": 225,
+          "max_depth": 254,
+          "last_best_eval": 882,
+          "n_programs": 974,
+          "n_anchors": 974,
+          "never_selected_anchor_fraction": 0.18172484599589322,
+          "top_route_share": 1.0,
+          "n_probability_decisions": 837,
+          "probability_formula_mismatches": 0,
+          "budget_suppressed_explore": 2,
+          "probability_counts": {
+            "0.100": 51,
+            "0.125": 86,
+            "0.150": 72,
+            "0.175": 95,
+            "0.200": 176,
+            "0.225": 236,
+            "0.250": 103,
+            "0.275": 17,
+            "0.300": 1
+          },
+          "phase_operator": {
+            "early": {
+              "n": 288,
+              "mean_explore_probability": 0.17760416666666667,
+              "actual_explore_fraction": 0.17708333333333334
+            },
+            "middle": {
+              "n": 279,
+              "mean_explore_probability": 0.20277777777777778,
+              "actual_explore_fraction": 0.21505376344086022
+            },
+            "late": {
+              "n": 270,
+              "mean_explore_probability": 0.20212962962962963,
+              "actual_explore_fraction": 0.23703703703703705
+            }
+          },
+          "mean_explore_probability": 0.1939068100358423,
+          "elevated_probability_decisions": 786,
+          "elevated_probability_fraction": 0.9390681003584229,
+          "actual_normal_explore": 175,
+          "actual_normal_explore_fraction": 0.20908004778972522,
+          "expected_normal_explore": 162.29999999999922,
+          "selection_changes_vs_fixed_0_10": 81,
+          "explores_avoided_vs_fixed_0_30": 87,
+          "n_history_prompts": 1012,
+          "history_prompt_nonempty_fraction": 0.9901185770750988,
+          "history_context_drop_count": 0,
+          "n_explore_attempts": 175,
+          "valid_explore_children": 165,
+          "explore_child_valid_fraction": 0.9428571428571428,
+          "explore_improve_parent": 5,
+          "explore_improve_parent_fraction": 0.02857142857142857,
+          "n_ordinary_refine_attempts": 664,
+          "ordinary_refine_improve": 265,
+          "ordinary_refine_improve_fraction": 0.3990963855421687,
+          "n_followup": 165,
+          "pending_followup": false,
+          "unconsumed_valid_explore_children": 0,
+          "followup_valid_fraction": 0.9515151515151515,
+          "followup_improved_explore_child": 114,
+          "followup_improved_explore_child_fraction": 0.6909090909090909,
+          "followup_recovered_source_parent": 9,
+          "followup_recovered_source_parent_fraction": 0.05454545454545454,
+          "followup_global_breakthrough": 4,
+          "followup_global_breakthrough_fraction": 0.024242424242424242
+        },
+        {
+          "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/cvrp_aco/traceaad_v9_12/v9_12_20260819_130358_cvrp_aco_rep3",
+          "repeat": 3,
+          "checkpoint_mtime": "2026-08-20T00:13:13+08:00",
+          "status": "finished",
+          "n_eval": 1000,
+          "protocol_id": "traceaad-v9.12-progress-conditioned-operator",
+          "n_roots": 8,
+          "n_bootstrapped": 8,
+          "bootstrap_scale": 1.170352857134752,
+          "best_q": -8.82886657821415,
+          "best_depth": 112,
+          "max_depth": 166,
+          "last_best_eval": 462,
+          "n_programs": 959,
+          "n_anchors": 960,
+          "never_selected_anchor_fraction": 0.1625,
+          "top_route_share": 1.0,
+          "n_probability_decisions": 862,
+          "probability_formula_mismatches": 0,
+          "budget_suppressed_explore": 0,
+          "probability_counts": {
+            "0.100": 34,
+            "0.125": 46,
+            "0.150": 33,
+            "0.175": 45,
+            "0.200": 223,
+            "0.225": 301,
+            "0.250": 146,
+            "0.275": 34
+          },
+          "phase_operator": {
+            "early": {
+              "n": 293,
+              "mean_explore_probability": 0.19385665529010238,
+              "actual_explore_fraction": 0.18771331058020477
+            },
+            "middle": {
+              "n": 287,
+              "mean_explore_probability": 0.221602787456446,
+              "actual_explore_fraction": 0.21951219512195122
+            },
+            "late": {
+              "n": 282,
+              "mean_explore_probability": 0.21187943262411346,
+              "actual_explore_fraction": 0.24822695035460993
+            }
+          },
+          "mean_explore_probability": 0.2089907192575406,
+          "elevated_probability_decisions": 828,
+          "elevated_probability_fraction": 0.9605568445475638,
+          "actual_normal_explore": 188,
+          "actual_normal_explore_fraction": 0.21809744779582366,
+          "expected_normal_explore": 180.14999999999864,
+          "selection_changes_vs_fixed_0_10": 90,
+          "explores_avoided_vs_fixed_0_30": 73,
+          "n_history_prompts": 1035,
+          "history_prompt_nonempty_fraction": 0.9922705314009662,
+          "history_context_drop_count": 0,
+          "n_explore_attempts": 188,
+          "valid_explore_children": 165,
+          "explore_child_valid_fraction": 0.8776595744680851,
+          "explore_improve_parent": 6,
+          "explore_improve_parent_fraction": 0.031914893617021274,
+          "n_ordinary_refine_attempts": 674,
+          "ordinary_refine_improve": 266,
+          "ordinary_refine_improve_fraction": 0.39465875370919884,
+          "n_followup": 165,
+          "pending_followup": false,
+          "unconsumed_valid_explore_children": 0,
+          "followup_valid_fraction": 0.9393939393939394,
+          "followup_improved_explore_child": 85,
+          "followup_improved_explore_child_fraction": 0.5151515151515151,
+          "followup_recovered_source_parent": 11,
+          "followup_recovered_source_parent_fraction": 0.06666666666666667,
+          "followup_global_breakthrough": 2,
+          "followup_global_breakthrough_fraction": 0.012121212121212121
+        }
+      ],
+      "pooled_mechanism": {
+        "n_probability_decisions": 2536,
+        "probability_formula_mismatches": 0,
+        "budget_suppressed_explore": 2,
+        "elevated_probability_decisions": 2429,
+        "actual_normal_explore": 551,
+        "selection_changes_vs_fixed_0_10": 275,
+        "explores_avoided_vs_fixed_0_30": 235,
+        "n_history_prompts": 3066,
+        "history_context_drop_count": 0,
+        "n_explore_attempts": 551,
+        "valid_explore_children": 504,
+        "explore_improve_parent": 16,
+        "n_ordinary_refine_attempts": 1987,
+        "ordinary_refine_improve": 770,
+        "n_followup": 504,
+        "followup_improved_explore_child": 266,
+        "followup_recovered_source_parent": 24,
+        "followup_global_breakthrough": 6,
+        "unconsumed_valid_explore_children": 0,
+        "probability_counts": {
+          "0.100": 107,
+          "0.125": 165,
+          "0.150": 131,
+          "0.175": 223,
+          "0.200": 633,
+          "0.225": 783,
+          "0.250": 389,
+          "0.275": 99,
+          "0.300": 6
+        },
+        "phase_operator": {
+          "early": {
+            "n": 856,
+            "mean_explore_probability": 0.18770443925233646,
+            "actual_explore_fraction": 0.20093457943925233
+          },
+          "middle": {
+            "n": 844,
+            "mean_explore_probability": 0.2166765402843602,
+            "actual_explore_fraction": 0.21800947867298578
+          },
+          "late": {
+            "n": 836,
+            "mean_explore_probability": 0.20992822966507177,
+            "actual_explore_fraction": 0.2332535885167464
+          }
+        },
+        "mean_explore_probability": 0.20467271293375394,
+        "elevated_probability_fraction": 0.957807570977918,
+        "actual_normal_explore_fraction": 0.21727129337539433,
+        "selection_change_fraction_vs_fixed_0_10": 0.10843848580441641,
+        "avoidance_fraction_vs_fixed_0_30": 0.09266561514195584,
+        "explore_child_valid_fraction": 0.9147005444646098,
+        "explore_improve_parent_fraction": 0.029038112522686024,
+        "ordinary_refine_improve_fraction": 0.3875188726723704,
+        "followup_improved_explore_child_fraction": 0.5277777777777778,
+        "followup_recovered_source_parent_fraction": 0.047619047619047616,
+        "followup_global_breakthrough_fraction": 0.011904761904761904,
+        "top_route_share_range": [
+          1.0,
+          1.0
+        ],
+        "never_selected_anchor_fraction_range": [
+          0.1625,
+          0.18172484599589322
+        ],
+        "best_depth_range": [
+          112,
+          225
+        ]
+      },
+      "matched_eval_search": {
+        "v9_12": {
+          "q_by_repeat": [
+            -8.98655,
+            -8.91797,
+            -8.82887
+          ],
+          "mean_q": -8.91113,
+          "sample_sd_q": 0.07906222106670124
+        },
+        "v9_11": {
+          "q_by_repeat": [
+            -9.34982,
+            -8.59798,
+            -8.51734
+          ],
+          "mean_q": -8.821713333333333,
+          "sample_sd_q": 0.45912764122118893
+        },
+        "v9_7": {
+          "q_by_repeat": [
+            -8.68730263813888,
+            -8.760887132657581,
+            -8.537427083055086
+          ],
+          "mean_q": -8.661872284617182,
+          "sample_sd_q": 0.11387987356098676
+        },
+        "v9_12_minus_v9_11": {
+          "mean_q_difference": -0.0894166666666667,
+          "repeat_differences": [
+            0.36327,
+            -0.31999000000000066,
+            -0.3115299999999994
+          ],
+          "repeat_direction_better_equal_worse": [
+            1,
+            0,
+            2
+          ]
+        },
+        "v9_12_minus_v9_7": {
+          "mean_q_difference": -0.24925771538281793,
+          "repeat_differences": [
+            -0.29924736186112,
+            -0.15708286734241916,
+            -0.29144291694491464
+          ],
+          "repeat_direction_better_equal_worse": [
+            0,
+            0,
+            3
+          ]
+        }
+      }
+    },
+    "op_aco": {
+      "matched_eval_horizon": 1000,
+      "runs": [
+        {
+          "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/op_aco/traceaad_v9_12/v9_12_20260819_130358_op_aco_rep1",
+          "repeat": 1,
+          "checkpoint_mtime": "2026-08-19T23:29:39+08:00",
+          "status": "finished",
+          "n_eval": 1000,
+          "protocol_id": "traceaad-v9.12-progress-conditioned-operator",
+          "n_roots": 8,
+          "n_bootstrapped": 8,
+          "bootstrap_scale": 0.12300000000000022,
+          "best_q": 14.518,
+          "best_depth": 34,
+          "max_depth": 49,
+          "last_best_eval": 468,
+          "n_programs": 939,
+          "n_anchors": 939,
+          "never_selected_anchor_fraction": 0.6719914802981896,
+          "top_route_share": 1.0,
+          "n_probability_decisions": 839,
+          "probability_formula_mismatches": 0,
+          "budget_suppressed_explore": 0,
+          "probability_counts": {
+            "0.100": 3,
+            "0.125": 16,
+            "0.150": 17,
+            "0.175": 23,
+            "0.200": 22,
+            "0.225": 53,
+            "0.250": 77,
+            "0.275": 112,
+            "0.300": 516
+          },
+          "phase_operator": {
+            "early": {
+              "n": 273,
+              "mean_explore_probability": 0.2601648351648352,
+              "actual_explore_fraction": 0.31135531135531136
+            },
+            "middle": {
+              "n": 281,
+              "mean_explore_probability": 0.2759786476868327,
+              "actual_explore_fraction": 0.28113879003558717
+            },
+            "late": {
+              "n": 285,
+              "mean_explore_probability": 0.2858771929824561,
+              "actual_explore_fraction": 0.28771929824561404
+            }
+          },
+          "mean_explore_probability": 0.2741954707985697,
+          "elevated_probability_decisions": 836,
+          "elevated_probability_fraction": 0.9964243146603099,
+          "actual_normal_explore": 246,
+          "actual_normal_explore_fraction": 0.2932061978545888,
+          "expected_normal_explore": 230.05000000000334,
+          "selection_changes_vs_fixed_0_10": 162,
+          "explores_avoided_vs_fixed_0_30": 22,
+          "n_history_prompts": 1067,
+          "history_prompt_nonempty_fraction": 0.9887535145267105,
+          "history_context_drop_count": 0,
+          "n_explore_attempts": 246,
+          "valid_explore_children": 220,
+          "explore_child_valid_fraction": 0.8943089430894309,
+          "explore_improve_parent": 3,
+          "explore_improve_parent_fraction": 0.012195121951219513,
+          "n_ordinary_refine_attempts": 593,
+          "ordinary_refine_improve": 24,
+          "ordinary_refine_improve_fraction": 0.04047217537942664,
+          "n_followup": 220,
+          "pending_followup": false,
+          "unconsumed_valid_explore_children": 0,
+          "followup_valid_fraction": 0.9090909090909091,
+          "followup_improved_explore_child": 84,
+          "followup_improved_explore_child_fraction": 0.38181818181818183,
+          "followup_recovered_source_parent": 1,
+          "followup_recovered_source_parent_fraction": 0.004545454545454545,
+          "followup_global_breakthrough": 1,
+          "followup_global_breakthrough_fraction": 0.004545454545454545
+        },
+        {
+          "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/op_aco/traceaad_v9_12/v9_12_20260819_130358_op_aco_rep2",
+          "repeat": 2,
+          "checkpoint_mtime": "2026-08-19T23:59:06+08:00",
+          "status": "finished",
+          "n_eval": 1000,
+          "protocol_id": "traceaad-v9.12-progress-conditioned-operator",
+          "n_roots": 8,
+          "n_bootstrapped": 8,
+          "bootstrap_scale": 0.6350000000000007,
+          "best_q": 14.813999999999998,
+          "best_depth": 109,
+          "max_depth": 132,
+          "last_best_eval": 937,
+          "n_programs": 973,
+          "n_anchors": 973,
+          "never_selected_anchor_fraction": 0.24871531346351491,
+          "top_route_share": 1.0,
+          "n_probability_decisions": 853,
+          "probability_formula_mismatches": 0,
+          "budget_suppressed_explore": 0,
+          "probability_counts": {
+            "0.100": 56,
+            "0.125": 114,
+            "0.150": 104,
+            "0.175": 85,
+            "0.200": 73,
+            "0.225": 93,
+            "0.250": 154,
+            "0.275": 120,
+            "0.300": 54
+          },
+          "phase_operator": {
+            "early": {
+              "n": 287,
+              "mean_explore_probability": 0.2059233449477352,
+              "actual_explore_fraction": 0.2264808362369338
+            },
+            "middle": {
+              "n": 280,
+              "mean_explore_probability": 0.20776785714285714,
+              "actual_explore_fraction": 0.24285714285714285
+            },
+            "late": {
+              "n": 286,
+              "mean_explore_probability": 0.19676573426573427,
+              "actual_explore_fraction": 0.2202797202797203
+            }
+          },
+          "mean_explore_probability": 0.20345838218053927,
+          "elevated_probability_decisions": 797,
+          "elevated_probability_fraction": 0.9343493552168816,
+          "actual_normal_explore": 196,
+          "actual_normal_explore_fraction": 0.22977725674091443,
+          "expected_normal_explore": 173.55000000000038,
+          "selection_changes_vs_fixed_0_10": 101,
+          "explores_avoided_vs_fixed_0_30": 69,
+          "n_history_prompts": 1036,
+          "history_prompt_nonempty_fraction": 0.9922779922779923,
+          "history_context_drop_count": 0,
+          "n_explore_attempts": 196,
+          "valid_explore_children": 175,
+          "explore_child_valid_fraction": 0.8928571428571429,
+          "explore_improve_parent": 10,
+          "explore_improve_parent_fraction": 0.05102040816326531,
+          "n_ordinary_refine_attempts": 657,
+          "ordinary_refine_improve": 116,
+          "ordinary_refine_improve_fraction": 0.1765601217656012,
+          "n_followup": 175,
+          "pending_followup": false,
+          "unconsumed_valid_explore_children": 0,
+          "followup_valid_fraction": 0.9485714285714286,
+          "followup_improved_explore_child": 72,
+          "followup_improved_explore_child_fraction": 0.4114285714285714,
+          "followup_recovered_source_parent": 12,
+          "followup_recovered_source_parent_fraction": 0.06857142857142857,
+          "followup_global_breakthrough": 3,
+          "followup_global_breakthrough_fraction": 0.017142857142857144
+        },
+        {
+          "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/op_aco/traceaad_v9_12/v9_12_20260819_130358_op_aco_rep3",
+          "repeat": 3,
+          "checkpoint_mtime": "2026-08-19T23:32:29+08:00",
+          "status": "finished",
+          "n_eval": 1000,
+          "protocol_id": "traceaad-v9.12-progress-conditioned-operator",
+          "n_roots": 8,
+          "n_bootstrapped": 8,
+          "bootstrap_scale": 0.09700000000000131,
+          "best_q": 14.638000000000002,
+          "best_depth": 17,
+          "max_depth": 60,
+          "last_best_eval": 89,
+          "n_programs": 930,
+          "n_anchors": 930,
+          "never_selected_anchor_fraction": 0.5548387096774193,
+          "top_route_share": 1.0,
+          "n_probability_decisions": 849,
+          "probability_formula_mismatches": 0,
+          "budget_suppressed_explore": 0,
+          "probability_counts": {
+            "0.100": 10,
+            "0.125": 21,
+            "0.150": 27,
+            "0.175": 20,
+            "0.200": 29,
+            "0.225": 29,
+            "0.250": 43,
+            "0.275": 57,
+            "0.300": 613
+          },
+          "phase_operator": {
+            "early": {
+              "n": 285,
+              "mean_explore_probability": 0.2619298245614035,
+              "actual_explore_fraction": 0.26666666666666666
+            },
+            "middle": {
+              "n": 285,
+              "mean_explore_probability": 0.27780701754385967,
+              "actual_explore_fraction": 0.28421052631578947
+            },
+            "late": {
+              "n": 279,
+              "mean_explore_probability": 0.2867383512544803,
+              "actual_explore_fraction": 0.2939068100358423
+            }
+          },
+          "mean_explore_probability": 0.2754122497055359,
+          "elevated_probability_decisions": 839,
+          "elevated_probability_fraction": 0.9882214369846879,
+          "actual_normal_explore": 239,
+          "actual_normal_explore_fraction": 0.28150765606595995,
+          "expected_normal_explore": 233.82500000000275,
+          "selection_changes_vs_fixed_0_10": 139,
+          "explores_avoided_vs_fixed_0_30": 17,
+          "n_history_prompts": 1059,
+          "history_prompt_nonempty_fraction": 0.9896128423040604,
+          "history_context_drop_count": 0,
+          "n_explore_attempts": 239,
+          "valid_explore_children": 202,
+          "explore_child_valid_fraction": 0.8451882845188284,
+          "explore_improve_parent": 1,
+          "explore_improve_parent_fraction": 0.0041841004184100415,
+          "n_ordinary_refine_attempts": 610,
+          "ordinary_refine_improve": 7,
+          "ordinary_refine_improve_fraction": 0.011475409836065573,
+          "n_followup": 202,
+          "pending_followup": false,
+          "unconsumed_valid_explore_children": 0,
+          "followup_valid_fraction": 0.900990099009901,
+          "followup_improved_explore_child": 70,
+          "followup_improved_explore_child_fraction": 0.3465346534653465,
+          "followup_recovered_source_parent": 1,
+          "followup_recovered_source_parent_fraction": 0.0049504950495049506,
+          "followup_global_breakthrough": 1,
+          "followup_global_breakthrough_fraction": 0.0049504950495049506
+        }
+      ],
+      "pooled_mechanism": {
+        "n_probability_decisions": 2541,
+        "probability_formula_mismatches": 0,
+        "budget_suppressed_explore": 0,
+        "elevated_probability_decisions": 2472,
+        "actual_normal_explore": 681,
+        "selection_changes_vs_fixed_0_10": 402,
+        "explores_avoided_vs_fixed_0_30": 108,
+        "n_history_prompts": 3162,
+        "history_context_drop_count": 0,
+        "n_explore_attempts": 681,
+        "valid_explore_children": 597,
+        "explore_improve_parent": 14,
+        "n_ordinary_refine_attempts": 1860,
+        "ordinary_refine_improve": 147,
+        "n_followup": 597,
+        "followup_improved_explore_child": 226,
+        "followup_recovered_source_parent": 14,
+        "followup_global_breakthrough": 5,
+        "unconsumed_valid_explore_children": 0,
+        "probability_counts": {
+          "0.100": 69,
+          "0.125": 151,
+          "0.150": 148,
+          "0.175": 128,
+          "0.200": 124,
+          "0.225": 175,
+          "0.250": 274,
+          "0.275": 289,
+          "0.300": 1183
+        },
+        "phase_operator": {
+          "early": {
+            "n": 845,
+            "mean_explore_probability": 0.24233727810650887,
+            "actual_explore_fraction": 0.26745562130177514
+          },
+          "middle": {
+            "n": 846,
+            "mean_explore_probability": 0.25401891252955083,
+            "actual_explore_fraction": 0.2695035460992908
+          },
+          "late": {
+            "n": 850,
+            "mean_explore_probability": 0.2561764705882353,
+            "actual_explore_fraction": 0.26705882352941174
+          }
+        },
+        "mean_explore_probability": 0.2508559622195986,
+        "elevated_probability_fraction": 0.9728453364817001,
+        "actual_normal_explore_fraction": 0.2680047225501771,
+        "selection_change_fraction_vs_fixed_0_10": 0.15820543093270367,
+        "avoidance_fraction_vs_fixed_0_30": 0.04250295159386069,
+        "explore_child_valid_fraction": 0.8766519823788547,
+        "explore_improve_parent_fraction": 0.020558002936857563,
+        "ordinary_refine_improve_fraction": 0.07903225806451612,
+        "followup_improved_explore_child_fraction": 0.3785594639865997,
+        "followup_recovered_source_parent_fraction": 0.023450586264656615,
+        "followup_global_breakthrough_fraction": 0.008375209380234505,
+        "top_route_share_range": [
+          1.0,
+          1.0
+        ],
+        "never_selected_anchor_fraction_range": [
+          0.24871531346351491,
+          0.6719914802981896
+        ],
+        "best_depth_range": [
+          17,
+          109
+        ]
+      },
+      "matched_eval_search": {
+        "v9_12": {
+          "q_by_repeat": [
+            14.518,
+            14.814,
+            14.638
+          ],
+          "mean_q": 14.656666666666666,
+          "sample_sd_q": 0.14888026509021687
+        },
+        "v9_11": {
+          "q_by_repeat": [
+            14.77,
+            14.722,
+            14.712
+          ],
+          "mean_q": 14.734666666666666,
+          "sample_sd_q": 0.031005375877955908
+        },
+        "v9_7": {
+          "q_by_repeat": [
+            14.712,
+            14.945999999999998,
+            14.662
+          ],
+          "mean_q": 14.773333333333333,
+          "sample_sd_q": 0.1516091466018225
+        },
+        "v9_12_minus_v9_11": {
+          "mean_q_difference": -0.0779999999999994,
+          "repeat_differences": [
+            -0.2519999999999989,
+            0.09200000000000053,
+            -0.07399999999999984
+          ],
+          "repeat_direction_better_equal_worse": [
+            1,
+            0,
+            2
+          ]
+        },
+        "v9_12_minus_v9_7": {
+          "mean_q_difference": -0.11666666666666714,
+          "repeat_differences": [
+            -0.19399999999999906,
+            -0.1319999999999979,
+            -0.02400000000000091
+          ],
+          "repeat_direction_better_equal_worse": [
+            0,
+            0,
+            3
+          ]
+        }
+      }
+    },
+    "online_bin_packing": {
+      "matched_eval_horizon": 1000,
+      "runs": [
+        {
+          "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/online_bin_packing/traceaad_v9_12/v9_12_20260819_130358_online_bin_packing_rep1",
+          "repeat": 1,
+          "checkpoint_mtime": "2026-08-19T17:40:15+08:00",
+          "status": "finished",
+          "n_eval": 1000,
+          "protocol_id": "traceaad-v9.12-progress-conditioned-operator",
+          "n_roots": 8,
+          "n_bootstrapped": 8,
+          "bootstrap_scale": 6.625,
+          "best_q": -725.0,
+          "best_depth": 143,
+          "max_depth": 157,
+          "last_best_eval": 842,
+          "n_programs": 993,
+          "n_anchors": 993,
+          "never_selected_anchor_fraction": 0.256797583081571,
+          "top_route_share": 0.9930417495029821,
+          "n_probability_decisions": 838,
+          "probability_formula_mismatches": 0,
+          "budget_suppressed_explore": 0,
+          "probability_counts": {
+            "0.100": 61,
+            "0.125": 67,
+            "0.150": 80,
+            "0.175": 83,
+            "0.200": 104,
+            "0.225": 196,
+            "0.250": 199,
+            "0.275": 46,
+            "0.300": 2
+          },
+          "phase_operator": {
+            "early": {
+              "n": 277,
+              "mean_explore_probability": 0.18898916967509025,
+              "actual_explore_fraction": 0.22382671480144403
+            },
+            "middle": {
+              "n": 285,
+              "mean_explore_probability": 0.19850877192982455,
+              "actual_explore_fraction": 0.17894736842105263
+            },
+            "late": {
+              "n": 276,
+              "mean_explore_probability": 0.21730072463768116,
+              "actual_explore_fraction": 0.21739130434782608
+            }
+          },
+          "mean_explore_probability": 0.20155131264916468,
+          "elevated_probability_decisions": 777,
+          "elevated_probability_fraction": 0.9272076372315036,
+          "actual_normal_explore": 173,
+          "actual_normal_explore_fraction": 0.2064439140811456,
+          "expected_normal_explore": 168.89999999999975,
+          "selection_changes_vs_fixed_0_10": 89,
+          "explores_avoided_vs_fixed_0_30": 90,
+          "n_history_prompts": 1014,
+          "history_prompt_nonempty_fraction": 0.9891518737672583,
+          "history_context_drop_count": 0,
+          "n_explore_attempts": 173,
+          "valid_explore_children": 168,
+          "explore_child_valid_fraction": 0.9710982658959537,
+          "explore_improve_parent": 2,
+          "explore_improve_parent_fraction": 0.011560693641618497,
+          "n_ordinary_refine_attempts": 665,
+          "ordinary_refine_improve": 202,
+          "ordinary_refine_improve_fraction": 0.3037593984962406,
+          "n_followup": 168,
+          "pending_followup": false,
+          "unconsumed_valid_explore_children": 0,
+          "followup_valid_fraction": 0.9821428571428571,
+          "followup_improved_explore_child": 112,
+          "followup_improved_explore_child_fraction": 0.6666666666666666,
+          "followup_recovered_source_parent": 10,
+          "followup_recovered_source_parent_fraction": 0.05952380952380952,
+          "followup_global_breakthrough": 4,
+          "followup_global_breakthrough_fraction": 0.023809523809523808
+        },
+        {
+          "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/online_bin_packing/traceaad_v9_12/v9_12_20260819_130358_online_bin_packing_rep2",
+          "repeat": 2,
+          "checkpoint_mtime": "2026-08-19T19:44:14+08:00",
+          "status": "finished",
+          "n_eval": 1000,
+          "protocol_id": "traceaad-v9.12-progress-conditioned-operator",
+          "n_roots": 8,
+          "n_bootstrapped": 8,
+          "bootstrap_scale": 6.625,
+          "best_q": -728.25,
+          "best_depth": 142,
+          "max_depth": 171,
+          "last_best_eval": 772,
+          "n_programs": 969,
+          "n_anchors": 970,
+          "never_selected_anchor_fraction": 0.2907216494845361,
+          "top_route_share": 0.9415204678362573,
+          "n_probability_decisions": 833,
+          "probability_formula_mismatches": 0,
+          "budget_suppressed_explore": 0,
+          "probability_counts": {
+            "0.100": 29,
+            "0.125": 30,
+            "0.150": 31,
+            "0.175": 22,
+            "0.200": 35,
+            "0.225": 94,
+            "0.250": 172,
+            "0.275": 272,
+            "0.300": 148
+          },
+          "phase_operator": {
+            "early": {
+              "n": 288,
+              "mean_explore_probability": 0.20963541666666666,
+              "actual_explore_fraction": 0.2048611111111111
+            },
+            "middle": {
+              "n": 277,
+              "mean_explore_probability": 0.2545126353790614,
+              "actual_explore_fraction": 0.27075812274368233
+            },
+            "late": {
+              "n": 268,
+              "mean_explore_probability": 0.27845149253731344,
+              "actual_explore_fraction": 0.30597014925373134
+            }
+          },
+          "mean_explore_probability": 0.24669867947178872,
+          "elevated_probability_decisions": 804,
+          "elevated_probability_fraction": 0.9651860744297719,
+          "actual_normal_explore": 216,
+          "actual_normal_explore_fraction": 0.25930372148859543,
+          "expected_normal_explore": 205.50000000000207,
+          "selection_changes_vs_fixed_0_10": 125,
+          "explores_avoided_vs_fixed_0_30": 41,
+          "n_history_prompts": 1034,
+          "history_prompt_nonempty_fraction": 0.9835589941972921,
+          "history_context_drop_count": 0,
+          "n_explore_attempts": 216,
+          "valid_explore_children": 193,
+          "explore_child_valid_fraction": 0.8935185185185185,
+          "explore_improve_parent": 1,
+          "explore_improve_parent_fraction": 0.004629629629629629,
+          "n_ordinary_refine_attempts": 617,
+          "ordinary_refine_improve": 108,
+          "ordinary_refine_improve_fraction": 0.17504051863857376,
+          "n_followup": 193,
+          "pending_followup": false,
+          "unconsumed_valid_explore_children": 0,
+          "followup_valid_fraction": 0.927461139896373,
+          "followup_improved_explore_child": 93,
+          "followup_improved_explore_child_fraction": 0.48186528497409326,
+          "followup_recovered_source_parent": 3,
+          "followup_recovered_source_parent_fraction": 0.015544041450777202,
+          "followup_global_breakthrough": 1,
+          "followup_global_breakthrough_fraction": 0.0051813471502590676
+        },
+        {
+          "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/online_bin_packing/traceaad_v9_12/v9_12_20260819_130358_online_bin_packing_rep3",
+          "repeat": 3,
+          "checkpoint_mtime": "2026-08-19T18:52:39+08:00",
+          "status": "finished",
+          "n_eval": 1000,
+          "protocol_id": "traceaad-v9.12-progress-conditioned-operator",
+          "n_roots": 8,
+          "n_bootstrapped": 8,
+          "bootstrap_scale": 8.25,
+          "best_q": -725.5,
+          "best_depth": 39,
+          "max_depth": 114,
+          "last_best_eval": 278,
+          "n_programs": 993,
+          "n_anchors": 994,
+          "never_selected_anchor_fraction": 0.23138832997987926,
+          "top_route_share": 0.924901185770751,
+          "n_probability_decisions": 826,
+          "probability_formula_mismatches": 0,
+          "budget_suppressed_explore": 0,
+          "probability_counts": {
+            "0.100": 20,
+            "0.125": 40,
+            "0.150": 35,
+            "0.175": 44,
+            "0.200": 76,
+            "0.225": 253,
+            "0.250": 243,
+            "0.275": 81,
+            "0.300": 34
+          },
+          "phase_operator": {
+            "early": {
+              "n": 285,
+              "mean_explore_probability": 0.20526315789473684,
+              "actual_explore_fraction": 0.19649122807017544
+            },
+            "middle": {
+              "n": 276,
+              "mean_explore_probability": 0.2288949275362319,
+              "actual_explore_fraction": 0.22826086956521738
+            },
+            "late": {
+              "n": 265,
+              "mean_explore_probability": 0.2400943396226415,
+              "actual_explore_fraction": 0.2830188679245283
+            }
+          },
+          "mean_explore_probability": 0.22433414043583536,
+          "elevated_probability_decisions": 806,
+          "elevated_probability_fraction": 0.9757869249394673,
+          "actual_normal_explore": 194,
+          "actual_normal_explore_fraction": 0.23486682808716708,
+          "expected_normal_explore": 185.29999999999987,
+          "selection_changes_vs_fixed_0_10": 100,
+          "explores_avoided_vs_fixed_0_30": 57,
+          "n_history_prompts": 1020,
+          "history_prompt_nonempty_fraction": 0.9852941176470589,
+          "history_context_drop_count": 0,
+          "n_explore_attempts": 194,
+          "valid_explore_children": 186,
+          "explore_child_valid_fraction": 0.9587628865979382,
+          "explore_improve_parent": 4,
+          "explore_improve_parent_fraction": 0.020618556701030927,
+          "n_ordinary_refine_attempts": 632,
+          "ordinary_refine_improve": 189,
+          "ordinary_refine_improve_fraction": 0.2990506329113924,
+          "n_followup": 186,
+          "pending_followup": false,
+          "unconsumed_valid_explore_children": 0,
+          "followup_valid_fraction": 0.978494623655914,
+          "followup_improved_explore_child": 96,
+          "followup_improved_explore_child_fraction": 0.5161290322580645,
+          "followup_recovered_source_parent": 5,
+          "followup_recovered_source_parent_fraction": 0.026881720430107527,
+          "followup_global_breakthrough": 0,
+          "followup_global_breakthrough_fraction": 0.0
+        }
+      ],
+      "pooled_mechanism": {
+        "n_probability_decisions": 2497,
+        "probability_formula_mismatches": 0,
+        "budget_suppressed_explore": 0,
+        "elevated_probability_decisions": 2387,
+        "actual_normal_explore": 583,
+        "selection_changes_vs_fixed_0_10": 314,
+        "explores_avoided_vs_fixed_0_30": 188,
+        "n_history_prompts": 3068,
+        "history_context_drop_count": 0,
+        "n_explore_attempts": 583,
+        "valid_explore_children": 547,
+        "explore_improve_parent": 7,
+        "n_ordinary_refine_attempts": 1914,
+        "ordinary_refine_improve": 499,
+        "n_followup": 547,
+        "followup_improved_explore_child": 301,
+        "followup_recovered_source_parent": 18,
+        "followup_global_breakthrough": 5,
+        "unconsumed_valid_explore_children": 0,
+        "probability_counts": {
+          "0.100": 110,
+          "0.125": 137,
+          "0.150": 146,
+          "0.175": 149,
+          "0.200": 215,
+          "0.225": 543,
+          "0.250": 614,
+          "0.275": 399,
+          "0.300": 184
+        },
+        "phase_operator": {
+          "early": {
+            "n": 850,
+            "mean_explore_probability": 0.20144117647058823,
+            "actual_explore_fraction": 0.20823529411764705
+          },
+          "middle": {
+            "n": 838,
+            "mean_explore_probability": 0.22702863961813843,
+            "actual_explore_fraction": 0.22553699284009546
+          },
+          "late": {
+            "n": 809,
+            "mean_explore_probability": 0.2450247218788628,
+            "actual_explore_fraction": 0.26823238566131025
+          }
+        },
+        "mean_explore_probability": 0.22414897877452944,
+        "elevated_probability_fraction": 0.9559471365638766,
+        "actual_normal_explore_fraction": 0.23348017621145375,
+        "selection_change_fraction_vs_fixed_0_10": 0.12575090108129755,
+        "avoidance_fraction_vs_fixed_0_30": 0.07529034841810173,
+        "explore_child_valid_fraction": 0.9382504288164666,
+        "explore_improve_parent_fraction": 0.012006861063464836,
+        "ordinary_refine_improve_fraction": 0.2607105538140021,
+        "followup_improved_explore_child_fraction": 0.5502742230347349,
+        "followup_recovered_source_parent_fraction": 0.03290676416819013,
+        "followup_global_breakthrough_fraction": 0.009140767824497258,
+        "top_route_share_range": [
+          0.924901185770751,
+          0.9930417495029821
+        ],
+        "never_selected_anchor_fraction_range": [
+          0.23138832997987926,
+          0.2907216494845361
+        ],
+        "best_depth_range": [
+          39,
+          143
+        ]
+      },
+      "matched_eval_search": {
+        "v9_12": {
+          "q_by_repeat": [
+            -725.0,
+            -728.25,
+            -725.5
+          ],
+          "mean_q": -726.25,
+          "sample_sd_q": 1.75
+        },
+        "v9_11": {
+          "q_by_repeat": [
+            -727.5,
+            -726.5,
+            -725.75
+          ],
+          "mean_q": -726.5833333333334,
+          "sample_sd_q": 0.8779711460710615
+        },
+        "v9_7": {
+          "q_by_repeat": [
+            -723.75,
+            -724.5,
+            -726.0
+          ],
+          "mean_q": -724.75,
+          "sample_sd_q": 1.14564392373896
+        },
+        "v9_12_minus_v9_11": {
+          "mean_q_difference": 0.33333333333337123,
+          "repeat_differences": [
+            2.5,
+            -1.75,
+            0.25
+          ],
+          "repeat_direction_better_equal_worse": [
+            2,
+            0,
+            1
+          ]
+        },
+        "v9_12_minus_v9_7": {
+          "mean_q_difference": -1.5,
+          "repeat_differences": [
+            -1.25,
+            -3.75,
+            0.5
+          ],
+          "repeat_direction_better_equal_worse": [
+            1,
+            0,
+            2
+          ]
+        }
+      }
+    }
+  }
+}
