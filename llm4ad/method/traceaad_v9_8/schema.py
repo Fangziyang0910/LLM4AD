@@ -6,14 +6,12 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Final
 
-PROTOCOL_ID: Final[str] = "traceaad-v9.8-stepwise-hypothesis-allocation"
-SCORE_FORMULA_VERSION: Final[str] = "q-u-c-m-v1"
 REFINE_PROBABILITY: Final[float] = 0.7
 INITIAL_ROOT_COUNT: Final[int] = 8
 MAX_HISTORY_EVENTS: Final[int] = 8
 LOGICAL_MODEL_NAME: Final[str] = "Qwen3.6-27B"
 DEFAULT_MAX_RESPONSES: Final[int] = 5000
-DEFAULT_MAX_CONSECUTIVE_ERRORS: Final[int] = 50
+DEFAULT_MAX_CONSECUTIVE_ERRORS: Final[int] = 20
 
 
 class Intent(StrEnum):
@@ -137,14 +135,11 @@ class Pending:
 
 
 __all__ = [
-    "DEFAULT_MAX_CONSECUTIVE_ERRORS",
     "DEFAULT_MAX_RESPONSES",
     "INITIAL_ROOT_COUNT",
     "LOGICAL_MODEL_NAME",
     "MAX_HISTORY_EVENTS",
-    "PROTOCOL_ID",
     "REFINE_PROBABILITY",
-    "SCORE_FORMULA_VERSION",
     "AllocationPolicy",
     "Anchor",
     "Attempt",

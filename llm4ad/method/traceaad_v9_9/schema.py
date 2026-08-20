@@ -12,7 +12,6 @@ INITIAL_ROOT_COUNT: Final[int] = 8
 MAX_HISTORY_EVENTS: Final[int] = 8
 LOGICAL_MODEL_NAME: Final[str] = "Qwen3.6-27B"
 DEFAULT_MAX_RESPONSES: Final[int] = 5000
-DEFAULT_MAX_CONSECUTIVE_ERRORS: Final[int] = 50
 LAMBDA_U: Final[float] = 0.25
 PATH_HALF_LIFE: Final[float] = 4.0
 RANK_HALF_LIFE: Final[float] = 5.0
@@ -100,7 +99,6 @@ class Pending:
 
 
 __all__ = [
-    "DEFAULT_MAX_CONSECUTIVE_ERRORS",
     "DEFAULT_MAX_RESPONSES",
     "EXPLORE_PRIOR",
     "INITIAL_ROOT_COUNT",

@@ -11,23 +11,19 @@ from typing import Any
 
 from ...base import Evaluation, Function, LLM, SecureEvaluator, TextFunctionProgramConverter
 from .artifacts import RunArtifacts
-from .checkpoint import CHECKPOINT_VERSION, load_checkpoint, save_checkpoint
+from .checkpoint import load_checkpoint, save_checkpoint
 from .forest import Forest, is_better
 from .history import drop_oldest, one_line, parent_path, render_path
 from .prompt import (
-    ProgramResponseError,
     build_generation_prompt,
     build_root_prompt,
     parse_program_response,
 )
 from .schema import (
-    DEFAULT_MAX_CONSECUTIVE_ERRORS,
     DEFAULT_MAX_RESPONSES,
     INITIAL_ROOT_COUNT,
     MAX_HISTORY_EVENTS,
-    PROTOCOL_ID,
     REFINE_PROBABILITY,
-    SCORE_FORMULA_VERSION,
     AllocationPolicy,
     Anchor,
     Attempt,
@@ -46,9 +42,7 @@ ERROR_MAX_CHARS = 360
 def draw_intent(seed: int | None, iteration: int) -> Intent:
     """Deterministic fixed-prior operator draw without mutable RNG state."""
     token = "none" if seed is None else str(seed)
-    digest = hashlib.sha256(
-        f"{PROTOCOL_ID}:intent:{token}:{iteration}".encode()
-    ).digest()
+    digest = hashlib.sha256(f"{token}:{iteration}".encode()).digest()
     value = int.from_bytes(digest[:8], "big") / 2**64
     return Intent.REFINE if value < REFINE_PROBABILITY else Intent.EXPLORE
 
@@ -69,7 +63,6 @@ class TraceAADV98:
         seed: int | None = 0,
         allocation_policy: AllocationPolicy | str = AllocationPolicy.FULL,
         max_responses: int = DEFAULT_MAX_RESPONSES,
-        max_consecutive_errors: int = DEFAULT_MAX_CONSECUTIVE_ERRORS,
         checkpoint_dir: str | Path | None = None,
         resume_from: str | Path | None = None,
         debug_mode: bool = False,
@@ -78,8 +71,8 @@ class TraceAADV98:
             raise ValueError("budget, n_roots, max_tokens, and max_history must be positive")
         if context_limit is None or context_limit <= 0:
             raise ValueError("context_limit must be explicitly positive")
-        if max_responses <= 0 or max_consecutive_errors <= 0:
-            raise ValueError("response and error safety limits must be positive")
+        if max_responses <= 0:
+            raise ValueError("response safety limit must be positive")
         if (
             evaluation.use_numba_accelerate
             or evaluation.use_protected_div
@@ -93,7 +86,6 @@ class TraceAADV98:
         self._llm = llm
         self._log = artifacts
         self._task = evaluation.task_description
-        self._template = template
         self._function: Function = copy.deepcopy(template.functions[0])
         self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode)
         self._budget = budget
@@ -105,7 +97,6 @@ class TraceAADV98:
         self._seed = seed
         self._allocation_policy = AllocationPolicy(allocation_policy)
         self._max_responses = max_responses
-        self._max_consecutive_errors = max_consecutive_errors
         self._checkpoint_dir = None if checkpoint_dir is None else Path(checkpoint_dir)
         llm.debug_mode = debug_mode
 
@@ -119,9 +110,6 @@ class TraceAADV98:
         self._bootstrap_deltas: list[float] = []
         self._s0: float | None = None
         self._best_id: int | None = None
-        self._consecutive_errors = 0
-        self._search_aborted = False
-        self._abort_reason: str | None = None
 
         if resume_from is not None:
             checkpoint = load_checkpoint(self, resume_from)
@@ -135,9 +123,6 @@ class TraceAADV98:
 
     def search_configuration(self) -> dict[str, Any]:
         return {
-            "protocol_id": PROTOCOL_ID,
-            "checkpoint_schema_version": CHECKPOINT_VERSION,
-            "score_formula_version": SCORE_FORMULA_VERSION,
             "allocation_policy": self._allocation_policy.value,
             "budget": self._budget,
             "n_roots": self._n_roots,
@@ -149,7 +134,6 @@ class TraceAADV98:
             "refine_probability": REFINE_PROBABILITY,
             "explore_probability": 1.0 - REFINE_PROBABILITY,
             "max_responses": self._max_responses,
-            "max_consecutive_errors": self._max_consecutive_errors,
         }
 
     def run(self) -> None:
@@ -159,11 +143,11 @@ class TraceAADV98:
         try:
             if self._pending is not None:
                 self._resume_pending()
-            if not self._initialization_complete and not self._search_aborted:
+            if not self._initialization_complete:
                 self._initialize()
             if not self._initialization_complete:
-                status = "aborted" if self._search_aborted else "initialization_failure"
-                stop_reason = self._abort_reason or "budget_exhausted_during_initialization"
+                status = "initialization_failure"
+                stop_reason = "budget_exhausted_during_initialization"
                 return
 
             while self._has_budget() and self._can_respond():
@@ -185,9 +169,9 @@ class TraceAADV98:
                     intent=intent.value,
                     selection=choice.to_dict(),
                 )
-            if self._search_aborted or not self._can_respond():
+            if not self._can_respond():
                 status = "aborted"
-                stop_reason = self._abort_reason or "response_safety_limit"
+                stop_reason = "response_safety_limit"
             else:
                 status = "finished"
                 stop_reason = "evaluator_budget_exhausted"
@@ -203,8 +187,6 @@ class TraceAADV98:
                 self._log.write_summary(
                     status=status,
                     stop_reason=stop_reason,
-                    search_aborted=self._search_aborted,
-                    abort_reason=self._abort_reason,
                     best_program_id=None if best is None else best.id,
                     best_score=None if best is None else best.fitness,
                     best_q=None if best is None else best.q,
@@ -433,25 +415,10 @@ class TraceAADV98:
         pending = self._pending
         if pending is None or pending.response is None:
             raise RuntimeError("pending response is not ready")
-        try:
-            parsed = parse_program_response(
-                pending.response, self._template, self._function.name
-            )
-        except ProgramResponseError as exc:
-            return self._finalize(
-                idea=exc.declared_idea,
-                code=None,
-                diff=None,
-                added=0,
-                removed=0,
-                existing=None,
-                fitness=None,
-                error=one_line(str(exc), ERROR_MAX_CHARS),
-                evaluated=False,
-            )
 
+        parsed = parse_program_response(pending.response)
         idea = parsed.declared_idea
-        code = str(parsed.program)
+        code = parsed.code
         diff: str | None = None
         added = removed = 0
         if pending.anchor_id is not None:
@@ -513,6 +480,7 @@ class TraceAADV98:
                 ERROR_MAX_CHARS,
             ),
             evaluated=True,
+            status=outcome.failure_kind or "invalid_result",
         )
 
     def _finalize(
@@ -527,6 +495,7 @@ class TraceAADV98:
         fitness: float | None,
         error: str | None,
         evaluated: bool,
+        status: str = "ok",
     ) -> Attempt:
         pending = self._pending
         if pending is None or pending.response is None:
@@ -599,14 +568,6 @@ class TraceAADV98:
         if pending.stage == "search" and pending.iteration is not None:
             self._iteration = max(self._iteration, pending.iteration + 1)
 
-        if kind == "invalid":
-            self._consecutive_errors += 1
-        else:
-            self._consecutive_errors = 0
-        if self._consecutive_errors >= self._max_consecutive_errors:
-            self._search_aborted = True
-            self._abort_reason = "consecutive_error_limit"
-
         is_new_best, _reason = self._update_best(program)
         if program is not None and self._log is not None:
             self._log.record_program(
@@ -637,6 +598,7 @@ class TraceAADV98:
             code=code,
             error=error,
             evaluated=evaluated,
+            status=status,
             is_new_best=is_new_best,
             selection=selection,
         )
@@ -715,14 +677,12 @@ class TraceAADV98:
         code: str | None,
         error: str | None,
         evaluated: bool,
+        status: str,
         is_new_best: bool,
         selection: dict[str, Any] | None,
     ) -> None:
         if self._log is None:
             return
-        status = "ok"
-        if attempt.kind == "invalid":
-            status = "parse_failed" if not evaluated else "eval_failed"
         parent_q = (
             None
             if attempt.anchor_id is None
@@ -788,13 +748,7 @@ class TraceAADV98:
         return self._n_eval < self._budget
 
     def _can_respond(self) -> bool:
-        if self._search_aborted:
-            return False
-        if self._n_candidates >= self._max_responses:
-            self._search_aborted = True
-            self._abort_reason = "response_safety_limit"
-            return False
-        return True
+        return self._n_candidates < self._max_responses
 
 
 def _outcome(has_anchor: bool, *, invalid: bool, dq: float | None) -> Outcome | None:

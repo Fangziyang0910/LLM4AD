@@ -3,7 +3,6 @@
 from .artifacts import RunArtifacts
 from .schema import (
     CHILD_WINDOW,
-    DEFAULT_MAX_CONSECUTIVE_ERRORS,
     DEFAULT_MAX_RESPONSES,
     EXPLORE_PRIOR,
     INITIAL_ROOT_COUNT,
@@ -19,7 +18,6 @@ from .traceaad import TraceAADV910
 
 __all__ = [
     "CHILD_WINDOW",
-    "DEFAULT_MAX_CONSECUTIVE_ERRORS",
     "DEFAULT_MAX_RESPONSES",
     "EXPLORE_PRIOR",
     "INITIAL_ROOT_COUNT",

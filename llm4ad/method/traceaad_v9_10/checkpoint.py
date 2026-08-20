@@ -59,9 +59,6 @@ def dump_state(method) -> dict[str, Any]:
         "iteration": method._iteration,
         "initialization_complete": method._initialization_complete,
         "best_id": method._best_id,
-        "consecutive_errors": method._consecutive_errors,
-        "search_aborted": method._search_aborted,
-        "abort_reason": method._abort_reason,
     }
 
 
@@ -75,9 +72,6 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     method._iteration = int(payload["iteration"])
     method._initialization_complete = bool(payload["initialization_complete"])
     method._best_id = None if payload["best_id"] is None else int(payload["best_id"])
-    method._consecutive_errors = int(payload.get("consecutive_errors", 0))
-    method._search_aborted = bool(payload.get("search_aborted", False))
-    method._abort_reason = payload.get("abort_reason")
 
 
 def save_checkpoint(method, directory: str | Path | None = None) -> Path | None:

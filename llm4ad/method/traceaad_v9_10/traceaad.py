@@ -13,14 +13,12 @@ from .checkpoint import load_checkpoint, save_checkpoint
 from .forest import Forest, is_better
 from .history import drop_oldest, one_line, parent_path, render_path
 from .prompt import (
-    ProgramResponseError,
     build_generation_prompt,
     build_root_prompt,
     parse_program_response,
 )
 from .schema import (
     CHILD_WINDOW,
-    DEFAULT_MAX_CONSECUTIVE_ERRORS,
     DEFAULT_MAX_RESPONSES,
     EXPLORE_PRIOR,
     INITIAL_ROOT_COUNT,
@@ -60,7 +58,6 @@ class TraceAADV910:
         max_history: int = MAX_HISTORY_EVENTS,
         seed: int | None = 0,
         max_responses: int = DEFAULT_MAX_RESPONSES,
-        max_consecutive_errors: int = DEFAULT_MAX_CONSECUTIVE_ERRORS,
         child_window: int = CHILD_WINDOW,
         settlement_mode: str = "depth",
         allocation_mode: str = "thompson",
@@ -72,8 +69,8 @@ class TraceAADV910:
             raise ValueError("budget, n_roots, max_tokens, and max_history must be positive")
         if context_limit is None or context_limit <= 0:
             raise ValueError("context_limit must be explicitly positive")
-        if max_responses <= 0 or max_consecutive_errors <= 0:
-            raise ValueError("response and error safety limits must be positive")
+        if max_responses <= 0:
+            raise ValueError("response safety limit must be positive")
         if child_window < 0:
             raise ValueError("child_window must be non-negative")
         if settlement_mode not in {"depth", "response_age"}:
@@ -93,7 +90,6 @@ class TraceAADV910:
         self._llm = llm
         self._log = artifacts
         self._task = evaluation.task_description
-        self._template = template
         self._function: Function = copy.deepcopy(template.functions[0])
         self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode)
         self._budget = budget
@@ -104,7 +100,6 @@ class TraceAADV910:
         self._max_history = max_history
         self._seed = seed
         self._max_responses = max_responses
-        self._max_consecutive_errors = max_consecutive_errors
         self._child_window = child_window
         self._settlement_mode = settlement_mode
         self._allocation_mode = allocation_mode
@@ -118,9 +113,6 @@ class TraceAADV910:
         self._iteration = 0
         self._initialization_complete = False
         self._best_id: int | None = None
-        self._consecutive_errors = 0
-        self._search_aborted = False
-        self._abort_reason: str | None = None
 
         if resume_from is not None:
             checkpoint = load_checkpoint(self, resume_from)
@@ -151,7 +143,6 @@ class TraceAADV910:
             "parent_chain_window": PARENT_CHAIN_WINDOW,
             "parent_chain_half_life": PARENT_CHAIN_HALF_LIFE,
             "max_responses": self._max_responses,
-            "max_consecutive_errors": self._max_consecutive_errors,
         }
 
     def run(self) -> None:
@@ -161,11 +152,11 @@ class TraceAADV910:
         try:
             if self._pending is not None:
                 self._resume_pending()
-            if not self._initialization_complete and not self._search_aborted:
+            if not self._initialization_complete:
                 self._initialize()
             if not self._initialization_complete:
-                status = "aborted" if self._search_aborted else "initialization_failure"
-                stop_reason = self._abort_reason or "budget_exhausted_during_initialization"
+                status = "initialization_failure"
+                stop_reason = "budget_exhausted_during_initialization"
                 return
 
             while self._has_budget() and self._can_respond():
@@ -184,9 +175,9 @@ class TraceAADV910:
                     intent=choice.intent.value,
                     selection=choice.to_dict(),
                 )
-            if self._search_aborted or not self._can_respond():
+            if not self._can_respond():
                 status = "aborted"
-                stop_reason = self._abort_reason or "response_safety_limit"
+                stop_reason = "response_safety_limit"
             else:
                 status = "finished"
                 stop_reason = "evaluator_budget_exhausted"
@@ -203,8 +194,6 @@ class TraceAADV910:
                 self._log.write_summary(
                     status=status,
                     stop_reason=stop_reason,
-                    search_aborted=self._search_aborted,
-                    abort_reason=self._abort_reason,
                     best_program_id=None if best is None else best.id,
                     best_score=None if best is None else best.fitness,
                     best_q=None if best is None else best.q,
@@ -408,25 +397,10 @@ class TraceAADV910:
         pending = self._pending
         if pending is None or pending.response is None:
             raise RuntimeError("pending response is not ready")
-        try:
-            parsed = parse_program_response(
-                pending.response, self._template, self._function.name
-            )
-        except ProgramResponseError as exc:
-            return self._finalize(
-                idea=exc.declared_idea,
-                code=None,
-                diff=None,
-                added=0,
-                removed=0,
-                existing=None,
-                fitness=None,
-                error=one_line(str(exc), ERROR_MAX_CHARS),
-                evaluated=False,
-            )
 
+        parsed = parse_program_response(pending.response)
         idea = parsed.declared_idea
-        code = str(parsed.program)
+        code = parsed.code
         diff: str | None = None
         added = removed = 0
         if pending.anchor_id is not None:
@@ -482,12 +456,13 @@ class TraceAADV910:
             removed=removed,
             existing=None,
             fitness=None,
-            error=one_line(
-                outcome.error
-                or f"evaluator returned non-finite or non-numeric fitness: {score!r}",
-                ERROR_MAX_CHARS,
-            ),
+                error=one_line(
+                    outcome.error
+                    or f"evaluator returned non-finite or non-numeric fitness: {score!r}",
+                    ERROR_MAX_CHARS,
+                ),
             evaluated=True,
+            status=outcome.failure_kind or "invalid_result",
         )
 
     def _finalize(
@@ -502,6 +477,7 @@ class TraceAADV910:
         fitness: float | None,
         error: str | None,
         evaluated: bool,
+        status: str = "ok",
     ) -> Action | None:
         pending = self._pending
         if pending is None or pending.response is None:
@@ -559,14 +535,6 @@ class TraceAADV910:
         if pending.stage == "search" and pending.iteration is not None:
             self._iteration = max(self._iteration, pending.iteration + 1)
 
-        if kind == "invalid":
-            self._consecutive_errors += 1
-        else:
-            self._consecutive_errors = 0
-        if self._consecutive_errors >= self._max_consecutive_errors:
-            self._search_aborted = True
-            self._abort_reason = "consecutive_error_limit"
-
         is_new_best, _reason = self._update_best(program)
         if program is not None and self._log is not None:
             self._log.record_program(
@@ -601,6 +569,7 @@ class TraceAADV910:
             code=code,
             error=error,
             evaluated=evaluated,
+            status=status,
             is_new_best=is_new_best,
             selection=selection,
         )
@@ -695,14 +664,12 @@ class TraceAADV910:
         code: str | None,
         error: str | None,
         evaluated: bool,
+        status: str,
         is_new_best: bool,
         selection: dict[str, Any] | None,
     ) -> None:
         if self._log is None:
             return
-        status = "ok"
-        if kind == "invalid":
-            status = "parse_failed" if not evaluated else "eval_failed"
         parent_q = (
             None
             if action is None
@@ -765,13 +732,7 @@ class TraceAADV910:
         return self._n_eval < self._budget
 
     def _can_respond(self) -> bool:
-        if self._search_aborted:
-            return False
-        if self._n_candidates >= self._max_responses:
-            self._search_aborted = True
-            self._abort_reason = "response_safety_limit"
-            return False
-        return True
+        return self._n_candidates < self._max_responses
 
 
 def _outcome(has_anchor: bool, *, invalid: bool, dq: float | None) -> Outcome | None:
