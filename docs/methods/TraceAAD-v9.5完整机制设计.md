@@ -15,7 +15,7 @@
 给定锚点 $a$，提示中的局部证据由两部分组成：
 
 $$
-E_t(a)=E_{direct}(a)+E_{recent\ formation}(a).
+E_t(a)=E_{direct}(a)+E_{\mathrm{recent\ formation}}(a).
 $$
 
 `Direct attempts` 是从当前锚点发起的已完成尝试，包括 improve、plateau、regress、invalid、no-op、重复和祖先返回。来自其他锚点的尝试不混入。
@@ -99,4 +99,3 @@ While completed-response budget remains:
 
 Return the best unique program by the true objective.
 ````
-
