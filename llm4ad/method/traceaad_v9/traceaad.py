@@ -15,12 +15,11 @@ from ...base import (
     Evaluation,
     Function,
     LLM,
-    Program,
     SecureEvaluator,
     TextFunctionProgramConverter,
 )
 from .artifacts import RunArtifacts
-from .checkpoint import CHECKPOINT_VERSION, load_checkpoint, save_checkpoint
+from .checkpoint import load_checkpoint, save_checkpoint
 from .complexity import code_hash, nonempty_loc
 from .context import (
     build_code_prompt,
@@ -29,7 +28,7 @@ from .context import (
 )
 from .operators import DEFAULT_OPERATORS, DUAL_OPERATORS, Operator
 from .prompt import build_initial_prompt, parse_program_response
-from .schema import OperatorName, PROTOCOL_ID, ProgramNode
+from .schema import OperatorName, ProgramNode
 from .tree import SearchTree, is_node_better
 from .value import (
     reference_candidates,
@@ -37,23 +36,13 @@ from .value import (
     select_expansion_node,
 )
 
+TRANSPORT_RETRIES = 3
+ERROR_MAX_CHARS = 360
 
-def _note_sample_failure(method, exc: Exception, *, stage: str, **payload) -> None:
-    if method._debug_mode:
-        raise exc
-    method._consecutive_sample_failures += 1
-    artifacts = method._artifacts
-    if artifacts is not None:
-        artifacts.record_error(stage, exc, **payload)
-    if method._consecutive_sample_failures >= method._max_consecutive_sample_failures:
-        method._search_aborted = True
-        if artifacts is not None:
-            artifacts.record_decision(
-                "search_aborted",
-                reason="max_consecutive_sample_failures",
-                consecutive_failures=method._consecutive_sample_failures,
-                max_consecutive_failures=method._max_consecutive_sample_failures,
-            )
+
+def _one_line(text: str, limit: int) -> str:
+    compact = " ".join(str(text).split())
+    return compact if len(compact) <= limit else compact[: limit - 3] + "..."
 
 
 def _stable_identity_value(value):
@@ -90,7 +79,7 @@ def _configuration_digest(obj) -> str:
 @dataclass(frozen=True, slots=True)
 class _GeneratedProgram:
     idea: str
-    program: Program
+    code: str
     sample_time: float
 
 
@@ -155,7 +144,6 @@ class TraceAADV9:
         context_token_limit: int | None = None,
         random_seed: int | None = None,
         debug_mode: bool = False,
-        max_consecutive_sample_failures: int = 20,
         max_stalled_iterations: int = 20,
         checkpoint_dir: str | Path | None = None,
         checkpoint_interval: int = 10,
@@ -243,9 +231,6 @@ class TraceAADV9:
         self._batch_count = 0
         self._stalled_iterations = 0
         self._initialization_complete = False
-        self._consecutive_sample_failures = 0
-        self._max_consecutive_sample_failures = max(1, int(max_consecutive_sample_failures))
-        self._search_aborted = False
         if resume_from is not None:
             checkpoint = load_checkpoint(self, resume_from)
             if self._checkpoint_dir is None:
@@ -289,8 +274,6 @@ class TraceAADV9:
 
     def search_configuration(self) -> dict:
         return {
-            "protocol_id": PROTOCOL_ID,
-            "checkpoint_schema_version": CHECKPOINT_VERSION,
             "history_protocol": "matched_history",
             "max_sample_nums": self._max_sample_nums,
             "n_init": self._n_init,
@@ -311,7 +294,6 @@ class TraceAADV9:
             "operators": [str(operator.name) for operator in self._operators],
             "code_max_tokens": self._code_max_tokens,
             "context_token_limit": self._context_token_limit,
-            "max_consecutive_sample_failures": self._max_consecutive_sample_failures,
             "max_stalled_iterations": self._max_stalled_iterations,
             "checkpoint_interval": self._checkpoint_interval,
             "random_seed": self._random_seed,
@@ -327,7 +309,7 @@ class TraceAADV9:
                 self._initialize()
                 self._initialization_complete = True
                 save_checkpoint(self)
-            while self._has_budget() and not self._search_aborted:
+            while self._has_budget():
                 if not self._tree.root.child_ids:
                     status = "stalled"
                     stop_reason = "empty_tree"
@@ -351,10 +333,7 @@ class TraceAADV9:
                     break
                 self._save_checkpoint_if_due()
             result = self._result()
-            if self._search_aborted:
-                status = "aborted"
-                stop_reason = "max_consecutive_sample_failures"
-            elif status == "error":
+            if status == "error":
                 status = "finished"
                 if not self._has_budget():
                     stop_reason = "budget_exhausted"
@@ -386,7 +365,6 @@ class TraceAADV9:
                     n_batches=result.n_batches,
                     initialization_target=self._n_init,
                     initialization_actual=result.n_root_children,
-                    search_aborted=self._search_aborted,
                     stop_reason=stop_reason,
                     **error,
                 )
@@ -394,12 +372,10 @@ class TraceAADV9:
             self._llm.close()
 
     def _initialize(self) -> None:
-        stalled_draws = 0
         draw_seq = 0
         while (
             len(self._tree.root.child_ids) < self._n_init
             and self._has_budget()
-            and not self._search_aborted
         ):
             prompt = build_initial_prompt(
                 task_description=self._task_description_str,
@@ -421,22 +397,16 @@ class TraceAADV9:
                 max_tokens=self._code_max_tokens,
             )
             draw_seq += 1
-            if generated is None:
-                stalled_draws += 1
-                if stalled_draws >= self._max_stalled_iterations:
-                    break
-                continue
             fitness, sample_order = self._evaluate_detailed(
-                generated.program,
+                generated.code,
                 idea=generated.idea,
                 operator="init",
                 sample_time=generated.sample_time,
             )
             if fitness is None:
                 continue
-            stalled_draws = 0
             node = self._tree.add_initial(
-                code=str(generated.program),
+                code=generated.code,
                 idea=generated.idea,
                 fitness=fitness,
                 maximize=self._maximize,
@@ -548,15 +518,6 @@ class TraceAADV9:
         code_contexts = [context for context in contexts if context is not None]
         context = code_contexts[0]
 
-        current_program = TextFunctionProgramConverter.text_to_program(base_node.code)
-        if current_program is None:
-            current_program = self._template_program
-        else:
-            try:
-                current_program.get_function(self._function_to_evolve.name)
-            except ValueError:
-                current_program = self._template_program
-
         expansion_count_before = base_node.expansion_count
         child_count_before = len(base_node.child_ids)
         path = self._tree.record_batch_visit(base_node.id)
@@ -596,7 +557,7 @@ class TraceAADV9:
         global_best_before = self._best_node
         evaluated: list[_EvaluatedCandidate] = []
         for seq, code_context in enumerate(code_contexts):
-            if not self._has_budget() or self._search_aborted:
+            if not self._has_budget():
                 break
             generated = self._draw_program(
                 code_context.prompt,
@@ -614,13 +575,9 @@ class TraceAADV9:
                     else context.reference_node.id
                 ),
                 reference_root_branch_id=context.reference_branch_id,
-                template_program=current_program,
-                signature_template=self._template_program,
             )
-            if generated is None:
-                continue
             fitness, sample_order = self._evaluate_detailed(
-                generated.program,
+                generated.code,
                 idea=generated.idea,
                 operator=operator.name,
                 sample_time=generated.sample_time,
@@ -645,12 +602,12 @@ class TraceAADV9:
             if is_winner:
                 reason = self._best_update_reason_values(
                     float(item.fitness),
-                    nonempty_loc(str(item.generated.program)),
+                    nonempty_loc(item.generated.code),
                     global_best_before,
                 )
             child, edge, backup_changes = self._tree.add_child(
                 parent_id=base_node.id,
-                code=str(item.generated.program),
+                code=item.generated.code,
                 idea=item.generated.idea,
                 fitness=float(item.fitness),
                 maximize=self._maximize,
@@ -793,75 +750,24 @@ class TraceAADV9:
         seq: int,
         operator: str | OperatorName,
         max_tokens: int,
-        template_program: Program | None = None,
-        signature_template: Program | None = None,
         prompt_tokens: int | None = None,
         parent_node_id: int | None = None,
         batch_id: int | None = None,
         reference_node_id: int | None = None,
         reference_root_branch_id: int | None = None,
-    ) -> _GeneratedProgram | None:
+    ) -> _GeneratedProgram:
         sample_order = self._tot_sample_nums + 1
         start = time.time()
-        request_prompt_tokens = (
-            self._count_tokens(prompt) if prompt_tokens is None else prompt_tokens
+        response = self._draw_sample(
+            prompt,
+            stage=stage,
+            operator=operator,
+            iteration=iteration,
+            seq=seq,
+            max_tokens=max_tokens,
         )
-        try:
-            response = self._llm.draw_sample(prompt, max_tokens=max_tokens)
-            elapsed = time.time() - start
-            self._consecutive_sample_failures = 0
-        except Exception as exc:
-            elapsed = time.time() - start
-            if self._artifacts is not None:
-                self._artifacts.record_llm_call(
-                    stage=stage,
-                    operator=str(operator),
-                    sample_order=sample_order,
-                    iteration=iteration,
-                    seq=seq,
-                    sample_time=elapsed,
-                    prompt_tokens=request_prompt_tokens,
-                    response_tokens=0,
-                    token_count_mode=self._token_count_mode,
-                    status="transport",
-                    failure_kind="transport",
-                    error_type=type(exc).__name__,
-                    error=str(exc),
-                )
-            _note_sample_failure(
-                self,
-                exc,
-                stage=stage,
-                operator=str(operator),
-                sample_order=sample_order,
-                counts_budget=False,
-                iteration=iteration,
-                seq=seq,
-                parent_node_id=parent_node_id,
-                batch_id=batch_id,
-                reference_node_id=reference_node_id,
-                reference_root_branch_id=reference_root_branch_id,
-            )
-            self._record_decision(
-                "code_generation_failed",
-                failure_kind="transport",
-                iteration=iteration,
-                seq=seq,
-                operator=str(operator),
-                parent_node_id=parent_node_id,
-                batch_id=batch_id,
-                reference_node_id=reference_node_id,
-                reference_root_branch_id=reference_root_branch_id,
-            )
-            return None
-        parsed = parse_program_response(
-            response,
-            self._template_program
-            if template_program is None
-            else template_program,
-            self._function_to_evolve.name,
-            signature_template=signature_template,
-        )
+        elapsed = time.time() - start
+        parsed = parse_program_response(response)
         if self._artifacts is not None:
             self._artifacts.record_llm_call(
                 stage=stage,
@@ -870,31 +776,50 @@ class TraceAADV9:
                 iteration=iteration,
                 seq=seq,
                 sample_time=elapsed,
-                prompt_tokens=request_prompt_tokens,
+                prompt_tokens=self._count_tokens(prompt)
+                if prompt_tokens is None
+                else prompt_tokens,
                 response_tokens=self._count_tokens(response),
                 token_count_mode=self._token_count_mode,
-                program_parse_success=parsed is not None,
                 response=response,
-                status="ok" if parsed is not None else "parse_failed",
+                status="ok",
             )
-        if parsed is None:
-            self._record_decision(
-                "code_generation_failed",
-                failure_kind="parse",
-                iteration=iteration,
-                seq=seq,
-                operator=str(operator),
-                parent_node_id=parent_node_id,
-                batch_id=batch_id,
-                reference_node_id=reference_node_id,
-                reference_root_branch_id=reference_root_branch_id,
-            )
-            return None
-        return _GeneratedProgram(parsed.idea, parsed.program, elapsed)
+        return _GeneratedProgram(parsed.declared_idea or "", parsed.code, elapsed)
+
+    def _draw_sample(
+        self,
+        prompt: str,
+        *,
+        stage: str,
+        operator: str | OperatorName,
+        iteration: int | None,
+        seq: int,
+        max_tokens: int,
+    ) -> str:
+        last_error: Exception | None = None
+        for transport_attempt in range(1, TRANSPORT_RETRIES + 2):
+            try:
+                return self._llm.draw_sample(prompt, max_tokens=max_tokens)
+            except Exception as exc:
+                last_error = exc
+                if self._artifacts is not None:
+                    self._artifacts.record_llm_call(
+                        stage=stage,
+                        operator=str(operator),
+                        sample_order=self._tot_sample_nums + 1,
+                        iteration=iteration,
+                        seq=seq,
+                        status="transport",
+                        failure_kind="transport",
+                        error_type=type(exc).__name__,
+                        error=str(exc),
+                        transport_attempt=transport_attempt,
+                    )
+        raise RuntimeError("model transport retry limit exhausted") from last_error
 
     def _evaluate_detailed(
         self,
-        program: Program,
+        code: str,
         *,
         idea: str,
         operator: str | OperatorName,
@@ -909,30 +834,34 @@ class TraceAADV9:
         if not self._has_budget():
             return None, self._tot_sample_nums
         outcome, eval_time = self._evaluator.evaluate_program_record_time_with_details(
-            program
+            code
         )
         self._tot_sample_nums += 1
         sample_order = self._tot_sample_nums
-        result = outcome.result
-        score = getattr(result, "fitness", result)
-        valid_score = None
-        if score is not None:
-            try:
-                candidate = float(score)
-            except (TypeError, ValueError, OverflowError):
-                candidate = math.nan
-            if math.isfinite(candidate):
-                valid_score = candidate
-        program_text = str(program)
+        if outcome.failure_kind == "prepare_error":
+            raise RuntimeError(
+                _one_line(
+                    outcome.error
+                    or "evaluator preparation failed without an error message",
+                    ERROR_MAX_CHARS,
+                )
+            )
+        score = getattr(outcome.result, "fitness", outcome.result)
+        valid_score: float | None
+        try:
+            candidate = float(score)
+        except (TypeError, ValueError, OverflowError):
+            candidate = math.nan
+        valid_score = candidate if math.isfinite(candidate) else None
         if self._artifacts is not None:
             payload = {
                 "sample_order": sample_order,
                 "score": valid_score,
                 "operator": str(operator),
-                "program": program_text,
+                "program": code,
                 "idea": idea,
-                "code_hash": code_hash(program_text),
-                "program_loc": nonempty_loc(program_text),
+                "code_hash": code_hash(code),
+                "program_loc": nonempty_loc(code),
                 "evaluate_time": eval_time,
                 "sample_time": sample_time,
                 "parent_node_id": parent_node_id,
@@ -941,12 +870,15 @@ class TraceAADV9:
                 "sibling_seq": sibling_seq,
                 "reference_node_id": reference_node_id,
                 "reference_root_branch_id": reference_root_branch_id,
-                "status": "ok" if valid_score is not None else "eval_failed",
+                "status": (
+                    "ok"
+                    if valid_score is not None
+                    else (outcome.failure_kind or "invalid_result")
+                ),
             }
             if valid_score is None:
                 payload.update(
                     {
-                        "failure_kind": outcome.failure_kind or "invalid_result",
                         "error_type": outcome.error_type,
                         "error": outcome.error,
                     }
@@ -965,7 +897,7 @@ class TraceAADV9:
             directed = float(item.fitness) if self._maximize else -float(item.fitness)
             candidate_key = (
                 directed,
-                -nonempty_loc(str(item.generated.program)),
+                -nonempty_loc(item.generated.code),
                 -(next_id + index),
             )
             if incumbent is not None:
@@ -985,7 +917,7 @@ class TraceAADV9:
             )
             previous_key = (
                 previous_directed,
-                -nonempty_loc(str(previous.generated.program)),
+                -nonempty_loc(previous.generated.code),
                 -(next_id + winner),
             )
             if candidate_key > previous_key:

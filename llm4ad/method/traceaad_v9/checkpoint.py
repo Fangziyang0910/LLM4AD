@@ -11,11 +11,8 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .complexity import code_hash, nonempty_loc
-from .schema import ImprovementEdge, OperatorName, ProgramNode, PROTOCOL_ID, VirtualRoot
+from .schema import ImprovementEdge, OperatorName, ProgramNode, VirtualRoot
 from .tree import SearchTree, is_node_better
-
-CHECKPOINT_VERSION = 1
-
 
 def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -274,15 +271,11 @@ def validate_tree(tree: SearchTree, *, maximize: bool) -> None:
 
 def dump_state(method) -> dict[str, Any]:
     return {
-        "version": CHECKPOINT_VERSION,
-        "protocol_id": PROTOCOL_ID,
         "initialization_complete": method._initialization_complete,
         "total_samples": method._tot_sample_nums,
         "next_attempt_id": method._next_attempt_id,
         "batch_count": method._batch_count,
         "stalled_iterations": method._stalled_iterations,
-        "consecutive_sample_failures": method._consecutive_sample_failures,
-        "search_aborted": method._search_aborted,
         "best_node_id": None if method._best_node is None else method._best_node.id,
         "best_node_sample_order": method._best_node_sample_order,
         "tree": _tree_to_dict(method._tree),
@@ -293,10 +286,6 @@ def dump_state(method) -> dict[str, Any]:
 
 
 def load_state(method, payload: Mapping[str, Any]) -> None:
-    if int(payload.get("version", -1)) != CHECKPOINT_VERSION:
-        raise ValueError("unsupported TraceAAD V9-Core checkpoint version")
-    if payload.get("protocol_id") != PROTOCOL_ID:
-        raise ValueError("checkpoint protocol_id does not match TraceAAD V9-Core")
     if payload.get("search_configuration") != method.search_configuration():
         raise ValueError("checkpoint search configuration does not match TraceAAD V9-Core")
     if payload.get("runtime_identity") != method.runtime_identity():
@@ -331,8 +320,6 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     method._next_attempt_id = int(payload["next_attempt_id"])
     method._batch_count = int(payload["batch_count"])
     method._stalled_iterations = int(payload["stalled_iterations"])
-    method._consecutive_sample_failures = int(payload["consecutive_sample_failures"])
-    method._search_aborted = bool(payload["search_aborted"])
     method._initialization_complete = bool(payload["initialization_complete"])
     method._rng.setstate(_as_tuple(payload["rng_state"]))
     artifacts = method._artifacts
@@ -368,7 +355,6 @@ def load_checkpoint(method, path: str | Path) -> Path:
 
 
 __all__ = [
-    "CHECKPOINT_VERSION",
     "dump_state",
     "load_checkpoint",
     "load_state",

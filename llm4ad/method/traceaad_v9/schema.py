@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Final, TypeAlias
-
-PROTOCOL_ID: Final[str] = "traceaad-v9-core"
+from typing import TypeAlias
 
 NodeId: TypeAlias = int
 EdgeId: TypeAlias = int
@@ -90,7 +88,6 @@ __all__ = [
     "ImprovementEdge",
     "NodeId",
     "OperatorName",
-    "PROTOCOL_ID",
     "ProgramNode",
     "SelectionStep",
     "VirtualRoot",
