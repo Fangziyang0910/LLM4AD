@@ -142,7 +142,6 @@ class RunArtifacts:
         idea: str | None = None,
         kind: str,
         outcome: Any = None,
-        evaluator_called: bool = False,
         status: str = "ok",
         parent_fitness: float | None = None,
         child_fitness: float | None = None,

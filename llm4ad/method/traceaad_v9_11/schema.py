@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Final
 
-PROTOCOL_ID: Final[str] = "traceaad-v9.11-stagnation-explore-landing"
 INITIAL_ROOT_COUNT: Final[int] = 8
 MAX_HISTORY_EVENTS: Final[int] = 8
 STAGNATION_WINDOW: Final[int] = 8
@@ -92,7 +91,6 @@ __all__ = [
     "LOGICAL_MODEL_NAME",
     "MAX_HISTORY_EVENTS",
     "MIN_EXPLORE_REMAINING_EVALS",
-    "PROTOCOL_ID",
     "STAGNATION_WINDOW",
     "Anchor",
     "Attempt",

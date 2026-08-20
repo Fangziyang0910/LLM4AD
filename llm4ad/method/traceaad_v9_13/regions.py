@@ -24,7 +24,6 @@ from typing import Any, Final, Iterable
 from .history import format_fitness
 from .schema import Program
 
-PROXY_RULES_VERSION: Final[str] = "v97-search-geometry-20260814-frozen"
 PROXY_TASKS: Final[frozenset[str]] = frozenset(
     {"tsp_construct", "cvrp_aco", "op_aco", "online_bin_packing"}
 )
@@ -364,7 +363,6 @@ def build_region_view(task: str, programs: Iterable[Program]) -> RegionView:
 
 
 __all__ = [
-    "PROXY_RULES_VERSION",
     "PROXY_TASKS",
     "FrontierProgram",
     "RegionView",

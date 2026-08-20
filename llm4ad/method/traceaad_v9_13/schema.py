@@ -6,11 +6,6 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Final
 
-PROTOCOL_ID: Final[str] = "traceaad-v9.13-region-frontier-explore-r3"
-# The intent schedule reuses the V9.7 mapping so that a V9.13 control branch
-# (treatment PP) draws the identical Refine/Explore sequence as V9.7 from the
-# same seed; Stage A branches forked from one prefix stay intent-aligned.
-INTENT_SCHEDULE_ID: Final[str] = "traceaad-v9.7-route-refine-explore"
 REFINE_PROBABILITY: Final[float] = 0.7
 INITIAL_ROOT_COUNT: Final[int] = 8
 MAX_HISTORY_EVENTS: Final[int] = 8
@@ -95,10 +90,8 @@ class Pending:
 __all__ = [
     "FRONTIER_ACTIVATION_EVALS",
     "INITIAL_ROOT_COUNT",
-    "INTENT_SCHEDULE_ID",
     "LOGICAL_MODEL_NAME",
     "MAX_HISTORY_EVENTS",
-    "PROTOCOL_ID",
     "REFINE_PROBABILITY",
     "Anchor",
     "Attempt",

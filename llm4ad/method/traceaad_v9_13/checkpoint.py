@@ -20,10 +20,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .forest import Forest
-from .schema import PROTOCOL_ID, Pending
-
-CHECKPOINT_VERSION = 7
-
+from .schema import Pending
 
 def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -57,8 +54,6 @@ def _pending_from_dict(item: Mapping[str, Any] | None) -> Pending | None:
 
 def dump_state(method) -> dict[str, Any]:
     return {
-        "version": CHECKPOINT_VERSION,
-        "protocol_id": PROTOCOL_ID,
         "config": method.search_configuration(),
         "forest": method._forest.to_dict(),
         "pending": None if method._pending is None else asdict(method._pending),
@@ -75,10 +70,6 @@ def dump_state(method) -> dict[str, Any]:
 
 
 def load_state(method, payload: Mapping[str, Any]) -> None:
-    if payload.get("version") != CHECKPOINT_VERSION:
-        raise ValueError("unsupported TraceAAD V9.13 checkpoint version")
-    if payload.get("protocol_id") != PROTOCOL_ID:
-        raise ValueError("checkpoint protocol does not match TraceAAD V9.13")
     if payload.get("config") != method.search_configuration():
         raise ValueError("checkpoint configuration does not match")
     method._forest = Forest.from_dict(payload["forest"])
@@ -114,7 +105,6 @@ def load_checkpoint(method, path: str | Path) -> Path:
 
 
 __all__ = [
-    "CHECKPOINT_VERSION",
     "load_checkpoint",
     "load_state",
     "save_checkpoint",

@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Final
 
-PROTOCOL_ID: Final[str] = "traceaad-v9.12-progress-conditioned-operator"
 INITIAL_ROOT_COUNT: Final[int] = 8
 MAX_HISTORY_EVENTS: Final[int] = 8
 PROGRESS_WINDOW: Final[int] = 8
@@ -96,7 +95,6 @@ __all__ = [
     "EXPLORE_PROBABILITY_MAX",
     "EXPLORE_PROBABILITY_MIN",
     "MIN_EXPLORE_REMAINING_EVALS",
-    "PROTOCOL_ID",
     "PROGRESS_WINDOW",
     "Anchor",
     "Attempt",

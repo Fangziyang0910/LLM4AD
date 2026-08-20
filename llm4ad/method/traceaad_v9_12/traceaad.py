@@ -17,11 +17,10 @@ from ...base import (
     TextFunctionProgramConverter,
 )
 from .artifacts import RunArtifacts
-from .checkpoint import CHECKPOINT_VERSION, load_checkpoint, save_checkpoint
+from .checkpoint import load_checkpoint, save_checkpoint
 from .forest import Forest, is_better
 from .history import drop_oldest, one_line, parent_path, render_path
 from .prompt import (
-    ProgramResponseError,
     build_generation_prompt,
     build_root_prompt,
     parse_program_response,
@@ -33,7 +32,6 @@ from .schema import (
     EXPLORE_PROBABILITY_MIN,
     MIN_EXPLORE_REMAINING_EVALS,
     PROGRESS_WINDOW,
-    PROTOCOL_ID,
     Anchor,
     Attempt,
     Intent,
@@ -103,7 +101,6 @@ class TraceAADV912:
         self._llm = llm
         self._log = artifacts
         self._task = evaluation.task_description
-        self._template = template
         self._function: Function = copy.deepcopy(template.functions[0])
         self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode)
         self._budget = budget
@@ -144,8 +141,6 @@ class TraceAADV912:
 
     def search_configuration(self) -> dict[str, Any]:
         return {
-            "protocol_id": PROTOCOL_ID,
-            "checkpoint_schema_version": CHECKPOINT_VERSION,
             "budget": self._budget,
             "n_roots": self._n_roots,
             "max_history": self._max_history,
@@ -453,26 +448,9 @@ class TraceAADV912:
         if pending is None:
             raise RuntimeError("no pending candidate to process")
 
-        try:
-            parsed = parse_program_response(
-                pending.response, self._template, self._function.name
-            )
-        except ProgramResponseError as exc:
-            return self._finalize(
-                idea=exc.declared_idea,
-                code=None,
-                diff=None,
-                added=0,
-                removed=0,
-                existing=None,
-                fitness=None,
-                evaluation_seconds=None,
-                error=one_line(str(exc), ERROR_MAX_CHARS),
-                evaluated=False,
-            )
-
+        parsed = parse_program_response(pending.response)
         idea = parsed.declared_idea
-        code = str(parsed.program)
+        code = parsed.code
         diff: str | None = None
         added = 0
         removed = 0
@@ -493,7 +471,6 @@ class TraceAADV912:
                 fitness=None,
                 evaluation_seconds=None,
                 error=None,
-                evaluated=False,
             )
 
         outcome, evaluation_seconds = (
@@ -524,7 +501,6 @@ class TraceAADV912:
                 fitness=parsed_fitness,
                 evaluation_seconds=evaluation_seconds,
                 error=None,
-                evaluated=True,
             )
         return self._finalize(
             idea=idea,
@@ -540,7 +516,7 @@ class TraceAADV912:
                 or f"evaluator returned non-finite or non-numeric fitness: {score!r}",
                 ERROR_MAX_CHARS,
             ),
-            evaluated=True,
+            status=outcome.failure_kind or "invalid_result",
         )
 
     def _finalize(
@@ -555,7 +531,7 @@ class TraceAADV912:
         fitness: float | None,
         evaluation_seconds: float | None,
         error: str | None,
-        evaluated: bool,
+        status: str = "ok",
     ) -> Attempt:
         pending = self._pending
         if pending is None:
@@ -644,7 +620,7 @@ class TraceAADV912:
             response=pending.response,
             code=code,
             error=error,
-            evaluated=evaluated,
+            status=status,
             is_new_best=is_new_best,
         )
         return attempt
@@ -760,14 +736,11 @@ class TraceAADV912:
         response: str,
         code: str | None,
         error: str | None,
-        evaluated: bool,
+        status: str,
         is_new_best: bool = False,
     ) -> None:
         if self._log is None:
             return
-        status = "ok"
-        if attempt.kind == "invalid":
-            status = "parse_failed" if not evaluated else "eval_failed"
 
         route_id = None
         if attempt.anchor_id is not None:
@@ -800,7 +773,6 @@ class TraceAADV912:
             idea=attempt.idea,
             kind=attempt.kind,
             outcome=attempt.outcome,
-            evaluator_called=evaluated,
             status=status,
             parent_fitness=attempt.parent_fitness,
             child_fitness=attempt.child_fitness,
