@@ -45,6 +45,15 @@ from llm4ad.method.traceaad_v9_7 import (
     RunArtifacts as V97RunArtifacts,
     TraceAADV97,
 )
+from llm4ad.method.traceaad_v9_7_co import (
+    CHECKPOINT_VERSION as V97CO_CHECKPOINT_VERSION,
+    INITIAL_ROOT_COUNT as V97CO_INITIAL_ROOT_COUNT,
+    LOGICAL_MODEL_NAME as V97CO_LOGICAL_MODEL_NAME,
+    PROTOCOL_ID as V97CO_PROTOCOL_ID,
+    REFINE_PROBABILITY as V97CO_REFINE_PROBABILITY,
+    RunArtifacts as V97CORunArtifacts,
+    TraceAADV97CO,
+)
 from llm4ad.method.traceaad_v9_8 import (
     CHECKPOINT_VERSION as V98_CHECKPOINT_VERSION,
     DEFAULT_MAX_CONSECUTIVE_ERRORS as V98_DEFAULT_MAX_CONSECUTIVE_ERRORS,
@@ -144,6 +153,7 @@ VersionName = Literal[
     "v8",
     "v9",
     "v9_7",
+    "v9_7_co",
     "v9_8",
     "v9_9",
     "v9_10",
@@ -158,6 +168,7 @@ VERSIONS: tuple[VersionName, ...] = (
     "v8",
     "v9",
     "v9_7",
+    "v9_7_co",
     "v9_8",
     "v9_9",
     "v9_10",
@@ -262,6 +273,8 @@ def make_run_spec(
             if version == "v9_12"
             else V913_INITIAL_ROOT_COUNT
             if version == "v9_13"
+            else V97CO_INITIAL_ROOT_COUNT
+            if version == "v9_7_co"
             else 10
             if version in {"v8", "v9"}
             else 30
@@ -275,7 +288,7 @@ def make_run_spec(
             32768
             if context_token_limit is None
             and version
-            in {"v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12", "v9_13"}
+            in {"v9_7", "v9_7_co", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12", "v9_13"}
             else 24576
             if context_token_limit is None
             else context_token_limit
@@ -299,6 +312,8 @@ def make_run_spec(
         raise ValueError("n_init must be positive")
     if spec.version == "v9_7" and spec.n_init != V97_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.7 requires exactly eight initial roots")
+    if spec.version == "v9_7_co" and spec.n_init != V97CO_INITIAL_ROOT_COUNT:
+        raise ValueError("TraceAAD V9.7-CO requires exactly eight initial roots")
     if spec.version == "v9_8" and spec.n_init != V98_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.8 requires exactly eight initial roots")
     if spec.version == "v9_9" and spec.n_init != V99_INITIAL_ROOT_COUNT:
@@ -447,6 +462,19 @@ def build_method(
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
         )
+    if spec.version == "v9_7_co":
+        return TraceAADV97CO(
+            llm=llm,
+            evaluation=evaluation,
+            artifacts=V97CORunArtifacts(run_dir=run_dir),
+            budget=spec.budget,
+            n_roots=spec.n_init,
+            max_tokens=spec.llm_output_tokens,
+            context_limit=spec.context_token_limit,
+            seed=spec.seed,
+            resume_from=resume_from,
+            checkpoint_dir=run_dir / "checkpoints",
+        )
     if spec.version == "v9_13":
         return TraceAADV913(
             llm=llm,
@@ -544,13 +572,15 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     actual = {key: payload.get(key) for key in expected}
     if actual != expected:
         raise ValueError(f"resume config mismatch: expected {expected}, found {actual}")
-    if spec.version not in {"v8", "v9", "v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12", "v9_13"}:
+    if spec.version not in {"v8", "v9", "v9_7", "v9_7_co", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12", "v9_13"}:
         return
     _, task_kwargs = build_task(spec.task, spec.eval_workers)
     normalized_task_kwargs = json.loads(json.dumps(task_kwargs, sort_keys=True))
-    if spec.version in {"v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12", "v9_13"}:
+    if spec.version in {"v9_7", "v9_7_co", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12", "v9_13"}:
         if spec.version == "v9_7":
             expected_method_params = _v97_method_params(spec)
+        elif spec.version == "v9_7_co":
+            expected_method_params = _v97co_method_params(spec)
         elif spec.version == "v9_8":
             expected_method_params = _v98_method_params(spec)
         elif spec.version == "v9_9":
@@ -688,6 +718,8 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         method_params = _v911_method_params(spec)
     elif spec.version == "v9_12":
         method_params = _v912_method_params(spec)
+    elif spec.version == "v9_7_co":
+        method_params = _v97co_method_params(spec)
     elif spec.version == "v9_13":
         method_params = _v913_method_params(spec)
     elif spec.version in {"v8", "v9"}:
@@ -764,7 +796,7 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         "task_eval": task_kwargs,
         "method_params": method_params,
     }
-    if spec.version in {"v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12", "v9_13"}:
+    if spec.version in {"v9_7", "v9_7_co", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12", "v9_13"}:
         payload["generator_environment"] = _versioned_generator_environment(spec)
         if spec.version == "v9_8":
             payload["implementation"] = _v98_implementation_identity()
@@ -792,6 +824,8 @@ def _versioned_logical_model_name(spec: RunSpec) -> str:
         return V912_LOGICAL_MODEL_NAME
     if spec.version == "v9_13":
         return V913_LOGICAL_MODEL_NAME
+    if spec.version == "v9_7_co":
+        return V97CO_LOGICAL_MODEL_NAME
     if spec.version == "v9_9":
         return V99_LOGICAL_MODEL_NAME
     return V98_LOGICAL_MODEL_NAME if spec.version == "v9_8" else V97_LOGICAL_MODEL_NAME
@@ -820,6 +854,22 @@ def _v97_method_params(spec: RunSpec) -> dict[str, object]:
         "seed": spec.seed,
         "refine_probability": V97_REFINE_PROBABILITY,
         "explore_probability": 1.0 - V97_REFINE_PROBABILITY,
+    }
+
+
+def _v97co_method_params(spec: RunSpec) -> dict[str, object]:
+    return {
+        "protocol_id": V97CO_PROTOCOL_ID,
+        "checkpoint_schema_version": V97CO_CHECKPOINT_VERSION,
+        "budget": spec.budget,
+        "n_roots": spec.n_init,
+        "maximize": True,
+        "max_tokens": spec.llm_output_tokens,
+        "context_limit": spec.context_token_limit,
+        "seed": spec.seed,
+        "refine_probability": V97CO_REFINE_PROBABILITY,
+        "explore_probability": 1.0 - V97CO_REFINE_PROBABILITY,
+        "generation_context": "code_only",
     }
 
 
