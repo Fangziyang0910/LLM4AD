@@ -6,21 +6,16 @@ import copy
 import re
 from dataclasses import dataclass
 
-from ...base import (
-    Function,
-    Program,
-    SampleTrimmer,
-    TextFunctionProgramConverter,
-)
+from ...base import Function
 from .schema import ProgramNode
 
 IDEA_MAX_CHARS = 300
 
 
 @dataclass(frozen=True, slots=True)
-class ParsedProgram:
-    idea: str
-    program: Program
+class ParsedCandidate:
+    declared_idea: str | None
+    code: str
 
 
 def format_fitness(fitness: float | None) -> str:
@@ -52,10 +47,7 @@ def build_initial_prompt(
                 f"{diversity_hint}"
             ),
             "Keep the function name, arguments, return type, and contract unchanged.",
-            (
-                "Imports from the task template remain available. "
-                "You may add small top-level helper functions when they clarify the implementation."
-            ),
+            "Include every required import and helper in the returned program.",
             "",
             "Output format:",
             (
@@ -131,10 +123,7 @@ def build_code_prompt(
             ),
             "Keep the target function signature and contract unchanged.",
             "Return exactly one complete implementation.",
-            (
-                "Imports from the current program remain available. "
-                "You may retain or add small top-level helper functions."
-            ),
+            "Include every required import and helper in the returned program.",
             "Output only:",
             (
                 "Idea: <one sentence describing the implemented change, "
@@ -172,82 +161,29 @@ def parse_actions(
     return actions[:expected_count], errors
 
 
-def parse_program_response(
-    response: str,
-    template_program: Program,
-    function_name: str,
-) -> ParsedProgram | None:
-    idea = (
-        _extract_idea(response) or _extract_boxed_text(response) or "Generated program"
-    )
-    blocks = _extract_code_blocks(response)
-    candidates = reversed(blocks) if blocks else (response,)
-    program = next(
-        (
-            parsed
-            for code in candidates
-            if (
-                parsed := _parse_program_candidate(
-                    code, template_program, function_name
-                )
-            )
-            is not None
-        ),
-        None,
-    )
-    return (
-        None
-        if program is None
-        else ParsedProgram(idea=_short_idea(idea), program=program)
-    )
+def parse_program_response(response: str) -> ParsedCandidate:
+    """Lenient extraction: last fenced block, else text after Code:, else the response."""
+    text = str(response)
+    first_fence = text.find("```")
+    blocks = _extract_code_blocks(text)
+    if blocks:
+        return ParsedCandidate(
+            declared_idea=_short_idea_or_none(text[:first_fence]),
+            code=blocks[-1],
+        )
+
+    code_marker = re.search(r"^\s*Code\s*:\s*", text, re.IGNORECASE | re.MULTILINE)
+    if code_marker is not None:
+        return ParsedCandidate(
+            declared_idea=_short_idea_or_none(text[: code_marker.start()]),
+            code=text[code_marker.end() :].strip(),
+        )
+    return ParsedCandidate(declared_idea=_short_idea_or_none(text), code=text.strip())
 
 
-def _parse_program_candidate(
-    code: str,
-    template_program: Program,
-    function_name: str,
-) -> Program | None:
-    parsed = TextFunctionProgramConverter.text_to_program(code)
-    if parsed is not None:
-        completed = _complete_program(parsed, template_program, function_name)
-        if completed is not None:
-            return completed
-    trimmed = SampleTrimmer.sample_to_program(code, template_program)
-    if trimmed is None:
-        return None
-    return _complete_program(trimmed, template_program, function_name)
-
-
-def _complete_program(
-    parsed: Program,
-    template_program: Program,
-    function_name: str,
-) -> Program | None:
-    try:
-        parsed.get_function(function_name)
-    except ValueError:
-        return None
-    return Program(
-        preface=_merge_prefaces(template_program.preface, parsed.preface),
-        functions=parsed.functions,
-    )
-
-
-def _merge_prefaces(template_preface: str, generated_preface: str) -> str:
-    future: list[str] = []
-    ordinary: list[str] = []
-    for source in (template_preface, generated_preface):
-        kept: list[str] = []
-        for line in source.splitlines():
-            if line.lstrip().startswith("from __future__"):
-                if line not in future:
-                    future.append(line)
-            else:
-                kept.append(line)
-        block = "\n".join(kept).strip()
-        if block and block not in ordinary:
-            ordinary.append(block)
-    return "\n".join(future + ordinary)
+def _short_idea_or_none(text: str) -> str | None:
+    idea = _extract_idea(text)
+    return None if idea is None else _short_idea(idea)
 
 
 def _extract_idea(response: str) -> str | None:
@@ -255,15 +191,6 @@ def _extract_idea(response: str) -> str | None:
         r"^\s*Idea\s*:\s*(?P<idea>.+?)\s*$",
         response,
         flags=re.IGNORECASE | re.MULTILINE,
-    )
-    return None if match is None else match.group("idea").strip()
-
-
-def _extract_boxed_text(response: str) -> str | None:
-    match = re.search(
-        r"(?:\\)?boxed\s*\{(?P<idea>[^{}]+)\}",
-        response,
-        flags=re.IGNORECASE,
     )
     return None if match is None else match.group("idea").strip()
 
@@ -289,7 +216,7 @@ def _extract_code_blocks(response: str) -> tuple[str, ...]:
 
 __all__ = [
     "IDEA_MAX_CHARS",
-    "ParsedProgram",
+    "ParsedCandidate",
     "build_code_prompt",
     "build_initial_prompt",
     "fitness_direction_hint",

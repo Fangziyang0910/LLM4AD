@@ -13,7 +13,6 @@ from ...base import (
     Evaluation,
     Function,
     LLM,
-    Program,
     SecureEvaluator,
     TextFunctionProgramConverter,
 )
@@ -48,28 +47,19 @@ from .value import (
 )
 
 
-def _note_sample_failure(method, exc: Exception, *, stage: str, **payload) -> None:
-    if method._debug_mode:
-        raise exc
-    method._consecutive_sample_failures += 1
-    artifacts = method._artifacts
-    if artifacts is not None:
-        artifacts.record_error(stage, exc, **payload)
-    if method._consecutive_sample_failures >= method._max_consecutive_sample_failures:
-        method._search_aborted = True
-        if artifacts is not None:
-            artifacts.record_decision(
-                "search_aborted",
-                reason="max_consecutive_sample_failures",
-                consecutive_failures=method._consecutive_sample_failures,
-                max_consecutive_failures=method._max_consecutive_sample_failures,
-            )
+TRANSPORT_RETRIES = 3
+ERROR_MAX_CHARS = 360
+
+
+def _one_line(text: str, limit: int) -> str:
+    compact = " ".join(str(text).split())
+    return compact if len(compact) <= limit else compact[: limit - 3] + "..."
 
 
 @dataclass(frozen=True, slots=True)
 class _GeneratedProgram:
     idea: str
-    program: Program
+    code: str
     sample_time: float
 
 
@@ -115,7 +105,6 @@ class TraceAADV5:
         action_max_tokens: int = 1024,
         random_seed: int | None = None,
         debug_mode: bool = False,
-        max_consecutive_sample_failures: int = 20,
         max_stalled_iterations: int = 20,
         checkpoint_dir: str | Path | None = None,
         checkpoint_interval: int = 10,
@@ -184,10 +173,6 @@ class TraceAADV5:
         self._tot_sample_nums = 0
         self._next_attempt_id = 0
         self._initialization_complete = False
-
-        self._consecutive_sample_failures = 0
-        self._max_consecutive_sample_failures = max(1, int(max_consecutive_sample_failures))
-        self._search_aborted = False
         if resume_from is not None:
             checkpoint = load_checkpoint(self, resume_from)
             if self._checkpoint_dir is None:
@@ -213,7 +198,7 @@ class TraceAADV5:
                 if len(self._memory.trajectories()) >= self._n_init:
                     self._initialization_complete = True
                 save_checkpoint(self)
-            while self._has_budget() and not self._search_aborted:
+            while self._has_budget():
                 if not self._memory.active():
                     self._record_decision(
                         "search_stopped", status="no_active_trajectory"
@@ -247,7 +232,7 @@ class TraceAADV5:
             if len(self._memory.active()) >= self._management_threshold:
                 self._manage_population()
             result = self._result()
-            status = "aborted" if self._search_aborted else "finished"
+            status = "finished"
             return result
         except Exception as exc:
             error = {
@@ -276,19 +261,16 @@ class TraceAADV5:
                     n_valid_nodes=result.n_valid_nodes,
                     n_edges=result.n_edges,
                     n_trajectories=result.n_trajectories,
-                    search_aborted=self._search_aborted,
                     **error,
                 )
                 self._artifacts.finish()
             self._llm.close()
 
     def _initialize(self) -> None:
-        stalled_draws = 0
         draw_seq = 0
         while (
             len(self._memory.trajectories()) < self._n_init
             and self._has_budget()
-            and not self._search_aborted
         ):
             prompt = build_initial_prompt(
                 task_description=self._task_description_str,
@@ -305,22 +287,16 @@ class TraceAADV5:
                 operator="init",
             )
             draw_seq += 1
-            if generated is None:
-                stalled_draws += 1
-                if stalled_draws >= self._max_stalled_iterations:
-                    break
-                continue
             evaluated = self._evaluate(
-                generated.program,
+                generated.code,
                 idea=generated.idea,
                 operator="init",
                 sample_time=generated.sample_time,
             )
             if evaluated is None:
                 continue
-            stalled_draws = 0
             node = self._graph.add_node(
-                code=str(generated.program),
+                code=generated.code,
                 idea=generated.idea,
                 fitness=evaluated,
             )
@@ -424,7 +400,7 @@ class TraceAADV5:
         base_node = self._graph.get_node(anchor_id)
         route_best_before = compact_best_node(selected, self._graph, self._maximize)
         for seq, action in enumerate(actions):
-            if not self._has_budget() or self._search_aborted:
+            if not self._has_budget():
                 break
             code_prompt = build_code_prompt(
                 current_node=base_node,
@@ -443,11 +419,9 @@ class TraceAADV5:
                 operator=operator.name,
                 action=action,
             )
-            if generated is None:
-                continue
             old_global = self._best_node
             evaluated = self._evaluate(
-                generated.program,
+                generated.code,
                 idea=generated.idea,
                 operator=operator.name,
                 sample_time=generated.sample_time,
@@ -455,7 +429,7 @@ class TraceAADV5:
             if evaluated is None:
                 continue
             child = self._graph.add_node(
-                code=str(generated.program),
+                code=generated.code,
                 idea=generated.idea,
                 fitness=evaluated,
             )
@@ -641,24 +615,14 @@ class TraceAADV5:
         iteration: int,
     ) -> list[str]:
         start = time.time()
-        try:
-            response = self._llm.draw_sample(
-                context.prompt,
-                max_tokens=self._action_max_tokens,
-            )
-            sample_time = time.time() - start
-            self._consecutive_sample_failures = 0
-        except Exception as exc:
-            _note_sample_failure(
-                self,
-                exc,
-                stage="action",
-                operator=operator.name,
-                sample_order=self._tot_sample_nums + 1,
-                counts_budget=False,
-                iteration=iteration,
-            )
-            return []
+        response = self._draw_sample(
+            context.prompt,
+            stage="action",
+            operator=operator.name,
+            iteration=iteration,
+            max_tokens=self._action_max_tokens,
+        )
+        sample_time = time.time() - start
         actions, errors = parse_actions(
             response,
             expected_count=self._actions_per_iteration,
@@ -827,28 +791,14 @@ class TraceAADV5:
         seq: int,
         operator: str | OperatorName,
         action: str | None = None,
-    ) -> _GeneratedProgram | None:
+    ) -> _GeneratedProgram:
         sample_order = self._tot_sample_nums + 1
         start = time.time()
-        try:
-            response = self._llm.draw_sample(prompt)
-            elapsed = time.time() - start
-            self._consecutive_sample_failures = 0
-        except Exception as exc:
-            _note_sample_failure(
-                self,
-                exc,
-                stage=stage,
-                operator=operator,
-                sample_order=sample_order,
-                counts_budget=False,
-                iteration=iteration,
-                seq=seq,
-            )
-            return None
-        generated = parse_program_response(
-            response, self._template_program, self._function_to_evolve.name
+        response = self._draw_sample(
+            prompt, stage=stage, operator=operator, iteration=iteration
         )
+        elapsed = time.time() - start
+        parsed = parse_program_response(response)
         if self._artifacts is not None:
             self._artifacts.record_llm_call(
                 stage=stage,
@@ -860,21 +810,49 @@ class TraceAADV5:
                 prompt_tokens=self._count_tokens(prompt),
                 response_tokens=self._count_tokens(response),
                 token_count_mode=self._token_count_mode,
-                program_parse_success=generated is not None,
                 response=response,
-                status="ok" if generated is not None else "parse_failed",
+                status="ok",
             )
-        if generated is not None:
-            return _GeneratedProgram(
-                idea=generated.idea,
-                program=generated.program,
-                sample_time=elapsed,
-            )
-        return None
+        return _GeneratedProgram(
+            idea=parsed.declared_idea or "",
+            code=parsed.code,
+            sample_time=elapsed,
+        )
+
+    def _draw_sample(
+        self,
+        prompt: str,
+        *,
+        stage: str,
+        operator: str | OperatorName,
+        iteration: int | None,
+        max_tokens: int | None = None,
+    ) -> str:
+        last_error: Exception | None = None
+        for transport_attempt in range(1, TRANSPORT_RETRIES + 2):
+            try:
+                if max_tokens is None:
+                    return self._llm.draw_sample(prompt)
+                return self._llm.draw_sample(prompt, max_tokens=max_tokens)
+            except Exception as exc:
+                last_error = exc
+                if self._artifacts is not None:
+                    self._artifacts.record_llm_call(
+                        stage=stage,
+                        operator=operator,
+                        sample_order=self._tot_sample_nums + 1,
+                        iteration=iteration,
+                        status="transport",
+                        failure_kind="transport",
+                        error_type=type(exc).__name__,
+                        error=str(exc),
+                        transport_attempt=transport_attempt,
+                    )
+        raise RuntimeError("model transport retry limit exhausted") from last_error
 
     def _evaluate(
         self,
-        program: Program,
+        code: str,
         *,
         idea: str,
         operator: str | OperatorName,
@@ -883,35 +861,46 @@ class TraceAADV5:
         if not self._has_budget():
             return None
         outcome, eval_time = self._evaluator.evaluate_program_record_time_with_details(
-            program
+            code
         )
         self._tot_sample_nums += 1
-        result = outcome.result
-        score = getattr(result, "fitness", result)
-        program_text = str(program)
+        if outcome.failure_kind == "prepare_error":
+            raise RuntimeError(
+                _one_line(
+                    outcome.error
+                    or "evaluator preparation failed without an error message",
+                    ERROR_MAX_CHARS,
+                )
+            )
+        score = getattr(outcome.result, "fitness", outcome.result)
+        try:
+            fitness = float(score)
+        except (TypeError, ValueError, OverflowError):
+            fitness = math.nan
+        if not math.isfinite(fitness):
+            fitness = None
         if self._artifacts is not None:
             payload = {
                 "sample_order": self._tot_sample_nums,
-                "score": None if score is None else float(score),
+                "score": fitness,
                 "operator": str(operator),
-                "program": program_text,
+                "program": code,
                 "idea": idea,
-                "code_hash": code_hash(program_text),
-                "program_loc": nonempty_loc(program_text),
+                "code_hash": code_hash(code),
+                "program_loc": nonempty_loc(code),
                 "evaluate_time": eval_time,
                 "sample_time": sample_time,
-                "status": "ok" if score is not None else "eval_failed",
+                "status": "ok" if fitness is not None else (outcome.failure_kind or "invalid_result"),
             }
-            if score is None:
+            if fitness is None:
                 payload.update(
                     {
-                        "failure_kind": outcome.failure_kind,
                         "error_type": outcome.error_type,
                         "error": outcome.error,
                     }
                 )
             self._artifacts.record_candidate(**payload)
-        return None if score is None else float(score)
+        return fitness
 
     def _save_checkpoint_if_due(self) -> None:
         if (
