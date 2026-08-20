@@ -70,7 +70,10 @@ def test_unified_runner_builds_each_task_and_version(
         else:
             assert spec.n_init == 8
             assert method._n_roots == 8
-            assert method._context_limit == 32768
+            if version == "v9_14":
+                assert not hasattr(method, "_context_limit")
+            else:
+                assert method._context_limit == 32768
             assert not hasattr(method, "_operators")
         assert not hasattr(method, "_global_experience")
 

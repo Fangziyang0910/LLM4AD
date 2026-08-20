@@ -133,11 +133,8 @@ from llm4ad.method.traceaad_v9_13 import (
     Treatment as V913Treatment,
 )
 from llm4ad.method.traceaad_v9_14 import (
-    CHECKPOINT_VERSION as V914_CHECKPOINT_VERSION,
     INITIAL_ROOT_COUNT as V914_INITIAL_ROOT_COUNT,
-    LOGICAL_MODEL_NAME as V914_LOGICAL_MODEL_NAME,
     MAX_HISTORY_EVENTS as V914_MAX_HISTORY_EVENTS,
-    PROTOCOL_ID as V914_PROTOCOL_ID,
     REFINE_PROBABILITY as V914_REFINE_PROBABILITY,
     RunArtifacts as V914RunArtifacts,
     TraceAADV914,
@@ -525,7 +522,6 @@ def build_method(
             budget=spec.budget,
             n_roots=spec.n_init,
             max_tokens=spec.llm_output_tokens,
-            context_limit=spec.context_token_limit,
             max_history=V914_MAX_HISTORY_EVENTS,
             seed=spec.seed,
             resume_from=resume_from,
@@ -899,7 +895,7 @@ def _versioned_logical_model_name(spec: RunSpec) -> str:
     if spec.version == "v9_12":
         return V912_LOGICAL_MODEL_NAME
     if spec.version == "v9_14":
-        return V914_LOGICAL_MODEL_NAME
+        return "Qwen3.6-27B"
     if spec.version == "v9_13":
         return V913_LOGICAL_MODEL_NAME
     if spec.version == "v9_7_co":
@@ -1080,14 +1076,11 @@ def _v913_method_params(spec: RunSpec) -> dict[str, object]:
 
 def _v914_method_params(spec: RunSpec) -> dict[str, object]:
     return {
-        "protocol_id": V914_PROTOCOL_ID,
-        "checkpoint_schema_version": V914_CHECKPOINT_VERSION,
         "budget": spec.budget,
         "n_roots": spec.n_init,
         "max_history": V914_MAX_HISTORY_EVENTS,
         "maximize": True,
         "max_tokens": spec.llm_output_tokens,
-        "context_limit": spec.context_token_limit,
         "seed": spec.seed,
         "refine_probability": V914_REFINE_PROBABILITY,
         "explore_probability": 1.0 - V914_REFINE_PROBABILITY,
