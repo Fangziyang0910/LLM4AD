@@ -110,6 +110,19 @@ from llm4ad.method.traceaad_v9_12 import (
     RunArtifacts as V912RunArtifacts,
     TraceAADV912,
 )
+from llm4ad.method.traceaad_v9_13 import (
+    CHECKPOINT_VERSION as V913_CHECKPOINT_VERSION,
+    FRONTIER_ACTIVATION_EVALS as V913_FRONTIER_ACTIVATION_EVALS,
+    INITIAL_ROOT_COUNT as V913_INITIAL_ROOT_COUNT,
+    LOGICAL_MODEL_NAME as V913_LOGICAL_MODEL_NAME,
+    MAX_HISTORY_EVENTS as V913_MAX_HISTORY_EVENTS,
+    PROTOCOL_ID as V913_PROTOCOL_ID,
+    PROXY_RULES_VERSION as V913_PROXY_RULES_VERSION,
+    REFINE_PROBABILITY as V913_REFINE_PROBABILITY,
+    RunArtifacts as V913RunArtifacts,
+    TraceAADV913,
+    Treatment as V913Treatment,
+)
 
 from .._common import (
     BACKENDS,
@@ -126,7 +139,17 @@ from .._common import (
 )
 
 VersionName = Literal[
-    "v4", "v5", "v8", "v9", "v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12"
+    "v4",
+    "v5",
+    "v8",
+    "v9",
+    "v9_7",
+    "v9_8",
+    "v9_9",
+    "v9_10",
+    "v9_11",
+    "v9_12",
+    "v9_13",
 ]
 
 VERSIONS: tuple[VersionName, ...] = (
@@ -140,6 +163,7 @@ VERSIONS: tuple[VersionName, ...] = (
     "v9_10",
     "v9_11",
     "v9_12",
+    "v9_13",
 )
 V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
 V9_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V9_OPERATORS]
@@ -169,6 +193,7 @@ class RunSpec:
     v910_child_window: int | None = None
     v910_settlement_mode: str = "depth"
     v910_allocation_mode: str = "thompson"
+    treatment: str = V913Treatment.FP.value
     experiments_root: Path = EXPERIMENTS_ROOT
 
     @property
@@ -210,6 +235,7 @@ def make_run_spec(
     v910_child_window: int | None = None,
     v910_settlement_mode: str = "depth",
     v910_allocation_mode: str = "thompson",
+    treatment: str = V913Treatment.FP.value,
     experiments_root: Path = EXPERIMENTS_ROOT,
 ) -> RunSpec:
     profile = resolve_backend(backend, base_url, model, no_proxy)
@@ -234,6 +260,8 @@ def make_run_spec(
             if version == "v9_11"
             else V912_INITIAL_ROOT_COUNT
             if version == "v9_12"
+            else V913_INITIAL_ROOT_COUNT
+            if version == "v9_13"
             else 10
             if version in {"v8", "v9"}
             else 30
@@ -245,7 +273,9 @@ def make_run_spec(
         action_max_tokens=action_max_tokens,
         context_token_limit=(
             32768
-            if context_token_limit is None and version in {"v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12"}
+            if context_token_limit is None
+            and version
+            in {"v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12", "v9_13"}
             else 24576
             if context_token_limit is None
             else context_token_limit
@@ -260,6 +290,7 @@ def make_run_spec(
         v910_child_window=v910_child_window,
         v910_settlement_mode=v910_settlement_mode,
         v910_allocation_mode=v910_allocation_mode,
+        treatment=treatment,
         experiments_root=experiments_root.resolve(),
     )
     if spec.budget <= 0:
@@ -288,6 +319,10 @@ def make_run_spec(
         raise ValueError("TraceAAD V9.11 requires exactly eight initial roots")
     if spec.version == "v9_12" and spec.n_init != V912_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.12 requires exactly eight initial roots")
+    if spec.version == "v9_13":
+        if spec.n_init != V913_INITIAL_ROOT_COUNT:
+            raise ValueError("TraceAAD V9.13 requires exactly eight initial roots")
+        V913Treatment(spec.treatment)
     if spec.eval_workers is not None and spec.eval_workers <= 0:
         raise ValueError("eval_workers must be positive")
     if spec.llm_output_tokens <= 0:
@@ -412,6 +447,22 @@ def build_method(
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
         )
+    if spec.version == "v9_13":
+        return TraceAADV913(
+            llm=llm,
+            evaluation=evaluation,
+            artifacts=V913RunArtifacts(run_dir=run_dir),
+            budget=spec.budget,
+            task_key=spec.task,
+            treatment=spec.treatment,
+            n_roots=spec.n_init,
+            max_tokens=spec.llm_output_tokens,
+            context_limit=spec.context_token_limit,
+            max_history=V913_MAX_HISTORY_EVENTS,
+            seed=spec.seed,
+            resume_from=resume_from,
+            checkpoint_dir=run_dir / "checkpoints",
+        )
     common = {
         "llm": llm,
         "evaluation": evaluation,
@@ -493,11 +544,11 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     actual = {key: payload.get(key) for key in expected}
     if actual != expected:
         raise ValueError(f"resume config mismatch: expected {expected}, found {actual}")
-    if spec.version not in {"v8", "v9", "v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12"}:
+    if spec.version not in {"v8", "v9", "v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12", "v9_13"}:
         return
     _, task_kwargs = build_task(spec.task, spec.eval_workers)
     normalized_task_kwargs = json.loads(json.dumps(task_kwargs, sort_keys=True))
-    if spec.version in {"v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12"}:
+    if spec.version in {"v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12", "v9_13"}:
         if spec.version == "v9_7":
             expected_method_params = _v97_method_params(spec)
         elif spec.version == "v9_8":
@@ -508,6 +559,8 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
             expected_method_params = _v911_method_params(spec)
         elif spec.version == "v9_12":
             expected_method_params = _v912_method_params(spec)
+        elif spec.version == "v9_13":
+            expected_method_params = _v913_method_params(spec)
         else:
             expected_method_params = _v910_method_params(spec)
         expected_protocol = {
@@ -635,6 +688,8 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         method_params = _v911_method_params(spec)
     elif spec.version == "v9_12":
         method_params = _v912_method_params(spec)
+    elif spec.version == "v9_13":
+        method_params = _v913_method_params(spec)
     elif spec.version in {"v8", "v9"}:
         method_params = {
             "protocol_id": (
@@ -709,7 +764,7 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         "task_eval": task_kwargs,
         "method_params": method_params,
     }
-    if spec.version in {"v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12"}:
+    if spec.version in {"v9_7", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12", "v9_13"}:
         payload["generator_environment"] = _versioned_generator_environment(spec)
         if spec.version == "v9_8":
             payload["implementation"] = _v98_implementation_identity()
@@ -735,6 +790,8 @@ def _versioned_logical_model_name(spec: RunSpec) -> str:
         return V911_LOGICAL_MODEL_NAME
     if spec.version == "v9_12":
         return V912_LOGICAL_MODEL_NAME
+    if spec.version == "v9_13":
+        return V913_LOGICAL_MODEL_NAME
     if spec.version == "v9_9":
         return V99_LOGICAL_MODEL_NAME
     return V98_LOGICAL_MODEL_NAME if spec.version == "v9_8" else V97_LOGICAL_MODEL_NAME
@@ -873,6 +930,26 @@ def _v912_method_params(spec: RunSpec) -> dict[str, object]:
     }
 
 
+def _v913_method_params(spec: RunSpec) -> dict[str, object]:
+    return {
+        "protocol_id": V913_PROTOCOL_ID,
+        "checkpoint_schema_version": V913_CHECKPOINT_VERSION,
+        "budget": spec.budget,
+        "n_roots": spec.n_init,
+        "max_history": V913_MAX_HISTORY_EVENTS,
+        "maximize": True,
+        "max_tokens": spec.llm_output_tokens,
+        "context_limit": spec.context_token_limit,
+        "seed": spec.seed,
+        "refine_probability": V913_REFINE_PROBABILITY,
+        "explore_probability": 1.0 - V913_REFINE_PROBABILITY,
+        "task_key": spec.task,
+        "treatment": spec.treatment,
+        "frontier_activation_evals": V913_FRONTIER_ACTIVATION_EVALS,
+        "proxy_rules_version": V913_PROXY_RULES_VERSION,
+    }
+
+
 def _v98_implementation_identity() -> dict[str, object]:
     source_root = Path(__file__).resolve().parents[3]
     paths = sorted((source_root / "llm4ad" / "method" / "traceaad_v9_8").glob("*.py"))
@@ -972,6 +1049,12 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("thompson", "uniform"),
         default="thompson",
     )
+    parser.add_argument(
+        "--treatment",
+        choices=tuple(item.value for item in V913Treatment),
+        default=V913Treatment.FP.value,
+        help="V9.13 frozen Explore context treatment (Stage P selection)",
+    )
     return parser
 
 
@@ -999,6 +1082,7 @@ def spec_from_args(args: argparse.Namespace) -> RunSpec:
         v910_child_window=args.v910_child_window,
         v910_settlement_mode=args.v910_settlement_mode,
         v910_allocation_mode=args.v910_allocation_mode,
+        treatment=args.treatment,
     )
 
 

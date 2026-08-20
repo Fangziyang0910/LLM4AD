@@ -1,0 +1,46 @@
+{
+  "purpose": "design 4.2 blind proxy-tag audit before formal Stage P",
+  "source_batch": "20260814_150927",
+  "per_task": 24,
+  "seed": 913401,
+  "blind_fields_removed": [
+    "fitness",
+    "q",
+    "intent",
+    "idea",
+    "order"
+  ],
+  "task_family_coverage": {
+    "tsp_construct": {
+      "completion_rollout": 6,
+      "explicit_search": 6,
+      "local_score": 6,
+      "lookahead_score": 6
+    },
+    "cvrp_aco": {
+      "angular_radial": 5,
+      "capacity_distance": 4,
+      "distance_only": 2,
+      "savings_geometry": 5,
+      "spatial_cluster": 4,
+      "sweep_partition": 4
+    },
+    "op_aco": {
+      "budget_feasible_density": 6,
+      "feasibility_density": 6,
+      "neighborhood_potential": 5,
+      "prize_distance": 5,
+      "target_direction": 2
+    },
+    "online_bin_packing": {
+      "best_fit": 5,
+      "distribution_fit": 5,
+      "fragmentation_best_fit": 5,
+      "future_gap_model": 5,
+      "online_distribution": 2,
+      "balance_fit": 2
+    }
+  },
+  "rows_with_unmatched_keywords": 71,
+  "rows_with_missing_lexical_evidence": 67
+}
