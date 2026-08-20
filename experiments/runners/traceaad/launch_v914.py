@@ -17,7 +17,7 @@ BACKEND_LAYOUT = {
         "tsp_construct": "server3",
         "cvrp_aco": "server3b",
         "op_aco": "server1",
-        "online_bin_packing": "server3",
+        "online_bin_packing": "server3b",
     },
     2: {
         "tsp_construct": "server1",
@@ -26,7 +26,7 @@ BACKEND_LAYOUT = {
         "online_bin_packing": "server1",
     },
     3: {
-        "tsp_construct": "server3",
+        "tsp_construct": "server3b",
         "cvrp_aco": "server1",
         "op_aco": "server3",
         "online_bin_packing": "server3b",
@@ -153,8 +153,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--batch", default=datetime.now().strftime("%Y%m%d_%H%M%S"))
     parser.add_argument("--session-prefix", default="v914")
-    parser.add_argument("--server3", type=int, default=5)
-    parser.add_argument("--server3b", type=int, default=3)
+    parser.add_argument("--server3", type=int, default=3)
+    parser.add_argument("--server3b", type=int, default=5)
     parser.add_argument("--server1", type=int, default=4)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
