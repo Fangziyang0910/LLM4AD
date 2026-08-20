@@ -16,7 +16,6 @@ from ...base import (
     Evaluation,
     Function,
     LLM,
-    Program,
     SecureEvaluator,
     TextFunctionProgramConverter,
 )
@@ -37,29 +36,19 @@ from .value import (
     weighted_sample_without_replacement,
 )
 
+TRANSPORT_RETRIES = 3
+ERROR_MAX_CHARS = 360
 
-def _note_sample_failure(method, exc: Exception, *, stage: str, **payload) -> None:
-    if method._debug_mode:
-        raise exc
-    method._consecutive_sample_failures += 1
-    artifacts = method._artifacts
-    if artifacts is not None:
-        artifacts.record_error(stage, exc, **payload)
-    if method._consecutive_sample_failures >= method._max_consecutive_sample_failures:
-        method._search_aborted = True
-        if artifacts is not None:
-            artifacts.record_decision(
-                "search_aborted",
-                reason="max_consecutive_sample_failures",
-                consecutive_failures=method._consecutive_sample_failures,
-                max_consecutive_failures=method._max_consecutive_sample_failures,
-            )
+
+def _one_line(text: str, limit: int) -> str:
+    compact = " ".join(str(text).split())
+    return compact if len(compact) <= limit else compact[: limit - 3] + "..."
 
 
 @dataclass(frozen=True, slots=True)
 class _GeneratedProgram:
     idea: str
-    program: Program
+    code: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,7 +85,6 @@ class TraceAADV4:
         value_weights: ValueWeights | None = None,
         operators: tuple[Operator, ...] = DEFAULT_OPERATORS,
         debug_mode: bool = False,
-        max_consecutive_sample_failures: int = 20,
         max_stalled_iterations: int = 20,
         checkpoint_dir: str | Path | None = None,
         checkpoint_interval: int = 10,
@@ -156,9 +144,6 @@ class TraceAADV4:
         self._tot_sample_nums = 0
         self._next_attempt_id = 0
         self._initialization_complete = False
-        self._consecutive_sample_failures = 0
-        self._max_consecutive_sample_failures = max(1, int(max_consecutive_sample_failures))
-        self._search_aborted = False
         if resume_from is not None:
             checkpoint = load_checkpoint(self, resume_from)
             if self._checkpoint_dir is None:
@@ -181,7 +166,7 @@ class TraceAADV4:
                 self._initialize()
                 self._initialization_complete = True
                 save_checkpoint(self)
-            while self._has_budget() and not self._search_aborted:
+            while self._has_budget():
                 if not self._memory.active():
                     self._record_decision(
                         "search_stopped", status="no_active_trajectory"
@@ -210,7 +195,7 @@ class TraceAADV4:
                 self._save_checkpoint_if_due()
 
             result = self._result()
-            status = "aborted" if self._search_aborted else "finished"
+            status = "finished"
             return result
         except Exception as exc:
             error = {
@@ -239,7 +224,6 @@ class TraceAADV4:
                     n_valid_nodes=result.n_valid_nodes,
                     n_edges=result.n_edges,
                     n_trajectories=result.n_trajectories,
-                    search_aborted=self._search_aborted,
                     **error,
                 )
                 self._artifacts.finish()
@@ -254,13 +238,8 @@ class TraceAADV4:
             save_checkpoint(self)
 
     def _initialize(self) -> None:
-        stalled_draws = 0
         draw_seq = 0
-        while (
-            self._tot_sample_nums < self._n_init
-            and self._has_budget()
-            and not self._search_aborted
-        ):
+        while self._tot_sample_nums < self._n_init and self._has_budget():
             prompt = build_initial_prompt(
                 task_description=self._task_description_str,
                 template_function=self._function_to_evolve,
@@ -270,17 +249,11 @@ class TraceAADV4:
                 prompt, stage="init", iteration=None, seq=draw_seq, operator="init"
             )
             draw_seq += 1
-            if generated is None:
-                stalled_draws += 1
-                if stalled_draws >= self._max_stalled_iterations:
-                    break
-                continue
             evaluated = self._evaluate(
-                generated.program, idea=generated.idea, operator="init"
+                generated.code, idea=generated.idea, operator="init"
             )
-            if evaluated is None or evaluated.fitness is None:
+            if evaluated is None:
                 continue
-            stalled_draws = 0
             node = self._add_node(generated, evaluated)
             trajectory = self._memory.create_initial(node_id=node.id)
             self._update_best(node, trajectory_id=trajectory.id, operator="init")
@@ -339,7 +312,7 @@ class TraceAADV4:
         )
         actions = self._generate_actions(prompt, attempt_id)
         for seq, action in enumerate(actions):
-            if not self._has_budget() or self._search_aborted:
+            if not self._has_budget():
                 break
             base_node = self._graph.get_node(anchor_id)
             code_prompt = build_code_prompt(
@@ -363,12 +336,10 @@ class TraceAADV4:
                 operator=operator.name,
                 action=action,
             )
-            if generated is None:
-                continue
             evaluated = self._evaluate(
-                generated.program, idea=generated.idea, operator=operator.name
+                generated.code, idea=generated.idea, operator=operator.name
             )
-            if evaluated is None or evaluated.fitness is None:
+            if evaluated is None:
                 continue
             child = self._add_node(generated, evaluated)
             delta = directed_delta(base_node.fitness, child.fitness, self._maximize)
@@ -426,7 +397,7 @@ class TraceAADV4:
         self, generated: _GeneratedProgram, evaluated: EvalResult
     ) -> ProgramNode:
         return self._graph.add_node(
-            code=str(generated.program), idea=generated.idea, fitness=evaluated.fitness
+            code=generated.code, idea=generated.idea, fitness=evaluated.fitness
         )
 
     def _score_active_pool(self) -> tuple[Trajectory, ...]:
@@ -510,22 +481,8 @@ class TraceAADV4:
 
     def _generate_actions(self, prompt: str, iteration: int) -> list[str]:
         start = time.time()
-        try:
-            response = self._llm.draw_sample(prompt)
-            sample_time = time.time() - start
-            self._consecutive_sample_failures = 0
-        except Exception as exc:
-            _note_sample_failure(
-                self,
-                exc,
-                stage="action",
-                operator="semantic",
-                sample_order=self._tot_sample_nums + 1,
-                prompt=prompt,
-                counts_budget=False,
-                iteration=iteration,
-            )
-            return []
+        response = self._draw_sample(prompt, stage="action", operator="semantic", iteration=iteration)
+        sample_time = time.time() - start
         actions = _parse_actions(response, expected_count=self._actions_per_iteration)
         if self._artifacts is not None:
             self._artifacts.record_llm_call(
@@ -550,30 +507,14 @@ class TraceAADV4:
         seq: int,
         operator: str,
         action: str | None = None,
-    ) -> _GeneratedProgram | None:
+    ) -> _GeneratedProgram:
         sample_order = self._tot_sample_nums + 1
         start = time.time()
-        try:
-            response = self._llm.draw_sample(prompt)
-            sample_time = time.time() - start
-            self._consecutive_sample_failures = 0
-        except Exception as exc:
-            _note_sample_failure(
-                self,
-                exc,
-                stage=stage,
-                operator=operator,
-                sample_order=sample_order,
-                prompt=prompt,
-                counts_budget=False,
-                iteration=iteration,
-                seq=seq,
-                action=action,
-            )
-            return None
-        generated = _parse_program_response(
-            response, self._function_to_evolve.name
+        response = self._draw_sample(
+            prompt, stage=stage, operator=operator, iteration=iteration
         )
+        sample_time = time.time() - start
+        parsed = _parse_program_response(response)
         if self._artifacts is not None:
             self._artifacts.record_llm_call(
                 stage=stage,
@@ -582,34 +523,93 @@ class TraceAADV4:
                 iteration=iteration,
                 seq=seq,
                 sample_time=sample_time,
-                program_parse_success=generated is not None,
                 response=response,
-                status="ok" if generated is not None else "parse_failed",
+                status="ok",
             )
-        return generated
+        return parsed
+
+    def _draw_sample(
+        self,
+        prompt: str,
+        *,
+        stage: str,
+        operator: str,
+        iteration: int | None,
+    ) -> str:
+        last_error: Exception | None = None
+        for transport_attempt in range(1, TRANSPORT_RETRIES + 2):
+            try:
+                return self._llm.draw_sample(prompt)
+            except Exception as exc:
+                last_error = exc
+                if self._artifacts is not None:
+                    self._artifacts.record_llm_call(
+                        stage=stage,
+                        operator=operator,
+                        sample_order=self._tot_sample_nums + 1,
+                        iteration=iteration,
+                        status="transport",
+                        failure_kind="transport",
+                        error_type=type(exc).__name__,
+                        error=str(exc),
+                        transport_attempt=transport_attempt,
+                    )
+        raise RuntimeError("model transport retry limit exhausted") from last_error
 
     def _evaluate(
-        self, program: Program, *, idea: str, operator: str
+        self, code: str, *, idea: str, operator: str
     ) -> EvalResult | None:
         if not self._has_budget():
             return None
-        result, eval_time = self._evaluator.evaluate_program_record_time(program)
+        outcome, eval_time = self._evaluator.evaluate_program_record_time_with_details(
+            code
+        )
         self._tot_sample_nums += 1
-        score = result.fitness if isinstance(result, EvalResult) else result
-        program_text = str(program)
+        if outcome.failure_kind == "prepare_error":
+            raise RuntimeError(
+                _one_line(
+                    outcome.error
+                    or "evaluator preparation failed without an error message",
+                    ERROR_MAX_CHARS,
+                )
+            )
+        score = getattr(outcome.result, "fitness", outcome.result)
+        try:
+            fitness = float(score)
+        except (TypeError, ValueError, OverflowError):
+            fitness = math.nan
+        if not math.isfinite(fitness):
+            if self._artifacts is not None:
+                self._artifacts.record_candidate(
+                    sample_order=self._tot_sample_nums,
+                    score=None,
+                    operator=operator,
+                    program=code,
+                    idea=idea,
+                    code_hash=_code_hash(code),
+                    program_loc=_nonempty_loc(code),
+                    evaluate_time=eval_time,
+                    status=outcome.failure_kind or "invalid_result",
+                    error=_one_line(
+                        outcome.error
+                        or f"evaluator returned non-finite fitness: {score!r}",
+                        ERROR_MAX_CHARS,
+                    ),
+                )
+            return None
         if self._artifacts is not None:
             self._artifacts.record_candidate(
                 sample_order=self._tot_sample_nums,
-                score=None if score is None else float(score),
+                score=fitness,
                 operator=operator,
-                program=program_text,
+                program=code,
                 idea=idea,
-                code_hash=_code_hash(program_text),
-                program_loc=_nonempty_loc(program_text),
+                code_hash=_code_hash(code),
+                program_loc=_nonempty_loc(code),
                 evaluate_time=eval_time,
-                status="ok" if score is not None else "eval_failed",
+                status="ok",
             )
-        return None if score is None else EvalResult(fitness=float(score))
+        return EvalResult(fitness=fitness)
 
     def _update_best(
         self,
@@ -681,19 +681,29 @@ def _is_better(candidate: float, incumbent: float, maximize: bool) -> bool:
     return candidate > incumbent if maximize else candidate < incumbent
 
 
-def _parse_program_response(
-    response: str, function_name: str
-) -> _GeneratedProgram | None:
-    idea = _extract_idea(response)
-    code = _extract_first_code_block(response)
-    if idea is None or code is None:
-        return None
-    parsed = TextFunctionProgramConverter.text_to_program(code)
-    if parsed is None or len(parsed.functions) != 1:
-        return None
-    if parsed.functions[0].name != function_name:
-        return None
-    return _GeneratedProgram(idea=idea, program=parsed)
+def _parse_program_response(response: str) -> _GeneratedProgram:
+    """Lenient extraction: last fenced block, else text after Code:, else the response."""
+    text = str(response)
+    first_fence = text.find("```")
+    blocks = tuple(
+        block.strip()
+        for block in re.findall(
+            r"```(?:python|py)?\s*(.*?)(?:```|\Z)",
+            text,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if block.strip()
+    )
+    if blocks:
+        idea = _extract_idea(text[:first_fence])
+        return _GeneratedProgram(idea=idea or "", code=blocks[-1])
+
+    code_marker = re.search(r"^\s*Code\s*:\s*", text, re.IGNORECASE | re.MULTILINE)
+    if code_marker is not None:
+        idea = _extract_idea(text[: code_marker.start()])
+        return _GeneratedProgram(idea=idea or "", code=text[code_marker.end() :].strip())
+    idea = _extract_idea(text)
+    return _GeneratedProgram(idea=idea or "", code=text.strip())
 
 
 def _parse_actions(response: str, *, expected_count: int) -> list[str]:
@@ -714,20 +724,11 @@ def _parse_actions(response: str, *, expected_count: int) -> list[str]:
 
 def _extract_idea(response: str) -> str | None:
     match = re.search(
-        r"^\s*Idea\s*:\s*(?P<idea>.+?)\s*$",
+        r"^\s*Idea\s*:\s*(?P<idea>\S[^\r\n]*)$",
         response,
         flags=re.IGNORECASE | re.MULTILINE,
     )
-    return None if match is None else match.group("idea").strip()
-
-
-def _extract_first_code_block(response: str) -> str | None:
-    match = re.search(
-        r"```(?:python|py)?\s*(?P<code>.*?)```",
-        response,
-        flags=re.IGNORECASE | re.DOTALL,
-    )
-    return None if match is None else match.group("code").strip()
+    return None if match is None else " ".join(match.group("idea").split())
 
 
 __all__ = ["TraceAADV4", "TraceAADRunResult"]

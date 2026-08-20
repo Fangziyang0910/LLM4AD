@@ -19,9 +19,6 @@ from .schema import (
 )
 from .trajectory_memory import TrajectoryMemory
 
-CHECKPOINT_VERSION = 5
-
-
 def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary = tempfile.mkstemp(
@@ -126,7 +123,6 @@ def _memory_from_dict(payload: Mapping[str, Any]) -> TrajectoryMemory:
 
 def dump_state(method) -> dict[str, Any]:
     return {
-        "version": CHECKPOINT_VERSION,
         "task_description": method._task_description_str,
         "template_program": method._evaluation.template_program,
         "function_name": method._function_to_evolve.name,
@@ -158,10 +154,6 @@ def _search_configuration(method) -> dict[str, Any]:
 
 
 def load_state(method, payload: Mapping[str, Any]) -> None:
-    if int(payload.get("version", 0)) != CHECKPOINT_VERSION:
-        raise ValueError(
-            f"unsupported TraceAAD checkpoint version: {payload.get('version')}"
-        )
     if payload.get("task_description") != method._task_description_str:
         raise ValueError("checkpoint task description does not match the evaluation")
     if payload.get("template_program") != method._evaluation.template_program:
