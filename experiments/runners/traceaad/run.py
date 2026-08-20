@@ -22,48 +22,36 @@ from llm4ad.method.traceaad_v5 import (
     ValueWeights as V5ValueWeights,
 )
 from llm4ad.method.traceaad_v8 import (
-    CHECKPOINT_VERSION as V8_CHECKPOINT_VERSION,
-    PROTOCOL_ID as V8_PROTOCOL_ID,
     RunArtifacts as V8RunArtifacts,
     TraceAADV8,
 )
 from llm4ad.method.traceaad_v8.operators import DEFAULT_OPERATORS as V8_OPERATORS
 from llm4ad.method.traceaad_v9 import (
-    CHECKPOINT_VERSION as V9_CHECKPOINT_VERSION,
-    PROTOCOL_ID as V9_PROTOCOL_ID,
     RunArtifacts as V9RunArtifacts,
     TraceAADV9,
 )
 from llm4ad.method.traceaad_v9.operators import DEFAULT_OPERATORS as V9_OPERATORS
 from llm4ad.method.traceaad_v9_7 import (
-    CHECKPOINT_VERSION as V97_CHECKPOINT_VERSION,
     INITIAL_ROOT_COUNT as V97_INITIAL_ROOT_COUNT,
     LOGICAL_MODEL_NAME as V97_LOGICAL_MODEL_NAME,
     MAX_HISTORY_EVENTS as V97_MAX_HISTORY_EVENTS,
-    PROTOCOL_ID as V97_PROTOCOL_ID,
     REFINE_PROBABILITY as V97_REFINE_PROBABILITY,
     RunArtifacts as V97RunArtifacts,
     TraceAADV97,
 )
 from llm4ad.method.traceaad_v9_7_co import (
-    CHECKPOINT_VERSION as V97CO_CHECKPOINT_VERSION,
     INITIAL_ROOT_COUNT as V97CO_INITIAL_ROOT_COUNT,
     LOGICAL_MODEL_NAME as V97CO_LOGICAL_MODEL_NAME,
-    PROTOCOL_ID as V97CO_PROTOCOL_ID,
     REFINE_PROBABILITY as V97CO_REFINE_PROBABILITY,
     RunArtifacts as V97CORunArtifacts,
     TraceAADV97CO,
 )
 from llm4ad.method.traceaad_v9_8 import (
-    CHECKPOINT_VERSION as V98_CHECKPOINT_VERSION,
-    DEFAULT_MAX_CONSECUTIVE_ERRORS as V98_DEFAULT_MAX_CONSECUTIVE_ERRORS,
     DEFAULT_MAX_RESPONSES as V98_DEFAULT_MAX_RESPONSES,
     INITIAL_ROOT_COUNT as V98_INITIAL_ROOT_COUNT,
     LOGICAL_MODEL_NAME as V98_LOGICAL_MODEL_NAME,
     MAX_HISTORY_EVENTS as V98_MAX_HISTORY_EVENTS,
-    PROTOCOL_ID as V98_PROTOCOL_ID,
     REFINE_PROBABILITY as V98_REFINE_PROBABILITY,
-    SCORE_FORMULA_VERSION as V98_SCORE_FORMULA_VERSION,
     AllocationPolicy as V98AllocationPolicy,
     RunArtifacts as V98RunArtifacts,
     TraceAADV98,
@@ -96,18 +84,15 @@ from llm4ad.method.traceaad_v9_10 import (
     TraceAADV910,
 )
 from llm4ad.method.traceaad_v9_11 import (
-    CHECKPOINT_VERSION as V911_CHECKPOINT_VERSION,
     INITIAL_ROOT_COUNT as V911_INITIAL_ROOT_COUNT,
     LOGICAL_MODEL_NAME as V911_LOGICAL_MODEL_NAME,
     MAX_HISTORY_EVENTS as V911_MAX_HISTORY_EVENTS,
     MIN_EXPLORE_REMAINING_EVALS as V911_MIN_EXPLORE_REMAINING_EVALS,
-    PROTOCOL_ID as V911_PROTOCOL_ID,
     STAGNATION_WINDOW as V911_STAGNATION_WINDOW,
     RunArtifacts as V911RunArtifacts,
     TraceAADV911,
 )
 from llm4ad.method.traceaad_v9_12 import (
-    CHECKPOINT_VERSION as V912_CHECKPOINT_VERSION,
     EXPLORE_PROBABILITY_MAX as V912_EXPLORE_PROBABILITY_MAX,
     EXPLORE_PROBABILITY_MIN as V912_EXPLORE_PROBABILITY_MIN,
     INITIAL_ROOT_COUNT as V912_INITIAL_ROOT_COUNT,
@@ -115,18 +100,14 @@ from llm4ad.method.traceaad_v9_12 import (
     MAX_HISTORY_EVENTS as V912_MAX_HISTORY_EVENTS,
     MIN_EXPLORE_REMAINING_EVALS as V912_MIN_EXPLORE_REMAINING_EVALS,
     PROGRESS_WINDOW as V912_PROGRESS_WINDOW,
-    PROTOCOL_ID as V912_PROTOCOL_ID,
     RunArtifacts as V912RunArtifacts,
     TraceAADV912,
 )
 from llm4ad.method.traceaad_v9_13 import (
-    CHECKPOINT_VERSION as V913_CHECKPOINT_VERSION,
     FRONTIER_ACTIVATION_EVALS as V913_FRONTIER_ACTIVATION_EVALS,
     INITIAL_ROOT_COUNT as V913_INITIAL_ROOT_COUNT,
     LOGICAL_MODEL_NAME as V913_LOGICAL_MODEL_NAME,
     MAX_HISTORY_EVENTS as V913_MAX_HISTORY_EVENTS,
-    PROTOCOL_ID as V913_PROTOCOL_ID,
-    PROXY_RULES_VERSION as V913_PROXY_RULES_VERSION,
     REFINE_PROBABILITY as V913_REFINE_PROBABILITY,
     RunArtifacts as V913RunArtifacts,
     TraceAADV913,
@@ -209,7 +190,6 @@ class RunSpec:
     resume_from: Path | None = None
     allocation_policy: str = V98AllocationPolicy.FULL.value
     max_responses: int = V98_DEFAULT_MAX_RESPONSES
-    max_consecutive_errors: int = V98_DEFAULT_MAX_CONSECUTIVE_ERRORS
     v910_child_window: int | None = None
     v910_settlement_mode: str = "depth"
     v910_allocation_mode: str = "thompson"
@@ -251,7 +231,6 @@ def make_run_spec(
     resume_from: Path | None = None,
     allocation_policy: str = V98AllocationPolicy.FULL.value,
     max_responses: int = V98_DEFAULT_MAX_RESPONSES,
-    max_consecutive_errors: int = V98_DEFAULT_MAX_CONSECUTIVE_ERRORS,
     v910_child_window: int | None = None,
     v910_settlement_mode: str = "depth",
     v910_allocation_mode: str = "thompson",
@@ -320,7 +299,6 @@ def make_run_spec(
         resume_from=None if resume_from is None else resume_from.resolve(),
         allocation_policy=allocation_policy,
         max_responses=max_responses,
-        max_consecutive_errors=max_consecutive_errors,
         v910_child_window=v910_child_window,
         v910_settlement_mode=v910_settlement_mode,
         v910_allocation_mode=v910_allocation_mode,
@@ -341,16 +319,16 @@ def make_run_spec(
         raise ValueError("TraceAAD V9.9 requires exactly eight independent roots")
     if spec.version == "v9_8":
         V98AllocationPolicy(spec.allocation_policy)
-        if spec.max_responses <= 0 or spec.max_consecutive_errors <= 0:
-            raise ValueError("V9.8 safety limits must be positive")
+        if spec.max_responses <= 0:
+            raise ValueError("V9.8 response safety limit must be positive")
     if spec.version == "v9_9":
-        if spec.max_responses <= 0 or spec.max_consecutive_errors <= 0:
-            raise ValueError("V9.9 safety limits must be positive")
+        if spec.max_responses <= 0:
+            raise ValueError("V9.9 response safety limit must be positive")
     if spec.version == "v9_10":
         if spec.n_init != V910_INITIAL_ROOT_COUNT:
             raise ValueError("TraceAAD V9.10 requires exactly eight independent roots")
-        if spec.max_responses <= 0 or spec.max_consecutive_errors <= 0:
-            raise ValueError("V9.10 safety limits must be positive")
+        if spec.max_responses <= 0:
+            raise ValueError("V9.10 response safety limit must be positive")
     if spec.version == "v9_11" and spec.n_init != V911_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.11 requires exactly eight initial roots")
     if spec.version == "v9_12" and spec.n_init != V912_INITIAL_ROOT_COUNT:
@@ -414,7 +392,6 @@ def build_method(
             seed=spec.seed,
             allocation_policy=spec.allocation_policy,
             max_responses=spec.max_responses,
-            max_consecutive_errors=spec.max_consecutive_errors,
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
         )
@@ -430,7 +407,6 @@ def build_method(
             max_history=V99_MAX_HISTORY_EVENTS,
             seed=spec.seed,
             max_responses=spec.max_responses,
-            max_consecutive_errors=spec.max_consecutive_errors,
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
         )
@@ -446,7 +422,6 @@ def build_method(
             max_history=V910_MAX_HISTORY_EVENTS,
             seed=spec.seed,
             max_responses=spec.max_responses,
-            max_consecutive_errors=spec.max_consecutive_errors,
             child_window=(
                 V910_CHILD_WINDOW
                 if spec.v910_child_window is None
@@ -532,7 +507,6 @@ def build_method(
         "evaluation": evaluation,
         "max_sample_nums": spec.budget,
         "n_init": spec.n_init,
-        "max_consecutive_sample_failures": 20,
         "max_stalled_iterations": 20,
         "checkpoint_interval": 10,
         "resume_from": resume_from,
@@ -674,16 +648,10 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
             )
         return
     if spec.version == "v8":
-        protocol_id = V8_PROTOCOL_ID
-        checkpoint_version = V8_CHECKPOINT_VERSION
         operator_names = V8_OPERATOR_NAMES
     else:
-        protocol_id = V9_PROTOCOL_ID
-        checkpoint_version = V9_CHECKPOINT_VERSION
         operator_names = V9_OPERATOR_NAMES
     expected_method_params = {
-        "protocol_id": protocol_id,
-        "checkpoint_schema_version": checkpoint_version,
         "max_sample_nums": spec.budget,
         "n_init": spec.n_init,
         "generation_protocol": "direct_code",
@@ -701,7 +669,6 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         "direct_child_top_count": 4,
         "maximize": True,
         "operators": operator_names,
-        "max_consecutive_sample_failures": 20,
         "max_stalled_iterations": 20,
         "checkpoint_interval": 10,
         "code_max_tokens": spec.llm_output_tokens,
@@ -786,14 +753,6 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         method_params = _v914_method_params(spec)
     elif spec.version in {"v8", "v9"}:
         method_params = {
-            "protocol_id": (
-                V8_PROTOCOL_ID if spec.version == "v8" else V9_PROTOCOL_ID
-            ),
-            "checkpoint_schema_version": (
-                V8_CHECKPOINT_VERSION
-                if spec.version == "v8"
-                else V9_CHECKPOINT_VERSION
-            ),
             "max_sample_nums": spec.budget,
             "n_init": spec.n_init,
             "generation_protocol": "direct_code",
@@ -809,7 +768,6 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
             "ancestor_history_limit": 8,
             "direct_child_limit": 8,
             "direct_child_top_count": 4,
-            "max_consecutive_sample_failures": 20,
             "max_stalled_iterations": 20,
             "checkpoint_interval": 10,
         }
@@ -823,7 +781,6 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
             "max_trajectory_length": 8,
             "max_active_trajectories": 30,
             "softmax_temperature": 0.2,
-            "max_consecutive_sample_failures": 20,
             "max_stalled_iterations": 20,
             "checkpoint_interval": 10,
             "value_weights": asdict(weights),
@@ -917,8 +874,6 @@ def _versioned_generator_environment(spec: RunSpec) -> dict[str, object]:
 
 def _v97_method_params(spec: RunSpec) -> dict[str, object]:
     return {
-        "protocol_id": V97_PROTOCOL_ID,
-        "checkpoint_schema_version": V97_CHECKPOINT_VERSION,
         "budget": spec.budget,
         "n_roots": spec.n_init,
         "max_history": V97_MAX_HISTORY_EVENTS,
@@ -933,8 +888,6 @@ def _v97_method_params(spec: RunSpec) -> dict[str, object]:
 
 def _v97co_method_params(spec: RunSpec) -> dict[str, object]:
     return {
-        "protocol_id": V97CO_PROTOCOL_ID,
-        "checkpoint_schema_version": V97CO_CHECKPOINT_VERSION,
         "budget": spec.budget,
         "n_roots": spec.n_init,
         "maximize": True,
@@ -949,9 +902,6 @@ def _v97co_method_params(spec: RunSpec) -> dict[str, object]:
 
 def _v98_method_params(spec: RunSpec) -> dict[str, object]:
     return {
-        "protocol_id": V98_PROTOCOL_ID,
-        "checkpoint_schema_version": V98_CHECKPOINT_VERSION,
-        "score_formula_version": V98_SCORE_FORMULA_VERSION,
         "allocation_policy": spec.allocation_policy,
         "budget": spec.budget,
         "n_roots": spec.n_init,
@@ -963,7 +913,6 @@ def _v98_method_params(spec: RunSpec) -> dict[str, object]:
         "refine_probability": V98_REFINE_PROBABILITY,
         "explore_probability": 1.0 - V98_REFINE_PROBABILITY,
         "max_responses": spec.max_responses,
-        "max_consecutive_errors": spec.max_consecutive_errors,
     }
 
 
@@ -983,7 +932,6 @@ def _v99_method_params(spec: RunSpec) -> dict[str, object]:
         "refine_prior": V99_REFINE_PRIOR,
         "explore_prior": V99_EXPLORE_PRIOR,
         "max_responses": spec.max_responses,
-        "max_consecutive_errors": spec.max_consecutive_errors,
     }
 
 
@@ -1010,14 +958,11 @@ def _v910_method_params(spec: RunSpec) -> dict[str, object]:
         "parent_chain_window": V910_PARENT_CHAIN_WINDOW,
         "parent_chain_half_life": V910_PARENT_CHAIN_HALF_LIFE,
         "max_responses": spec.max_responses,
-        "max_consecutive_errors": spec.max_consecutive_errors,
     }
 
 
 def _v911_method_params(spec: RunSpec) -> dict[str, object]:
     return {
-        "protocol_id": V911_PROTOCOL_ID,
-        "checkpoint_schema_version": V911_CHECKPOINT_VERSION,
         "budget": spec.budget,
         "n_roots": spec.n_init,
         "max_history": V911_MAX_HISTORY_EVENTS,
@@ -1035,8 +980,6 @@ def _v911_method_params(spec: RunSpec) -> dict[str, object]:
 
 def _v912_method_params(spec: RunSpec) -> dict[str, object]:
     return {
-        "protocol_id": V912_PROTOCOL_ID,
-        "checkpoint_schema_version": V912_CHECKPOINT_VERSION,
         "budget": spec.budget,
         "n_roots": spec.n_init,
         "max_history": V912_MAX_HISTORY_EVENTS,
@@ -1056,8 +999,6 @@ def _v912_method_params(spec: RunSpec) -> dict[str, object]:
 
 def _v913_method_params(spec: RunSpec) -> dict[str, object]:
     return {
-        "protocol_id": V913_PROTOCOL_ID,
-        "checkpoint_schema_version": V913_CHECKPOINT_VERSION,
         "budget": spec.budget,
         "n_roots": spec.n_init,
         "max_history": V913_MAX_HISTORY_EVENTS,
@@ -1070,7 +1011,6 @@ def _v913_method_params(spec: RunSpec) -> dict[str, object]:
         "task_key": spec.task,
         "treatment": spec.treatment,
         "frontier_activation_evals": V913_FRONTIER_ACTIVATION_EVALS,
-        "proxy_rules_version": V913_PROXY_RULES_VERSION,
     }
 
 
@@ -1170,11 +1110,6 @@ def build_parser() -> argparse.ArgumentParser:
         default=V98AllocationPolicy.FULL.value,
     )
     parser.add_argument("--max-responses", type=int, default=V98_DEFAULT_MAX_RESPONSES)
-    parser.add_argument(
-        "--max-consecutive-errors",
-        type=int,
-        default=V98_DEFAULT_MAX_CONSECUTIVE_ERRORS,
-    )
     parser.add_argument("--v910-child-window", type=int)
     parser.add_argument(
         "--v910-settlement-mode",
@@ -1215,7 +1150,6 @@ def spec_from_args(args: argparse.Namespace) -> RunSpec:
         resume_from=args.resume_from,
         allocation_policy=args.allocation_policy,
         max_responses=args.max_responses,
-        max_consecutive_errors=args.max_consecutive_errors,
         v910_child_window=args.v910_child_window,
         v910_settlement_mode=args.v910_settlement_mode,
         v910_allocation_mode=args.v910_allocation_mode,

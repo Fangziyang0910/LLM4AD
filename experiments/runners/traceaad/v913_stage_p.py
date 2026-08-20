@@ -40,7 +40,6 @@ from typing import Any, Iterable
 
 from llm4ad.base import SecureEvaluator, TextFunctionProgramConverter
 from llm4ad.method.traceaad_v9_13.prompt import (
-    ProgramResponseError,
     build_generation_prompt,
     parse_program_response,
 )
@@ -864,25 +863,8 @@ def _evaluate_trial(
         "sample_seconds": call["sample_seconds"],
         "completed_at": datetime.now().isoformat(timespec="seconds"),
     }
-    try:
-        parsed = parse_program_response(
-            call["response"], template, template.functions[0].name
-        )
-    except ProgramResponseError as exc:
-        return {
-            **base,
-            "status": "invalid",
-            "valid": False,
-            "failure_kind": "parse",
-            "failure_error": str(exc),
-            "idea": exc.declared_idea,
-            "evaluator_called": False,
-            "no_op": False,
-            "archive_duplicate": False,
-            "code_novel": False,
-            "next_selection": False,
-        }
-    candidate_code = str(parsed.program)
+    parsed = parse_program_response(call["response"])
+    candidate_code = parsed.code
     candidate_hash = code_hash(candidate_code)
     diff, added, removed = code_diff(snapshot["code"], candidate_code)
     tags = mechanism_tags(snapshot["task"], candidate_code)

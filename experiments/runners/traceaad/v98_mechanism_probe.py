@@ -26,7 +26,6 @@ from llm4ad.method.traceaad_v9_7.forest import Forest as V97Forest
 from llm4ad.method.traceaad_v9_7.history import _compact_change
 from llm4ad.method.traceaad_v9_7.schema import Outcome as V97Outcome
 from llm4ad.method.traceaad_v9_8.prompt import (
-    ProgramResponseError,
     build_generation_prompt,
     parse_program_response,
 )
@@ -449,20 +448,8 @@ def _evaluate_call(
         "response_tokens": call["response_tokens"],
         "sample_seconds": call["sample_seconds"],
     }
-    try:
-        parsed = parse_program_response(call["response"], template, template.functions[0].name)
-    except ProgramResponseError as exc:
-        return {
-            **base,
-            "status": "invalid",
-            "valid": False,
-            "failure_kind": "parse",
-            "failure_error": str(exc),
-            "idea": exc.declared_idea,
-            "evaluator_called": False,
-            "completed_at": datetime.now().isoformat(timespec="seconds"),
-        }
-    candidate_code = str(parsed.program)
+    parsed = parse_program_response(call["response"])
+    candidate_code = parsed.code
     candidate_hash = code_hash(candidate_code)
     diff, added, removed = code_diff(anchor["code"], candidate_code)
     candidate_base = {
