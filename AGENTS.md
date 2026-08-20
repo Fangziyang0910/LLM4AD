@@ -29,7 +29,7 @@ TraceAAD 的两个核心研究对象是**轨迹条件生成**与**轨迹感知�
 - 正式比较统一 1000 次真实评价预算，评价口径全局统一；搜索结果、held-out 结果与过程证据分开报告。held-out 评估必须完成，timeout 或单个失败样本不能成为最终 `n/a`；全部重复与测试完成后才更新结果页。
 - 生成模型统一记 **Qwen3.6-27B**：zhong / server1 / server3 / server3b / local 是同一模型的不同服务源，不区分、不记录。
 - 实验入口在 `experiments/runners/`，工件按 `experiments/<task>/<method>/` 组织，模型、预算和关键超参显式可追溯；原始工件只留本地，Git 只跟踪实验入口、评估绘图代码和 `docs/experiments/` 的凝练结果。
-- 并行容量 server3 9、server3b 9（其余暂为 0）；启动用 `tmux new-session` + `experiments.runners.<method>.run`，按空位均衡分配；长跑前先冒烟，长跑用可恢复的后台会话。Python 用本仓库的 uv 环境。
+- 并行容量 server3 9、server3b 9、server1 9；启动用 `tmux new-session` + `experiments.runners.<method>.run`，按空位均衡分配；长跑前先冒烟，长跑用可恢复的后台会话。Python 用本仓库的 uv 环境。
 
 ## 文档
 
