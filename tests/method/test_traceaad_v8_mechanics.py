@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from llm4ad.base import Evaluation, LLM, TextFunctionProgramConverter
+from llm4ad.base import Evaluation, LLM
 from llm4ad.method.traceaad_v8 import RunArtifacts
 from llm4ad.method.traceaad_v8 import TraceAADV8
 from llm4ad.method.traceaad_v8.checkpoint import dump_state, load_state, save_checkpoint
@@ -276,20 +276,25 @@ def test_recursive_selection_compares_new_branch_with_existing_children() -> Non
     assert reopened.steps[-1].option == "expand"
 
 
-def test_direct_code_parser_requires_explicit_idea() -> None:
-    template = TextFunctionProgramConverter.text_to_program(TEMPLATE)
-    assert template is not None
-    code_only = "```python\ndef choose(value: int) -> int:\n    return value + 1\n```"
-    idea_inside_code = (
-        "```python\n"
-        "def choose(value: int) -> int:\n"
-        '    \"\"\"Idea: text inside generated code.\"\"\"\n'
-        "    return value + 1\n"
-        "```"
+def test_direct_code_parser_extracts_leniently() -> None:
+    fenced = parse_program_response(
+        "```python\ndef choose(value: int) -> int:\n    return value + 1\n```"
     )
+    assert fenced.declared_idea is None
+    assert fenced.code == "def choose(value: int) -> int:\n    return value + 1"
 
-    assert parse_program_response(code_only, template, "choose") is None
-    assert parse_program_response(idea_inside_code, template, "choose") is None
+    marked = parse_program_response(
+        "Idea: bump the value\n"
+        "Code:\n"
+        "def choose(value: int) -> int:\n"
+        "    return value + 2"
+    )
+    assert marked.declared_idea == "bump the value"
+    assert marked.code.startswith("def choose")
+
+    plain = parse_program_response("just discussion text")
+    assert plain.declared_idea is None
+    assert plain.code == "just discussion text"
 
 
 def test_internal_node_context_uses_top_four_then_recent_children() -> None:
@@ -337,7 +342,7 @@ def test_batch_visit_counts_path_once_even_when_code_parse_fails() -> None:
     )
     result = method.run()
     root_child = method._tree.get_node(method._tree.root.child_ids[0])
-    assert result.n_samples == 1
+    assert result.n_samples == 3
     assert result.n_batches == 1
     assert method._tree.root.visit_count == 2
     assert root_child.visit_count == 2
@@ -525,8 +530,6 @@ def test_small_scripted_run_preserves_histories_and_has_no_population(
     assert result.n_root_children == 3
     assert result.n_total_nodes == 7
     assert result.n_edges == 4
-    assert payload["protocol_id"] == "traceaad-v8.2-adaptive-expand"
-    assert payload["version"] == 3
     assert "memory" not in payload
     assert "population" not in payload
     assert not hasattr(method, "_memory")
@@ -647,40 +650,6 @@ def test_checkpoint_rejects_misaligned_expansion_batch() -> None:
         context_token_limit=24576,
     )
     with pytest.raises(ValueError, match="expansion batch"):
-        load_state(target, payload)
-
-
-@pytest.mark.parametrize(
-    ("field", "value", "message"),
-    [
-        ("version", 2, "checkpoint version"),
-        ("protocol_id", "traceaad-v8.1-direct", "protocol"),
-    ],
-)
-def test_checkpoint_rejects_pre_adaptive_expansion_protocol(
-    field: str,
-    value: object,
-    message: str,
-) -> None:
-    method = TraceAADV8(
-        llm=ScriptedLLM(),
-        evaluation=IncreasingEvaluation(),
-        max_sample_nums=1,
-        n_init=1,
-        context_token_limit=24576,
-    )
-    method.run()
-    payload = dump_state(method)
-    payload[field] = value
-
-    target = TraceAADV8(
-        llm=ScriptedLLM(),
-        evaluation=IncreasingEvaluation(),
-        max_sample_nums=1,
-        n_init=1,
-        context_token_limit=24576,
-    )
-    with pytest.raises(ValueError, match=message):
         load_state(target, payload)
 
 

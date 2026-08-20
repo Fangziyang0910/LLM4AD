@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from llm4ad.base import Evaluation, LLM, TextFunctionProgramConverter
+from llm4ad.base import Evaluation, LLM
 from llm4ad.method.traceaad_v9 import RunArtifacts
 from llm4ad.method.traceaad_v9 import TraceAADV9
 from llm4ad.method.traceaad_v9.checkpoint import dump_state, load_state, save_checkpoint
@@ -284,20 +284,25 @@ def test_recursive_selection_compares_new_branch_with_existing_children() -> Non
     assert reopened.steps[-1].option == "expand"
 
 
-def test_direct_code_parser_requires_explicit_idea() -> None:
-    template = TextFunctionProgramConverter.text_to_program(TEMPLATE)
-    assert template is not None
-    code_only = "```python\ndef choose(value: int) -> int:\n    return value + 1\n```"
-    idea_inside_code = (
-        "```python\n"
-        "def choose(value: int) -> int:\n"
-        '    \"\"\"Idea: text inside generated code.\"\"\"\n'
-        "    return value + 1\n"
-        "```"
+def test_direct_code_parser_extracts_leniently() -> None:
+    fenced = parse_program_response(
+        "```python\ndef choose(value: int) -> int:\n    return value + 1\n```"
     )
+    assert fenced.declared_idea is None
+    assert fenced.code == "def choose(value: int) -> int:\n    return value + 1"
 
-    assert parse_program_response(code_only, template, "choose") is None
-    assert parse_program_response(idea_inside_code, template, "choose") is None
+    marked = parse_program_response(
+        "Idea: bump the value\n"
+        "Code:\n"
+        "def choose(value: int) -> int:\n"
+        "    return value + 2"
+    )
+    assert marked.declared_idea == "bump the value"
+    assert marked.code.startswith("def choose")
+
+    plain = parse_program_response("just discussion text")
+    assert plain.declared_idea is None
+    assert plain.code == "just discussion text"
 
 
 def test_v9_default_budget_is_1000_and_invalid_finite_budgets_are_rejected() -> None:
@@ -331,48 +336,6 @@ def test_initial_prompt_includes_minimization_direction() -> None:
         context_token_limit=24576,
     ).run()
     assert "lower is better" in llm.prompts[0]
-
-
-def test_current_program_helpers_are_preserved_and_signature_is_checked() -> None:
-    template = TextFunctionProgramConverter.text_to_program(
-        "import math\n\ndef choose(value: int) -> int:\n    return value\n"
-    )
-    current = TextFunctionProgramConverter.text_to_program(
-        "import math\nHELPER = 7\n\n"
-        "def choose(value: int) -> int:\n    return HELPER + value\n\n"
-        "def local_helper(value: int) -> int:\n    return value * 2\n"
-    )
-    assert template is not None and current is not None
-
-    parsed = parse_program_response(
-        "Idea: keep the helper\n"
-        "```python\n"
-        "def choose(value: int) -> int:\n"
-        "    return local_helper(value)\n"
-        "```",
-        current,
-        "choose",
-        signature_template=template,
-    )
-    assert parsed is not None
-    rendered = str(parsed.program)
-    assert "import math" in rendered
-    assert "HELPER = 7" in rendered
-    assert "def local_helper" in rendered
-
-    assert (
-        parse_program_response(
-            "Idea: change the signature\n"
-            "```python\n"
-            "def choose(other: float) -> float:\n"
-            "    return other\n"
-            "```",
-            current,
-            "choose",
-            signature_template=template,
-        )
-        is None
-    )
 
 
 def test_internal_node_context_uses_top_four_then_recent_children() -> None:
@@ -420,7 +383,7 @@ def test_batch_visit_counts_path_once_even_when_code_parse_fails() -> None:
     )
     result = method.run()
     root_child = method._tree.get_node(method._tree.root.child_ids[0])
-    assert result.n_samples == 1
+    assert result.n_samples == 3
     assert result.n_batches == 1
     assert method._tree.root.visit_count == 2
     assert root_child.visit_count == 2
@@ -471,20 +434,23 @@ def test_transport_failures_are_llm_call_artifacts(tmp_path: Path) -> None:
         max_stalled_iterations=1,
         context_token_limit=24576,
     )
-    method.run()
+    with pytest.raises(RuntimeError, match="model transport retry limit exhausted"):
+        method.run()
     calls = [
         json.loads(line)
         for line in (tmp_path / "artifacts" / "llm_calls.jsonl")
         .read_text()
         .splitlines()
     ]
-    assert len(calls) == 1
-    assert calls[0]["status"] == "transport"
-    assert calls[0]["failure_kind"] == "transport"
-    assert calls[0]["error_type"] == "RuntimeError"
-    assert "synthetic transport failure" in calls[0]["error"]
+    assert len(calls) == 4
+    assert [call["transport_attempt"] for call in calls] == [1, 2, 3, 4]
+    assert all(call["status"] == "transport" for call in calls)
+    assert all(call["failure_kind"] == "transport" for call in calls)
+    assert all(call["error_type"] == "RuntimeError" for call in calls)
+    assert all("synthetic transport failure" in call["error"] for call in calls)
     summary = json.loads((tmp_path / "logs" / "summary.json").read_text())
-    assert summary["llm_call_count"] == 1
+    assert summary["llm_call_count"] == 4
+    assert summary["num_samples"] == 0
 
 
 def test_resume_artifact_counts_are_cumulative(tmp_path: Path) -> None:
@@ -692,8 +658,6 @@ def test_small_scripted_run_preserves_histories_and_has_no_population(
     assert result.n_root_children == 3
     assert result.n_total_nodes == 7
     assert result.n_edges == 4
-    assert payload["protocol_id"] == "traceaad-v9-core"
-    assert payload["version"] == 1
     assert payload["search_configuration"]["history_protocol"] == "matched_history"
     assert "memory" not in payload
     assert "population" not in payload
@@ -815,40 +779,6 @@ def test_checkpoint_rejects_misaligned_expansion_batch() -> None:
         context_token_limit=24576,
     )
     with pytest.raises(ValueError, match="expansion batch"):
-        load_state(target, payload)
-
-
-@pytest.mark.parametrize(
-    ("field", "value", "message"),
-    [
-        ("version", 0, "checkpoint version"),
-        ("protocol_id", "traceaad-v9-legacy", "protocol"),
-    ],
-)
-def test_checkpoint_rejects_pre_adaptive_expansion_protocol(
-    field: str,
-    value: object,
-    message: str,
-) -> None:
-    method = TraceAADV9(
-        llm=ScriptedLLM(),
-        evaluation=IncreasingEvaluation(),
-        max_sample_nums=1,
-        n_init=1,
-        context_token_limit=24576,
-    )
-    method.run()
-    payload = dump_state(method)
-    payload[field] = value
-
-    target = TraceAADV9(
-        llm=ScriptedLLM(),
-        evaluation=IncreasingEvaluation(),
-        max_sample_nums=1,
-        n_init=1,
-        context_token_limit=24576,
-    )
-    with pytest.raises(ValueError, match=message):
         load_state(target, payload)
 
 

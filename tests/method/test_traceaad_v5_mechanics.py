@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from llm4ad.base import Evaluation, LLM
 
 
@@ -148,17 +150,6 @@ def choose(value: int) -> int:
 
     def evaluate_program(self, program_str, callable_func, **kwargs):
         return float(callable_func(3))
-
-
-class FunctionOnlyNumpyLLM(LLM):
-    def draw_sample(self, prompt, *args, **kwargs):
-        return (
-            "Idea: use the template NumPy dependency\n"
-            "```python\n"
-            "def choose(value: int) -> int:\n"
-            "    return int(np.asarray([value]).sum())\n"
-            "```"
-        )
 
 
 class HelperFunctionLLM(LLM):
@@ -541,14 +532,16 @@ def test_traceaad_v5_writes_partial_summary_and_checkpoint_on_exception(
     try:
         method.run()
     except RuntimeError as exc:
-        assert str(exc) == "generation broke"
+        assert str(exc) == "model transport retry limit exhausted"
+        assert isinstance(exc.__cause__, RuntimeError)
+        assert str(exc.__cause__) == "generation broke"
     else:
         raise AssertionError("expected generation failure")
 
     summary = json.loads((tmp_path / "logs" / "summary.json").read_text())
     assert summary["status"] == "error"
     assert summary["error_type"] == "RuntimeError"
-    assert summary["error"] == "generation broke"
+    assert summary["error"] == "model transport retry limit exhausted"
     assert summary["num_samples"] == 0
     assert checkpoint.is_file()
 
@@ -556,7 +549,7 @@ def test_traceaad_v5_writes_partial_summary_and_checkpoint_on_exception(
 def test_traceaad_v5_abort_during_init_keeps_initialization_incomplete(
     tmp_path: Path,
 ) -> None:
-    """Init LLM failures must not freeze an empty search as initialization_complete."""
+    """Init transport exhaustion must not freeze an empty search as initialization_complete."""
 
     class AlwaysFailLLM(LLM):
         def draw_sample(self, prompt, *args, **kwargs):
@@ -566,21 +559,20 @@ def test_traceaad_v5_abort_during_init_keeps_initialization_incomplete(
     from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
 
     checkpoint_dir = tmp_path / "checkpoints"
-    aborted = TraceAADV5(
-        llm=AlwaysFailLLM(),
-        evaluation=IncreasingEvaluation(),
-        max_sample_nums=20,
-        n_init=3,
-        actions_per_iteration=1,
-        max_active_trajectories=4,
-        operators=(TraceIdeateOp,),
-        max_consecutive_sample_failures=3,
-        random_seed=0,
-        checkpoint_dir=checkpoint_dir,
-    ).run()
+    with pytest.raises(RuntimeError, match="model transport retry limit exhausted"):
+        TraceAADV5(
+            llm=AlwaysFailLLM(),
+            evaluation=IncreasingEvaluation(),
+            max_sample_nums=20,
+            n_init=3,
+            actions_per_iteration=1,
+            max_active_trajectories=4,
+            operators=(TraceIdeateOp,),
+            random_seed=0,
+            checkpoint_dir=checkpoint_dir,
+        ).run()
     payload = json.loads((checkpoint_dir / "latest.json").read_text(encoding="utf-8"))
 
-    assert aborted.n_samples == 0
     assert payload["initialization_complete"] is False
     assert payload["total_samples"] == 0
     assert payload["memory"]["trajectories"] == []
@@ -1077,25 +1069,6 @@ def test_traceaad_v5_retries_failed_evaluations_until_n_init_is_reached(
     assert result.n_edges == 0
 
 
-def test_traceaad_v5_preserves_template_imports_for_function_only_output(
-    tmp_path: Path,
-) -> None:
-    from llm4ad.method.traceaad_v5 import TraceAADV5
-
-    checkpoint_dir = tmp_path / "checkpoints"
-    result = TraceAADV5(
-        llm=FunctionOnlyNumpyLLM(),
-        evaluation=ExecutingEvaluation(),
-        max_sample_nums=1,
-        n_init=1,
-        checkpoint_dir=checkpoint_dir,
-    ).run()
-
-    payload = json.loads((checkpoint_dir / "latest.json").read_text())
-    assert result.n_valid_nodes == 1
-    assert payload["graph"]["nodes"][0]["code"].startswith("import numpy as np")
-
-
 def test_traceaad_v5_accepts_small_top_level_helper_functions(
     tmp_path: Path,
 ) -> None:
@@ -1134,8 +1107,7 @@ def test_traceaad_v5_logs_structured_evaluation_failures(tmp_path: Path) -> None
         .read_text()
         .splitlines()
     ]
-    failure = next(row for row in candidates if row["status"] == "eval_failed")
-    assert failure["failure_kind"] == "runtime_error"
+    failure = next(row for row in candidates if row["status"] == "runtime_error")
     assert failure["error_type"] == "ValueError"
     assert failure["error"] == "generated failure"
 

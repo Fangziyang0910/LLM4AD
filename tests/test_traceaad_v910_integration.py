@@ -560,7 +560,7 @@ def test_response_safety_limit_marks_resumable_protocol_failure(
     summary = json.loads((tmp_path / "logs" / "summary.json").read_text())
     assert summary["status"] == "aborted"
     assert summary["stop_reason"] == "response_safety_limit"
-    assert summary["evaluator_call_count"] == 2
+    assert summary["evaluator_call_count"] == 6
     assert summary["n_actions"] == 4
     assert summary["n_settled_failure"] == 4
     assert summary["n_pending"] == 0

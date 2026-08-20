@@ -9,8 +9,6 @@ import pytest
 from experiments.runners.traceaad import launch_v98, run
 from llm4ad.base import Evaluation, LLM
 from llm4ad.method.traceaad_v9_8 import (
-    CHECKPOINT_VERSION,
-    PROTOCOL_ID,
     AllocationPolicy,
     RunArtifacts,
     TraceAADV98,
@@ -291,8 +289,6 @@ def test_runner_builds_frozen_v98_and_records_config(tmp_path: Path) -> None:
     method = run.build_method(spec, tmp_path / "run")
     assert isinstance(method, TraceAADV98)
     assert method.search_configuration() == run._v98_method_params(spec)
-    assert method.search_configuration()["protocol_id"] == PROTOCOL_ID
-    assert method.search_configuration()["checkpoint_schema_version"] == CHECKPOINT_VERSION
     run_dir, run_name, _ = run.resolve_run_dir(spec)
     run.write_run_config(spec, run_dir, run_name)
     payload = json.loads((run_dir / "run_config.json").read_text())

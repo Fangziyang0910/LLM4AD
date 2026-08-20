@@ -31,10 +31,7 @@ from llm4ad.method.traceaad_v9_7.prompt import (
 )
 from llm4ad.method.traceaad_v9_7.traceaad import draw_intent as draw_intent_v97
 from llm4ad.method.traceaad_v9_13 import (
-    CHECKPOINT_VERSION,
     FRONTIER_ACTIVATION_EVALS,
-    PROTOCOL_ID,
-    PROXY_RULES_VERSION,
     Treatment,
 )
 from llm4ad.method.traceaad_v9_13.checkpoint import dump_state
@@ -296,10 +293,6 @@ def test_v913_checkpoint_roundtrip_rebuilds_the_region_view() -> None:
     from llm4ad.method.traceaad_v9_13.checkpoint import load_state
 
     load_state(restored, payload)
-    assert restored.search_configuration()["protocol_id"] == PROTOCOL_ID
-    assert restored.search_configuration()["checkpoint_schema_version"] == (
-        CHECKPOINT_VERSION
-    )
     assert [row.program_id for row in restored._regions.frontier_rows()] == [
         row.program_id for row in expected.frontier_rows()
     ]
@@ -331,7 +324,6 @@ def test_v913_runner_builds_frozen_method(tmp_path: Path) -> None:
     assert method.search_configuration() == run._v913_method_params(spec)
     assert method.search_configuration()["treatment"] == "fp"
     assert method.search_configuration()["task_key"] == "tsp_construct"
-    assert method.search_configuration()["proxy_rules_version"] == PROXY_RULES_VERSION
     method._llm.close()
 
     with pytest.raises(ValueError, match="exactly eight"):

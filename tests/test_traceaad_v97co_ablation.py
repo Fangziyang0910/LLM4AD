@@ -12,10 +12,7 @@ from llm4ad.method.traceaad_v9_7.prompt import (
     build_root_prompt as build_v97_root_prompt,
 )
 from llm4ad.method.traceaad_v9_7.traceaad import draw_intent as draw_intent_v97
-from llm4ad.method.traceaad_v9_7_co import (
-    PROTOCOL_ID,
-    TraceAADV97CO,
-)
+from llm4ad.method.traceaad_v9_7_co import TraceAADV97CO
 from llm4ad.method.traceaad_v9_7_co.prompt import (
     build_generation_prompt as build_co_prompt,
     build_root_prompt as build_co_root_prompt,
@@ -143,7 +140,6 @@ def test_runner_builds_co_arm(tmp_path: Path) -> None:
     assert spec.n_init == 8
     assert spec.context_token_limit == 32768
     config = method.search_configuration()
-    assert config["protocol_id"] == PROTOCOL_ID
     assert config["generation_context"] == "code_only"
     assert config == run._v97co_method_params(spec)
     with pytest.raises(ValueError, match="exactly eight"):

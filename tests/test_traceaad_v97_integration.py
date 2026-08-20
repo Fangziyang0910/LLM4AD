@@ -6,11 +6,7 @@ from pathlib import Path
 import pytest
 
 from experiments.runners.traceaad import run
-from llm4ad.method.traceaad_v9_7 import (
-    CHECKPOINT_VERSION,
-    PROTOCOL_ID,
-    TraceAADV97,
-)
+from llm4ad.method.traceaad_v9_7 import TraceAADV97
 from llm4ad.method.traceaad_v9_7.forest import Forest
 from llm4ad.method.traceaad_v9_7.history import drop_oldest, parent_path, render_path
 from llm4ad.method.traceaad_v9_7.prompt import INTENT_INSTRUCTIONS, build_generation_prompt
@@ -341,10 +337,6 @@ def test_v97_runner_builds_complete_frozen_method(tmp_path: Path) -> None:
     assert spec.context_token_limit == 32768
     assert spec.llm_output_tokens == 8192
     assert method.search_configuration() == run._v97_method_params(spec)
-    assert method.search_configuration()["protocol_id"] == PROTOCOL_ID
-    assert method.search_configuration()["checkpoint_schema_version"] == (
-        CHECKPOINT_VERSION
-    )
     assert method.search_configuration()["refine_probability"] == 0.7
     assert method.search_configuration()["explore_probability"] == pytest.approx(0.3)
 

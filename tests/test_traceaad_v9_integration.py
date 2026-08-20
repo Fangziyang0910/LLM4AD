@@ -6,11 +6,7 @@ from pathlib import Path
 import pytest
 
 from experiments.runners.traceaad import run
-from llm4ad.method.traceaad_v9 import (
-    CHECKPOINT_VERSION as V9_CHECKPOINT_VERSION,
-    PROTOCOL_ID as V9_PROTOCOL_ID,
-    TraceAADV9,
-)
+from llm4ad.method.traceaad_v9 import TraceAADV9
 
 
 def test_v9_is_a_runner_version_with_core_defaults(tmp_path: Path) -> None:
@@ -38,7 +34,7 @@ def test_v9_is_a_runner_version_with_core_defaults(tmp_path: Path) -> None:
     assert method.search_configuration()["history_protocol"] == "matched_history"
 
 
-def test_v9_run_config_has_independent_protocol_identity(tmp_path: Path) -> None:
+def test_v9_run_config_has_core_parameters(tmp_path: Path) -> None:
     spec = run.make_run_spec(
         task="online_bin_packing",
         version="v9",
@@ -55,8 +51,6 @@ def test_v9_run_config_has_independent_protocol_identity(tmp_path: Path) -> None
 
     assert not resumed
     assert payload["method"] == "traceaad_v9"
-    assert params["protocol_id"] == V9_PROTOCOL_ID
-    assert params["checkpoint_schema_version"] == V9_CHECKPOINT_VERSION
     assert params["history_protocol"] == "matched_history"
     assert params["n_init"] == 10
     assert params["offspring_per_iteration"] == 2

@@ -8,7 +8,6 @@ import pytest
 from experiments.runners.traceaad import run
 from llm4ad.method.traceaad_v4 import TraceAADV4
 from llm4ad.method.traceaad_v5 import TraceAADV5
-from llm4ad.method.traceaad_v8 import PROTOCOL_ID as V8_PROTOCOL_ID
 from llm4ad.method.traceaad_v8 import TraceAADV8
 from llm4ad.method.traceaad_v9 import TraceAADV9
 from llm4ad.method.traceaad_v9_7 import TraceAADV97
@@ -117,8 +116,6 @@ def test_v8_runner_records_tree_protocol_without_population_controls(
     payload = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
 
     params = payload["method_params"]
-    assert params["protocol_id"] == V8_PROTOCOL_ID
-    assert params["checkpoint_schema_version"] == 3
     assert params["n_init"] == 10
     assert params["exploration_constant"] == 0.1
     assert params["expansion_prior_weight"] == 1.0

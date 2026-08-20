@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from llm4ad.base import Evaluation, LLM
 from llm4ad.method.traceaad_v5 import RunArtifacts, TraceAADV5
 from llm4ad.method.traceaad_v5.artifacts import _RESPONSE_TRUNCATE
@@ -233,45 +235,41 @@ def test_llm_calls_keep_metadata_and_drop_successful_prompt_response(
 def test_failed_llm_call_stores_truncated_response_without_prompt(
     tmp_path: Path,
 ) -> None:
-    class ParseFailCodeLLM(LLM):
+    class TransportFailLLM(LLM):
         def __init__(self) -> None:
             super().__init__()
             self.calls = 0
 
         def draw_sample(self, prompt, *args, **kwargs):
             self.calls += 1
-            text = str(prompt)
-            if "Generate a complete implementation" in text:
-                return "Idea: init\n```python\ndef choose(value: int) -> int:\n    return value + 1\n```"
-            if "[Requested Modification]" in text:
-                return "not a program " + ("x" * (_RESPONSE_TRUNCATE + 500))
-            return "1. Change the offset."
+            raise ConnectionError("not a program " + ("x" * (_RESPONSE_TRUNCATE + 500)))
 
-    TraceAADV5(
-        llm=ParseFailCodeLLM(),
-        evaluation=_IncreasingEvaluation(),
-        artifacts=RunArtifacts(run_dir=tmp_path),
-        max_sample_nums=3,
-        n_init=1,
-        actions_per_iteration=1,
-        max_active_trajectories=4,
-        operators=(TraceIdeateOp,),
-        random_seed=0,
-        max_stalled_iterations=5,
-        checkpoint_dir=tmp_path / "checkpoints",
-    ).run()
+    with pytest.raises(RuntimeError, match="model transport retry limit exhausted"):
+        TraceAADV5(
+            llm=TransportFailLLM(),
+            evaluation=_IncreasingEvaluation(),
+            artifacts=RunArtifacts(run_dir=tmp_path),
+            max_sample_nums=3,
+            n_init=1,
+            actions_per_iteration=1,
+            max_active_trajectories=4,
+            operators=(TraceIdeateOp,),
+            random_seed=0,
+            checkpoint_dir=tmp_path / "checkpoints",
+        ).run()
 
     failed = [
         call
         for call in _load_jsonl(tmp_path / "artifacts" / "llm_calls.jsonl")
-        if call.get("status") == "parse_failed"
+        if call.get("status") == "transport"
     ]
-    assert failed, "code parse failure should be recorded"
+    assert len(failed) == 4
     for call in failed:
         assert "prompt" not in call
-        assert "response" in call
-        assert len(call["response"]) <= _RESPONSE_TRUNCATE
-        assert call["response"].endswith("...")
+        assert call["failure_kind"] == "transport"
+        assert call["error_type"] == "ConnectionError"
+        assert len(call["error"]) <= _RESPONSE_TRUNCATE
+        assert call["error"].endswith("...")
 
 
 def test_summary_and_progress_are_monitor_only(tmp_path: Path) -> None:
@@ -340,7 +338,7 @@ def test_artifacts_unit_llm_meta_strips_success_bodies(tmp_path: Path) -> None:
         seq=0,
         prompt="SECRET PROMPT",
         response="SECRET RESPONSE",
-        parsed_actions=["a", "b"],
+        n_actions=2,
         prompt_tokens=10,
         response_tokens=4,
         sample_time=0.1,
@@ -352,7 +350,6 @@ def test_artifacts_unit_llm_meta_strips_success_bodies(tmp_path: Path) -> None:
     assert call["n_actions"] == 2
     assert "prompt" not in call
     assert "response" not in call
-    assert "parsed_actions" not in call
 
 
 def test_runner_v5_wires_run_dir_artifacts_and_checkpoint_paths(
@@ -452,8 +449,7 @@ def test_eval_failure_lands_in_candidates_not_method_events(tmp_path: Path) -> N
 
     candidates = _load_jsonl(tmp_path / "artifacts" / "candidates.jsonl")
     assert len(candidates) == 1
-    assert candidates[0]["status"] == "eval_failed"
-    assert candidates[0]["failure_kind"] == "runtime_error"
+    assert candidates[0]["status"] == "runtime_error"
     assert candidates[0]["error_type"] == "ValueError"
     assert candidates[0]["error"] == "generated failure"
     assert candidates[0]["score"] is None
