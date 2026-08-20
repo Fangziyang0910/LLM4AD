@@ -17,19 +17,16 @@ from ...base import (
     TextFunctionProgramConverter,
 )
 from .artifacts import RunArtifacts
-from .checkpoint import CHECKPOINT_VERSION, load_checkpoint, save_checkpoint
+from .checkpoint import load_checkpoint, save_checkpoint
 from .forest import Forest, is_better
 from .history import one_line
 from .prompt import (
-    ProgramResponseError,
     build_generation_prompt,
     build_root_prompt,
     parse_program_response,
 )
 from .schema import (
     INITIAL_ROOT_COUNT,
-    INTENT_SCHEDULE_ID,
-    PROTOCOL_ID,
     REFINE_PROBABILITY,
     Anchor,
     Attempt,
@@ -48,9 +45,7 @@ ERROR_MAX_CHARS = 360
 def draw_intent(seed: int | None, iteration: int) -> Intent:
     """Deterministic fixed-mixture intent on the shared V9.7 schedule."""
     token = "none" if seed is None else str(seed)
-    digest = hashlib.sha256(
-        f"{INTENT_SCHEDULE_ID}:intent:{token}:{iteration}".encode("utf-8")
-    ).digest()
+    digest = hashlib.sha256(f"{token}:{iteration}".encode("utf-8")).digest()
     value = int.from_bytes(digest[:8], "big") / 2**64
     return Intent.REFINE if value < REFINE_PROBABILITY else Intent.EXPLORE
 
@@ -94,7 +89,6 @@ class TraceAADV97CO:
         self._llm = llm
         self._log = artifacts
         self._task = evaluation.task_description
-        self._template = template
         self._function: Function = copy.deepcopy(template.functions[0])
         self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode)
         self._budget = budget
@@ -129,8 +123,6 @@ class TraceAADV97CO:
 
     def search_configuration(self) -> dict[str, Any]:
         return {
-            "protocol_id": PROTOCOL_ID,
-            "checkpoint_schema_version": CHECKPOINT_VERSION,
             "budget": self._budget,
             "n_roots": self._n_roots,
             "maximize": self._maximize,
@@ -373,25 +365,9 @@ class TraceAADV97CO:
         if pending is None:
             raise RuntimeError("no pending candidate to process")
 
-        try:
-            parsed = parse_program_response(
-                pending.response, self._template, self._function.name
-            )
-        except ProgramResponseError as exc:
-            return self._finalize(
-                idea=exc.declared_idea,
-                code=None,
-                diff=None,
-                added=0,
-                removed=0,
-                existing=None,
-                fitness=None,
-                error=one_line(str(exc), ERROR_MAX_CHARS),
-                evaluated=False,
-            )
-
+        parsed = parse_program_response(pending.response)
         idea = parsed.declared_idea
-        code = str(parsed.program)
+        code = parsed.code
         diff: str | None = None
         added = 0
         removed = 0
@@ -411,7 +387,6 @@ class TraceAADV97CO:
                 existing=existing,
                 fitness=None,
                 error=None,
-                evaluated=False,
             )
 
         outcome, _elapsed = self._evaluator.evaluate_program_record_time_with_details(
@@ -441,7 +416,6 @@ class TraceAADV97CO:
                 existing=None,
                 fitness=parsed_fitness,
                 error=None,
-                evaluated=True,
             )
         return self._finalize(
             idea=idea,
@@ -456,7 +430,7 @@ class TraceAADV97CO:
                 or f"evaluator returned non-finite or non-numeric fitness: {score!r}",
                 ERROR_MAX_CHARS,
             ),
-            evaluated=True,
+            status=outcome.failure_kind or "invalid_result",
         )
 
     def _finalize(
@@ -470,7 +444,7 @@ class TraceAADV97CO:
         existing: Program | None,
         fitness: float | None,
         error: str | None,
-        evaluated: bool,
+        status: str = "ok",
     ) -> Attempt:
         pending = self._pending
         if pending is None:
@@ -546,7 +520,7 @@ class TraceAADV97CO:
             response=pending.response,
             code=code,
             error=error,
-            evaluated=evaluated,
+            status=status,
             is_new_best=is_new_best,
         )
         return attempt
@@ -622,14 +596,11 @@ class TraceAADV97CO:
         response: str,
         code: str | None,
         error: str | None,
-        evaluated: bool,
+        status: str,
         is_new_best: bool = False,
     ) -> None:
         if self._log is None:
             return
-        status = "ok"
-        if attempt.kind == "invalid":
-            status = "parse_failed" if not evaluated else "eval_failed"
 
         route_id = None
         if attempt.anchor_id is not None:
@@ -656,7 +627,6 @@ class TraceAADV97CO:
             idea=attempt.idea,
             kind=attempt.kind,
             outcome=attempt.outcome,
-            evaluator_called=evaluated,
             status=status,
             parent_fitness=attempt.parent_fitness,
             child_fitness=attempt.child_fitness,

@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Final
 
-PROTOCOL_ID: Final[str] = "traceaad-v9.7-route-refine-explore"
 REFINE_PROBABILITY: Final[float] = 0.7
 INITIAL_ROOT_COUNT: Final[int] = 8
 MAX_HISTORY_EVENTS: Final[int] = 8
@@ -82,7 +81,6 @@ __all__ = [
     "INITIAL_ROOT_COUNT",
     "LOGICAL_MODEL_NAME",
     "MAX_HISTORY_EVENTS",
-    "PROTOCOL_ID",
     "REFINE_PROBABILITY",
     "Anchor",
     "Attempt",
