@@ -46,32 +46,26 @@ def score_routes(forest: Forest, s: float) -> tuple[RouteScore, ...]:
     spent: dict[int, int] = {}
     for anchor in forest.anchors():
         q = forest.get_program(anchor.program_id).q
-        best[anchor.root_id] = max(q, best.get(anchor.root_id, q))
+        best[anchor.root_id] = max(best.get(anchor.root_id, -float("inf")), q)
         spent[anchor.root_id] = spent.get(anchor.root_id, 0) + anchor.n
-    return tuple(
-        RouteScore(
-            root,
-            best[root],
-            spent[root],
-            s / math.sqrt(spent[root] + 1),
-            best[root] + s / math.sqrt(spent[root] + 1),
-        )
-        for root in forest.root_ids
-    )
+
+    result: list[RouteScore] = []
+    for root in forest.root_ids:
+        q = best[root]
+        n = spent[root]
+        opt = s / math.sqrt(n + 1)
+        result.append(RouteScore(root, q, n, opt, q + opt))
+    return tuple(result)
 
 
 def score_anchors(forest: Forest, s: float, selected_route: int) -> tuple[AnchorScore, ...]:
-    return tuple(
-        AnchorScore(
-            a.id,
-            forest.get_program(a.program_id).q,
-            a.n,
-            s / math.sqrt(a.n + 1),
-            forest.get_program(a.program_id).q + s / math.sqrt(a.n + 1),
-        )
-        for a in forest.anchors()
-        if a.root_id == selected_route
-    )
+    scored: list[AnchorScore] = []
+    for a in forest.anchors():
+        if a.root_id == selected_route:
+            q = forest.get_program(a.program_id).q
+            opt = s / math.sqrt(a.n + 1)
+            scored.append(AnchorScore(a.id, q, a.n, opt, q + opt))
+    return tuple(scored)
 
 
 def _refinement_segment_anchor_ids(forest: Forest, anchor_id: int) -> set[int]:

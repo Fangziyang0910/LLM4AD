@@ -64,6 +64,14 @@ def _format_fitness(val: float | None) -> str:
     return f"{val:.6g}"
 
 
+def _val(val: Any) -> str:
+    if val is None:
+        return ""
+    if isinstance(val, float):
+        return f"{val:.6g}"
+    return str(val)
+
+
 class RunArtifacts:
     """Convenient, human-readable results saving and live progress logging."""
 
@@ -165,20 +173,20 @@ class RunArtifacts:
                     eval_count,
                     order,
                     stage,
-                    "" if iteration is None else iteration,
-                    "" if route_id is None else route_id,
-                    "" if anchor_id is None else anchor_id,
-                    "" if child_id is None else child_id,
-                    "" if program_id is None else program_id,
+                    _val(iteration),
+                    _val(route_id),
+                    _val(anchor_id),
+                    _val(child_id),
+                    _val(program_id),
                     intent or "",
                     treatment,
                     kind,
                     outcome_str,
-                    "" if parent_fitness is None else f"{parent_fitness:.6g}",
-                    "" if child_fitness is None else f"{child_fitness:.6g}",
-                    "" if dq is None else f"{dq:.6g}",
+                    _val(parent_fitness),
+                    _val(child_fitness),
+                    _val(dq),
                     is_new_best,
-                    "" if best_fitness is None else f"{best_fitness:.6g}",
+                    _val(best_fitness),
                     status,
                     error or "",
                 ]
@@ -223,7 +231,7 @@ class RunArtifacts:
                 [
                     eval_count,
                     order,
-                    "" if iteration is None else iteration,
+                    _val(iteration),
                     f"{fitness:.6g}",
                     program_id,
                     ts,

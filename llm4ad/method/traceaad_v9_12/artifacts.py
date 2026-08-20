@@ -63,6 +63,14 @@ def _format_fitness(val: float | None) -> str:
     return f"{val:.6g}"
 
 
+def _val(val: Any) -> str:
+    if val is None:
+        return ""
+    if isinstance(val, float):
+        return f"{val:.6g}"
+    return str(val)
+
+
 class RunArtifacts:
     """Convenient, human-readable results saving and live progress logging."""
 
@@ -116,7 +124,6 @@ class RunArtifacts:
     def record_candidate(
         self,
         *,
-        attempt_id: int,
         order: int,
         stage: str,
         iteration: int | None,
@@ -124,28 +131,22 @@ class RunArtifacts:
         child_id: int | None,
         program_id: int | None,
         evaluation_seconds: float | None = None,
-        intent: str | None,
-        idea: str | None = None,
+        intent: str | None = None,
         kind: str,
         outcome: Any = None,
-        evaluator_called: bool = False,
         status: str = "ok",
         parent_fitness: float | None = None,
         child_fitness: float | None = None,
         dq: float | None = None,
-        added: int = 0,
-        removed: int = 0,
-        diff: str | None = None,
-        program: str = "",
-        raw_response: str = "",
         error: str | None = None,
         eval_count: int = 0,
         route_id: int | None = None,
         best_fitness: float | None = None,
         is_new_best: bool = False,
         budget: int = 1000,
+        **kwargs: Any,
     ) -> None:
-        """Record an evaluated candidate or search attempt to evaluations.csv and log progress."""
+        """Record an evaluated candidate or search attempt to evaluations.csv."""
         outcome_str = (
             outcome.value
             if hasattr(outcome, "value")
@@ -161,20 +162,20 @@ class RunArtifacts:
                     eval_count,
                     order,
                     stage,
-                    "" if iteration is None else iteration,
-                    "" if route_id is None else route_id,
-                    "" if anchor_id is None else anchor_id,
-                    "" if child_id is None else child_id,
-                    "" if program_id is None else program_id,
-                    "" if evaluation_seconds is None else f"{evaluation_seconds:.6g}",
+                    _val(iteration),
+                    _val(route_id),
+                    _val(anchor_id),
+                    _val(child_id),
+                    _val(program_id),
+                    _val(evaluation_seconds),
                     intent or "",
                     kind,
                     outcome_str,
-                    "" if parent_fitness is None else f"{parent_fitness:.6g}",
-                    "" if child_fitness is None else f"{child_fitness:.6g}",
-                    "" if dq is None else f"{dq:.6g}",
+                    _val(parent_fitness),
+                    _val(child_fitness),
+                    _val(dq),
                     is_new_best,
-                    "" if best_fitness is None else f"{best_fitness:.6g}",
+                    _val(best_fitness),
                     status,
                     error or "",
                 ]
@@ -221,7 +222,7 @@ class RunArtifacts:
                 [
                     eval_count,
                     order,
-                    "" if iteration is None else iteration,
+                    _val(iteration),
                     f"{fitness:.6g}",
                     program_id,
                     ts,

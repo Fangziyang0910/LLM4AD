@@ -80,7 +80,6 @@ class TraceAADV99:
             raise ValueError("TraceAAD V9.9 requires one evolvable template function")
 
         self._llm = llm
-        self._evaluation = evaluation
         self._log = artifacts
         self._task = evaluation.task_description
         self._template = template
@@ -113,6 +112,11 @@ class TraceAADV99:
             checkpoint = load_checkpoint(self, resume_from)
             if self._checkpoint_dir is None:
                 self._checkpoint_dir = checkpoint.parent
+
+    @property
+    def best(self) -> Program | None:
+        """获取当前全局最优程序。"""
+        return None if self._best_id is None else self._forest.get_program(self._best_id)
 
     def search_configuration(self) -> dict[str, Any]:
         return {

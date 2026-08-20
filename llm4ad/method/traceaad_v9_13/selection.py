@@ -39,37 +39,25 @@ def score_routes(forest: Forest, s: float) -> tuple[RouteScore, ...]:
     spent: dict[int, int] = {}
     for anchor in forest.anchors():
         q = forest.get_program(anchor.program_id).q
-        if anchor.root_id not in best or q > best[anchor.root_id]:
-            best[anchor.root_id] = q
+        best[anchor.root_id] = max(best.get(anchor.root_id, -float("inf")), q)
         spent[anchor.root_id] = spent.get(anchor.root_id, 0) + anchor.n
-    return tuple(
-        RouteScore(
-            route_id=root,
-            q=best[root],
-            n=spent[root],
-            optimism=s / math.sqrt(spent[root] + 1),
-            score=best[root] + s / math.sqrt(spent[root] + 1),
-        )
-        for root in forest.root_ids
-    )
+
+    result: list[RouteScore] = []
+    for root in forest.root_ids:
+        q = best[root]
+        n = spent[root]
+        opt = s / math.sqrt(n + 1)
+        result.append(RouteScore(root, q, n, opt, q + opt))
+    return tuple(result)
 
 
 def score_anchors(forest: Forest, s: float, selected_route: int) -> tuple[AnchorScore, ...]:
     scored: list[AnchorScore] = []
     for anchor in forest.anchors():
-        if anchor.root_id != selected_route:
-            continue
-        q = forest.get_program(anchor.program_id).q
-        optimism = s / math.sqrt(anchor.n + 1)
-        scored.append(
-            AnchorScore(
-                anchor_id=anchor.id,
-                q=q,
-                n=anchor.n,
-                optimism=optimism,
-                score=q + optimism,
-            )
-        )
+        if anchor.root_id == selected_route:
+            q = forest.get_program(anchor.program_id).q
+            opt = s / math.sqrt(anchor.n + 1)
+            scored.append(AnchorScore(anchor.id, q, anchor.n, opt, q + opt))
     return tuple(scored)
 
 
@@ -78,18 +66,15 @@ def select(forest: Forest, s: float) -> Choice:
     if not routes:
         raise ValueError("cannot allocate budget without an anchor")
 
-    def route_key(item: RouteScore) -> tuple[float, int, int, int]:
-        root = forest.get_anchor(item.route_id)
-        return (item.score, -item.n, -root.order, -root.id)
-
-    chosen_route = max(routes, key=route_key)
+    chosen_route = max(
+        routes,
+        key=lambda r: (r.score, -r.n, -forest.get_anchor(r.route_id).order, -r.route_id),
+    )
     anchors = score_anchors(forest, s, chosen_route.route_id)
-
-    def anchor_key(item: AnchorScore) -> tuple[float, int, int, int]:
-        anchor = forest.get_anchor(item.anchor_id)
-        return (item.score, -item.n, -anchor.order, -anchor.id)
-
-    chosen = max(anchors, key=anchor_key)
+    chosen = max(
+        anchors,
+        key=lambda a: (a.score, -a.n, -forest.get_anchor(a.anchor_id).order, -a.anchor_id),
+    )
     return Choice(
         anchor_id=chosen.anchor_id,
         route_id=chosen_route.route_id,

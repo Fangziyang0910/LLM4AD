@@ -63,6 +63,14 @@ def _format_fitness(value: float | None) -> str:
     return "N/A" if value is None else f"{value:.6g}"
 
 
+def _val(val: Any) -> str:
+    if val is None:
+        return ""
+    if isinstance(val, float):
+        return f"{val:.12g}"
+    return str(val)
+
+
 class RunArtifacts:
     def __init__(self, run_dir: str | Path, *, console_output: bool = True) -> None:
         self._run_dir = Path(run_dir)
@@ -99,39 +107,31 @@ class RunArtifacts:
         self._files[name] = path.open("a", encoding="utf-8")
 
     def _load_existing_ids(self) -> None:
-        for path in (
-            self._run_dir / "logs" / "events.jsonl",
-            self._run_dir / "logs" / "llm_calls.jsonl",
-        ):
-            if not path.is_file():
-                continue
-            for line in path.read_text(encoding="utf-8").splitlines():
-                try:
+        self._load_column_ids(self._run_dir / "evaluations.csv", "response_id", self._evaluation_response_ids)
+        self._load_column_ids(self._run_dir / "best_curve.csv", "response_id", self._best_response_ids)
+        events_path = self._run_dir / "logs" / "events.jsonl"
+        if events_path.exists():
+            with events_path.open(encoding="utf-8") as handle:
+                for line in handle:
+                    if not line.strip():
+                        continue
                     payload = json.loads(line)
                     event_id = payload.get("event_id")
-                except json.JSONDecodeError:
-                    continue
-                if event_id:
-                    self._event_ids.add(str(event_id))
-                if (
-                    path.name == "llm_calls.jsonl"
-                    and payload.get("status") == "ok"
-                    and payload.get("response_id")
-                    and payload.get("raw_response") is not None
-                ):
-                    self._responses[str(payload["response_id"])] = str(
-                        payload["raw_response"]
-                    )
-        self._load_csv_ids(
-            self._run_dir / "evaluations.csv", "response_id", self._evaluation_response_ids
-        )
-        self._load_csv_ids(
-            self._run_dir / "best_curve.csv", "response_id", self._best_response_ids
-        )
+                    if event_id is not None:
+                        self._event_ids.add(str(event_id))
+        llm_calls_path = self._run_dir / "logs" / "llm_calls.jsonl"
+        if llm_calls_path.exists():
+            with llm_calls_path.open(encoding="utf-8") as handle:
+                for line in handle:
+                    if not line.strip():
+                        continue
+                    payload = json.loads(line)
+                    response_id = payload.get("response_id")
+                    if response_id and payload.get("status") == "ok" and payload.get("raw_response"):
+                        self._responses[str(response_id)] = str(payload["raw_response"])
 
-    @staticmethod
-    def _load_csv_ids(path: Path, field: str, target: set[str]) -> None:
-        if not path.is_file():
+    def _load_column_ids(self, path: Path, field: str, target: set[str]) -> None:
+        if not path.exists() or path.stat().st_size == 0:
             return
         with path.open(encoding="utf-8", newline="") as handle:
             for row in csv.DictReader(handle):
@@ -161,12 +161,15 @@ class RunArtifacts:
             },
         )
 
-    def record_decision(self, event: str, **payload: Any) -> None:
+    def record_decision(
+        self, event: str, *, event_key: str | None = None, **payload: Any
+    ) -> None:
         response_id = payload.get("response_id", "unknown")
+        suffix = response_id if event_key is None else f"{response_id}:{event_key}"
         self._append_jsonl(
             "events",
             {
-                "event_id": f"decision:{event}:{response_id}",
+                "event_id": f"decision:{event}:{suffix}",
                 "event": event,
                 "timestamp": _now().isoformat(),
                 **payload,
@@ -225,28 +228,26 @@ class RunArtifacts:
         self._append_jsonl("events", event_payload)
 
         if row.get("evaluator_called") and response_id not in self._evaluation_response_ids:
-            parent_q = row.get("parent_q")
-            child_q = row.get("child_q")
             self._writers["evaluations"].writerow(
                 [
                     row.get("eval_count", 0),
                     row.get("order", 0),
                     response_id,
                     row.get("stage", ""),
-                    "" if row.get("iteration") is None else row["iteration"],
+                    _val(row.get("iteration")),
                     row.get("intent") or "",
-                    "" if row.get("anchor_id") is None else row["anchor_id"],
-                    "" if row.get("child_id") is None else row["child_id"],
-                    "" if row.get("program_id") is None else row["program_id"],
+                    _val(row.get("anchor_id")),
+                    _val(row.get("child_id")),
+                    _val(row.get("program_id")),
                     row.get("kind", ""),
                     outcome_text,
-                    "" if row.get("parent_fitness") is None else f"{row['parent_fitness']:.12g}",
-                    "" if row.get("child_fitness") is None else f"{row['child_fitness']:.12g}",
-                    "" if parent_q is None else f"{parent_q:.12g}",
-                    "" if child_q is None else f"{child_q:.12g}",
-                    "" if row.get("dq") is None else f"{row['dq']:.12g}",
+                    _val(row.get("parent_fitness")),
+                    _val(row.get("child_fitness")),
+                    _val(row.get("parent_q")),
+                    _val(row.get("child_q")),
+                    _val(row.get("dq")),
                     bool(row.get("is_new_best")),
-                    "" if row.get("best_fitness") is None else f"{row['best_fitness']:.12g}",
+                    _val(row.get("best_fitness")),
                     row.get("status", "ok"),
                     row.get("error") or "",
                 ]
@@ -275,7 +276,7 @@ class RunArtifacts:
                     eval_count,
                     order,
                     response_id,
-                    "" if iteration is None else iteration,
+                    _val(iteration),
                     f"{fitness:.12g}",
                     f"{q:.12g}",
                     program_id,
