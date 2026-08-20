@@ -133,8 +133,6 @@ class RunArtifacts:
     def record_candidate(self, **payload: Any) -> None:
         sample_order = payload.get("sample_order")
         score = payload.get("score")
-        if payload.get("status") is None:
-            payload["status"] = "ok" if score is not None else "eval_failed"
         self._append_jsonl(self._candidates_path, payload)
         self._candidate_count += 1
         if isinstance(sample_order, int):
@@ -191,10 +189,6 @@ class RunArtifacts:
         }
         if "n_actions" in payload:
             record["n_actions"] = payload["n_actions"]
-        elif payload.get("parsed_actions") is not None:
-            record["n_actions"] = len(payload["parsed_actions"])
-        if "program_parse_success" in payload:
-            record["program_parse_success"] = payload["program_parse_success"]
         if payload.get("store_prompt") and payload.get("prompt") is not None:
             record["prompt"] = str(payload["prompt"])
         if status not in (None, "ok"):
@@ -207,8 +201,7 @@ class RunArtifacts:
                 "failure_kind",
                 "error_type",
                 "error",
-                "counts_budget",
-                "consecutive_failures",
+                "transport_attempt",
             ):
                 if payload.get(key) is not None:
                     value = payload[key]
