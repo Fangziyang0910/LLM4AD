@@ -11,6 +11,7 @@ from llm4ad.method.calm import CALM, CALMProfiler
 from llm4ad.method.calm.task_config import get_task_hyperparams, resolve_task_key
 
 from .._common import (
+    ALL_TASKS,
     BACKENDS,
     EXPERIMENTS_ROOT,
     TASKS,
@@ -189,7 +190,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Run one CALM (w/o GRPO) experiment at 1000-eval budget."
     )
-    parser.add_argument("--task", choices=TASKS, required=True)
+    parser.add_argument("--task", choices=ALL_TASKS, required=True)
     parser.add_argument("--backend", choices=tuple(BACKENDS), default="local")
     parser.add_argument("--base-url")
     parser.add_argument("--model")

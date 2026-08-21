@@ -25,17 +25,30 @@ from typing import Any, Literal
 
 import numpy as np
 
+from llm4ad.task.optimization.cflp_construct import CFLPEvaluation
 from llm4ad.task.optimization.cvrp_aco import CVRPACOEvaluation
 from llm4ad.task.optimization.generated_data_config import (
     get_generated_task_kwargs,
 )
+from llm4ad.task.optimization.jssp_construct import JSSPEvaluation
 from llm4ad.task.optimization.online_bin_packing import OBPEvaluation
 from llm4ad.task.optimization.op_aco import OPACOEvaluation
+from llm4ad.task.optimization.set_cover_construct import SCPEvaluation
 from llm4ad.task.optimization.tsp_construct import TSPEvaluation
+from llm4ad.task.optimization.vrptw_construct import VRPTWEvaluation
 from llm4ad.tools.env import resolve_llm_api_key
 from llm4ad.tools.llm.llm_api_openai import OpenAIAPI
 
-TaskName = Literal["tsp_construct", "cvrp_aco", "op_aco", "online_bin_packing"]
+TaskName = Literal[
+    "tsp_construct",
+    "cvrp_aco",
+    "op_aco",
+    "online_bin_packing",
+    "jssp_construct",
+    "cflp_construct",
+    "set_cover_construct",
+    "vrptw_construct",
+]
 BackendName = Literal["local", "server1", "server3", "server3b", "zhong"]
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -46,12 +59,32 @@ TASKS: tuple[TaskName, ...] = (
     "op_aco",
     "online_bin_packing",
 )
+# batch launchers iterate TASKS (classic suite); extension template tasks are
+# single-run entries until a full comparison batch is defined
+EXTENSION_TASKS: tuple[TaskName, ...] = (
+    "jssp_construct",
+    "cflp_construct",
+    "set_cover_construct",
+    "vrptw_construct",
+)
+ALL_TASKS: tuple[TaskName, ...] = TASKS + EXTENSION_TASKS
 
 TASK_SHORT: dict[TaskName, str] = {
     "tsp_construct": "tsp",
     "cvrp_aco": "cvrp",
     "op_aco": "op",
     "online_bin_packing": "obp",
+    "jssp_construct": "jssp",
+    "cflp_construct": "cflp",
+    "set_cover_construct": "scp",
+    "vrptw_construct": "vrptw",
+}
+
+_EXTENSION_EVAL_CLASSES: dict[str, type] = {
+    "jssp_construct": JSSPEvaluation,
+    "cflp_construct": CFLPEvaluation,
+    "set_cover_construct": SCPEvaluation,
+    "vrptw_construct": VRPTWEvaluation,
 }
 
 
@@ -167,6 +200,9 @@ def build_llm_client(
 
 def build_task(task: TaskName, eval_workers: int | None) -> tuple[Any, dict[str, Any]]:
     """Construct the training evaluation for a task (identical across methods)."""
+    if task in EXTENSION_TASKS:
+        kwargs = get_generated_task_kwargs(task, "train")
+        return _EXTENSION_EVAL_CLASSES[task](**kwargs), {"split": "train", **kwargs}
     if task == "tsp_construct":
         kwargs = get_generated_task_kwargs(task, "train")
         return TSPEvaluation(**kwargs), {"split": "train", **kwargs}
@@ -253,7 +289,7 @@ def add_run_parser_args(
     *,
     output_tokens_default: int = 16384,
 ) -> None:
-    parser.add_argument("--task", choices=TASKS, required=True)
+    parser.add_argument("--task", choices=ALL_TASKS, required=True)
     parser.add_argument("--backend", choices=tuple(BACKENDS), default="local")
     parser.add_argument("--base-url")
     parser.add_argument("--model")

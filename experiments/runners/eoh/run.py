@@ -10,6 +10,7 @@ from pathlib import Path
 from llm4ad.method.eoh import EoH, EoHProfiler
 
 from .._common import (
+    ALL_TASKS,
     BACKENDS,
     EXPERIMENTS_ROOT,
     TASKS,
@@ -215,7 +216,7 @@ def run_experiment(spec: RunSpec) -> Path:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run one paper-aligned EoH experiment.")
-    parser.add_argument("--task", choices=TASKS, required=True)
+    parser.add_argument("--task", choices=ALL_TASKS, required=True)
     parser.add_argument("--backend", choices=tuple(BACKENDS), default="local")
     parser.add_argument("--base-url")
     parser.add_argument("--model")

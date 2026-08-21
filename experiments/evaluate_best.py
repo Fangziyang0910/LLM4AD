@@ -9,6 +9,7 @@ Per-task options:
     tsp_construct       --units 50,100,200  --timeout 1000  --workers 16
     cvrp_aco / op_aco   --units test_50,test_100,test_200  --workers 16
     online_bin_packing  --units 1k_100,5k_100,...,10k_500  --max-sample-order N
+    template tasks      single 'test' unit (eval seed from generated_data_config)
 
 Batch mode evaluates every run dir on every unit and writes `results.json`
 under --output-dir. Single-run print mode (tsp_construct only) prints the
@@ -33,17 +34,23 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from experiments.eval_artifacts import pick_best_sample  # noqa: E402
 from llm4ad.base.evaluate import SecureEvaluator  # noqa: E402
+from llm4ad.task.optimization.cflp_construct import CFLPEvaluation  # noqa: E402
 from llm4ad.task.optimization.cvrp_aco import (  # noqa: E402
     CVRPACOEvaluation,
     load_split_instances as load_cvrp_instances,
 )
-from llm4ad.task.optimization.generated_data_config import get_generated_task_kwargs  # noqa: E402
+from llm4ad.task.optimization.generated_data_config import (  # noqa: E402
+    get_generated_task_kwargs,
+)
+from llm4ad.task.optimization.jssp_construct import JSSPEvaluation  # noqa: E402
 from llm4ad.task.optimization.online_bin_packing import OBPEvaluation  # noqa: E402
 from llm4ad.task.optimization.op_aco import (  # noqa: E402
     OPACOEvaluation,
     load_split_instances as load_op_instances,
 )
+from llm4ad.task.optimization.set_cover_construct import SCPEvaluation  # noqa: E402
 from llm4ad.task.optimization.tsp_construct import TSPEvaluation  # noqa: E402
+from llm4ad.task.optimization.vrptw_construct import VRPTWEvaluation  # noqa: E402
 
 
 def _mean_std(values: list[float]) -> dict[str, float | None]:
@@ -379,12 +386,80 @@ def _make_obp_spec() -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# generated-instance template tasks (jssp / cflp / scp / vrptw)
+# ---------------------------------------------------------------------------
+
+_GENERATED_TASK_EVAL_CLASSES: dict[str, type] = {
+    "jssp_construct": JSSPEvaluation,
+    "cflp_construct": CFLPEvaluation,
+    "set_cover_construct": SCPEvaluation,
+    "vrptw_construct": VRPTWEvaluation,
+}
+
+_GENERATED_SCORE_SEMANTICS = {
+    "jssp_construct": (
+        "score is negative mean makespan across the eval split; "
+        "higher is better and lower objective is better"
+    ),
+    "cflp_construct": (
+        "score is negative mean assignment cost across the eval split; "
+        "higher is better and lower objective is better"
+    ),
+    "set_cover_construct": (
+        "score is negative mean number of subsets used across the eval split; "
+        "higher is better and lower objective is better"
+    ),
+    "vrptw_construct": (
+        "score is negative mean total distance across the eval split; "
+        "higher is better and lower objective is better"
+    ),
+}
+
+
+def _make_generated_spec(task: str) -> dict[str, Any]:
+    eval_cls = _GENERATED_TASK_EVAL_CLASSES[task]
+
+    def eval_unit(
+        program: str, unit: str, timeout: int, workers: int
+    ) -> tuple[float, float]:
+        evaluator = SecureEvaluator(eval_cls(**get_generated_task_kwargs(task, "eval")))
+        score, seconds = evaluator.evaluate_program_record_time(program)
+        if score is None:
+            raise RuntimeError("generated-task eval returned no score")
+        return float(score), seconds
+
+    def train_sanity(program: str, timeout: int, workers: int) -> tuple[float, float]:
+        evaluator = SecureEvaluator(eval_cls(**get_generated_task_kwargs(task, "train")))
+        score, seconds = evaluator.evaluate_program_record_time(program)
+        if score is None:
+            raise RuntimeError("generated-task train sanity eval returned no score")
+        return float(score), seconds
+
+    return {
+        "default_units": ("test",),
+        "parse_units": lambda text: [x.strip() for x in text.split(",") if x.strip()],
+        "unit_key": lambda unit: unit,
+        "unit_label": lambda unit: unit.upper(),
+        "eval_unit": eval_unit,
+        "train_sanity": train_sanity,
+        "train_sanity_label": "[sanity train  | seed 2024]",
+        "container_key": "eval_results_by_split",
+        "score_semantics": _GENERATED_SCORE_SEMANTICS[task],
+        "objective": lambda score: -score,
+        "row_extra": {},
+        "print_mode": False,
+    }
+
+
 TASK_SPECS: dict[str, dict[str, Any]] = {
     "tsp_construct": _make_tsp_spec(),
     "cvrp_aco": _make_aco_spec("cvrp_aco", CVRPACOEvaluation, n_ants=30, n_iterations=100),
     "op_aco": _make_aco_spec("op_aco", OPACOEvaluation, n_ants=20, n_iterations=50),
     "online_bin_packing": _make_obp_spec(),
 }
+for _generated_task in _GENERATED_TASK_EVAL_CLASSES:
+    TASK_SPECS[_generated_task] = _make_generated_spec(_generated_task)
 
 
 def _run_batch(
@@ -506,10 +581,13 @@ def _run_batch(
             }
         else:
             container[key]["split"] = unit
-            container[key]["metadata"] = (
-                load_op_instances(unit)[1] if task == "op_aco" else load_cvrp_instances(unit)[1]
-            )
-            container[key]["config"] = {**spec["aco_config"], "workers": workers}
+            if task in _GENERATED_TASK_EVAL_CLASSES:
+                container[key]["eval_config"] = get_generated_task_kwargs(task, "eval")
+            else:
+                container[key]["metadata"] = (
+                    load_op_instances(unit)[1] if task == "op_aco" else load_cvrp_instances(unit)[1]
+                )
+                container[key]["config"] = {**spec["aco_config"], "workers": workers}
 
     for unit, key in [(unit, spec["unit_key"](unit)) for unit in units]:
         if task == "online_bin_packing":

@@ -10,6 +10,7 @@ from pathlib import Path
 from llm4ad.method.pathwise import PathWise, PathWiseProfiler
 
 from .._common import (
+    ALL_TASKS,
     BACKENDS,
     EXPERIMENTS_ROOT,
     TASKS,
@@ -218,7 +219,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Run one PathWise experiment at 1000-eval budget."
     )
-    parser.add_argument("--task", choices=TASKS, required=True)
+    parser.add_argument("--task", choices=ALL_TASKS, required=True)
     parser.add_argument("--backend", choices=tuple(BACKENDS), default="local")
     parser.add_argument("--base-url")
     parser.add_argument("--model")

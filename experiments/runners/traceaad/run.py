@@ -122,6 +122,7 @@ from llm4ad.method.traceaad_v9_14 import (
 )
 
 from .._common import (
+    ALL_TASKS,
     BACKENDS,
     EXPERIMENTS_ROOT,
     TASKS,
@@ -1072,7 +1073,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Run one TraceAAD experiment with an explicit task and version."
     )
-    parser.add_argument("--task", required=True, choices=TASKS)
+    parser.add_argument("--task", required=True, choices=ALL_TASKS)
     parser.add_argument("--version", required=True, choices=VERSIONS)
     parser.add_argument("--backend", choices=tuple(BACKENDS), default="local")
     parser.add_argument("--base-url")

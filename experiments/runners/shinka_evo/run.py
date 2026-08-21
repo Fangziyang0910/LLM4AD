@@ -10,6 +10,7 @@ from pathlib import Path
 from llm4ad.method.shinka_evo import ShinkaEvo, ShinkaEvoProfiler
 
 from .._common import (
+    ALL_TASKS,
     BACKENDS,
     EXPERIMENTS_ROOT,
     TASKS,
@@ -299,7 +300,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Run one paper-aligned ShinkaEvolve experiment."
     )
-    parser.add_argument("--task", choices=TASKS, required=True)
+    parser.add_argument("--task", choices=ALL_TASKS, required=True)
     parser.add_argument("--backend", choices=tuple(BACKENDS), default="local")
     parser.add_argument("--base-url")
     parser.add_argument("--model")
