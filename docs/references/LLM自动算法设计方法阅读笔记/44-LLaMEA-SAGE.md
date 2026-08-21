@@ -17,8 +17,8 @@
 |机制主张|论文证据|证据等级|判断|
 |---|---|---|---|
 |结构反馈加快早期改进|§4–5、Figures 2–3、7–8|直接支持|LLaMEA-SAGE 与 vanilla LLaMEA 使用相同设置，差别是结构引导；末期优势并非所有设置都显著。|
-|LLM 会按结构建议实际修改代码|Figure 5、Figures 6/9|部分支持|方向匹配和 code-evolution graph 支持提示改变结构，但不是结构改变导致 fitness 的因果证明。|
-|机制跨 LLM 后端稳健|Appendix B、Figure 12|部分支持|在 GPT-5-nano 与 Gemini Flash Lite 重复，但仍限 MA-BBOB、5 runs。|
+|LLM 会按结构建议实际修改代码|Figure 5、Figures 6/9|部分支持|合规性分层："refine" prompt 下大体服从，"random new" prompt 下 LLM 完全忽略结构引导——探索型指令会冲掉方向引导；且方向几乎总是"increase"（benchmark 特异）。|
+|机制跨 LLM 后端稳健|Appendix B、Figure 12|部分支持|主实验与消融后端为 GPT-5-mini；附录跨后端检查中论文自身不一致——正文措辞为 Gemini-2.0-flash-lite，Figure 12 图注却标 gpt-5-nano 与 gemini-flash-2.0-lite。仍限 MA-BBOB、5 runs。|
 |surrogate 或 SHAP 各自必要|§5、Appendix B|未验证|没有分别关闭 surrogate 学习或替换 SHAP 的匹配消融。|
 
 ## 4. 机制的底层逻辑（阅读分析，不是作者已证明结论）

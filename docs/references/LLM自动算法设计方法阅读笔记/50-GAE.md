@@ -4,13 +4,13 @@
 
 ## 1. 核心问题与方法
 
-GAE 用 relational GNN 把 AST 解析成 typed computation graph，并预测程序质量；离散 SAC meta-controller 根据图表示选择 mutation-type hint；每代一组 offspring 的相对奖励再用 GRPO 在线更新 LLM mutation policy。
+GAE 用 relational GNN 把 AST 解析成 typed computation graph 并在线回归程序质量；离散 SAC meta-controller 从 2700 维动作空间（变异类型 × 目标节点 × 参数索引）选出编辑元组、其变异类型分量注入 prompt 作结构提示（LLM 无有效输出时整个元组作 AST 级兜底变异）；每父代 8 个 offspring 的组相对奖励（相对父代真实分的改进量、组归一优势）再用 PPO-clip 目标在线更新 LLM 全权重。**SAC 不选父代**——正文明确父代在所有配置下均匀采样自 elite archive（摘要"dynamically selecting optimal parents"与正文矛盾，以正文为准）；父代嵌入只作 SAC 状态。
 
 ## 2. 论文宣称的机制贡献（逐项）
 
 - 图表示为结构相近的程序提供局部可学习状态。
-- SAC 学习“改哪里/怎样改”，替代固定 mutation prompt。
-- 在线 GRPO 让 LLM 算子随搜索经验适应。
+- SAC 学习"改哪里/怎样改"（编辑类型/节点/参数），替代固定 mutation prompt；不承担父代选择。
+- 在线 GRPO 让 LLM 算子随搜索经验适应；SAC 奖励含新颖性项与复杂度惩罚（QD 式）。
 
 ## 3. 实验究竟支持了什么
 

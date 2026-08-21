@@ -1,39 +1,39 @@
 # HSEvo
 
-- 论文：HSEvo；本地来源：[`papers/HSEvo/aaai25.tex`](../../../../papers/HSEvo/aaai25.tex) 与 [`appendix.tex`](../../../../papers/HSEvo/appendix.tex)；设计对象：组合优化启发式代码。
+- 论文：HSEvo；本地来源：[`papers/HSEvo/aaai25.tex`](../../../../papers/HSEvo/aaai25.tex) 与 [`appendix.tex`](../../../../papers/HSEvo/appendix.tex)；设计对象：组合优化启发式代码（BPO、TSP-GLS、OP-ACO）。
 
 ## 1. 核心问题与方法
 
-HSEvo 将层级搜索用于 LLM 自动启发式设计：不是只在完整代码层面平铺采样，而是把启发式的高层思想/结构与具体实现的改写分层组织，经过 evaluator 选择后继续演化。其意图是在代码搜索中同时保留结构性创新与局部调优。
+HSEvo 先测量再设计：提出两个嵌入空间多样性指标（SWDI、CDI），用它们诊断 FunSearch/EoH/ReEvo 的种群行为——EoH 多样性最高但目标分最差（利用不足），ReEvo/FunSearch 分数好但多样性低（反思带来好分数却不能优化多样性）。方法是把改进拆成两个互补杠杆：**结构层面由 GA 生成（探索），参数层面由和声搜索微调最优个体（利用）**——核心假设是"结构可能好、参数由 LLM 随手设"导致评分差，参数不应交给 LLM 而应交给经典数值优化器。
 
 ## 2. 论文宣称的机制贡献（逐项）
 
-- 分层表示让不同抽象层的改动可被分别探索。
-- LLM 生成结合演化选择，能产生任务相关启发式。
-- 层级过程改善探索—开发权衡。
+- SWDI（余弦相似度聚类熵，阈值 α=0.95 且须与簇内全部成员相似）与 CDI（最小生成树边距归一化熵）两个多样性度量；明确论证不做 evenness 归一化（归一化会抹掉簇数信息）。
+- GA 主循环：随机亲代配对（选择压力为零，对抗早熟）、角色扮演初始化（10 个角色轮转）、flash reflection（第一步对去重后全部亲代排名做 better/worse 配对分析，第二步与上一代好坏反思对比输出 Keywords/Advice/Avoid/Explanation 四点指南）、交叉、精英变异。
+- 和声搜索参数微调：LLM 先从最优个体抽取阈值/权重类硬编码变量并参数化（输出 `parameter_ranges`），和声搜索在区间内优化（HMS=5、HMCR=0.7、PAR=0.5、bandwidth 0.2、最多 5 次迭代）；已优化个体标记后不再二次优化。该步不消耗 LLM 生成预算，每次候选参数组合消耗评价。
 
 ## 3. 实验究竟支持了什么
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|方法在论文 CO 基准上达到其主比较结果|§Experiments，`tab:hsevo_results`|间接支持|这是 HSEvo 整体与比较方法的结果，支持披露的任务和预算。|
-|Harmony search 与 flash reflection 的作用|§Ablation study，`tab:ablation_hs`、`tab:ablation_flash_reflection`|部分支持|两张表分别给出组件消融；它们不能隔离整个框架中所有层的作用。|
-|不同层贡献可解释|候选示例与过程图|间接支持|示例是事后说明，不能量化因果贡献。|
-|每层都不可缺少|未见完整移除各层的组合消融时|未验证|整体结果不能拆分为各层效应。|
+|三任务目标分全部最优|§Experiments，`tab:hsevo_results`（BPO 1.07±1.11 vs FunSearch 2.05/EoH 3.17/ReEvo 2.48；TSP 0.02±0.03；OP −14.62±0.12）|间接支持|3 次运行、统一 gpt-4o-mini；CDI 仍低于 EoH——以略低的多样性换最好分数。|
+|和声搜索的参数利用有效|§Ablation，`tab:ablation_hs`|部分支持|HS 加进 ReEvo 只有边际改善（OP −14.54→−14.58）；作者解释为 ReEvo 缺多样性机制故无法从 HS 获益——"利用机制需要探索机制配套"的直接论证。|
+|flash reflection 的成本效率|`tab:ablation_flash_reflection`（150K token 小预算）|部分支持|小预算下 ReEvo+flash reflection 优于 HSEvo（−14.36 vs −14.07），大预算反转：无多样性机制时反思只有早期收益。|
+|SWDI/CDI 可作为探索-利用诊断量|`fig:hsevo_di` 与诊断实验|间接支持|指标用于诊断而非选择信号；HSEvo 没有把 SWDI/CDI 写进任何选择公式，指标与性能的因果关系未验证。|
 
 ## 4. 机制的底层逻辑
 
-阅读分析：层级的价值在于缩短一次 LLM 生成所需的推理跨度：高层约束候选的算法方向，低层修改实现细节。但抽象层如果不能映射到可执行、可独立评估的行为，层级只会增加 prompt 和选择噪声；它还可能把搜索锁在预设结构中。
+阅读分析：该文的价值主要是把"多样性"操作化为可计算的量并给出跨方法诊断，机制层的新意是把参数利用从 LLM 生成中剥离（唯一不经过 LLM 的利用通道）。它的消融从两个方向证明单侧机制不成立：无多样性机制的 ReEvo 接不住 HS 的利用，小预算下反思的收益也无法在大预算延续。
 
 ## 5. 对 LLM4AD / TraceAAD 可学习之处
 
-- 可学习点：区分“路线/思想变更”和“代码细化”。前提：两类事件有可核验的表示。风险：人为标签掩盖实际重复。最小验证：分别统计两类变更后的 held-out 增益与行为距离。
-- 可学习点：在轨迹中保存抽象决策到实现的映射。前提：生成步骤可追踪。风险：上下文膨胀。最小验证：限制轨迹长度，对比检索后有效率。
+- 可学习点：结构探索与参数利用分通道。前提：参数可从代码中抽取并数值优化。风险：参数区间抽取错误会把利用预算浪费在错误维度。最小验证：对比"LLM 改参数"与"HS 改参数"同预算下的改进率。
+- 可学习点：用嵌入熵诊断种群探索-利用状态。前提：嵌入质量可靠。风险：文本嵌入聚类与行为多样性错位（BehaveSim 的对照证据）。最小验证：SWDI/CDI 与行为距离的相关性检验。
 
 ## 6. 证据边界
 
-结论受论文列出的问题、LLM、评估样本和候选预算限制。若缺少多种子分布、统一成本报告和全因子层级消融，不能将一次最优分数解释为稳定机制优势，更不能外推至任意 AAD。
+多样性指标未被用作在线选择信号，其因果价值未知；3 次重复、无统计检验；角色初始化、flash reflection、交叉、精英变异各组件无逐项消融（仅 HS 与 reflection 两组）。结论限于其任务、模型（gpt-4o-mini）与 token 预算（425K）。
 
 ## 7. 论文内定位
 
-入口：[`aaai25.tex`](../../../../papers/HSEvo/aaai25.tex)，补充：[`appendix.tex`](../../../../papers/HSEvo/appendix.tex)。使用 `fig:hsevo_pipline`、`tab:hsevo_results`、`tab:ablation_hs`、`tab:ablation_flash_reflection`、`fig:hsevo_di`；附录 `tab:app-problem-size`、prompt examples。
+入口：[`aaai25.tex`](../../../../papers/HSEvo/aaai25.tex)，补充：[`appendix.tex`](../../../../papers/HSEvo/appendix.tex)。使用 `fig:hsevo_pipline`、`tab:hsevo_results`、`tab:ablation_hs`、`tab:ablation_flash_reflection`、`fig:hsevo_di`；附录 `tab:app-problem-size`、Prompt 10（参数抽取）与 prompt examples。

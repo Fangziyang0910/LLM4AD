@@ -1,39 +1,39 @@
 # Evolving Code with a Large Language Model
 
-- 论文：*Evolving Code with a Large Language Model*；本地来源：[`papers/Evolving_Code_with_A_Large_Language_Model/ELM_GP_jrnl_2023.tex`](../../../../papers/Evolving_Code_with_A_Large_Language_Model/ELM_GP_jrnl_2023.tex)；设计对象：Python 程序与其演化修改。
+- 论文：*Evolving Code with a Large Language Model*（Hemberg, Moskal, O'Reilly，MIT CSAIL，期刊版）；本地来源：[`papers/Evolving_Code_with_A_Large_Language_Model/ELM_GP_jrnl_2023.tex`](../../../../papers/Evolving_Code_with_A_Large_Language_Model/ELM_GP_jrnl_2023.tex)；设计对象：符号回归 Python 表达式（框架化论文，非新机制论文）。
 
 ## 1. 核心问题与方法
 
-该文把 ELM 的观点系统化为代码演化：采用在代码变更上训练的语言模型生成 diff，替代传统 GP 的随机局部突变；将候选执行并由任务 evaluator 打分，再把有效程序纳入演化。论文的主实验仍以 Sodaracer 为例，说明原生 Python 可作为变长基因型，并讨论从演化数据微调下游模型的可能性。
+该文把"LLM 进化代码"抽象为 **GP+LLM 算子代数**：初始化 $i_{LLM}$、执行 $e_{LLM}$、适应度 $\phi_{LLM}$、选择 $s_{LLM}$、交叉 $v_{xoLLM}$、变异 $v_{muLLM}$、替换 $r_{LLM}$、选优 $b_{LLM}$ 八个算子全部形式化为三步协议（**Formulate** prompt → **Interface** LLM → **Check** 响应），并指出 Koza 五步准备工作中有两步被"为每个算子设计 prompt-function"取代——人的努力从设计原语/算子转移到设计提示。EA 循环不变，每个算子都可以（但不必）外包给 LLM。演示实验是**简化符号回归**（ALFAECLLM 包，pop=10、30 代、每 run 300 次适应度评价、30 runs、GPT-3.5-turbo few-shot 2-shot 样例取自当前种群；GP 基线用锦标赛 size=2 + 精英 1）。注意：该文不使用 ELM 的 diff 模型、Sodaracer 或 MAP-Elites。
 
 ## 2. 论文宣称的机制贡献（逐项）
 
-- 代码 LLM 利用人类代码修改的统计规律，产生更“智能”的变异。
-- 真实编程语言可直接充当 GP 表示，不须特制树形编码。
-- 演化可生成先前不存在的领域数据，供后续模型学习。
+- 算子代数与三步协议的形式化；prompt 模板语法 `<ρ> ::= <EXAMPLES><QUERY><PRIMITIVES><RESPONSE_FORMAT>`。
+- 相关工作分类学：LLM 行为引导两类（升温增加多样性、微调）；prompt 工程技术清单（Template、变温、Chaining、Few-shot、Summarization 等）。
+- 成本与错误率的实证刻画：每 run 均值 LLM-only 837s/$2.63、GP+LLM 1664s/$3.90、GP+someLLM 743s/$1.87、GP 0.1s；选择/替换算子 token 消耗最大、错误最多，变异/初始化最便宜稳健。
 
 ## 3. 实验究竟支持了什么
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
-|---|---|---|---|
-|diff 突变能修复关联 bug|`methods.tex` 的 intelligent mutation、4-Parity 图；`appendix.tex` 补充实验|直接支持|对构造的代码修复指标成立。|
-|原生 Python 支持有意义的搜索|`experiments.tex` Sodaracer 与 overview 图|部分支持|验证了一个受限 API、物理模拟与种子程序。|
-|演化结果可用于条件生成|`experiments.tex` 三阶段发明流水线|部分支持|阶段模型结果为端到端证据，归因无法拆开。|
-|LLM 的优势来自“理解”而非表面先验|无直接诊断|未验证|成功修改可由训练分布相似性解释。|
+|---|---|---|
+|各算子可 LLM 化并有可测代价|Experiments 的成本/时长/错误率统计|直接支持|对演示级符号回归成立。|
+|哪些算子适合 LLM 化|错误率与 token 分析（选择/替换最差，变异/初始化最稳）|部分支持|单一任务、GPT-3.5；归因未与任务难度分离。|
+|LLM 化优于经典 GP|主对比表|未验证|演示级实现（无多样性维护，种群上限受 4096 token 上下文约束），无跨任务结论。|
+|无探索-利用相关消融|—|—|该文不机制化 exploration/exploitation；温度作为"更多样解"的旋钮只出现在相关工作转述中。|
 
 ## 4. 机制的底层逻辑
 
-阅读分析：diff 给模型一个稳定锚点，降低从零生成破坏已有可运行代码的概率；执行 evaluator 再筛掉语法/语义幻觉。这个闭环的瓶颈转移到 evaluator：它若只在窄实例上测量，会选择 exploit 而不是算法改进。程序接口的“Pythonic”程度影响模型先验可否被调用，故表示是机制条件而非纯工程细节。
+阅读分析：该文的真正贡献是把"LLM 该接管 EA 的哪些算子、代价几何"问题显性化，并给出第一个系统的成本/错误 profile。GP+LLM 的计算代价度量须在 FE 之外加 token 数与调用数；种群规模本身是 LLM 上下文窗口的函数——这两个工程事实后来成为所有框架的隐含约束。
 
 ## 5. 对 LLM4AD / TraceAAD 可学习之处
 
-- 可学习点：记录每次修改的 diff 与父代，使轨迹能表达“改了什么”。前提：代码可稳定归一化/执行。风险：仅记录文本差异而忽略行为差异。最小验证：抽样人工/自动分类 diff 后看类别与收益关联。
-- 可学习点：在搜索前采用最小可执行 API。前提：API 不限制关键策略空间。风险：接口先验带来虚假比较优势。最小验证：用两种等价 API 检查候选有效率与最优分数。
+- 可学习点：把搜索循环的每个决策点显式列出并问"谁来做、代价多少"。前提：决策点可枚举。风险：形式化掩盖各决策点间的耦合。最小验证：对现有搜索日志按决策点统计调用量与错误率。
+- 可学习点：token/调用数与评价数分开核算（与仓库"评价预算与生成成本必须分开"的口径一致）。
 
 ## 6. 证据边界
 
-文章的实证核心集中于 4-Parity 和 Sodaracer；没有跨 AAD 基准、统一多随机种子统计来支持普适优越。训练模型、提交消息、MAP-Elites、接口与下游训练在主流水线中耦合，不能从整体表现推断任一组件必需。
+无消融、无探索-利用机制主张；演示任务是受限符号回归，结论不能外推到 AAD 主流任务。定位是框架化/教学实现（ALFAECLLM 包）与分类学，机制证据应看 ELM/LMX/FunSearch 各自的原始论文。
 
 ## 7. 论文内定位
 
-入口：[`ELM_GP_jrnl_2023.tex`](../../../../papers/Evolving_Code_with_A_Large_Language_Model/ELM_GP_jrnl_2023.tex)，并依次 include `methods.tex`、`experiments.tex`、`appendix.tex`、`discussion.tex`。重点为 Methods 的 diff mutation、Experiments 的 Sodaracer/invention pipeline 与 Appendix。
+入口：[`ELM_GP_jrnl_2023.tex`](../../../../papers/Evolving_Code_with_A_Large_Language_Model/ELM_GP_jrnl_2023.tex)，依次 include `methods.tex`、`experiments.tex`、`appendix.tex`、`discussion.tex`。重点为 Methods 的算子代数与三步协议、Experiments 的成本/错误分析。
