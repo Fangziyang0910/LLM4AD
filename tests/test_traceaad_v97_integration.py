@@ -8,7 +8,7 @@ import pytest
 from experiments.runners.traceaad import run
 from llm4ad.method.traceaad_v9_7 import TraceAADV97
 from llm4ad.method.traceaad_v9_7.forest import Forest
-from llm4ad.method.traceaad_v9_7.history import drop_oldest, parent_path, render_path
+from llm4ad.method.traceaad_v9_7.history import parent_path, render_path
 from llm4ad.method.traceaad_v9_7.prompt import INTENT_INSTRUCTIONS, build_generation_prompt
 from llm4ad.method.traceaad_v9_7.schema import Attempt, Intent, Outcome, REFINE_PROBABILITY
 from llm4ad.method.traceaad_v9_7.selection import score_routes, select
@@ -163,16 +163,6 @@ def test_v97_history_renders_absence_at_root() -> None:
     assert shown == ()
     text = render_path(forest, shown)
     assert "No history events are shown for this algorithm." in text
-
-
-def test_v97_drop_oldest_shrinks_parent_path_for_context() -> None:
-    forest = Forest(maximize=True)
-    ids = _add_route(forest, root_fitness=1.0, order=1, chain=(1.1, 1.2))
-    shown = parent_path(forest, ids[-1])
-    shrunk = drop_oldest(shown)
-
-    assert len(shown) == 2
-    assert shrunk == shown[1:]
 
 
 def test_v97_route_scores_sum_generations_and_take_route_best_q() -> None:
@@ -336,9 +326,10 @@ def test_v97_runner_builds_complete_frozen_method(tmp_path: Path) -> None:
     assert spec.n_init == 8
     assert spec.context_token_limit == 32768
     assert spec.llm_output_tokens == 8192
-    assert method.search_configuration() == run._v97_method_params(spec)
-    assert method.search_configuration()["refine_probability"] == 0.7
-    assert method.search_configuration()["explore_probability"] == pytest.approx(0.3)
+    params = run._v97_method_params(spec)
+    assert params["refine_probability"] == 0.7
+    assert params["explore_probability"] == pytest.approx(0.3)
+    assert "context_limit" not in params
 
     method._n_candidates = 5000
     assert method._has_budget()

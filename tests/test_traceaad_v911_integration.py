@@ -23,7 +23,7 @@ from llm4ad.method.traceaad_v9_11 import (
     RunArtifacts,
     TraceAADV911,
 )
-from llm4ad.method.traceaad_v9_11.checkpoint import dump_state, load_state
+from llm4ad.method.traceaad_v9_11.checkpoint import load_checkpoint, save_checkpoint
 from llm4ad.method.traceaad_v9_11.forest import Forest, is_better
 from llm4ad.method.traceaad_v9_11.schema import Anchor, Attempt, Outcome, Program, Regime
 from llm4ad.method.traceaad_v9_11.traceaad import decide_regime
@@ -219,7 +219,6 @@ def test_v911_flaky_responses_handled_gracefully(tmp_path: Path) -> None:
         artifacts=RunArtifacts(run_dir, console_output=False),
         budget=10,
         n_roots=2,
-        context_limit=32768,
         checkpoint_dir=run_dir / "checkpoints",
         seed=1,
     )
@@ -240,7 +239,6 @@ def test_v911_budget_exhaustion_during_initialization(tmp_path: Path) -> None:
         artifacts=RunArtifacts(run_dir, console_output=False),
         budget=3,
         n_roots=8,
-        context_limit=32768,
         checkpoint_dir=run_dir / "checkpoints",
     )
     method.run()
@@ -264,7 +262,6 @@ def test_v911_smoke_runs_develop_explore_and_landing(tmp_path: Path) -> None:
         evaluation=ConstantEvaluation(),
         artifacts=artifacts,
         budget=30,
-        context_limit=32768,
         checkpoint_dir=tmp_path / "checkpoints",
         seed=3,
     )
@@ -298,7 +295,6 @@ def test_v911_checkpoint_roundtrip_preserves_state(tmp_path: Path) -> None:
         evaluation=IncrementalEvaluation(),
         budget=100,
         n_roots=1,
-        context_limit=32768,
         checkpoint_dir=tmp_path / "source",
     )
     program = source._forest.add_program(code=TEMPLATE, fitness=1.0, order=1)
@@ -311,17 +307,16 @@ def test_v911_checkpoint_roundtrip_preserves_state(tmp_path: Path) -> None:
     source._last_explore_order = 0
     source._landing_anchor_id = root.id
     source._n_landing = 2
-    payload = json.loads(json.dumps(dump_state(source)))
+    save_checkpoint(source)
 
     restored = TraceAADV911(
         llm=ScriptedLLM(),
         evaluation=IncrementalEvaluation(),
         budget=100,
         n_roots=1,
-        context_limit=32768,
         checkpoint_dir=tmp_path / "restored",
     )
-    load_state(restored, payload)
+    load_checkpoint(restored, tmp_path / "source" / "latest.json")
 
     assert restored._iteration == 8
     assert restored._landing_anchor_id == root.id
@@ -333,7 +328,6 @@ def test_v911_interrupted_resume_reproduces_regime_trajectory(tmp_path: Path) ->
     common = {
         "evaluation": IncrementalEvaluation(),
         "budget": 30,
-        "context_limit": 32768,
         "seed": 9,
     }
     uninterrupted = TraceAADV911(llm=ScriptedLLM(), **common)
@@ -365,8 +359,8 @@ def test_v911_interrupted_resume_reproduces_regime_trajectory(tmp_path: Path) ->
     )
     resumed.run()
 
-    uninterrupted_forest = dump_state(uninterrupted)["forest"]
-    resumed_forest = dump_state(resumed)["forest"]
+    uninterrupted_forest = uninterrupted._forest.to_dict()
+    resumed_forest = resumed._forest.to_dict()
     uninterrupted_programs = [
         {key: value for key, value in item.items() if key != "evaluation_seconds"}
         for item in uninterrupted_forest["programs"]
@@ -377,7 +371,7 @@ def test_v911_interrupted_resume_reproduces_regime_trajectory(tmp_path: Path) ->
     ]
     assert uninterrupted_programs == resumed_programs
     assert uninterrupted_forest["anchors"] == resumed_forest["anchors"]
-    assert dump_state(uninterrupted)["last_explore_order"] == dump_state(resumed)["last_explore_order"]
+    assert resumed._last_explore_order == uninterrupted._last_explore_order
     assert resumed._landing_anchor_id is None
     assert resumed._n_eval == uninterrupted._n_eval == 30
 

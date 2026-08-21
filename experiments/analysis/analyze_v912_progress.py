@@ -234,10 +234,14 @@ def _run_snapshot(run_dir: Path) -> dict[str, Any]:
             ),
         }
 
-    best_id = int(checkpoint["best_id"])
-    best_program = programs[best_id]
+    best_program = max(
+        programs.values(),
+        key=lambda item: (float(item["q"]), -int(item["length"]), -int(item["order"])),
+    )
     best_anchor = next(
-        anchor for anchor in anchors.values() if int(anchor["program_id"]) == best_id
+        anchor
+        for anchor in anchors.values()
+        if int(anchor["program_id"]) == int(best_program["id"])
     )
     n_eval = int(checkpoint["n_eval"])
     return {

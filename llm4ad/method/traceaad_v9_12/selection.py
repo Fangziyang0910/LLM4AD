@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import math
 from dataclasses import dataclass
-from typing import Any
 
 from .forest import Forest
 from .schema import EXPLORE_PROBABILITY_MAX, EXPLORE_PROBABILITY_MIN, Intent, PROGRESS_WINDOW
@@ -178,24 +177,10 @@ def select(
     )
 
 
-def allocation_diagnostics(choice: Choice) -> dict[str, Any]:
-    selected = next(item for item in choice.anchors if item.anchor_id == choice.anchor_id)
-    return {
-        "selected_anchor_id": choice.anchor_id,
-        "selected_route_id": choice.route_id,
-        "selected_q": selected.q,
-        "refine_failure_evidence": choice.refine_failure_evidence,
-        "progress_observations": choice.progress_observations,
-        "explore_probability": choice.explore_probability,
-        "intent": choice.intent.value,
-    }
-
-
 __all__ = [
     "AnchorScore",
     "Choice",
     "RouteScore",
-    "allocation_diagnostics",
     "explore_probability",
     "refine_failure_evidence",
     "score_anchors",

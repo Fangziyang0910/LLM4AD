@@ -11,7 +11,6 @@ INITIAL_ROOT_COUNT: Final[int] = 8
 MAX_HISTORY_EVENTS: Final[int] = 8
 LOGICAL_MODEL_NAME: Final[str] = "Qwen3.6-27B"
 DEFAULT_MAX_RESPONSES: Final[int] = 5000
-DEFAULT_MAX_CONSECUTIVE_ERRORS: Final[int] = 20
 
 
 class Intent(StrEnum):

@@ -134,23 +134,6 @@ def test_interrupted_run_leaves_latest_checkpoint(tmp_path: Path) -> None:
     assert resumed.best_node is not None
 
 
-def test_resume_rejects_a_different_search_configuration(tmp_path: Path) -> None:
-    checkpoint_dir = tmp_path / "checkpoints"
-    _method(budget=2, checkpoint_dir=checkpoint_dir).run()
-
-    with pytest.raises(ValueError, match="search configuration"):
-        TraceAADV4(
-            llm=CheckpointLLM(),
-            evaluation=CheckpointEvaluation(),
-            max_sample_nums=4,
-            n_init=2,
-            actions_per_iteration=1,
-            max_active_trajectories=10,
-            softmax_temperature=0.3,
-            resume_from=checkpoint_dir,
-        )
-
-
 def test_resume_continues_profiler_sample_numbers(tmp_path: Path) -> None:
     checkpoint_dir = tmp_path / "checkpoints"
     _method(
@@ -167,7 +150,6 @@ def test_resume_continues_profiler_sample_numbers(tmp_path: Path) -> None:
     )
     resumed.run()
 
-    assert resumed._artifacts._num_samples == 6
     candidates_path = tmp_path / "artifacts" / "candidates.jsonl"
     assert candidates_path.is_file()
     sample_orders = []

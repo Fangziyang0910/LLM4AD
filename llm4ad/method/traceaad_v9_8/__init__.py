@@ -2,7 +2,6 @@
 
 from .artifacts import RunArtifacts
 from .schema import (
-    DEFAULT_MAX_CONSECUTIVE_ERRORS,
     DEFAULT_MAX_RESPONSES,
     INITIAL_ROOT_COUNT,
     LOGICAL_MODEL_NAME,
@@ -13,7 +12,6 @@ from .schema import (
 from .traceaad import TraceAADV98
 
 __all__ = [
-    "DEFAULT_MAX_CONSECUTIVE_ERRORS",
     "DEFAULT_MAX_RESPONSES",
     "INITIAL_ROOT_COUNT",
     "LOGICAL_MODEL_NAME",

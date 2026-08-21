@@ -98,12 +98,6 @@ class NonNumericEvaluation(IncreasingEvaluation):
         return result
 
 
-class ConfigurableEvaluation(IncreasingEvaluation):
-    def __init__(self, scale: int) -> None:
-        super().__init__()
-        self.scale = scale
-
-
 def add_child(
     tree: SearchTree,
     parent_id: int,
@@ -117,7 +111,7 @@ def add_child(
     index = tree._next_node_id
     if record_visit:
         tree.record_batch_visit(parent_id)
-    child, edge, _ = tree.add_child(
+    child, edge = tree.add_child(
         parent_id=parent_id,
         code=code or f"def choose(value):\n    return value + {index}\n",
         idea=f"child {index}",
@@ -229,7 +223,7 @@ def test_seeded_uct_tie_breaking_is_reproducible() -> None:
         used_budget=2,
         exploration_constant=0.5,
     )
-    assert first.selected_node_id == second.selected_node_id
+    assert first == second
 
 
 def test_adaptive_expansion_quality_uses_batch_credit_and_failed_attempts() -> None:
@@ -257,9 +251,8 @@ def test_recursive_selection_compares_new_branch_with_existing_children() -> Non
         used_budget=3,
         exploration_constant=0.0,
     )
-    assert descended.selected_node_id == best.id
-    assert descended.path == (-1, root_child.id, best.id)
-    assert descended.steps[-1].option == "expand"
+    assert descended == best.id
+    assert tree.selected_path(descended) == (-1, root_child.id, best.id)
 
     second_tree = make_tree((3.0,))
     second_root = second_tree.get_node(0)
@@ -271,9 +264,8 @@ def test_recursive_selection_compares_new_branch_with_existing_children() -> Non
         used_budget=3,
         exploration_constant=0.0,
     )
-    assert reopened.selected_node_id == second_root.id
-    assert reopened.path == (-1, second_root.id)
-    assert reopened.steps[-1].option == "expand"
+    assert reopened == second_root.id
+    assert second_tree.selected_path(reopened) == (-1, second_root.id)
 
 
 def test_direct_code_parser_extracts_leniently() -> None:
@@ -484,7 +476,7 @@ def test_minimization_direction_uses_directed_subtree_credit() -> None:
         maximize=False,
         creation_order=2,
     )
-    child, _, _ = tree.add_child(
+    child, _ = tree.add_child(
         parent_id=high.id,
         code="def choose(value):\n    return value + 7\n",
         idea="lower",
@@ -556,8 +548,8 @@ def test_small_scripted_run_preserves_histories_and_has_no_population(
     assert not any(item["event"] == "actions_generated" for item in decisions)
     selected = [item for item in decisions if item["event"] == "node_selected"]
     assert selected
-    assert all(item["expansion_policy"] == "adaptive_new_child_uct" for item in selected)
-    assert all(item["selection_steps"][-1]["option"] == "expand" for item in selected)
+    assert all(item["selected_node_id"] >= 0 for item in selected)
+    assert all(item["requested_children"] == 2 for item in selected)
 
 
 def test_checkpoint_round_trip_preserves_tree_rng_and_next_selection(
@@ -605,73 +597,6 @@ def test_checkpoint_round_trip_preserves_tree_rng_and_next_selection(
     )
     assert dump_state(first)["tree"] == dump_state(second)["tree"]
     assert first_selection == second_selection
-
-
-def test_checkpoint_rejects_corrupt_subtree_credit() -> None:
-    method = TraceAADV8(
-        llm=ScriptedLLM(),
-        evaluation=IncreasingEvaluation(),
-        max_sample_nums=1,
-        n_init=1,
-        context_token_limit=24576,
-    )
-    method.run()
-    payload = dump_state(method)
-    payload["tree"]["nodes"][0]["subtree_value"] = 999.0
-    target = TraceAADV8(
-        llm=ScriptedLLM(),
-        evaluation=IncreasingEvaluation(),
-        max_sample_nums=1,
-        n_init=1,
-        context_token_limit=24576,
-    )
-    with pytest.raises(ValueError, match="subtree backup"):
-        load_state(target, payload)
-
-
-def test_checkpoint_rejects_misaligned_expansion_batch() -> None:
-    method = TraceAADV8(
-        llm=ScriptedLLM(),
-        evaluation=IncreasingEvaluation(),
-        max_sample_nums=2,
-        n_init=1,
-        offspring_per_iteration=1,
-        context_token_limit=24576,
-    )
-    method.run()
-    payload = dump_state(method)
-    payload["tree"]["nodes"][1]["batch_id"] = 999
-    target = TraceAADV8(
-        llm=ScriptedLLM(),
-        evaluation=IncreasingEvaluation(),
-        max_sample_nums=2,
-        n_init=1,
-        offspring_per_iteration=1,
-        context_token_limit=24576,
-    )
-    with pytest.raises(ValueError, match="expansion batch"):
-        load_state(target, payload)
-
-
-def test_checkpoint_rejects_changed_direct_evaluator_configuration() -> None:
-    first = TraceAADV8(
-        llm=ScriptedLLM(),
-        evaluation=ConfigurableEvaluation(scale=1),
-        max_sample_nums=1,
-        n_init=1,
-        context_token_limit=24576,
-    )
-    first.run()
-    payload = dump_state(first)
-    changed = TraceAADV8(
-        llm=ScriptedLLM(),
-        evaluation=ConfigurableEvaluation(scale=2),
-        max_sample_nums=1,
-        n_init=1,
-        context_token_limit=24576,
-    )
-    with pytest.raises(ValueError, match="runtime identity"):
-        load_state(changed, payload)
 
 
 def test_checkpoint_resume_continues_to_the_same_budget(tmp_path: Path) -> None:

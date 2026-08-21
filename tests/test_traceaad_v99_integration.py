@@ -13,7 +13,7 @@ from llm4ad.method.traceaad_v9_9 import (
     RunArtifacts,
     TraceAADV99,
 )
-from llm4ad.method.traceaad_v9_9.checkpoint import dump_state, load_state
+from llm4ad.method.traceaad_v9_9.checkpoint import load_checkpoint, save_checkpoint
 from llm4ad.method.traceaad_v9_9.forest import Forest
 from llm4ad.method.traceaad_v9_9.history import parent_path, render_path
 from llm4ad.method.traceaad_v9_9.schema import Attempt, Intent, Outcome, Pending
@@ -277,7 +277,6 @@ def test_initialization_keeps_all_roots_and_skips_bootstrap(
         artifacts=artifacts,
         budget=6,
         n_roots=2,
-        context_limit=32768,
         checkpoint_dir=tmp_path / "checkpoints",
         seed=1,
     )
@@ -311,7 +310,14 @@ def test_runner_builds_frozen_v99_and_records_config(tmp_path: Path) -> None:
     )
     method = run.build_method(spec, tmp_path / "run")
     assert isinstance(method, TraceAADV99)
-    assert method.search_configuration() == run._v99_method_params(spec)
+    params = run._v99_method_params(spec)
+    assert params["lambda_u"] == 0.25
+    assert params["path_half_life"] == 4.0
+    assert params["rank_half_life"] == 5.0
+    assert params["temperature"] == 0.25
+    assert params["refine_prior"] == 0.7
+    assert params["explore_prior"] == pytest.approx(0.3)
+    assert "context_limit" not in params
     assert spec.n_init == 8
     assert method._n_roots == 8
     run_dir, run_name, _ = run.resolve_run_dir(spec)
@@ -334,7 +340,6 @@ def test_end_to_end_v99_smoke_streams_facts_and_exhausts_eval_budget(
         evaluation=IncreasingEvaluation(),
         artifacts=artifacts,
         budget=20,
-        context_limit=32768,
         checkpoint_dir=tmp_path / "checkpoints",
         seed=3,
     )
@@ -365,7 +370,6 @@ def test_checkpoint_with_completed_pending_response_does_not_call_llm_again(
         evaluation=IncreasingEvaluation(),
         budget=20,
         n_roots=1,
-        context_limit=32768,
         checkpoint_dir=tmp_path / "source",
     )
     program = source._forest.add_program(
@@ -394,7 +398,7 @@ def test_checkpoint_with_completed_pending_response_does_not_call_llm_again(
             "def choose(value: int) -> int:\n    return value + 10\n```"
         ),
     )
-    payload = json.loads(json.dumps(dump_state(source)))
+    save_checkpoint(source)
 
     resumed_llm = ScriptedLLM()
     resumed = TraceAADV99(
@@ -402,10 +406,9 @@ def test_checkpoint_with_completed_pending_response_does_not_call_llm_again(
         evaluation=IncreasingEvaluation(),
         budget=20,
         n_roots=1,
-        context_limit=32768,
         checkpoint_dir=tmp_path / "resumed",
     )
-    load_state(resumed, payload)
+    load_checkpoint(resumed, tmp_path / "source" / "latest.json")
     resumed._resume_pending()
 
     assert resumed_llm.calls == 0
@@ -413,63 +416,6 @@ def test_checkpoint_with_completed_pending_response_does_not_call_llm_again(
     assert resumed._n_candidates == 1
     assert resumed._n_eval == 2
     assert resumed._forest.get_anchor(anchor.id).n_refine == 1
-
-
-def test_pending_request_recovers_durably_logged_response_before_redraw(
-    tmp_path: Path,
-) -> None:
-    run_dir = tmp_path / "run"
-    first_artifacts = RunArtifacts(run_dir, console_output=False)
-    response = (
-        "Idea: durable\nCode:\n```python\n"
-        "def choose(value: int) -> int:\n    return value + 20\n```"
-    )
-    first_artifacts.record_llm_call(
-        response_id="v99-r000001-a000000",
-        status="ok",
-        transport_attempt=1,
-        raw_response=response,
-    )
-    first_artifacts.finish()
-
-    artifacts = RunArtifacts(run_dir, console_output=False)
-    llm = ScriptedLLM()
-    method = TraceAADV99(
-        llm=llm,
-        evaluation=IncreasingEvaluation(),
-        artifacts=artifacts,
-        budget=20,
-        n_roots=1,
-        context_limit=32768,
-        checkpoint_dir=run_dir / "checkpoints",
-    )
-    program = method._forest.add_program(
-        code="def choose(value: int) -> int:\n    return value\n",
-        fitness=1.0,
-        order=1,
-    )
-    anchor = method._forest.add_root(program_id=program.id, order=1)
-    method._initialization_complete = True
-    method._pending = Pending(
-        id=method._forest.next_attempt_id(),
-        response_id="v99-r000001-a000000",
-        anchor_id=anchor.id,
-        stage="search",
-        iteration=0,
-        order=1,
-        intent="refine",
-        prompt="original prompt",
-        generation_seed=1,
-        selection=None,
-        response=None,
-    )
-
-    method._resume_pending()
-
-    assert llm.calls == 0
-    assert method._n_candidates == 1
-    assert method._n_eval == 1
-    artifacts.finish()
 
 
 def test_formal_launcher_resumes_existing_incomplete_run(

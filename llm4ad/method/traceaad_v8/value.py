@@ -5,17 +5,9 @@ from __future__ import annotations
 import math
 import random
 from bisect import bisect_left, bisect_right
-from dataclasses import dataclass
 
-from .schema import ProgramNode, SelectionStep
+from .schema import ProgramNode
 from .tree import SearchTree
-
-
-@dataclass(frozen=True, slots=True)
-class SelectionResult:
-    selected_node_id: int
-    path: tuple[int, ...]
-    steps: tuple[SelectionStep, ...]
 
 
 def fitness_reference_values(tree: SearchTree) -> tuple[float, ...]:
@@ -128,13 +120,12 @@ def select_expansion_node(
     used_budget: int,
     exploration_constant: float,
     expansion_prior_weight: float = 1.0,
-) -> SelectionResult:
+) -> int:
     """Recursively compare opening a new branch with descending existing branches."""
     if not tree.root.child_ids:
         raise ValueError("cannot select from an empty tree")
     reference_values = fitness_reference_values(tree)
     ratio = remaining_budget_ratio(total_budget, used_budget)
-    steps: list[SelectionStep] = []
 
     root_scored = _scored_children(
         tree,
@@ -144,24 +135,10 @@ def select_expansion_node(
         exploration_constant=exploration_constant,
         budget_ratio=ratio,
     )
-    selected_id, selected_score = _choose_tied(root_scored, rng)
-    selected = tree.get_node(selected_id)
-    steps.append(
-        SelectionStep(
-            decision_node_id=tree.root.id,
-            option="descend",
-            target_node_id=selected.id,
-            quality=normalize_value(selected.subtree_value, reference_values),
-            raw_value=selected.subtree_value,
-            option_visits=selected.visit_count,
-            score=selected_score,
-        )
-    )
-    path = [tree.root.id, selected.id]
-    current = selected
+    current = tree.get_node(_choose_tied(root_scored, rng))
 
     while True:
-        new_quality, new_score = expansion_score(
+        _, new_score = expansion_score(
             tree,
             current,
             reference_values,
@@ -180,34 +157,10 @@ def select_expansion_node(
                 budget_ratio=ratio,
             )
         )
-        target_id, selected_score = _choose_tied(choices, rng)
+        target_id = _choose_tied(choices, rng)
         if target_id is None:
-            steps.append(
-                SelectionStep(
-                    decision_node_id=current.id,
-                    option="expand",
-                    target_node_id=None,
-                    quality=new_quality,
-                    raw_value=None,
-                    option_visits=current.expansion_count,
-                    score=selected_score,
-                )
-            )
-            return SelectionResult(current.id, tuple(path), tuple(steps))
-
+            return current.id
         current = tree.get_node(target_id)
-        path.append(current.id)
-        steps.append(
-            SelectionStep(
-                decision_node_id=current.parent_id,
-                option="descend",
-                target_node_id=current.id,
-                quality=normalize_value(current.subtree_value, reference_values),
-                raw_value=current.subtree_value,
-                option_visits=current.visit_count,
-                score=selected_score,
-            )
-        )
 
 
 def _scored_children(
@@ -236,10 +189,10 @@ def _scored_children(
 
 def _choose_tied(
     scored: list[tuple[int | None, float]], rng: random.Random
-) -> tuple[int | None, float]:
+) -> int | None:
     maximum = max(score for _, score in scored)
     tied = [target_id for target_id, score in scored if score == maximum]
-    return rng.choice(tied), maximum
+    return rng.choice(tied)
 
 
 def reference_candidates(
@@ -285,7 +238,6 @@ def sample_reference(
 
 
 __all__ = [
-    "SelectionResult",
     "expansion_batch_rewards",
     "expansion_quality",
     "expansion_score",

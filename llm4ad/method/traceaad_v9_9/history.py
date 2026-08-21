@@ -15,10 +15,6 @@ def parent_path(
     return forest.parent_path_ids(anchor_id)[-max_events:]
 
 
-def drop_oldest(attempt_ids: tuple[int, ...]) -> tuple[int, ...]:
-    return attempt_ids[1:]
-
-
 def render_path(forest: Forest, attempt_ids: tuple[int, ...]) -> str:
     lines = ["[Recent Algorithm Formation Path]"]
     if not attempt_ids:
@@ -93,7 +89,6 @@ def one_line(text: str, limit: int) -> str:
 __all__ = [
     "CHANGE_EXAMPLES_PER_SIDE",
     "CHANGE_LINE_MAX_CHARS",
-    "drop_oldest",
     "format_fitness",
     "one_line",
     "parent_path",

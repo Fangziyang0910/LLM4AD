@@ -1,8 +1,7 @@
-"""TraceAAD V9.7-CO: the V9.7 protocol with a code-only context (ablation arm)."""
+"""TraceAAD V9.7-CO: the V9.7 protocol with a code-only generation context (ablation arm)."""
 
 from __future__ import annotations
 
-import copy
 import hashlib
 import math
 import statistics
@@ -35,10 +34,9 @@ from .schema import (
     Pending,
     Program,
 )
-from .selection import Choice, select
+from .selection import select
 from .source import code_diff
 
-TRANSPORT_RETRIES = 3
 ERROR_MAX_CHARS = 360
 
 
@@ -63,22 +61,12 @@ class TraceAADV97CO:
         n_roots: int = INITIAL_ROOT_COUNT,
         maximize: bool = True,
         max_tokens: int = 8192,
-        context_limit: int | None = None,
         seed: int | None = 0,
         checkpoint_dir: str | Path | None = None,
         resume_from: str | Path | None = None,
-        debug_mode: bool = False,
     ) -> None:
         if budget <= 0 or n_roots <= 0 or max_tokens <= 0:
             raise ValueError("budget, n_roots, and max_tokens must be positive")
-        if context_limit is None or context_limit <= 0:
-            raise ValueError("context_limit must be explicitly positive")
-        if (
-            evaluation.use_numba_accelerate
-            or evaluation.use_protected_div
-            or evaluation.random_seed is not None
-        ):
-            raise ValueError("V9.7-CO requires candidate code to be executed unchanged")
 
         template = TextFunctionProgramConverter.text_to_program(
             evaluation.template_program
@@ -87,18 +75,16 @@ class TraceAADV97CO:
             raise ValueError("TraceAAD V9.7-CO requires one evolvable template function")
 
         self._llm = llm
+        self._evaluator = SecureEvaluator(evaluation)
         self._log = artifacts
         self._task = evaluation.task_description
-        self._function: Function = copy.deepcopy(template.functions[0])
-        self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode)
+        self._function: Function = template.functions[0]
         self._budget = budget
         self._n_roots = n_roots
         self._maximize = maximize
         self._max_tokens = max_tokens
-        self._context_limit = context_limit
         self._seed = seed
         self._checkpoint_dir = None if checkpoint_dir is None else Path(checkpoint_dir)
-        llm.debug_mode = debug_mode
 
         self._forest = Forest(maximize=self._maximize)
         self._pending: Pending | None = None
@@ -109,7 +95,6 @@ class TraceAADV97CO:
         self._bootstrapped: set[int] = set()
         self._bootstrap_deltas: list[float] = []
         self._s: float | None = None
-        self._best_id: int | None = None
 
         if resume_from is not None:
             checkpoint = load_checkpoint(self, resume_from)
@@ -118,21 +103,8 @@ class TraceAADV97CO:
 
     @property
     def best(self) -> Program | None:
-        """获取当前全局最优程序。"""
-        return None if self._best_id is None else self._forest.get_program(self._best_id)
-
-    def search_configuration(self) -> dict[str, Any]:
-        return {
-            "budget": self._budget,
-            "n_roots": self._n_roots,
-            "maximize": self._maximize,
-            "max_tokens": self._max_tokens,
-            "context_limit": self._context_limit,
-            "seed": self._seed,
-            "refine_probability": REFINE_PROBABILITY,
-            "explore_probability": 1.0 - REFINE_PROBABILITY,
-            "generation_context": "code_only",
-        }
+        """当前全局最优程序，按 (q, -length, -order) 现算。"""
+        return self._forest.best()
 
     def run(self) -> None:
         status = "error"
@@ -152,7 +124,6 @@ class TraceAADV97CO:
                 assert self._s is not None
                 choice = select(self._forest, self._s)
                 intent = draw_intent(self._seed, self._iteration)
-                self._log_choice(choice, intent)
                 self._generate(
                     self._prompt(choice.anchor_id, intent),
                     anchor_id=choice.anchor_id,
@@ -165,17 +136,11 @@ class TraceAADV97CO:
             stop_reason = "evaluator_budget_exhausted"
         except Exception as exc:
             error = {"error_type": type(exc).__name__, "error": str(exc)[:1000]}
-            if self._log is not None:
-                self._log.record_error("run", exc)
             raise
         finally:
             save_checkpoint(self)
             if self._log is not None:
-                best = (
-                    None
-                    if self._best_id is None
-                    else self._forest.get_program(self._best_id)
-                )
+                best = self.best
                 self._log.write_summary(
                     status=status,
                     stop_reason=stop_reason,
@@ -201,15 +166,12 @@ class TraceAADV97CO:
 
     def _initialize(self) -> None:
         while len(self._forest.root_ids) < self._n_roots and self._has_budget():
-            prompt = build_root_prompt(
-                task_description=self._task,
-                template_function=self._function,
-                maximize=self._maximize,
-            )
-            if not self._fits(prompt):
-                raise RuntimeError("root prompt plus output bound exceeds context limit")
             self._generate(
-                prompt,
+                build_root_prompt(
+                    task_description=self._task,
+                    template_function=self._function,
+                    maximize=self._maximize,
+                ),
                 anchor_id=None,
                 stage="root_generation",
                 iteration=None,
@@ -248,27 +210,13 @@ class TraceAADV97CO:
         program = self._forest.get_program(
             self._forest.get_anchor(anchor_id).program_id
         )
-        prompt = build_generation_prompt(
+        return build_generation_prompt(
             task_description=self._task,
             code=program.code,
             fitness=program.fitness,
             intent=intent,
             maximize=self._maximize,
         )
-        if not self._fits(prompt):
-            raise RuntimeError(
-                "task, current code, and output budget exceed the context window"
-            )
-        self._decision(
-            "history_built",
-            anchor_id=anchor_id,
-            intent=intent.value,
-            selected_event_ids=[],
-            shown_event_ids=[],
-            dropped_for_context=0,
-            prompt_tokens=self._tokens(prompt),
-        )
-        return prompt
 
     def _generate(
         self,
@@ -279,21 +227,10 @@ class TraceAADV97CO:
         iteration: int | None,
         intent: str | None,
     ) -> Attempt:
-        if self._pending is not None:
-            raise RuntimeError("cannot request a candidate while one is pending")
-        prompt_tokens = self._tokens(prompt)
-        generation_seed = (
-            None if self._seed is None else self._seed + self._n_candidates + 1
-        )
-        response = self._draw(
-            prompt,
-            generation_seed,
-            stage=stage,
-            iteration=iteration,
-            anchor_id=anchor_id,
-            intent=intent,
-            prompt_tokens=prompt_tokens,
-        )
+        kwargs: dict[str, Any] = {"max_tokens": self._max_tokens}
+        if self._seed is not None:
+            kwargs["seed"] = self._seed + self._n_candidates + 1
+        response = self._llm.draw_sample(prompt, **kwargs)
         self._n_candidates += 1
         if anchor_id is not None:
             self._forest.get_anchor(anchor_id).n += 1
@@ -307,58 +244,7 @@ class TraceAADV97CO:
             response=response,
         )
         save_checkpoint(self)
-        if self._log is not None:
-            self._log.record_llm_call(
-                stage=stage,
-                iteration=iteration,
-                anchor_id=anchor_id,
-                intent=intent,
-                order=self._pending.order,
-                prompt_tokens=prompt_tokens,
-                response_tokens=self._tokens(response),
-                status="ok",
-                prompt=prompt,
-                generation_seed=generation_seed,
-            )
         return self._process_pending()
-
-    def _draw(
-        self,
-        prompt: str,
-        seed: int | None,
-        *,
-        stage: str,
-        iteration: int | None,
-        anchor_id: int | None,
-        intent: str | None,
-        prompt_tokens: int,
-    ) -> str:
-        last_error: Exception | None = None
-        kwargs: dict[str, Any] = {"max_tokens": self._max_tokens}
-        if seed is not None:
-            kwargs["seed"] = seed
-        for attempt in range(TRANSPORT_RETRIES + 1):
-            try:
-                return self._llm.draw_sample(prompt, **kwargs)
-            except Exception as exc:
-                last_error = exc
-                save_checkpoint(self)
-                if self._log is not None:
-                    self._log.record_llm_call(
-                        stage=stage,
-                        iteration=iteration,
-                        anchor_id=anchor_id,
-                        intent=intent,
-                        prompt_tokens=prompt_tokens,
-                        response_tokens=0,
-                        status="transport",
-                        prompt=prompt,
-                        generation_seed=seed,
-                        error_type=type(exc).__name__,
-                        error=str(exc),
-                        transport_attempt=attempt + 1,
-                    )
-        raise RuntimeError("model transport retry limit exhausted") from last_error
 
     def _process_pending(self) -> Attempt:
         pending = self._pending
@@ -459,6 +345,7 @@ class TraceAADV97CO:
             if parent_anchor is None
             else self._forest.get_program(parent_anchor.program_id)
         )
+        previous_best = self.best
         program, child, kind = self._place(
             pending=pending,
             parent_anchor=parent_anchor,
@@ -498,31 +385,39 @@ class TraceAADV97CO:
         if pending.stage == "search" and pending.iteration is not None:
             self._iteration = max(self._iteration, pending.iteration + 1)
 
-        is_new_best, _ = self._update_best(program)
-        if (
-            is_new_best
-            and program is not None
-            and self._log is not None
-            and hasattr(self._log, "record_best")
-        ):
-            self._log.record_best(
-                code=program.code,
-                fitness=program.fitness,
-                eval_count=self._n_eval,
-                iteration=pending.iteration,
-                order=pending.order,
-                program_id=program.id,
-            )
+        best = self.best
+        is_new_best = program is not None and is_better(program, previous_best)
+        if is_new_best and self._log is not None:
+            self._log.record_best(code=program.code, fitness=program.fitness)
         self._pending = None
         save_checkpoint(self)
-        self._record_attempt(
-            attempt,
-            response=pending.response,
-            code=code,
-            error=error,
-            status=status,
-            is_new_best=is_new_best,
-        )
+        if self._log is not None:
+            route_id = None
+            if attempt.anchor_id is not None:
+                route_id = self._forest.get_anchor(attempt.anchor_id).root_id
+            elif attempt.child_id is not None:
+                route_id = self._forest.get_anchor(attempt.child_id).root_id
+            self._log.record_candidate(
+                order=attempt.order,
+                stage=attempt.stage,
+                iteration=attempt.iteration,
+                route_id=route_id,
+                anchor_id=attempt.anchor_id,
+                child_id=attempt.child_id,
+                program_id=attempt.program_id,
+                intent=attempt.intent,
+                kind=attempt.kind,
+                outcome=attempt.outcome,
+                parent_fitness=attempt.parent_fitness,
+                child_fitness=attempt.child_fitness,
+                dq=attempt.dq,
+                is_new_best=is_new_best,
+                best_fitness=None if best is None else best.fitness,
+                status=status,
+                error=error,
+                eval_count=self._n_eval,
+                budget=self._budget,
+            )
         return attempt
 
     def _place(
@@ -568,134 +463,6 @@ class TraceAADV97CO:
             order=pending.order,
         )
         return program, child, "new"
-
-    def _update_best(self, program: Program | None) -> tuple[bool, str | None]:
-        if program is None:
-            return False, None
-        incumbent = (
-            None if self._best_id is None else self._forest.get_program(self._best_id)
-        )
-        if not is_better(program, incumbent):
-            return False, None
-        reason = (
-            "strict_fitness" if incumbent is None or program.q > incumbent.q else "tie_break"
-        )
-        self._best_id = program.id
-        self._decision(
-            "best_updated",
-            program_id=program.id,
-            sample_order=program.order,
-            reason=reason,
-        )
-        return True, reason
-
-    def _record_attempt(
-        self,
-        attempt: Attempt,
-        *,
-        response: str,
-        code: str | None,
-        error: str | None,
-        status: str,
-        is_new_best: bool = False,
-    ) -> None:
-        if self._log is None:
-            return
-
-        route_id = None
-        if attempt.anchor_id is not None:
-            route_id = self._forest.get_anchor(attempt.anchor_id).root_id
-        elif attempt.child_id is not None:
-            route_id = self._forest.get_anchor(attempt.child_id).root_id
-
-        best = (
-            None
-            if self._best_id is None
-            else self._forest.get_program(self._best_id)
-        )
-        best_fitness = None if best is None else best.fitness
-
-        self._log.record_candidate(
-            attempt_id=attempt.id,
-            order=attempt.order,
-            stage=attempt.stage,
-            iteration=attempt.iteration,
-            anchor_id=attempt.anchor_id,
-            child_id=attempt.child_id,
-            program_id=attempt.program_id,
-            intent=attempt.intent,
-            idea=attempt.idea,
-            kind=attempt.kind,
-            outcome=attempt.outcome,
-            status=status,
-            parent_fitness=attempt.parent_fitness,
-            child_fitness=attempt.child_fitness,
-            dq=attempt.dq,
-            added=attempt.added,
-            removed=attempt.removed,
-            diff=attempt.diff,
-            program=code or "",
-            raw_response=response,
-            error=error,
-            eval_count=self._n_eval,
-            route_id=route_id,
-            best_fitness=best_fitness,
-            is_new_best=is_new_best,
-            budget=self._budget,
-        )
-
-    def _log_choice(self, choice: Choice, intent: Intent) -> None:
-        program_id = self._forest.get_anchor(choice.anchor_id).program_id
-        chosen = next(item for item in choice.anchors if item.anchor_id == choice.anchor_id)
-        self._decision(
-            "route_selected",
-            iteration=self._iteration,
-            selected_root_state_id=choice.route_id,
-            routes=[
-                {
-                    "root_state_id": item.route_id,
-                    "best_q": item.q,
-                    "n": item.n,
-                    "optimism": item.optimism,
-                    "score": item.score,
-                }
-                for item in choice.routes
-            ],
-        )
-        self._decision(
-            "anchor_selected",
-            iteration=self._iteration,
-            route_id=choice.route_id,
-            selected_state_id=choice.anchor_id,
-            selected_artifact_id=program_id,
-            selected_score=chosen.score,
-            states=[
-                {
-                    "state_id": item.anchor_id,
-                    "artifact_id": self._forest.get_anchor(item.anchor_id).program_id,
-                    "q": item.q,
-                    "n": item.n,
-                    "optimism": item.optimism,
-                    "score": item.score,
-                    "creation_order": self._forest.get_anchor(item.anchor_id).order,
-                }
-                for item in choice.anchors
-            ],
-        )
-
-    def _decision(self, event: str, **payload: Any) -> None:
-        if self._log is not None:
-            self._log.record_decision(event, **payload)
-
-    def _fits(self, prompt: str) -> bool:
-        return self._tokens(prompt) + self._max_tokens <= self._context_limit
-
-    def _tokens(self, text: str) -> int:
-        for name in ("count_prompt_tokens", "count_tokens"):
-            counter = getattr(self._llm, name, None)
-            if callable(counter):
-                return int(counter(text))
-        raise RuntimeError("model tokenizer is unavailable")
 
     def _has_budget(self) -> bool:
         return self._n_eval < self._budget

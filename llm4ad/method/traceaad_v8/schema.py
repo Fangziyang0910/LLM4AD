@@ -72,23 +72,11 @@ class ImprovementEdge:
     sample_order: int
 
 
-@dataclass(frozen=True, slots=True)
-class SelectionStep:
-    decision_node_id: int
-    option: str
-    target_node_id: NodeId | None
-    quality: float
-    raw_value: float | None
-    option_visits: int
-    score: float
-
-
 __all__ = [
     "EdgeId",
     "ImprovementEdge",
     "NodeId",
     "OperatorName",
     "ProgramNode",
-    "SelectionStep",
     "VirtualRoot",
 ]

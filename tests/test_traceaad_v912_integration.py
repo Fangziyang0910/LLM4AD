@@ -26,7 +26,7 @@ from llm4ad.method.traceaad_v9_12 import (
     RunArtifacts,
     TraceAADV912,
 )
-from llm4ad.method.traceaad_v9_12.checkpoint import dump_state, load_state
+from llm4ad.method.traceaad_v9_12.checkpoint import load_checkpoint, save_checkpoint
 from llm4ad.method.traceaad_v9_12.forest import Forest, is_better
 from llm4ad.method.traceaad_v9_12.schema import Anchor, Attempt, Intent, Outcome, Program
 from llm4ad.method.traceaad_v9_12.selection import (
@@ -182,7 +182,6 @@ def test_v912_explore_is_suppressed_when_budget_unavailable() -> None:
         evaluation=IncrementalEvaluation(),
         budget=10,
         n_roots=1,
-        context_limit=32768,
     )
     program = method._forest.add_program(code=TEMPLATE, fitness=1.0, order=1)
     method._forest.add_root(program_id=program.id, order=1)
@@ -214,7 +213,6 @@ def test_v912_progress_window_resets_at_explore_child() -> None:
         evaluation=IncrementalEvaluation(),
         budget=10,
         n_roots=1,
-        context_limit=32768,
     )
     forest = method._forest
     program = forest.add_program(code=TEMPLATE, fitness=1.0, order=1)
@@ -331,7 +329,6 @@ def test_v912_flaky_responses_handled_gracefully(tmp_path: Path) -> None:
         artifacts=RunArtifacts(run_dir, console_output=False),
         budget=10,
         n_roots=2,
-        context_limit=32768,
         checkpoint_dir=run_dir / "checkpoints",
         seed=1,
     )
@@ -352,7 +349,6 @@ def test_v912_budget_exhaustion_during_initialization(tmp_path: Path) -> None:
         artifacts=RunArtifacts(run_dir, console_output=False),
         budget=3,
         n_roots=8,
-        context_limit=32768,
         checkpoint_dir=run_dir / "checkpoints",
     )
     method.run()
@@ -376,7 +372,6 @@ def test_v912_smoke_runs_and_records_artifacts(tmp_path: Path) -> None:
         evaluation=IncrementalEvaluation(),
         artifacts=RunArtifacts(run_dir, console_output=False),
         budget=20,
-        context_limit=32768,
         checkpoint_dir=run_dir / "checkpoints",
         seed=3,
     )
@@ -394,24 +389,38 @@ def test_v912_smoke_runs_and_records_artifacts(tmp_path: Path) -> None:
 
 
 def test_v912_checkpoint_roundtrip_preserves_state(tmp_path: Path) -> None:
-    """State dumped and loaded via checkpoint is completely preserved."""
+    """State saved and loaded via checkpoint is completely preserved."""
     source = TraceAADV912(
         llm=ScriptedLLM(),
         evaluation=IncrementalEvaluation(),
-        budget=10,
+        budget=100,
         n_roots=1,
-        context_limit=32768,
+        checkpoint_dir=tmp_path / "source",
     )
-    payload = dump_state(source)
+    program = source._forest.add_program(code=TEMPLATE, fitness=1.0, order=1)
+    root = source._forest.add_root(program_id=program.id, order=1)
+    source._initialization_complete = True
+    source._s = 0.0
+    source._iteration = 8
+    source._n_eval = 20
+    source._exploration_followup_anchor_id = root.id
+    source._n_followup = 2
+    save_checkpoint(source)
+
     restored = TraceAADV912(
         llm=ScriptedLLM(),
         evaluation=IncrementalEvaluation(),
-        budget=10,
+        budget=100,
         n_roots=1,
-        context_limit=32768,
+        checkpoint_dir=tmp_path / "restored",
     )
-    load_state(restored, json.loads(json.dumps(payload)))
-    assert restored.search_configuration() == source.search_configuration()
+    load_checkpoint(restored, tmp_path / "source" / "latest.json")
+
+    assert restored._iteration == 8
+    assert restored._n_eval == 20
+    assert restored._exploration_followup_anchor_id == root.id
+    assert restored._n_followup == 2
+    assert restored.best.id == program.id
 
 
 def test_v912_runner_builds_protocol(tmp_path: Path) -> None:
@@ -427,5 +436,5 @@ def test_v912_runner_builds_protocol(tmp_path: Path) -> None:
     method = run.build_method(spec, tmp_path / "run")
     assert isinstance(method, TraceAADV912)
     assert spec.n_init == 8
-    assert method.search_configuration()["progress_window"] == 8
+    assert method._max_history == PROGRESS_WINDOW == 8
     method._llm.close()

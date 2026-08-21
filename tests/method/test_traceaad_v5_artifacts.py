@@ -5,11 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from llm4ad.base import Evaluation, LLM
 from llm4ad.method.traceaad_v5 import RunArtifacts, TraceAADV5
-from llm4ad.method.traceaad_v5.artifacts import _RESPONSE_TRUNCATE
 from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
 
 
@@ -137,7 +134,6 @@ def test_artifacts_layout_is_three_way_split_without_legacy_duplicates(
     result = _run_short_search(tmp_path)
     assert result.n_samples == 4
 
-    assert (tmp_path / "logs" / "progress.log").is_file()
     assert (tmp_path / "logs" / "summary.json").is_file()
     assert (tmp_path / "artifacts" / "candidates.jsonl").is_file()
     assert (tmp_path / "artifacts" / "edges.jsonl").is_file()
@@ -232,59 +228,15 @@ def test_llm_calls_keep_metadata_and_drop_successful_prompt_response(
             assert call["n_actions"] >= 1
 
 
-def test_failed_llm_call_stores_truncated_response_without_prompt(
-    tmp_path: Path,
-) -> None:
-    class TransportFailLLM(LLM):
-        def __init__(self) -> None:
-            super().__init__()
-            self.calls = 0
-
-        def draw_sample(self, prompt, *args, **kwargs):
-            self.calls += 1
-            raise ConnectionError("not a program " + ("x" * (_RESPONSE_TRUNCATE + 500)))
-
-    with pytest.raises(RuntimeError, match="model transport retry limit exhausted"):
-        TraceAADV5(
-            llm=TransportFailLLM(),
-            evaluation=_IncreasingEvaluation(),
-            artifacts=RunArtifacts(run_dir=tmp_path),
-            max_sample_nums=3,
-            n_init=1,
-            actions_per_iteration=1,
-            max_active_trajectories=4,
-            operators=(TraceIdeateOp,),
-            random_seed=0,
-            checkpoint_dir=tmp_path / "checkpoints",
-        ).run()
-
-    failed = [
-        call
-        for call in _load_jsonl(tmp_path / "artifacts" / "llm_calls.jsonl")
-        if call.get("status") == "transport"
-    ]
-    assert len(failed) == 4
-    for call in failed:
-        assert "prompt" not in call
-        assert call["failure_kind"] == "transport"
-        assert call["error_type"] == "ConnectionError"
-        assert len(call["error"]) <= _RESPONSE_TRUNCATE
-        assert call["error"].endswith("...")
-
-
-def test_summary_and_progress_are_monitor_only(tmp_path: Path) -> None:
+def test_summary_is_monitor_only(tmp_path: Path) -> None:
     _run_short_search(tmp_path)
     summary = json.loads((tmp_path / "logs" / "summary.json").read_text())
-    progress = (tmp_path / "logs" / "progress.log").read_text()
 
     assert summary["status"] == "finished"
     assert summary["num_samples"] == 4
-    assert summary["evaluate_success"] == 4
     assert "lrr" not in summary
     assert "breakthrough_rate" not in summary
     assert "mean_pcd" not in summary
-    assert "sample=" in progress
-    assert "best=" in progress
 
 
 def test_checkpoint_has_search_state_only_and_resumes(tmp_path: Path) -> None:
@@ -326,30 +278,6 @@ def test_checkpoint_has_search_state_only_and_resumes(tmp_path: Path) -> None:
     assert resumed.n_total_nodes == first.n_total_nodes + 2
     # Checkpoint resume must not depend on regenerating the same RNG seed.
     assert resumed.best_node is not None
-
-
-def test_artifacts_unit_llm_meta_strips_success_bodies(tmp_path: Path) -> None:
-    sink = RunArtifacts(run_dir=tmp_path)
-    sink.record_llm_call(
-        stage="action",
-        operator="trace_ideate",
-        sample_order=1,
-        iteration=0,
-        seq=0,
-        prompt="SECRET PROMPT",
-        response="SECRET RESPONSE",
-        n_actions=2,
-        prompt_tokens=10,
-        response_tokens=4,
-        sample_time=0.1,
-        token_count_mode="utf8_byte_upper_bound",
-        status="ok",
-    )
-    sink.finish()
-    call = _load_jsonl(tmp_path / "artifacts" / "llm_calls.jsonl")[0]
-    assert call["n_actions"] == 2
-    assert "prompt" not in call
-    assert "response" not in call
 
 
 def test_runner_v5_wires_run_dir_artifacts_and_checkpoint_paths(

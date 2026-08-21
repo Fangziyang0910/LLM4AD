@@ -5,14 +5,6 @@ from __future__ import annotations
 from .schema import OperatorName
 
 
-def classify_outcome(delta: float, positive_threshold: float = 1e-6) -> str:
-    if delta > positive_threshold:
-        return "improve"
-    if delta < -positive_threshold:
-        return "regress"
-    return "plateau"
-
-
 class Operator:
     name: OperatorName
     prompt_constraint: str
@@ -67,5 +59,4 @@ __all__ = [
     "TraceRefineOp",
     "TraceSynthesizeOp",
     "TraceTransferOp",
-    "classify_outcome",
 ]

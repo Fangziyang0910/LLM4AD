@@ -45,6 +45,13 @@ class Forest:
     def actions(self) -> tuple[Action, ...]:
         return tuple(self._actions.values())
 
+    def best(self) -> Program | None:
+        best = None
+        for program in self._programs.values():
+            if is_better(program, best):
+                best = program
+        return best
+
     def get_program(self, program_id: int) -> Program:
         return self._programs[program_id]
 

@@ -31,7 +31,6 @@ def test_v9_is_a_runner_version_with_core_defaults(tmp_path: Path) -> None:
     assert method._reference_temperature == 0.2
     assert method._exploration_constant == 0.1
     assert method._expansion_prior_weight == 1.0
-    assert method.search_configuration()["history_protocol"] == "matched_history"
 
 
 def test_v9_run_config_has_core_parameters(tmp_path: Path) -> None:

@@ -87,7 +87,7 @@ class SearchTree:
         sibling_seq: int,
         sample_order: int,
         positive_threshold: float = 1e-6,
-    ) -> tuple[ProgramNode, ImprovementEdge, list[dict[str, int | float | None]]]:
+    ) -> tuple[ProgramNode, ImprovementEdge]:
         parent = self.get_node(parent_id)
         edge_id = self._next_edge_id
         self._next_edge_id += 1
@@ -137,8 +137,8 @@ class SearchTree:
         )
         self._edges[edge.id] = edge
         parent.child_ids.append(child.id)
-        backup_changes = self.backup_from(parent.id)
-        return child, edge, backup_changes
+        self.backup_from(parent.id)
+        return child, edge
 
     def _new_node(
         self,
@@ -214,15 +214,10 @@ class SearchTree:
         self.get_node(selected_node_id).expansion_count += 1
         return path
 
-    def backup_from(self, node_id: int) -> list[dict[str, int | float | None]]:
-        changes: list[dict[str, int | float | None]] = []
-        root_before_value = self.root.subtree_value
-        root_before_best = self.root.subtree_best_node_id
+    def backup_from(self, node_id: int) -> None:
         current = node_id
         while current != self.root.id:
             node = self.get_node(current)
-            before_value = node.subtree_value
-            before_best = node.subtree_best_node_id
             candidates = [node, *(self.subtree_best(child) for child in node.child_ids)]
             best = candidates[0]
             for candidate in candidates[1:]:
@@ -230,32 +225,8 @@ class SearchTree:
                     best = candidate
             node.subtree_value = best.directed_fitness
             node.subtree_best_node_id = best.id
-            if before_value != node.subtree_value or before_best != best.id:
-                changes.append(
-                    {
-                        "node_id": node.id,
-                        "before_value": before_value,
-                        "after_value": node.subtree_value,
-                        "before_best_node_id": before_best,
-                        "after_best_node_id": best.id,
-                    }
-                )
             current = node.parent_id
         self._backup_root()
-        if (
-            root_before_value != self.root.subtree_value
-            or root_before_best != self.root.subtree_best_node_id
-        ):
-            changes.append(
-                {
-                    "node_id": self.root.id,
-                    "before_value": root_before_value,
-                    "after_value": self.root.subtree_value,
-                    "before_best_node_id": root_before_best,
-                    "after_best_node_id": self.root.subtree_best_node_id,
-                }
-            )
-        return changes
 
     def _backup_root(self) -> None:
         if not self.root.child_ids:

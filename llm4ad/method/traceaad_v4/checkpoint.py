@@ -1,10 +1,8 @@
-"""TraceAAD 搜索状态的原子化保存与恢复。"""
+"""TraceAAD 搜索状态的保存与恢复。"""
 
 from __future__ import annotations
 
 import json
-import os
-import tempfile
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Mapping
@@ -18,25 +16,6 @@ from .schema import (
     ValueVec,
 )
 from .trajectory_memory import TrajectoryMemory
-
-def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary = tempfile.mkstemp(
-        prefix=f"{path.name}.",
-        suffix=".tmp",
-        dir=path.parent,
-    )
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-            json.dump(payload, handle, indent=2, sort_keys=True)
-            handle.write("\n")
-        os.replace(temporary, path)
-    except BaseException:
-        try:
-            os.unlink(temporary)
-        except OSError:
-            pass
-        raise
 
 
 def _graph_to_dict(graph: DerivationGraph) -> dict[str, Any]:
@@ -70,10 +49,6 @@ def _graph_from_dict(payload: Mapping[str, Any]) -> DerivationGraph:
             iteration=item["iteration"],
         )
         graph._edges[edge.id] = edge
-        if edge.child_id in graph._incoming_edge_by_child:
-            raise ValueError(
-                f"checkpoint contains multiple parents for node {edge.child_id}"
-            )
         graph._incoming_edge_by_child[edge.child_id] = edge.id
     graph._next_node_id = int(payload["next_node_id"])
     graph._next_edge_id = int(payload["next_edge_id"])
@@ -123,11 +98,6 @@ def _memory_from_dict(payload: Mapping[str, Any]) -> TrajectoryMemory:
 
 def dump_state(method) -> dict[str, Any]:
     return {
-        "task_description": method._task_description_str,
-        "template_program": method._evaluation.template_program,
-        "function_name": method._function_to_evolve.name,
-        "maximize": method._maximize,
-        "search_configuration": _search_configuration(method),
         "initialization_complete": method._initialization_complete,
         "total_samples": method._tot_sample_nums,
         "next_attempt_id": method._next_attempt_id,
@@ -138,51 +108,16 @@ def dump_state(method) -> dict[str, Any]:
     }
 
 
-def _search_configuration(method) -> dict[str, Any]:
-    return {
-        "n_init": method._n_init,
-        "actions_per_iteration": method._actions_per_iteration,
-        "max_trajectory_length": method._memory.max_trajectory_length,
-        "max_active_trajectories": method._max_active_trajectories,
-        "management_threshold": method._management_threshold,
-        "elite_count": method._elite_count,
-        "diversity_count": method._diversity_count,
-        "softmax_temperature": method._softmax_temperature,
-        "value_weights": asdict(method._value_weights),
-        "operators": [operator.name for operator in method._operators],
-    }
-
-
 def load_state(method, payload: Mapping[str, Any]) -> None:
-    if payload.get("task_description") != method._task_description_str:
-        raise ValueError("checkpoint task description does not match the evaluation")
-    if payload.get("template_program") != method._evaluation.template_program:
-        raise ValueError("checkpoint template does not match the evaluation")
-    if payload.get("function_name") != method._function_to_evolve.name:
-        raise ValueError("checkpoint function does not match the evaluation template")
-    if bool(payload.get("maximize")) != method._maximize:
-        raise ValueError("checkpoint fitness direction does not match TraceAAD")
-    if payload.get("search_configuration") != _search_configuration(method):
-        raise ValueError("checkpoint search configuration does not match TraceAAD")
-
     graph = _graph_from_dict(payload["graph"])
-    memory = _memory_from_dict(payload["memory"])
     method._graph = graph
-    method._memory = memory
+    method._memory = _memory_from_dict(payload["memory"])
     method._tot_sample_nums = int(payload["total_samples"])
     method._next_attempt_id = int(payload.get("next_attempt_id", 0))
     method._initialization_complete = bool(payload.get("initialization_complete", True))
     best_id = payload.get("best_node_id")
     method._best_node = None if best_id is None else graph.get_node(int(best_id))
     method._best_trajectory_id = payload.get("best_trajectory_id")
-    artifacts = method._artifacts
-    if artifacts is not None:
-        best = method._best_node
-        artifacts.sync_after_resume(
-            total_samples=method._tot_sample_nums,
-            best_score=None if best is None else best.fitness,
-            best_sample_order=getattr(method, "_best_node_sample_order", None),
-        )
 
 
 def find_latest_checkpoint(path: str | Path) -> Path:
@@ -206,17 +141,18 @@ def save_checkpoint(method, directory: str | Path | None = None) -> Path | None:
         target = method._checkpoint_dir
     if target is None:
         return None
-    root = Path(target)
-    payload = dump_state(method)
-    latest = root / "latest.json"
-    _atomic_write(latest, payload)
+    latest = Path(target) / "latest.json"
+    latest.parent.mkdir(parents=True, exist_ok=True)
+    latest.write_text(
+        json.dumps(dump_state(method), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     method._last_checkpoint_sample = method._tot_sample_nums
     return latest
 
 
 def load_checkpoint(method, path: str | Path) -> Path:
     checkpoint = find_latest_checkpoint(path)
-    payload = json.loads(checkpoint.read_text(encoding="utf-8"))
-    load_state(method, payload)
+    load_state(method, json.loads(checkpoint.read_text(encoding="utf-8")))
     method._last_checkpoint_sample = method._tot_sample_nums
     return checkpoint

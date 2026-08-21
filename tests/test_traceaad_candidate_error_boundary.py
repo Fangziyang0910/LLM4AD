@@ -208,6 +208,8 @@ def build_method(
         "seed": 1,
         "resume_from": resume,
     }
+    if version in {"v9_7", "v9_7_co", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12", "v9_13"}:
+        family_kwargs.pop("context_limit")
     if version == "v9_7":
         return TraceAADV97(**family_kwargs)
     if version == "v9_7_co":
@@ -440,14 +442,31 @@ def test_pending_checkpoint_resume_evaluates_once(version: str, tmp_path: Path) 
 
 
 # ==============================================================================
-# 11. Transport errors: no budget consumed, retries exhausted, run fails
+# 11. Transport errors: no budget consumed, run fails
 # ==============================================================================
 
-@pytest.mark.parametrize("version", VERSIONS)
-def test_transport_errors_consume_no_budget_and_abort(version: str, tmp_path: Path) -> None:
+# All versions draw once and let the transport exception propagate directly.
+TRANSPORT_DIRECT_VERSIONS = [
+    "v4",
+    "v5",
+    "v8",
+    "v9",
+    "v9_7",
+    "v9_7_co",
+    "v9_8",
+    "v9_9",
+    "v9_10",
+    "v9_11",
+    "v9_12",
+    "v9_13",
+]
+
+
+@pytest.mark.parametrize("version", TRANSPORT_DIRECT_VERSIONS)
+def test_transport_errors_are_immediately_visible(version: str, tmp_path: Path) -> None:
     llm = TransportErrorLLM()
     method = build_method(version, llm, RawEvaluation(), tmp_path / version, budget=1)
-    with pytest.raises(RuntimeError, match="model transport retry limit exhausted"):
+    with pytest.raises(ConnectionError, match="connection refused"):
         method.run()
     assert eval_count(method) == 0
     assert valid_state_count(method, version) == 0

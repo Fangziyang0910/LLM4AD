@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import copy
 import hashlib
 import math
 import statistics
@@ -13,7 +12,7 @@ from ...base import Evaluation, Function, LLM, SecureEvaluator, TextFunctionProg
 from .artifacts import RunArtifacts
 from .checkpoint import load_checkpoint, save_checkpoint
 from .forest import Forest, is_better
-from .history import drop_oldest, one_line, parent_path, render_path
+from .history import one_line, parent_path, render_path
 from .prompt import (
     build_generation_prompt,
     build_root_prompt,
@@ -35,7 +34,6 @@ from .schema import (
 from .selection import select
 from .source import code_diff
 
-TRANSPORT_RETRIES = 3
 ERROR_MAX_CHARS = 360
 
 
@@ -58,27 +56,17 @@ class TraceAADV98:
         n_roots: int = INITIAL_ROOT_COUNT,
         maximize: bool = True,
         max_tokens: int = 8192,
-        context_limit: int | None = None,
         max_history: int = MAX_HISTORY_EVENTS,
         seed: int | None = 0,
         allocation_policy: AllocationPolicy | str = AllocationPolicy.FULL,
         max_responses: int = DEFAULT_MAX_RESPONSES,
         checkpoint_dir: str | Path | None = None,
         resume_from: str | Path | None = None,
-        debug_mode: bool = False,
     ) -> None:
         if min(budget, n_roots, max_tokens, max_history) <= 0:
             raise ValueError("budget, n_roots, max_tokens, and max_history must be positive")
-        if context_limit is None or context_limit <= 0:
-            raise ValueError("context_limit must be explicitly positive")
         if max_responses <= 0:
             raise ValueError("response safety limit must be positive")
-        if (
-            evaluation.use_numba_accelerate
-            or evaluation.use_protected_div
-            or evaluation.random_seed is not None
-        ):
-            raise ValueError("V9.8 requires candidate code to be executed unchanged")
         template = TextFunctionProgramConverter.text_to_program(evaluation.template_program)
         if template is None or len(template.functions) != 1:
             raise ValueError("TraceAAD V9.8 requires one evolvable template function")
@@ -86,19 +74,17 @@ class TraceAADV98:
         self._llm = llm
         self._log = artifacts
         self._task = evaluation.task_description
-        self._function: Function = copy.deepcopy(template.functions[0])
-        self._evaluator = SecureEvaluator(evaluation, debug_mode=debug_mode)
+        self._function: Function = template.functions[0]
+        self._evaluator = SecureEvaluator(evaluation)
         self._budget = budget
         self._n_roots = n_roots
         self._maximize = maximize
         self._max_tokens = max_tokens
-        self._context_limit = context_limit
         self._max_history = max_history
         self._seed = seed
         self._allocation_policy = AllocationPolicy(allocation_policy)
         self._max_responses = max_responses
         self._checkpoint_dir = None if checkpoint_dir is None else Path(checkpoint_dir)
-        llm.debug_mode = debug_mode
 
         self._forest = Forest(maximize=maximize)
         self._pending: Pending | None = None
@@ -109,7 +95,6 @@ class TraceAADV98:
         self._bootstrapped: set[int] = set()
         self._bootstrap_deltas: list[float] = []
         self._s0: float | None = None
-        self._best_id: int | None = None
 
         if resume_from is not None:
             checkpoint = load_checkpoint(self, resume_from)
@@ -118,23 +103,8 @@ class TraceAADV98:
 
     @property
     def best(self) -> Program | None:
-        """获取当前全局最优程序。"""
-        return None if self._best_id is None else self._forest.get_program(self._best_id)
-
-    def search_configuration(self) -> dict[str, Any]:
-        return {
-            "allocation_policy": self._allocation_policy.value,
-            "budget": self._budget,
-            "n_roots": self._n_roots,
-            "max_history": self._max_history,
-            "maximize": self._maximize,
-            "max_tokens": self._max_tokens,
-            "context_limit": self._context_limit,
-            "seed": self._seed,
-            "refine_probability": REFINE_PROBABILITY,
-            "explore_probability": 1.0 - REFINE_PROBABILITY,
-            "max_responses": self._max_responses,
-        }
+        """当前全局最优程序，按 (q, -length, -order) 现算。"""
+        return self._forest.best()
 
     def run(self) -> None:
         status = "error"
@@ -177,13 +147,11 @@ class TraceAADV98:
                 stop_reason = "evaluator_budget_exhausted"
         except Exception as exc:
             error = {"error_type": type(exc).__name__, "error": str(exc)[:1000]}
-            if self._log is not None:
-                self._log.record_error("run", exc)
             raise
         finally:
             save_checkpoint(self)
             if self._log is not None:
-                best = None if self._best_id is None else self._forest.get_program(self._best_id)
+                best = self.best
                 self._log.write_summary(
                     status=status,
                     stop_reason=stop_reason,
@@ -223,8 +191,6 @@ class TraceAADV98:
                 template_function=self._function,
                 maximize=self._maximize,
             )
-            if not self._fits(prompt):
-                raise RuntimeError("root prompt plus output bound exceeds context limit")
             self._request(
                 prompt,
                 anchor_id=None,
@@ -274,24 +240,17 @@ class TraceAADV98:
     def _prompt(self, anchor_id: int, intent: Intent) -> str:
         anchor = self._forest.get_anchor(anchor_id)
         program = self._forest.get_program(anchor.program_id)
-        selected = parent_path(self._forest, anchor_id, max_events=self._max_history)
-        shown = selected
-        while True:
-            prompt = build_generation_prompt(
-                task_description=self._task,
-                code=program.code,
-                fitness=program.fitness,
-                history_text=render_path(self._forest, shown),
-                intent=intent,
-                maximize=self._maximize,
-            )
-            if self._fits(prompt):
-                return prompt
-            if not shown:
-                raise RuntimeError(
-                    "task, current code, and output budget exceed context even without history"
-                )
-            shown = drop_oldest(shown)
+        return build_generation_prompt(
+            task_description=self._task,
+            code=program.code,
+            fitness=program.fitness,
+            history_text=render_path(
+                self._forest,
+                parent_path(self._forest, anchor_id, max_events=self._max_history),
+            ),
+            intent=intent,
+            maximize=self._maximize,
+        )
 
     def _request(
         self,
@@ -337,7 +296,6 @@ class TraceAADV98:
                 anchor_id=anchor_id,
                 generation_seed=generation_seed,
                 selection=selection,
-                prompt_tokens=self._tokens(prompt),
             )
         return self._resume_pending()
 
@@ -346,13 +304,10 @@ class TraceAADV98:
         if pending is None:
             raise RuntimeError("no pending request")
         if pending.response is None:
-            recovered = (
-                None
-                if self._log is None or not hasattr(self._log, "recovered_response")
-                else self._log.recovered_response(pending.response_id)
-            )
-            response = recovered if recovered is not None else self._draw(pending)
-            pending.response = response
+            kwargs: dict[str, Any] = {"max_tokens": self._max_tokens}
+            if pending.generation_seed is not None:
+                kwargs["seed"] = pending.generation_seed
+            pending.response = self._llm.draw_sample(pending.prompt, **kwargs)
             self._n_candidates += 1
             if pending.anchor_id is not None and pending.intent is not None:
                 self._forest.get_anchor(pending.anchor_id).increment(pending.intent)
@@ -360,56 +315,8 @@ class TraceAADV98:
                 self._forest.get_hypothesis(pending.hypothesis_id).increment(
                     pending.intent
                 )
-            if self._log is not None:
-                self._log.record_llm_call(
-                    response_id=pending.response_id,
-                    stage=pending.stage,
-                    iteration=pending.iteration,
-                    anchor_id=pending.anchor_id,
-                    hypothesis_id=pending.hypothesis_id,
-                    intent=pending.intent,
-                    order=pending.order,
-                    prompt_tokens=self._tokens(pending.prompt),
-                    response_tokens=self._tokens(response),
-                    status="ok",
-                    prompt=pending.prompt,
-                    raw_response=response,
-                    generation_seed=pending.generation_seed,
-                )
             save_checkpoint(self)
         return self._process_pending()
-
-    def _draw(self, pending: Pending) -> str:
-        last_error: Exception | None = None
-        kwargs: dict[str, Any] = {"max_tokens": self._max_tokens}
-        if pending.generation_seed is not None:
-            kwargs["seed"] = pending.generation_seed
-        for transport_attempt in range(1, TRANSPORT_RETRIES + 2):
-            try:
-                return self._llm.draw_sample(pending.prompt, **kwargs)
-            except Exception as exc:
-                last_error = exc
-                if self._log is not None:
-                    self._log.record_llm_call(
-                        response_id=pending.response_id,
-                        stage=pending.stage,
-                        iteration=pending.iteration,
-                        anchor_id=pending.anchor_id,
-                        hypothesis_id=pending.hypothesis_id,
-                        intent=pending.intent,
-                        order=pending.order,
-                        prompt_tokens=self._tokens(pending.prompt),
-                        response_tokens=0,
-                        status="transport",
-                        prompt=pending.prompt,
-                        raw_response="",
-                        generation_seed=pending.generation_seed,
-                        error_type=type(exc).__name__,
-                        error=str(exc),
-                        transport_attempt=transport_attempt,
-                    )
-                save_checkpoint(self)
-        raise RuntimeError("model transport retry limit exhausted") from last_error
 
     def _process_pending(self) -> Attempt:
         pending = self._pending
@@ -506,6 +413,7 @@ class TraceAADV98:
         parent = (
             None if parent_anchor is None else self._forest.get_program(parent_anchor.program_id)
         )
+        previous_best = self.best
         frontier_before = (
             None
             if pending.hypothesis_id is None
@@ -568,7 +476,8 @@ class TraceAADV98:
         if pending.stage == "search" and pending.iteration is not None:
             self._iteration = max(self._iteration, pending.iteration + 1)
 
-        is_new_best, _reason = self._update_best(program)
+        best = self.best
+        is_new_best = program is not None and is_better(program, previous_best)
         if program is not None and self._log is not None:
             self._log.record_program(
                 program_id=program.id,
@@ -578,28 +487,17 @@ class TraceAADV98:
                 order=program.order,
             )
         if is_new_best and program is not None and self._log is not None:
-            self._log.record_best(
-                response_id=pending.response_id,
-                code=program.code,
-                fitness=program.fitness,
-                q=program.q,
-                eval_count=self._n_eval,
-                iteration=pending.iteration,
-                order=pending.order,
-                program_id=program.id,
-            )
-        response = pending.response
+            self._log.record_best(code=program.code, fitness=program.fitness)
         selection = pending.selection
         self._pending = None
         save_checkpoint(self)
         self._record_attempt(
             attempt,
-            response=response,
-            code=code,
             error=error,
             evaluated=evaluated,
             status=status,
             is_new_best=is_new_best,
+            best_fitness=None if best is None else best.fitness,
             selection=selection,
         )
         return attempt
@@ -659,26 +557,15 @@ class TraceAADV98:
         )
         return program, child, child.hypothesis_id, "new"
 
-    def _update_best(self, program: Program | None) -> tuple[bool, str | None]:
-        if program is None:
-            return False, None
-        incumbent = None if self._best_id is None else self._forest.get_program(self._best_id)
-        if not is_better(program, incumbent):
-            return False, None
-        reason = "strict_fitness" if incumbent is None or program.q > incumbent.q else "tie_break"
-        self._best_id = program.id
-        return True, reason
-
     def _record_attempt(
         self,
         attempt: Attempt,
         *,
-        response: str,
-        code: str | None,
         error: str | None,
         evaluated: bool,
         status: str,
         is_new_best: bool,
+        best_fitness: float | None,
         selection: dict[str, Any] | None,
     ) -> None:
         if self._log is None:
@@ -695,7 +582,6 @@ class TraceAADV98:
             if attempt.program_id is None
             else self._forest.get_program(attempt.program_id).q
         )
-        best = None if self._best_id is None else self._forest.get_program(self._best_id)
         self._log.record_candidate(
             response_id=attempt.response_id,
             attempt_id=attempt.id,
@@ -723,26 +609,13 @@ class TraceAADV98:
             realized_gain=attempt.realized_gain,
             added=attempt.added,
             removed=attempt.removed,
-            diff=attempt.diff,
-            program=code or "",
-            raw_response=response,
             error=error,
             eval_count=self._n_eval,
-            best_fitness=None if best is None else best.fitness,
+            best_fitness=best_fitness,
             is_new_best=is_new_best,
             budget=self._budget,
             selection=selection,
         )
-
-    def _fits(self, prompt: str) -> bool:
-        return self._tokens(prompt) + self._max_tokens <= self._context_limit
-
-    def _tokens(self, text: str) -> int:
-        for name in ("count_prompt_tokens", "count_tokens"):
-            counter = getattr(self._llm, name, None)
-            if callable(counter):
-                return int(counter(text))
-        raise RuntimeError("model tokenizer is unavailable")
 
     def _has_budget(self) -> bool:
         return self._n_eval < self._budget

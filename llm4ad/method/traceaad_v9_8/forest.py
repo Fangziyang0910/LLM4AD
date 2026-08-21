@@ -49,6 +49,13 @@ class Forest:
     def attempts(self) -> tuple[Attempt, ...]:
         return tuple(self._attempts.values())
 
+    def best(self) -> Program | None:
+        best = None
+        for program in self._programs.values():
+            if is_better(program, best):
+                best = program
+        return best
+
     def get_program(self, program_id: int) -> Program:
         return self._programs[program_id]
 
@@ -71,8 +78,6 @@ class Forest:
         return None if program_id is None else self.get_program(program_id)
 
     def add_program(self, *, code: str, fitness: float, order: int) -> Program:
-        if self.program_for_code(code) is not None:
-            raise ValueError("program code is already present")
         program = Program(
             id=self._next_program_id,
             code=code,

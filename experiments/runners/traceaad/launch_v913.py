@@ -9,10 +9,10 @@ Per task and repeat, three sequential steps (design section 9):
    behaviorally the V9.7 protocol; using the V9.13 package keeps one
    checkpoint loader for all branches.
 2. ``fork``        — copy the completed prefix directory into a control
-   branch (``pp``) and a treatment branch (``fp``), rewrite the
-   copied checkpoint's config to the branch configuration (budget 1000 and
-   the branch treatment; forest and counters untouched), and record a fork
-   audit with hashes proving both branches restore the identical state.
+   branch (``pp``) and a treatment branch (``fp``) and rewrite the copied
+   run config to the branch configuration (budget 1000 and the branch
+   treatment; checkpoint state untouched), and record a fork audit with
+   hashes proving both branches restore the identical state.
 3. branch runs     — both branches resume their forked checkpoint with the
    same seed, intent schedule, budget, and recovery rules to 1000 real
    evaluator calls.
@@ -159,11 +159,11 @@ def _state_fingerprint(checkpoint: dict[str, Any]) -> dict[str, Any]:
         "n_eval": checkpoint["n_eval"],
         "iteration": checkpoint["iteration"],
         "s": checkpoint["s"],
-        "best_id": checkpoint["best_id"],
         "pending": checkpoint["pending"] is None,
         "bootstrapped": checkpoint["bootstrapped"],
         "bootstrap_deltas": checkpoint["bootstrap_deltas"],
         "initialization_complete": checkpoint["initialization_complete"],
+        "treatment_counters": checkpoint["treatment_counters"],
     }
 
 
@@ -184,9 +184,6 @@ def fork_prefix(unit: Unit, *, treatment: str) -> None:
         shutil.copytree(unit.prefix_dir, target, ignore=shutil.ignore_patterns("tmux_run.log"))
         branch_spec = _branch_spec(unit, treatment=branch_treatment)
         expected_params = run_module._v913_method_params(branch_spec)
-        checkpoint_payload = _read_json(target / "checkpoints" / "latest.json")
-        checkpoint_payload["config"] = expected_params
-        _write_json(target / "checkpoints" / "latest.json", checkpoint_payload)
         run_config = _read_json(target / "run_config.json")
         run_config["method_params"] = expected_params
         run_config["forked_from"] = unit.prefix_dir.name
@@ -230,12 +227,12 @@ def audit_fork(unit: Unit) -> dict[str, Any]:
     ):
         checkpoint = _read_json(run_dir / "checkpoints" / "latest.json")
         branch = _state_fingerprint(checkpoint)
-        config = checkpoint["config"]
+        params = _read_json(run_dir / "run_config.json")["method_params"]
         report["branches"][role] = {
             "run_dir": run_dir.name,
             "state_matches_prefix": branch == prefix,
-            "budget": config.get("budget"),
-            "treatment": config.get("treatment"),
+            "budget": params.get("budget"),
+            "treatment": params.get("treatment"),
             "expected_treatment": treatment,
         }
     ok = (

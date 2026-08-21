@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
-import tempfile
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Mapping
@@ -19,24 +17,6 @@ from .schema import (
     ValueVec,
 )
 from .trajectory_memory import TrajectoryMemory
-
-
-def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary = tempfile.mkstemp(
-        prefix=f"{path.name}.", suffix=".tmp", dir=path.parent
-    )
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-            json.dump(payload, handle, indent=2, sort_keys=True)
-            handle.write("\n")
-        os.replace(temporary, path)
-    except BaseException:
-        try:
-            os.unlink(temporary)
-        except OSError:
-            pass
-        raise
 
 
 def _graph_to_dict(graph: DerivationGraph) -> dict[str, Any]:
@@ -81,10 +61,6 @@ def _graph_from_dict(payload: Mapping[str, Any]) -> DerivationGraph:
             new_global_best=bool(item["new_global_best"]),
             global_best_update_reason=item["global_best_update_reason"],
         )
-        if edge.child_id in graph._incoming_edge_by_child:
-            raise ValueError(
-                f"checkpoint contains multiple parents for node {edge.child_id}"
-            )
         graph._edges[edge.id] = edge
         graph._incoming_edge_by_child[edge.child_id] = edge.id
     graph._next_node_id = int(payload["next_node_id"])
@@ -125,12 +101,6 @@ def _memory_from_dict(payload: Mapping[str, Any]) -> TrajectoryMemory:
             ),
             scalar_value=item["scalar_value"],
         )
-        if len(route.node_ids) != len(route.edge_ids) + 1:
-            raise ValueError(f"inconsistent trajectory path: {route.id}")
-        if len(route.node_ids) > memory.max_trajectory_length:
-            raise ValueError(f"trajectory exceeds configured length: {route.id}")
-        if route.compact_best_id not in route.node_ids:
-            raise ValueError(f"compact best is outside trajectory: {route.id}")
         memory._trajectories[route.id] = route
     return memory
 
@@ -165,14 +135,6 @@ def load_state(method, payload: Mapping[str, Any]) -> None:
     best_route = payload["best_trajectory_id"]
     method._best_trajectory_id = None if best_route is None else int(best_route)
     method._rng.setstate(_as_tuple(payload["rng_state"]))
-    artifacts = method._artifacts
-    if artifacts is not None:
-        best = method._best_node
-        artifacts.sync_after_resume(
-            total_samples=method._tot_sample_nums,
-            best_score=None if best is None else best.fitness,
-            best_sample_order=method._best_node_sample_order,
-        )
 
 
 def _as_tuple(value):
@@ -186,7 +148,11 @@ def save_checkpoint(method, directory: str | Path | None = None) -> Path | None:
     if target is None:
         return None
     latest = Path(target) / "latest.json"
-    _atomic_write(latest, dump_state(method))
+    latest.parent.mkdir(parents=True, exist_ok=True)
+    latest.write_text(
+        json.dumps(dump_state(method), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     method._last_checkpoint_sample = method._tot_sample_nums
     return latest
 

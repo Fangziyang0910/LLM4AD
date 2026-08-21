@@ -110,7 +110,6 @@ def test_co_smoke_run_and_events(tmp_path: Path) -> None:
         evaluation=ConstantEvaluation(),
         artifacts=RunArtifacts(tmp_path, console_output=False),
         budget=30,
-        context_limit=32768,
         checkpoint_dir=tmp_path / "checkpoints",
         seed=3,
     )
@@ -138,10 +137,9 @@ def test_runner_builds_co_arm(tmp_path: Path) -> None:
     assert isinstance(method, TraceAADV97CO)
     assert spec.method_name == "traceaad_v9_7_co"
     assert spec.n_init == 8
-    assert spec.context_token_limit == 32768
-    config = method.search_configuration()
-    assert config["generation_context"] == "code_only"
-    assert config == run._v97co_method_params(spec)
+    params = run._v97co_method_params(spec)
+    assert params["generation_context"] == "code_only"
+    assert "context_limit" not in params
     with pytest.raises(ValueError, match="exactly eight"):
         run.make_run_spec(
             task="tsp_construct", version="v9_7_co", n_init=10, experiments_root=tmp_path

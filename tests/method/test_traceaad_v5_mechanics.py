@@ -496,7 +496,6 @@ def test_traceaad_v5_checkpoint_resumes_search_state(tmp_path: Path) -> None:
     assert resumed.n_total_nodes == first.n_total_nodes + 2
     summary = json.loads((tmp_path / "logs" / "summary.json").read_text())
     assert summary["num_samples"] == 5
-    assert summary["evaluate_success"] >= 2
     assert (tmp_path / "artifacts" / "candidates.jsonl").is_file()
     assert (tmp_path / "artifacts" / "edges.jsonl").is_file()
     llm_calls = [
@@ -525,23 +524,20 @@ def test_traceaad_v5_writes_partial_summary_and_checkpoint_on_exception(
         artifacts=RunArtifacts(run_dir=tmp_path),
         max_sample_nums=2,
         n_init=1,
-        debug_mode=True,
         checkpoint_dir=checkpoint.parent,
     )
 
     try:
         method.run()
     except RuntimeError as exc:
-        assert str(exc) == "model transport retry limit exhausted"
-        assert isinstance(exc.__cause__, RuntimeError)
-        assert str(exc.__cause__) == "generation broke"
+        assert str(exc) == "generation broke"
     else:
         raise AssertionError("expected generation failure")
 
     summary = json.loads((tmp_path / "logs" / "summary.json").read_text())
     assert summary["status"] == "error"
     assert summary["error_type"] == "RuntimeError"
-    assert summary["error"] == "model transport retry limit exhausted"
+    assert summary["error"] == "generation broke"
     assert summary["num_samples"] == 0
     assert checkpoint.is_file()
 
@@ -559,7 +555,7 @@ def test_traceaad_v5_abort_during_init_keeps_initialization_incomplete(
     from llm4ad.method.traceaad_v5.operators import TraceIdeateOp
 
     checkpoint_dir = tmp_path / "checkpoints"
-    with pytest.raises(RuntimeError, match="model transport retry limit exhausted"):
+    with pytest.raises(RuntimeError, match="llm unavailable"):
         TraceAADV5(
             llm=AlwaysFailLLM(),
             evaluation=IncreasingEvaluation(),

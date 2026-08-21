@@ -34,7 +34,7 @@ from llm4ad.method.traceaad_v9_13 import (
     FRONTIER_ACTIVATION_EVALS,
     Treatment,
 )
-from llm4ad.method.traceaad_v9_13.checkpoint import dump_state
+from llm4ad.method.traceaad_v9_13.checkpoint import load_checkpoint, save_checkpoint
 from llm4ad.method.traceaad_v9_13.forest import Forest
 from llm4ad.method.traceaad_v9_13.prompt import build_generation_prompt
 from llm4ad.method.traceaad_v9_13.regions import RegionView
@@ -88,7 +88,6 @@ def _method(**overrides) -> TraceAADV913:
         budget=10,
         task_key="tsp_construct",
         n_roots=1,
-        context_limit=32768,
         seed=0,
     )
     kwargs.update(overrides)
@@ -261,7 +260,6 @@ def test_v913_smoke_run_records_treatment_columns(tmp_path: Path) -> None:
         artifacts=RunArtifacts(tmp_path, console_output=False),
         budget=30,
         task_key="tsp_construct",
-        context_limit=32768,
         checkpoint_dir=tmp_path / "checkpoints",
         seed=3,
     )
@@ -278,7 +276,7 @@ def test_v913_smoke_run_records_treatment_columns(tmp_path: Path) -> None:
     assert "treatment" in header and "reference_program_id" not in header
 
 
-def test_v913_checkpoint_roundtrip_rebuilds_the_region_view() -> None:
+def test_v913_checkpoint_roundtrip_rebuilds_the_region_view(tmp_path: Path) -> None:
     method = _seeded_forest_method(treatment="fp")
     method._forest.add_program(
         code="def f():\n    return apply_2_opt(d)", fitness=-6.0, order=2
@@ -287,18 +285,17 @@ def test_v913_checkpoint_roundtrip_rebuilds_the_region_view() -> None:
         code="def b():\n    return beam_width(x)", fitness=-5.5, order=3
     )
     expected = method._build_region_view()
-    payload = json.loads(json.dumps(dump_state(method)))
+    save_checkpoint(method, tmp_path)
 
     restored = _method(treatment="fp", budget=1000)
-    from llm4ad.method.traceaad_v9_13.checkpoint import load_state
-
-    load_state(restored, payload)
+    load_checkpoint(restored, tmp_path / "latest.json")
     assert [row.program_id for row in restored._regions.frontier_rows()] == [
         row.program_id for row in expected.frontier_rows()
     ]
     assert restored._regions.frontier_text("completion_rollout") == (
         expected.frontier_text("completion_rollout")
     )
+    assert restored._treatment_counters == method._treatment_counters
 
 
 def test_v913_rejects_unknown_task_and_treatment() -> None:
@@ -321,9 +318,9 @@ def test_v913_runner_builds_frozen_method(tmp_path: Path) -> None:
     assert spec.method_name == "traceaad_v9_13"
     assert spec.n_init == 8
     assert spec.context_token_limit == 32768
-    assert method.search_configuration() == run._v913_method_params(spec)
-    assert method.search_configuration()["treatment"] == "fp"
-    assert method.search_configuration()["task_key"] == "tsp_construct"
+    assert method._treatment == "fp"
+    assert method._task_key == "tsp_construct"
+    assert method._budget == 1000
     method._llm.close()
 
     with pytest.raises(ValueError, match="exactly eight"):
@@ -492,9 +489,7 @@ def _write_fake_prefix(root: Path, batch: str = "testbatch") -> Path:
     method._initialization_complete = True
     prefix_dir = root / "experiments" / task / "traceaad_v9_13" / f"v9_13p_{batch}_{task}_rep1"
     prefix_dir.mkdir(parents=True)
-    (prefix_dir / "checkpoints").mkdir()
-    payload = dump_state(method)
-    (prefix_dir / "checkpoints" / "latest.json").write_text(json.dumps(payload))
+    save_checkpoint(method, prefix_dir / "checkpoints")
     (prefix_dir / "logs").mkdir()
     (prefix_dir / "logs" / "summary.json").write_text(
         json.dumps({"status": "finished", "evaluator_call_count": PREFIX_BUDGET})
@@ -513,13 +508,10 @@ def test_stage_a_fork_rewrites_config_and_keeps_state(tmp_path: Path) -> None:
     prefix_state = json.loads((prefix_dir / "checkpoints" / "latest.json").read_text())
     for role_dir, treatment in ((unit.ctl_dir, "pp"), (unit.trt_dir, "fp")):
         payload = json.loads((role_dir / "checkpoints" / "latest.json").read_text())
-        assert payload["forest"] == prefix_state["forest"]
-        assert payload["n_eval"] == prefix_state["n_eval"]
-        config = payload["config"]
-        assert config["budget"] == 1000
-        assert config["treatment"] == treatment
+        assert payload == prefix_state  # checkpoint copied byte-for-byte
         run_config = json.loads((role_dir / "run_config.json").read_text())
-        assert run_config["method_params"] == config
+        assert run_config["method_params"]["budget"] == 1000
+        assert run_config["method_params"]["treatment"] == treatment
         assert run_config["branch_treatment"] == treatment
         assert run_config["forked_from"] == prefix_dir.name
 
@@ -527,6 +519,8 @@ def test_stage_a_fork_rewrites_config_and_keeps_state(tmp_path: Path) -> None:
     assert report["ok"] is True
     assert report["branches"]["control"]["state_matches_prefix"] is True
     assert report["branches"]["treatment"]["state_matches_prefix"] is True
+    assert report["branches"]["treatment"]["treatment"] == "fp"
+    assert report["branches"]["control"]["budget"] == 1000
 
     with pytest.raises(FileExistsError):
         fork_prefix(unit, treatment="fp")

@@ -14,7 +14,7 @@ from llm4ad.method.traceaad_v9_10 import (
     RunArtifacts,
     TraceAADV910,
 )
-from llm4ad.method.traceaad_v9_10.checkpoint import dump_state, load_state
+from llm4ad.method.traceaad_v9_10.checkpoint import load_checkpoint, save_checkpoint
 from llm4ad.method.traceaad_v9_10.forest import Forest
 from llm4ad.method.traceaad_v9_10.schema import (
     Action,
@@ -471,7 +471,6 @@ def test_smoke_run_settles_every_improving_action_and_streams_facts(
         evaluation=IncreasingEvaluation(),
         artifacts=artifacts,
         budget=20,
-        context_limit=32768,
         checkpoint_dir=tmp_path / "checkpoints",
         seed=3,
     )
@@ -551,7 +550,6 @@ def test_response_safety_limit_marks_resumable_protocol_failure(
         budget=20,
         n_roots=2,
         max_responses=6,
-        context_limit=32768,
         checkpoint_dir=tmp_path / "checkpoints",
         seed=1,
     )
@@ -578,9 +576,9 @@ def test_runner_builds_v910_and_records_config(tmp_path: Path) -> None:
     )
     method = run.build_method(spec, tmp_path / "run")
     assert isinstance(method, TraceAADV910)
-    assert method.search_configuration() == run._v910_method_params(spec)
     assert spec.n_init == 8
     assert method._n_roots == 8
+    assert not hasattr(method, "_context_limit")
     run_dir, run_name, _ = run.resolve_run_dir(spec)
     run.write_run_config(spec, run_dir, run_name)
     payload = json.loads((run_dir / "run_config.json").read_text())
@@ -601,7 +599,6 @@ def test_checkpoint_round_trip_preserves_actions_and_pending_resume(
         evaluation=IncreasingEvaluation(),
         budget=20,
         n_roots=1,
-        context_limit=32768,
         checkpoint_dir=tmp_path / "source",
     )
     program = source._forest.add_program(
@@ -630,7 +627,7 @@ def test_checkpoint_round_trip_preserves_actions_and_pending_resume(
             "def choose(value: int) -> int:\n    return value + 10\n```"
         ),
     )
-    payload = json.loads(json.dumps(dump_state(source)))
+    save_checkpoint(source)
 
     resumed_llm = ScriptedLLM()
     resumed_evaluation = IncreasingEvaluation()
@@ -640,10 +637,9 @@ def test_checkpoint_round_trip_preserves_actions_and_pending_resume(
         evaluation=resumed_evaluation,
         budget=20,
         n_roots=1,
-        context_limit=32768,
         checkpoint_dir=tmp_path / "resumed",
     )
-    load_state(resumed, payload)
+    load_checkpoint(resumed, tmp_path / "source" / "latest.json")
     resumed._resume_pending()
 
     assert resumed_llm.calls == 0
@@ -655,63 +651,6 @@ def test_checkpoint_round_trip_preserves_actions_and_pending_resume(
     assert len(actions) == 1
     assert actions[0].status is ActionStatus.SETTLED
     assert actions[0].result == 1
-
-
-def test_pending_request_recovers_durably_logged_response_before_redraw(
-    tmp_path: Path,
-) -> None:
-    run_dir = tmp_path / "run"
-    first_artifacts = RunArtifacts(run_dir, console_output=False)
-    response = (
-        "Idea: durable\nCode:\n```python\n"
-        "def choose(value: int) -> int:\n    return value + 20\n```"
-    )
-    first_artifacts.record_llm_call(
-        response_id="v910-r000001-a000000",
-        status="ok",
-        transport_attempt=1,
-        raw_response=response,
-    )
-    first_artifacts.finish()
-
-    artifacts = RunArtifacts(run_dir, console_output=False)
-    llm = ScriptedLLM()
-    method = TraceAADV910(
-        llm=llm,
-        evaluation=IncreasingEvaluation(),
-        artifacts=artifacts,
-        budget=20,
-        n_roots=1,
-        context_limit=32768,
-        checkpoint_dir=run_dir / "checkpoints",
-    )
-    program = method._forest.add_program(
-        code="def choose(value: int) -> int:\n    return value\n",
-        fitness=1.0,
-        order=1,
-    )
-    anchor = method._forest.add_root(program_id=program.id, order=1)
-    method._initialization_complete = True
-    method._pending = Pending(
-        id=method._forest.next_action_id(),
-        response_id="v910-r000001-a000000",
-        anchor_id=anchor.id,
-        stage="search",
-        iteration=0,
-        order=1,
-        intent="refine",
-        prompt="original prompt",
-        generation_seed=1,
-        selection=None,
-        response=None,
-    )
-
-    method._resume_pending()
-
-    assert llm.calls == 0
-    assert method._n_candidates == 1
-    assert method._n_eval == 1
-    artifacts.finish()
 
 
 class CodeValueEvaluation(Evaluation):
@@ -739,7 +678,6 @@ def test_interrupted_resume_reproduces_uninterrupted_trajectory(
     common = {
         "evaluation": CodeValueEvaluation(),
         "budget": 24,
-        "context_limit": 32768,
         "seed": 9,
     }
     uninterrupted = TraceAADV910(
@@ -777,9 +715,9 @@ def test_interrupted_resume_reproduces_uninterrupted_trajectory(
     )
     resumed.run()
 
-    assert dump_state(uninterrupted)["forest"] == dump_state(resumed)["forest"]
+    assert resumed._forest.to_dict() == uninterrupted._forest.to_dict()
     assert resumed._n_eval == uninterrupted._n_eval == 24
-    assert resumed._best_id == uninterrupted._best_id
+    assert resumed.best == uninterrupted.best
 
 
 def test_formal_launcher_resumes_existing_incomplete_run(
