@@ -59,17 +59,22 @@ def load_scored_samples(
                     raise RuntimeError(f"Cannot parse {candidates_path}: {error}") from error
                 records.extend(_filter_scored([record], max_sample_order=max_sample_order))
 
-    # Some completed TraceAAD runs (including the local Qwen3.8 V9.7 batch and
-    # V9.8) write the selected final program explicitly and keep its score and
-    # response order in the completed run summary, without the legacy candidates
-    # JSONL stream. Treat this as a single auditable scored sample.
+    # Some completed TraceAAD runs (including the local Qwen3.8 V9.7 batch,
+    # V9.8, and V9.14) write the selected final program explicitly and keep its
+    # score and response order in the completed run summary, without the legacy
+    # candidates JSONL stream. Treat this as a single auditable scored sample.
+    # V9.14 identifies the best algorithm by tree node id instead of response
+    # order.
     if not records:
         best_program_path = run_dir / "best_program.py"
         summary_path = run_dir / "logs" / "summary.json"
         if best_program_path.exists() and summary_path.exists():
             summary = json.loads(summary_path.read_text(encoding="utf-8"))
             score = summary.get("best_score")
-            sample_order = summary.get("best_response_order", summary.get("best_sample_order"))
+            sample_order = summary.get(
+                "best_response_order",
+                summary.get("best_sample_order", summary.get("best_algorithm_id")),
+            )
             if isinstance(score, (int, float)) and isinstance(sample_order, int):
                 if max_sample_order is None or sample_order <= max_sample_order:
                     records.append(
