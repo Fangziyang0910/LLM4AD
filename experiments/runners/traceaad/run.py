@@ -135,6 +135,7 @@ from llm4ad.method.traceaad_v9_15 import (
     RunArtifacts as V915RunArtifacts,
     TraceAADV915,
 )
+from llm4ad.method.traceaad_v9_15_eh import TraceAADV915EH
 
 from .._common import (
     ALL_TASKS,
@@ -166,6 +167,7 @@ VersionName = Literal[
     "v9_13",
     "v9_14",
     "v9_15",
+    "v9_15_eh",
 ]
 
 VERSIONS: tuple[VersionName, ...] = (
@@ -183,7 +185,9 @@ VERSIONS: tuple[VersionName, ...] = (
     "v9_13",
     "v9_14",
     "v9_15",
+    "v9_15_eh",
 )
+TRACEAAD_V915_VERSIONS = {"v9_15", "v9_15_eh"}
 V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
 V9_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V9_OPERATORS]
 
@@ -282,7 +286,7 @@ def make_run_spec(
             else V914_INITIAL_ROOT_COUNT
             if version == "v9_14"
             else V915_INITIAL_ROOT_COUNT
-            if version == "v9_15"
+            if version in TRACEAAD_V915_VERSIONS
             else V97CO_INITIAL_ROOT_COUNT
             if version == "v9_7_co"
             else 10
@@ -309,6 +313,7 @@ def make_run_spec(
                 "v9_13",
                 "v9_14",
                 "v9_15",
+                "v9_15_eh",
             }
             else 24576
             if context_token_limit is None
@@ -360,8 +365,8 @@ def make_run_spec(
         V913Treatment(spec.treatment)
     if spec.version == "v9_14" and spec.n_init != V914_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.14 requires exactly eight initial roots")
-    if spec.version == "v9_15" and spec.n_init != V915_INITIAL_ROOT_COUNT:
-        raise ValueError("TraceAAD V9.15 requires exactly eight initial roots")
+    if spec.version in TRACEAAD_V915_VERSIONS and spec.n_init != V915_INITIAL_ROOT_COUNT:
+        raise ValueError("TraceAAD V9.15 variants require exactly eight initial roots")
     if spec.eval_workers is not None and spec.eval_workers <= 0:
         raise ValueError("eval_workers must be positive")
     if spec.llm_output_tokens <= 0:
@@ -517,6 +522,20 @@ def build_method(
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
         )
+    if spec.version == "v9_15_eh":
+        return TraceAADV915EH(
+            llm=llm,
+            evaluation=evaluation,
+            artifacts=V915RunArtifacts(run_dir=run_dir),
+            budget=spec.budget,
+            n_roots=spec.n_init,
+            max_tokens=spec.llm_output_tokens,
+            max_history=V915_MAX_HISTORY_EVENTS,
+            seed=spec.seed,
+            error_retries=1,
+            resume_from=resume_from,
+            checkpoint_dir=run_dir / "checkpoints",
+        )
     if spec.version == "v9_15":
         return TraceAADV915(
             llm=llm,
@@ -623,6 +642,7 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         "v9_13",
         "v9_14",
         "v9_15",
+        "v9_15_eh",
     }:
         return
     _, task_kwargs = build_task(spec.task, spec.eval_workers)
@@ -638,6 +658,7 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         "v9_13",
         "v9_14",
         "v9_15",
+        "v9_15_eh",
     }:
         if spec.version == "v9_7":
             expected_method_params = _v97_method_params(spec)
@@ -657,6 +678,8 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
             expected_method_params = _v914_method_params(spec)
         elif spec.version == "v9_15":
             expected_method_params = _v915_method_params(spec)
+        elif spec.version == "v9_15_eh":
+            expected_method_params = _v915_eh_method_params(spec)
         else:
             expected_method_params = _v910_method_params(spec)
         expected_protocol = {
@@ -785,6 +808,8 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         method_params = _v914_method_params(spec)
     elif spec.version == "v9_15":
         method_params = _v915_method_params(spec)
+    elif spec.version == "v9_15_eh":
+        method_params = _v915_eh_method_params(spec)
     elif spec.version in {"v8", "v9"}:
         method_params = {
             "max_sample_nums": spec.budget,
@@ -860,6 +885,7 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         "v9_13",
         "v9_14",
         "v9_15",
+        "v9_15_eh",
     }:
         payload["generator_environment"] = _versioned_generator_environment(spec)
         if spec.version == "v9_8":
@@ -888,7 +914,7 @@ def _versioned_logical_model_name(spec: RunSpec) -> str:
         return V912_LOGICAL_MODEL_NAME
     if spec.version == "v9_14":
         return "Qwen3.6-27B"
-    if spec.version == "v9_15":
+    if spec.version in TRACEAAD_V915_VERSIONS:
         return "Qwen3.6-27B"
     if spec.version == "v9_13":
         return V913_LOGICAL_MODEL_NAME
@@ -1074,6 +1100,19 @@ def _v915_method_params(spec: RunSpec) -> dict[str, object]:
         "ess_fraction": V915_ESS_FRACTION,
         "min_ess_target": V915_MIN_ESS_TARGET,
     }
+
+
+def _v915_eh_method_params(spec: RunSpec) -> dict[str, object]:
+    params = _v915_method_params(spec)
+    params.update(
+        {
+            "error_handling": True,
+            "error_retries": 1,
+            "retry_policy": "single_bounded_repair",
+            "retry_budget": "real_evaluator_calls",
+        }
+    )
+    return params
 
 
 def _v98_implementation_identity() -> dict[str, object]:

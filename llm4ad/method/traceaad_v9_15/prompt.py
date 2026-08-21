@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import ast
 import re
 from dataclasses import dataclass
 
@@ -42,7 +43,11 @@ def fitness_direction_hint(maximize: bool) -> str:
 
 
 def build_root_prompt(
-    *, task_description: str, template_function: Function, maximize: bool
+    *,
+    task_description: str,
+    template_function: Function,
+    maximize: bool,
+    error_handling: bool = False,
 ) -> str:
     target = copy.deepcopy(template_function)
     target.body = ""
@@ -60,6 +65,7 @@ def build_root_prompt(
             "[Instruction]",
             "Create one complete, valid, and competitive initial algorithm.",
             "Avoid a placeholder or trivial baseline.",
+            *_reliability_contract(error_handling),
             _output_contract(),
         ]
     )
@@ -73,6 +79,7 @@ def build_generation_prompt(
     history_text: str,
     intent: Intent,
     maximize: bool,
+    error_handling: bool = False,
 ) -> str:
     return "\n".join(
         [
@@ -92,6 +99,7 @@ def build_generation_prompt(
             INTENT_INSTRUCTIONS[intent],
             "Keep the target function signature and contract unchanged.",
             "Return one complete, self-contained implementation.",
+            *_reliability_contract(error_handling),
             _output_contract(),
         ]
     )
@@ -108,6 +116,74 @@ def _output_contract() -> str:
             "```",
         ]
     )
+
+
+def _reliability_contract(enabled: bool) -> tuple[str, ...]:
+    if not enabled:
+        return ()
+    return (
+        "Reliability constraints:",
+        "Keep execution bounded; do not use unbounded loops or recursion.",
+        "Return a value that satisfies the target function contract on every call.",
+        "Do not mutate input objects unless the task explicitly permits it.",
+    )
+
+
+def build_repair_prompt(
+    *,
+    task_description: str,
+    parent_code: str | None,
+    failed_code: str,
+    error: str,
+    intent: Intent | None,
+    maximize: bool,
+    reliability: bool = True,
+) -> str:
+    intent_text = "initialization" if intent is None else intent.value
+    parent_block = (
+        "No evaluated parent code is available; repair the failed initial candidate."
+        if parent_code is None
+        else "[Evaluated Parent]\n```python\n" + parent_code.rstrip() + "\n```"
+    )
+    return "\n".join(
+        [
+            "[Task]",
+            task_description.strip(),
+            fitness_direction_hint(maximize),
+            "",
+            parent_block,
+            "",
+            "[Failed Candidate]",
+            "```python",
+            failed_code.rstrip(),
+            "```",
+            f"Failure during {intent_text}: {error}",
+            "",
+            "[Instruction]",
+            "Repair the failed candidate with the smallest change that addresses the reported failure.",
+            "Preserve the intended algorithmic idea and the target function signature.",
+            *_reliability_contract(reliability),
+            _output_contract(),
+        ]
+    )
+
+
+def preflight_code(code: str, function_name: str) -> str | None:
+    """Run cheap syntax/target checks before the evaluator executes code."""
+    try:
+        tree = ast.parse(code)
+        compile(tree, "<traceaad-candidate>", "exec")
+    except (SyntaxError, ValueError, TypeError) as exc:
+        return f"preflight_syntax: {exc}"
+    definitions = [
+        node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name == function_name
+    ]
+    if len(definitions) != 1:
+        return f"preflight_signature: expected one top-level function {function_name!r}"
+    return None
 
 
 def parse_program_response(response: str) -> ParsedCandidate:
@@ -153,8 +229,10 @@ __all__ = [
     "INTENT_INSTRUCTIONS",
     "ParsedCandidate",
     "build_generation_prompt",
+    "build_repair_prompt",
     "build_root_prompt",
     "extract_idea",
     "fitness_direction_hint",
     "parse_program_response",
+    "preflight_code",
 ]

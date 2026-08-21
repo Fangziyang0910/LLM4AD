@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import csv
 import json
-import math
 from pathlib import Path
 
 import pytest
 
 from llm4ad.base import Evaluation, LLM
 from llm4ad.method.traceaad_v9_15 import RunArtifacts, TraceAADV915
+from llm4ad.method.traceaad_v9_15.prompt import preflight_code
+from llm4ad.method.traceaad_v9_15_eh import TraceAADV915EH
 from llm4ad.method.traceaad_v9_15.checkpoint import save_checkpoint
 from llm4ad.method.traceaad_v9_15.selection import (
     boltzmann_probabilities,
@@ -327,6 +328,39 @@ def test_failed_evaluation_consumes_budget_counts_and_stagnation(
     assert rows[0]["status"] == "ok"
     assert rows[1]["status"] == "exec_error"
     assert rows[1]["n_stag"] == "1"
+
+
+def test_preflight_checks_syntax_and_target_function() -> None:
+    assert preflight_code("def choose(value):\n    return value\n", "choose") is None
+    assert preflight_code("def choose(value):\n    return value\n", "other")
+    assert preflight_code("def choose(value)\n    return value\n", "choose")
+
+
+def test_error_handling_repairs_once_and_logs_each_real_evaluation(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "error_handling"
+    method = TraceAADV915EH(
+        llm=ScriptedLLM([10.0, 11.0, 12.0], invalid_at={2}),
+        evaluation=IncrementalEvaluation(),
+        artifacts=RunArtifacts(run_dir, console_output=False),
+        budget=3,
+        n_roots=1,
+    )
+    method.run()
+
+    assert method._n_eval == 3
+    assert method._llm.calls == 3
+    assert method.best.fitness == 12.0
+    with (run_dir / "evaluations.csv").open() as handle:
+        rows = list(csv.DictReader(handle))
+    assert [row["attempt_kind"] for row in rows] == ["initial", "initial", "repair"]
+    assert rows[1]["status"] == "exec_error"
+    assert rows[1]["error_type"] == "SyntaxError"
+    assert rows[2]["status"] == "ok"
+    assert rows[2]["attempt"] == "2"
+    assert all(row["candidate_hash"] for row in rows)
+    assert all(float(row["elapsed_seconds"]) >= 0.0 for row in rows)
 
 
 def test_checkpoint_round_trips_stagnation_and_counters(tmp_path: Path) -> None:

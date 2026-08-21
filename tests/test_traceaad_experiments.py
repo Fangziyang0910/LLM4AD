@@ -20,6 +20,7 @@ from llm4ad.method.traceaad_v9_12 import TraceAADV912
 from llm4ad.method.traceaad_v9_13 import TraceAADV913
 from llm4ad.method.traceaad_v9_14 import TraceAADV914
 from llm4ad.method.traceaad_v9_15 import TraceAADV915
+from llm4ad.method.traceaad_v9_15_eh import TraceAADV915EH
 
 
 @pytest.mark.parametrize("task", run.TASKS)
@@ -51,6 +52,7 @@ def test_unified_runner_builds_each_task_and_version(
         "v9_13": TraceAADV913,
         "v9_14": TraceAADV914,
         "v9_15": TraceAADV915,
+        "v9_15_eh": TraceAADV915EH,
     }[version]
     assert isinstance(method, expected_type)
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
@@ -59,6 +61,9 @@ def test_unified_runner_builds_each_task_and_version(
         assert method._llm.max_tokens == 16384
     else:
         assert method._llm.max_tokens == 8192
+        if version == "v9_15_eh":
+            assert method._error_handling is True
+            assert method._error_retries == 1
         if version in {"v8", "v9"}:
             assert spec.n_init == 10
             assert not hasattr(method, "_action_max_tokens")
@@ -100,6 +105,25 @@ def test_runner_writes_one_reproducible_config_per_run(tmp_path: Path) -> None:
     assert payload["method_params"]["random_seed"] == 3
     assert "api_key" not in payload["llm"]
     assert payload["llm"]["api_key_configured"] is False
+
+
+def test_v915_eh_config_is_distinct_and_records_retry_policy(tmp_path: Path) -> None:
+    spec = run.make_run_spec(
+        task="tsp_construct",
+        version="v9_15_eh",
+        repeat=1,
+        experiments_root=tmp_path,
+    )
+    run_dir, run_name, resumed = run.resolve_run_dir(spec)
+    run.write_run_config(spec, run_dir, run_name)
+    payload = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
+
+    assert not resumed
+    assert payload["method"] == "traceaad_v9_15_eh"
+    assert payload["method_params"]["error_handling"] is True
+    assert payload["method_params"]["error_retries"] == 1
+    assert payload["method_params"]["retry_policy"] == "single_bounded_repair"
+    assert payload["method_params"]["retry_budget"] == "real_evaluator_calls"
 
 
 def test_v8_runner_records_tree_protocol_without_population_controls(

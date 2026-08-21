@@ -26,6 +26,12 @@ EVALUATIONS_CSV_HEADER = [
     "parent_q",
     "parent_bonus",
     "parent_ctraj",
+    "attempt",
+    "attempt_kind",
+    "elapsed_seconds",
+    "preflight_error",
+    "candidate_hash",
+    "error_type",
 ]
 
 
@@ -54,6 +60,12 @@ class RunArtifacts:
         error: str | None,
         decision: Decision | None,
         n_stag: int,
+        attempt: int = 1,
+        attempt_kind: str = "initial",
+        elapsed_seconds: float | None = None,
+        preflight_error: str | None = None,
+        candidate_hash: str | None = None,
+        error_type: str | None = None,
     ) -> None:
         self._evaluations.writerow(
             [
@@ -72,6 +84,12 @@ class RunArtifacts:
                 "" if decision is None else f"{decision.parent_q:.6g}",
                 "" if decision is None else f"{decision.parent_bonus:.6g}",
                 "" if decision is None else f"{decision.parent_ctraj:.6g}",
+                attempt,
+                attempt_kind,
+                "" if elapsed_seconds is None else f"{elapsed_seconds:.6f}",
+                preflight_error or "",
+                candidate_hash or "",
+                error_type or "",
             ]
         )
         self._evaluations_file.flush()

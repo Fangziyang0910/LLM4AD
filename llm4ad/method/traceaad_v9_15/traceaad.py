@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import math
+import hashlib
+import time
 from pathlib import Path
 from typing import Any
 
@@ -10,7 +12,13 @@ from ...base import Evaluation, Function, LLM, SecureEvaluator, TextFunctionProg
 from .artifacts import RunArtifacts
 from .checkpoint import load_checkpoint, save_checkpoint
 from .history import one_line, parent_path, render_path
-from .prompt import build_generation_prompt, build_root_prompt, parse_program_response
+from .prompt import (
+    build_generation_prompt,
+    build_repair_prompt,
+    build_root_prompt,
+    parse_program_response,
+    preflight_code,
+)
 from .schema import (
     INITIAL_ROOT_COUNT,
     MAX_HISTORY_EVENTS,
@@ -39,9 +47,13 @@ class TraceAADV915:
         seed: int | None = 0,
         checkpoint_dir: str | Path | None = None,
         resume_from: str | Path | None = None,
+        error_retries: int = 0,
+        error_handling: bool = False,
     ) -> None:
         if min(budget, n_roots, max_tokens, max_history) <= 0:
             raise ValueError("budget, n_roots, max_tokens, and max_history must be positive")
+        if error_retries < 0:
+            raise ValueError("error_retries must be non-negative")
 
         template = TextFunctionProgramConverter.text_to_program(
             evaluation.template_program
@@ -60,6 +72,14 @@ class TraceAADV915:
         self._max_history = max_history
         self._seed = seed
         self._checkpoint_dir = None if checkpoint_dir is None else Path(checkpoint_dir)
+        self._error_retries = error_retries
+        self._error_handling = error_handling
+        self._attempt_number = 1
+        self._attempt_kind = "initial"
+        self._last_failure: dict[str, str] | None = None
+        self._candidate_hash = ""
+        self._preflight_error: str | None = None
+        self._attempt_elapsed = 0.0
 
         self._tree = Tree(maximize=maximize)
         self._pending: Pending | None = None
@@ -139,6 +159,7 @@ class TraceAADV915:
                     task_description=self._task,
                     template_function=self._function,
                     maximize=self._tree.maximize,
+                    error_handling=self._error_handling,
                 ),
                 parent_id=VIRTUAL_ROOT_ID,
                 intent=None,
@@ -155,6 +176,7 @@ class TraceAADV915:
             history_text=render_path(self._tree, path),
             intent=intent,
             maximize=self._tree.maximize,
+            error_handling=self._error_handling,
         )
 
     def _generate(
@@ -164,21 +186,49 @@ class TraceAADV915:
         parent_id: int,
         intent: str | None,
     ) -> Algorithm | None:
-        kwargs: dict[str, Any] = {"max_tokens": self._max_tokens}
-        if self._seed is not None:
-            kwargs["seed"] = self._seed + self._n_eval + 1
-        response = self._llm.draw_sample(prompt, **kwargs)
-        self._pending = Pending(parent_id, intent, response)
-        save_checkpoint(self)
-        return self._process_pending()
+        repair_prompt = prompt
+        for attempt in range(1, self._error_retries + 2):
+            self._attempt_number = attempt
+            self._attempt_kind = "initial" if attempt == 1 else "repair"
+            kwargs: dict[str, Any] = {"max_tokens": self._max_tokens}
+            if self._seed is not None:
+                kwargs["seed"] = self._seed + self._n_eval + 1
+            response = self._llm.draw_sample(repair_prompt, **kwargs)
+            self._pending = Pending(parent_id, intent, response)
+            self._last_failure = None
+            save_checkpoint(self)
+            child = self._process_pending()
+            if child is not None or self._last_failure is None:
+                return child
+            if attempt > self._error_retries or not self._has_budget():
+                return None
+            failure = self._last_failure
+            parent_code = None
+            if parent_id != VIRTUAL_ROOT_ID:
+                parent = self._tree.get_algorithm(parent_id)
+                parent_code = parent.code
+            repair_prompt = build_repair_prompt(
+                task_description=self._task,
+                parent_code=parent_code,
+                failed_code=failure["code"],
+                error=failure["error"],
+                intent=None if intent is None else Intent(intent),
+                maximize=self._tree.maximize,
+                reliability=self._error_handling,
+            )
+        return None
 
     def _process_pending(self) -> Algorithm | None:
         pending = self._pending
         if pending is None:
             raise RuntimeError("no pending candidate to process")
 
+        started = time.perf_counter()
         parsed = parse_program_response(pending.response)
+        self._candidate_hash = hashlib.sha256(parsed.code.encode()).hexdigest()[:16]
+        self._preflight_error = preflight_code(parsed.code, self._function.name)
         result = self._evaluator.evaluate_program_with_details(parsed.code)
+        self._attempt_elapsed = time.perf_counter() - started
         self._n_eval += 1
         if pending.parent_id != VIRTUAL_ROOT_ID:
             parent = self._tree.get_algorithm(pending.parent_id)
@@ -192,7 +242,14 @@ class TraceAADV915:
             message = one_line(
                 result.error or "evaluator preparation failed", ERROR_MAX_CHARS
             )
-            self._reject_pending(result.failure_kind, message)
+            self._reject_pending(
+                result.failure_kind,
+                message,
+                error_type=result.error_type,
+                code=parsed.code,
+            )
+            if self._error_retries:
+                return None
             raise RuntimeError(message)
 
         raw_fitness = getattr(result.result, "fitness", result.result)
@@ -208,6 +265,8 @@ class TraceAADV915:
                     result.error or f"evaluator returned invalid fitness: {raw_fitness!r}",
                     ERROR_MAX_CHARS,
                 ),
+                error_type=result.error_type,
+                code=parsed.code,
             )
 
         child = self._tree.add_algorithm(
@@ -234,16 +293,35 @@ class TraceAADV915:
                 error=None,
                 decision=self._decision,
                 n_stag=self._n_stag,
+                attempt=self._attempt_number,
+                attempt_kind=self._attempt_kind,
+                elapsed_seconds=self._attempt_elapsed,
+                preflight_error=self._preflight_error,
+                candidate_hash=self._candidate_hash,
             )
             if self.best is child:
                 self._log.record_best(code=parsed.code, fitness=fitness)
         return child
 
-    def _reject_pending(self, status: str, error: str) -> None:
+    def _reject_pending(
+        self,
+        status: str,
+        error: str,
+        *,
+        error_type: str | None = None,
+        code: str = "",
+    ) -> None:
         pending = self._pending
         assert pending is not None
         self._pending = None
         self._n_stag += 1
+        diagnostic = error
+        if self._preflight_error is not None:
+            diagnostic = f"{self._preflight_error}; {error}"
+        self._last_failure = {
+            "code": code,
+            "error": one_line(diagnostic, ERROR_MAX_CHARS),
+        }
         save_checkpoint(self)
         if self._log is not None:
             self._log.record_evaluation(
@@ -253,9 +331,15 @@ class TraceAADV915:
                 intent=pending.intent,
                 status=status,
                 fitness=None,
-                error=error,
+                error=diagnostic,
                 decision=self._decision,
                 n_stag=self._n_stag,
+                attempt=self._attempt_number,
+                attempt_kind=self._attempt_kind,
+                elapsed_seconds=self._attempt_elapsed,
+                preflight_error=self._preflight_error,
+                candidate_hash=self._candidate_hash,
+                error_type=error_type,
             )
         return None
 
