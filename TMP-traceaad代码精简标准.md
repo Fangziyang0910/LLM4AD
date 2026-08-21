@@ -57,3 +57,40 @@ V9.7 → V9.14 的精简（1828 → 766 行）中，与机制无关的部分提�
 - 每版本改完：`uv run pytest tests/ -q -k "<该版本测试标记>"` 全绿 + `uv run python -c "import ..."` 编译检查。
 - 基线：改前全量 traceaad 测试已通过。
 - 报告格式：行数（改前 → 改后）、删了什么、保留了什么机制红线、测试结果。
+
+## 五、执行结果（2026-08-21 完成，v4–v9.13 共十一版）
+
+| 版本 | 改前 | 改后 | 缩减 |
+| --- | --- | --- | --- |
+| v4 | 2075 | 1703 | −372 |
+| v5 | 2666 | 2306 | −360 |
+| v8 | 2664 | 1765 | −899 |
+| v9 | 2803 | 1908 | −895 |
+| v9_7 | 1828 | 1363 | −465 |
+| v9_7_co | 1819 | 1280 | −539 |
+| v9_8 | 2258 | 1890 | −368 |
+| v9_9 | 2035 | 1739 | −296 |
+| v9_10 | 2285 | 1977 | −308 |
+| v9_11 | 2098 | 1658 | −440 |
+| v9_12 | 2209 | 1747 | −462 |
+| v9_13 | 2416 | 1959 | −457 |
+| **合计** | **27156** | **21295** | **−5861（−21.6%）** |
+
+（口径：`llm4ad/method/traceaad_*/` 内 Python 行数；v9_14 为参照未动，766 行。）
+
+测试：全量测试套件 675 passed；traceaad 相关从基线 440 收敛到 425（净删 15 条只断言已删工程行为的测试：transport 重试、llm_calls 持久恢复、checkpoint config 校验、drop_oldest 等；机制断言全部保留）。
+
+### 版本特定取舍
+
+- v8/v9 的 token 适配循环（压参考历史→减直接分支）是 V9-Core 规范第 3 节明文机制，保留未删；v9_7 系的 context_limit 适配是工程设施，全删。
+- v9_8–v9_13 的 events.jsonl（选择/体制/frontier 决策事件）是各版规范列明的机制工件且有分析脚本消费，保留；只蒸馏其中的全量打分表。
+- v8/v9 的 candidates/edges/decisions/llm_calls jsonl 蒸馏到实际消费列（逐脚本核对：analyze_v92_scoring、analyze_v9_v95_generation_interface、analyze_tree_depth、analyze_process、monitor 等）。
+- v4/v5 的 best 是机制状态（参与种群管理 / tie-break 断言），未改现算。
+- `global_best_update_reason`（v8 系 edge 字段）因进 checkpoint round-trip 且被分析脚本用于重建 ImprovementEdge，保留。
+
+### 已知后果
+
+- 精简后代码不能恢复精简前的 checkpoint（config 块 / best_id 等键已删；旧 checkpoint 多余键可被新 loader 忽略，反向不行）。run.py 的 resume 校验按 expected 键投影旧 run_config，旧 run_config 里多出的 context_limit 不影响恢复。
+- v9_7 系不再写 best_curve.csv、errors.jsonl、llm_calls.jsonl；monitor.py 对缺 best_curve 优雅降级（first_ts 为空，速率改用 mtime）。原始模型响应不再落盘（checkpoint 的 Pending.response 仍保留单条待处理响应）。
+- v9_8 的 `_v98_implementation_identity` 哈希源码，未来 run 的 protocol_source_sha256 会变，属预期。
+- 若将来分析全新 v9_12 运行，analyze_v912_progress.py 的 best_curve 对比段需改从 evaluations.csv 推导（历史批次工件冻结，不受影响）。
