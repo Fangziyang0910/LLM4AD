@@ -170,6 +170,11 @@ class SCPEvaluation(Evaluation):
             # Remove the selected subset from the remaining subsets
             remaining_subsets.remove(selected_subset)
 
+        if remaining_elements:
+            raise ValueError(
+                f"construction stopped with {len(remaining_elements)} uncovered elements"
+            )
+
         # Calculate the number of subsets used
         used_subsets = len(selected_subsets)
         return used_subsets, selected_subsets

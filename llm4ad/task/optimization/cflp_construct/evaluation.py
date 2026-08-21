@@ -175,6 +175,11 @@ class CFLPEvaluation(Evaluation):
             # Remove the selected customer from the remaining customers
             remaining_customers.remove(selected_customer)
 
+        if remaining_customers:
+            raise ValueError(
+                f"construction stopped with {len(remaining_customers)} unassigned customers"
+            )
+
         return total_cost, assignments
 
     def evaluate_cflp(self, eva: Callable) -> float:

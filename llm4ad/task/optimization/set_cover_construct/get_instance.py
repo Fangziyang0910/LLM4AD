@@ -41,6 +41,18 @@ class GetData:
                 subset = np.random.choice(universal_set, size=subset_size, replace=False).tolist()
                 subsets.append(subset)
 
+            # Ensure every element appears in at least one subset; otherwise
+            # the instance is uncoverable by any algorithm. Missing elements
+            # are appended to a random subset (deterministic under the seed).
+            covered = set()
+            for subset in subsets:
+                covered.update(subset)
+            for element in universal_set:
+                if element not in covered:
+                    target = subsets[np.random.randint(self.n_subsets)]
+                    target.append(element)
+                    covered.add(element)
+
             instance_data.append((universal_set, subsets))
 
         return instance_data
