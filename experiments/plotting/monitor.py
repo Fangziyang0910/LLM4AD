@@ -3,7 +3,11 @@
 Reads the compact CSV artifacts the runner already maintains per run
 (``evaluations.csv``, ``best_curve.csv``, ``logs/summary.json``,
 ``run_config.json``) instead of tailing the multi-hundred-MB ``events.jsonl``,
-so refreshing dozens of runs parses a few MB at most. Older artifact
+so refreshing dozens of runs parses a few MB at most. Two CSV generations are
+supported: older ones with ``child_fitness``/``best_fitness`` columns and a
+``best_curve.csv``, and the V9.14+ minimal format whose ``fitness`` column is
+folded into a running best here (V9.15 rows additionally carry p_E /
+protection-hit diagnostics rendered as a mechanism chart). Older artifact
 generations without ``evaluations.csv`` fall back to
 ``artifacts/candidates.jsonl`` (budget axis = rows with ``evaluator_called``).
 When one version directory holds several batches (e.g. ``traceaad_v9_7``
@@ -39,7 +43,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 EXPERIMENTS_ROOT = REPO_ROOT / "experiments"
 # Any traceaad run directory that speaks the CSV artifact format; runs
 # without evaluations.csv (older artifact generations) are ignored.
-DEFAULT_PATTERNS = ("*/traceaad_*/v*_[0-9]*",)
+# The second pattern catches extension-task batches named tm_<date>_...
+DEFAULT_PATTERNS = ("*/traceaad_*/v*_[0-9]*", "*/traceaad_*/tm_[0-9]*")
 
 # 历史中间版本：结果已凝练进 docs/experiments/归档实验结果.md，
 # 不再进入监控面板（连同其子批次，如 V9.5 的两个日期批次）。
@@ -50,6 +55,10 @@ TASK_ORDER = {
     "cvrp_aco": 1,
     "op_aco": 2,
     "online_bin_packing": 3,
+    "jssp_construct": 4,
+    "cflp_construct": 5,
+    "set_cover_construct": 6,
+    "vrptw_construct": 7,
 }
 
 # evaluations.csv status -> code shared with the page (0 ok, 1 eval_failed,
@@ -123,6 +132,10 @@ class RunState:
         self.first_ts: float | None = None
         self.last_ts: float | None = None
         self.best: float | None = None
+        # V9.14+/V9.15 CSV: [eval_count, p_explore, protected_selected]
+        self.mech: list[list] = []
+        self.n_explore: int | None = None
+        self.n_protected: int | None = None
         self.samples: list[list] = []  # [timestamp, n_evals] for the rate window
 
     def _read_budget(self) -> int:
@@ -131,15 +144,22 @@ class RunState:
                 (self.run_dir / "run_config.json").read_text(encoding="utf-8")
             )
         except (OSError, json.JSONDecodeError):
+            self._config = {}
             return 1000
+        self._config = config
         budget = config.get("method_params", {}).get("budget")
         return budget if isinstance(budget, int) and budget > 0 else 1000
 
-    def _poll_evaluations_csv(self) -> tuple[list[list] | None, int, float | None]:
+    def _poll_evaluations_csv(
+        self,
+    ) -> tuple[list[list] | None, int, float | None, list[list], int | None, int | None]:
         eval_csv = self.run_dir / "evaluations.csv"
         pts: list[list] = []
         n_evals = 0
         best = None
+        mech: list[list] = []
+        n_explore: int | None = None
+        n_protected = 0
         try:
             with eval_csv.open(encoding="utf-8", newline="") as handle:
                 for row in csv.DictReader(handle):
@@ -147,10 +167,14 @@ class RunState:
                         count = int(row.get("eval_count") or 0)
                     except ValueError:
                         continue
+                    # Older generations write child_fitness; V9.14+ write fitness.
+                    fitness = _f(row.get("child_fitness"))
+                    if fitness is None:
+                        fitness = _f(row.get("fitness"))
                     pts.append(
                         [
                             count,
-                            _f(row.get("child_fitness")),
+                            fitness,
                             STATUS_CODE.get(row.get("status") or "ok", 0),
                         ]
                     )
@@ -158,9 +182,22 @@ class RunState:
                     row_best = _f(row.get("best_fitness"))
                     if row_best is not None:
                         best = row_best
+                    elif fitness is not None and (best is None or fitness > best):
+                        best = fitness
+                    # V9.15 mechanism diagnostics; absent in older versions.
+                    p_explore = _f(row.get("p_explore"))
+                    if p_explore is not None:
+                        bonus = _f(row.get("parent_bonus")) or 0.0
+                        protected = 1 if bonus > 0 else 0
+                        n_protected += protected
+                        mech.append([count, p_explore, protected])
+                        if n_explore is None:
+                            n_explore = 0
+                        if (row.get("intent") or "") == "explore":
+                            n_explore += 1
         except OSError:
-            return None, 0, None
-        return pts, n_evals, best
+            return None, 0, None, [], None, None
+        return pts, n_evals, best, mech, n_explore, n_protected
 
     def _poll_candidates_jsonl(self) -> tuple[list[list], int, float | None]:
         # Older artifact generations: no evaluations.csv, one JSON line per
@@ -192,16 +229,24 @@ class RunState:
         return pts, n_evals, best
 
     def poll(self) -> None:
-        pts, n_evals, best = self._poll_evaluations_csv()
+        pts, n_evals, best, mech, n_explore, n_protected = (
+            self._poll_evaluations_csv()
+        )
         if pts is None:
             pts, n_evals, best = self._poll_candidates_jsonl()
+            mech, n_explore, n_protected = [], None, None
         self.pts = pts
         self.n_evals = n_evals
         self.best = best
+        self.mech = mech
+        self.n_explore = n_explore
+        self.n_protected = n_protected if n_explore is not None else None
 
         # The first best-curve row marks the first evaluation; the runner
         # flushes evaluations.csv after every row, so its mtime marks the
         # latest activity (both interpreted in the server's local timezone).
+        # V9.14+ runs have no best_curve.csv: fall back to run_config's
+        # creation time so rate/elapsed estimates keep working.
         self.first_ts = None
         try:
             with (self.run_dir / "best_curve.csv").open(
@@ -212,6 +257,10 @@ class RunState:
                     break
         except OSError:
             pass
+        if self.first_ts is None:
+            self.first_ts = _epoch(
+                (self._config or {}).get("created_at")
+            )
         try:
             self.last_ts = (self.run_dir / "evaluations.csv").stat().st_mtime
         except OSError:
@@ -267,6 +316,9 @@ class RunState:
             "rate_per_hour": self._rate_per_hour(),
             "best": self.best,
             "pts": self.pts,
+            "mech": self.mech,
+            "n_explore": self.n_explore,
+            "n_protected": self.n_protected,
         }
 
 
@@ -405,8 +457,9 @@ PAGE = r"""<!doctype html>
 const REFRESH_MS = 30000;
 const BUDGET = 1000;
 const REP_COLORS = ["#4f46e5","#0ea5e9","#10b981","#f59e0b","#ef4444","#8b5cf6"];
-const TASK_LABEL = {tsp_construct:"TSP 构造", cvrp_aco:"CVRP-ACO", op_aco:"OP-ACO", online_bin_packing:"在线装箱"};
-const TASK_ORDER = ["tsp_construct","cvrp_aco","op_aco","online_bin_packing"];
+const TASK_LABEL = {tsp_construct:"TSP 构造", cvrp_aco:"CVRP-ACO", op_aco:"OP-ACO", online_bin_packing:"在线装箱",
+                    jssp_construct:"JSSP 构造", cflp_construct:"CFLP 构造", set_cover_construct:"集合覆盖构造", vrptw_construct:"VRPTW 构造"};
+const TASK_ORDER = ["tsp_construct","cvrp_aco","op_aco","online_bin_packing","jssp_construct","cflp_construct","set_cover_construct","vrptw_construct"];
 
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));}
 function fmt(v){return v==null?"–":String(+v.toPrecision(4));}
@@ -470,18 +523,24 @@ function statusPill(run){
 
 function taskCard(task,runs){
   const fin=runs.filter(r=>r.finished).length;
+  const hasMech=runs.some(r=>r.n_explore!=null);
   let rows=runs.map(r=>{
     const budget=r.budget||BUDGET;
     const pct=Math.min(100,100*r.n_evals/budget);
     const eta=r.finished
       ?(r.first_ts&&r.last_ts?fmtDur((r.last_ts-r.first_ts)/3600):"–")
       :fmtDur(etaHours(r));
+    const mechCells=hasMech
+      ?`<td>${r.n_explore==null?"–":(100*r.n_explore/Math.max(1,r.n_evals)).toFixed(1)+"%"}</td>`+
+       `<td>${r.n_protected==null?"–":r.n_protected}</td>`
+      :"";
     return `<tr>
       <td><span class="repchip"><i style="background:${repColor(r.rep)}"></i>rep${r.rep}</span></td>
       <td>${statusPill(r)}</td>
       <td><span class="bar"><i class="${r.finished?"done":""}" style="width:${pct}%"></i></span></td>
       <td>${r.n_evals}/${budget}</td>
       <td><b>${fmt(r.best)}</b></td>
+      ${mechCells}
       <td>${eta}</td></tr>`;
   }).join("");
   const byRep=new Map(runs.map(r=>[r.rep,r]));
@@ -491,10 +550,44 @@ function taskCard(task,runs){
   }).join("");
   return `<section class="task">
     <h2>${esc(TASK_LABEL[task]||task)}<span class="tag">${fin}/${runs.length} 完成</span></h2>
-    <table><tr><th>运行</th><th>状态</th><th></th><th>评价</th><th>best</th><th>剩余 / 用时</th></tr>${rows}</table>
+    <table><tr><th>运行</th><th>状态</th><th></th><th>评价</th><th>best</th>${hasMech?"<th>Exp%</th><th>保护</th>":""}<th>剩余 / 用时</th></tr>${rows}</table>
     <div class="legend">${legend}</div>
     <div class="chart">${overlayChart(runs)}</div>
+    ${hasMech?`<div class="legend"><span><i style="background:#98a1b6"></i>p_E 探索率（0.20 基线 → 0.50 上限）</span><span>圆点 = 受保护 Explore 子节点被选中</span></div><div class="chart">${mechChart(runs)}</div>`:""}
   </section>`;
+}
+
+// V9.15 机制图：每次决策的 p_E 探索率 + 保护命中位置；y 轴固定 0.14–0.52
+function mechChart(runs){
+  const w=1160,h=140,padL=64,padR=20,padT=10,padB=24;
+  const lo=0.14,hi=0.52;
+  const iw=w-padL-padR,ih=h-padT-padB;
+  const sx=v=>padL+Math.min(v,BUDGET)/BUDGET*iw;
+  const sy=v=>padT+(1-(v-lo)/(hi-lo))*ih;
+  let g="";
+  for(const v of [0.2,0.35,0.5]){
+    const y=sy(v).toFixed(1);
+    g+=`<line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="#f1f3f9"/>`+
+       `<text x="${padL-7}" y="${+y+3.5}" text-anchor="end">${v.toFixed(2)}</text>`;
+  }
+  for(const t of [0,250,500,750,1000]){
+    g+=`<text x="${sx(t)}" y="${h-4}" text-anchor="middle">${t}</text>`;
+  }
+  for(const r of runs){
+    if(!r.mech||!r.mech.length)continue;
+    const color=repColor(r.rep);
+    let d="",started=false;
+    for(const m of r.mech){
+      const x=sx(Math.min(m[0],BUDGET)).toFixed(1),y=sy(Math.max(lo,Math.min(hi,m[1]))).toFixed(1);
+      d+=(started?"L":"M")+x+","+y;started=true;
+    }
+    g+=`<path d="${d}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linejoin="round" opacity=".85"><title>rep${r.rep} p_E</title></path>`;
+    for(const m of r.mech){
+      if(!m[2])continue;
+      g+=`<circle cx="${sx(Math.min(m[0],BUDGET)).toFixed(1)}" cy="${sy(Math.max(lo,Math.min(hi,m[1]))).toFixed(1)}" r="2.1" fill="${color}"><title>rep${r.rep} 保护命中 · eval ${m[0]} · p_E ${m[1].toFixed(3)}</title></circle>`;
+    }
+  }
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%">${g}</svg>`;
 }
 
 function overlayChart(runs){
