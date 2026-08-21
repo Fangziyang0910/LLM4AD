@@ -406,7 +406,7 @@
 5. **搜索/测试划分**：有的在测试集上直接演化（如 OR-Library），有的使用严格独立测试，有的强调跨规模测试。
 6. **重复与聚合**：3 次均值、10 次最优、单次报告并存。
 
-本仓库正式比较已固定：**评估预算 = 1000 eval**；主表外部对照为 **EoH、ReEvo、MCTS-AHD、PathWise、CALM**；主实验 task 为 **Online BPP、TSP-构造、CVRP-ACO、OP-ACO**（见 [实验配置](../experiments/配置.md)）。其中 CALM 当前阶段跑 **w/o GRPO** 搜索框架，微调阶段再补 **w/ GRPO**。任务协议取舍：OBP 保持多容量现状；TSP-构造维持降采样（同标准重跑）；CVRP-ACO 测试含 **CVRP200×64**；OP-ACO 保持现状。统一比较时再固定嵌入框架 × LLM，并另报 LLM 调用与 token 作为成本辅指标。
+本仓库正式比较已固定：**评估预算 = 1000 eval**；主表外部对照为 **EoH、ReEvo、MCTS-AHD、PathWise、CALM**；主实验 task 为 **Online BPP、TSP-构造、CVRP-ACO、OP-ACO**（见 [实验配置](../experiments/配置.md)）。其中 CALM 当前阶段跑 **w/o GRPO** 搜索框架，微调阶段再补 **w/ GRPO**。任务协议取舍：OBP 保持多容量现状；TSP-构造维持降采样（同标准重跑）；CVRP-ACO 测试含 **CVRP200×64**；OP-ACO 保持现状。统一比较时再固定嵌入框架 × LLM，并另报 LLM 调用与 token 作为成本辅指标。扩展任务组：从平台模板任务中选 JSS-构造 / CFLP-构造 / 集合覆盖-构造 / VRPTW-构造 四题做补充评价，协议见 [实验配置](../experiments/配置.md) 的模板扩展任务一节。
 
 ## 入口
 
