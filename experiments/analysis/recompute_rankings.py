@@ -59,6 +59,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9.9": ["traceaad_v9_9/eval_best_20260817_v99_complete"],
         "V9.12": ["traceaad_v9_12/eval_best_20260820_v912_complete"],
         "V9.14": ["traceaad_v9_14/eval_best_20260821_v914_complete"],
+        "V9.15": ["traceaad_v9_15/eval_best_20260822_v915_complete"],
     },
     "cvrp_aco": {
         "MCTS-AHD": ["mcts_ahd/eval_20260712_all3", "mcts_ahd/eval_best_20260804_test200"],
@@ -80,6 +81,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9.9": ["traceaad_v9_9/eval_best_20260818_v99_complete"],
         "V9.12": ["traceaad_v9_12/eval_best_20260820_v912_complete"],
         "V9.14": ["traceaad_v9_14/eval_best_20260821_v914_complete"],
+        "V9.15": ["traceaad_v9_15/eval_best_20260822_v915_complete"],
     },
     "op_aco": {
         "MCTS-AHD": ["mcts_ahd/eval_best_20260725_104402"],
@@ -101,6 +103,7 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9.9": ["traceaad_v9_9/eval_best_20260817_v99_complete"],
         "V9.12": ["traceaad_v9_12/eval_best_20260820_v912_complete"],
         "V9.14": ["traceaad_v9_14/eval_best_20260821_v914_complete"],
+        "V9.15": ["traceaad_v9_15/eval_best_20260822_v915_complete"],
     },
     "online_bin_packing": {
         "MCTS-AHD": ["mcts_ahd/eval_best_20260726_111852"],
@@ -122,13 +125,14 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9.9": ["traceaad_v9_9/eval_best_20260816_v99"],
         "V9.12": ["traceaad_v9_12/eval_best_20260820_v912_complete"],
         "V9.14": ["traceaad_v9_14/eval_best_20260821_v914_complete"],
+        "V9.15": ["traceaad_v9_15/eval_best_20260822_v915_complete"],
     },
 }
 
 MCTS_CVRP_BATCH2 = "mcts_ahd/eval_best_20260812_cvrp_local"
 
 BASELINES = ["MCTS-AHD", "PathWise", "EoH", "ReEvo", "CALM"]
-TRACEAAD_ALL = ["V4", "V5", "V6", "V7", "V8", "V8.2", "V8.3", "V9", "V9.6", "V9.7", "V9.8", "V9.9", "V9.12", "V9.14"]
+TRACEAAD_ALL = ["V4", "V5", "V6", "V7", "V8", "V8.2", "V8.3", "V9", "V9.6", "V9.7", "V9.8", "V9.9", "V9.12", "V9.14", "V9.15"]
 TRACEAAD_REPRESENTATIVE = ["V8", "V9", "V9.7", "V9.8"]
 FIELD = TRACEAAD_REPRESENTATIVE + BASELINES
 ALL_METHODS = TRACEAAD_ALL + BASELINES
@@ -191,6 +195,11 @@ def average_rank(values: list[float], sign: int) -> list[float]:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cvrp-mcts", choices=["batch1", "batch2"], default="batch2")
+    ap.add_argument(
+        "--markdown",
+        action="store_true",
+        help="以 markdown 表格输出单版本上场排名（供实验结果.md 粘贴）",
+    )
     args = ap.parse_args()
 
     scales: list[tuple[str, int]] = []
@@ -202,7 +211,6 @@ def main() -> None:
         scales.extend((s, direction) for s in scale_names)
 
     n_scales = len(scales)
-    print(f"MCTS-AHD CVRP = {args.cvrp_mcts}；{n_scales} 规模 × {len(FIELD)} 方法（代表性同场）\n")
 
     rank_sum = {m: 0.0 for m in FIELD}
     for j in range(n_scales):
@@ -211,12 +219,19 @@ def main() -> None:
             rank_sum[m] += r[i]
     field_avg = {m: rank_sum[m] / n_scales for m in FIELD}
 
-    print("=== 1. 代表性方法同场（V8 / V9 / V9.7 / V9.8 + 5 外部对照）===")
-    for m in sorted(field_avg, key=lambda m: field_avg[m]):
-        print(f"  {m:<12s} {field_avg[m]:.3f}")
+    if not args.markdown:
+        print(f"MCTS-AHD CVRP = {args.cvrp_mcts}；{n_scales} 规模 × {len(FIELD)} 方法（代表性同场）\n")
+        print("=== 1. 代表性方法同场（V8 / V9 / V9.7 / V9.8 + 5 外部对照）===")
+        for m in sorted(field_avg, key=lambda m: field_avg[m]):
+            print(f"  {m:<12s} {field_avg[m]:.3f}")
 
-    print("\n=== 2. 单版本上场（6 方法同场：1 TraceAAD + 5 外部对照）===")
-    print(f"{'版本':<6s} {'平均名次':>8s} {'6方法中':>6s} {'名次差':>7s} {'相对基线优势':>10s}")
+    if not args.markdown:
+        print("\n=== 2. 单版本上场（6 方法同场：1 TraceAAD + 5 外部对照）===")
+        print(f"{'版本':<6s} {'平均名次':>8s} {'6方法中':>6s} {'名次差':>7s} {'相对基线优势':>10s}")
+    else:
+        print("| 版本 | 平均名次 | 六方法中位置 | 相对 MCTS-AHD |")
+        print("| --- | ---: | ---: | ---: |")
+    single_rows: list[tuple[str, float, int, float, float]] = []
     for v in TRACEAAD_ALL:
         field = [v] + BASELINES
         rs = {m: 0.0 for m in field}
@@ -229,10 +244,17 @@ def main() -> None:
         position = sorted_avg.index(v) + 1
         mcts = avg["MCTS-AHD"]
         advantage = sum(avg[b] for b in BASELINES) / len(BASELINES) - avg[v]
-        print(
-            f"  {v:<6s} {avg[v]:8.3f} {position:>4d}   "
-            f"{avg[v] - mcts:+7.3f} {advantage:+10.3f}"
-        )
+        single_rows.append((v, avg[v], position, avg[v] - mcts, advantage))
+    for v, rank_avg, position, delta, advantage in sorted(
+        single_rows, key=lambda row: row[1]
+    ):
+        if args.markdown:
+            print(f"| TraceAAD {v} | {rank_avg:.3f} | {position}/6 | {delta:+.3f} |")
+        else:
+            print(
+                f"  {v:<6s} {rank_avg:8.3f} {position:>4d}   "
+                f"{delta:+7.3f} {advantage:+10.3f}"
+            )
 
 
 if __name__ == "__main__":

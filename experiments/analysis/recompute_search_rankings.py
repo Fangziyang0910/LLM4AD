@@ -64,7 +64,7 @@ EXTRA_ARTIFACTS: dict[str, dict[str, str]] = {
     },
 }
 
-MAIN_TRACEAAD = ["V4", "V5", "V8", "V9", "V9.7", "V9.9"]
+MAIN_TRACEAAD = ["V4", "V5", "V8", "V9", "V9.7", "V9.9", "V9.14", "V9.15"]
 MAIN_METHODS = BASELINES + MAIN_TRACEAAD
 ARCHIVE_TRACEAAD = [
     "V6",
@@ -81,7 +81,6 @@ ARCHIVE_TRACEAAD = [
     "V9.10",
     "V9.11",
     "V9.12",
-    "V9.14",
 ]
 ALL_TRACEAAD = MAIN_TRACEAAD + ARCHIVE_TRACEAAD
 
@@ -107,6 +106,7 @@ DISPLAY = {
     "V9.11": "TraceAAD V9.11",
     "V9.12": "TraceAAD V9.12",
     "V9.14": "TraceAAD V9.14",
+    "V9.15": "TraceAAD V9.15",
     "CALM": "CALM (w/o GRPO)",
 }
 
@@ -245,9 +245,9 @@ def main() -> None:
         "",
         "四个任务在统一正式搜索协议下的最终 best 与排名。这里评价方法在给定 evaluator 和 1000 次真实评价预算内找到高质量算法的能力；独立测试与跨规模迁移见[实验结果](实验结果.md)和[归档实验结果](归档实验结果.md)。",
         "",
-        *main_table(),
-        "",
         *single_version_table(),
+        "",
+        *main_table(),
         "",
         *evidence_table(),
         "",
