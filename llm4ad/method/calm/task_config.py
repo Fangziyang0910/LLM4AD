@@ -155,6 +155,12 @@ TASK_HYPERPARAMS: Dict[str, CALMTaskHyperparams] = {
         problem_name='capacitated vehicle routing',
         problem_unit='units of travel distance',
     ),
+    # No reference config exists for VRPTW; search behavior uses the generic
+    # CALM defaults and only the display metadata is task-specific.
+    'vrptw_construct': CALMTaskHyperparams(
+        problem_name='vehicle routing with time windows',
+        problem_unit='units of travel distance',
+    ),
 }
 
 

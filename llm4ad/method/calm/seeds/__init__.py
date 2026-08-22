@@ -10,6 +10,7 @@ _TASK_MODULES = {
     'tsp_construct': 'tsp_construct',
     'op_aco': 'op_aco',
     'cvrp_aco': 'cvrp_aco',
+    'vrptw_construct': 'vrptw_construct',
 }
 
 
