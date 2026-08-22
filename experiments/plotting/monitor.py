@@ -55,10 +55,7 @@ TASK_ORDER = {
     "cvrp_aco": 1,
     "op_aco": 2,
     "online_bin_packing": 3,
-    "jssp_construct": 4,
-    "cflp_construct": 5,
-    "set_cover_construct": 6,
-    "vrptw_construct": 7,
+    "vrptw_construct": 4,
 }
 
 # evaluations.csv status -> code shared with the page (0 ok, 1 eval_failed,
@@ -457,9 +454,8 @@ PAGE = r"""<!doctype html>
 const REFRESH_MS = 30000;
 const BUDGET = 1000;
 const REP_COLORS = ["#4f46e5","#0ea5e9","#10b981","#f59e0b","#ef4444","#8b5cf6"];
-const TASK_LABEL = {tsp_construct:"TSP 构造", cvrp_aco:"CVRP-ACO", op_aco:"OP-ACO", online_bin_packing:"在线装箱",
-                    jssp_construct:"JSSP 构造", cflp_construct:"CFLP 构造", set_cover_construct:"集合覆盖构造", vrptw_construct:"VRPTW 构造"};
-const TASK_ORDER = ["tsp_construct","cvrp_aco","op_aco","online_bin_packing","jssp_construct","cflp_construct","set_cover_construct","vrptw_construct"];
+const TASK_LABEL = {tsp_construct:"TSP 构造", cvrp_aco:"CVRP-ACO", op_aco:"OP-ACO", online_bin_packing:"在线装箱", vrptw_construct:"VRPTW 构造"};
+const TASK_ORDER = ["tsp_construct","cvrp_aco","op_aco","online_bin_packing","vrptw_construct"];
 
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));}
 function fmt(v){return v==null?"–":String(+v.toPrecision(4));}

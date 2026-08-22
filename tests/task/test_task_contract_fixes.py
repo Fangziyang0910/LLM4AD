@@ -12,7 +12,6 @@ from llm4ad.task.optimization.bp_2d_construct import template as bp2d_t
 from llm4ad.task.optimization.co_bench.maximal_independent_set_co_bench import (
     template as mis_t,
 )
-from llm4ad.task.optimization.jssp_construct import template as jssp_t
 from llm4ad.task.optimization.pymoo_moead import template as moead_t
 from llm4ad.task.science_discovery.feynman_srsd import template as feynman_t
 
@@ -48,16 +47,6 @@ def test_mis_template_is_executable_placeholder():
     sol = fn(g)
     assert isinstance(sol, dict) and "mis_nodes" in sol
     assert sol["mis_nodes"] == []
-
-
-def test_jssp_defines_current_status_type():
-    assert "class CurrentStatus" in jssp_t.template_program
-    fn = _load_func(jssp_t.template_program)
-    op = fn(
-        {"machine_status": [0, 0], "job_status": [0, 0]},
-        [(0, 0, 3), (1, 1, 1)],
-    )
-    assert op == (1, 1, 1)
 
 
 def test_bp2d_description_mentions_occupancy_grid_not_corners_only():

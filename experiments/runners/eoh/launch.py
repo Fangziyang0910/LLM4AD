@@ -21,7 +21,7 @@ METHOD_LABEL = "EoH"
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Launch four-task, three-repeat EoH experiments into free "
+            "Launch five-task, three-repeat EoH experiments into free "
             "LLM backend slots."
         )
     )

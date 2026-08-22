@@ -1,4 +1,4 @@
-"""Launch the four-task, three-repeat TraceAAD V9.14 batch."""
+"""Launch the five-task, three-repeat TraceAAD V9.14 batch."""
 
 from __future__ import annotations
 
@@ -18,18 +18,21 @@ BACKEND_LAYOUT = {
         "cvrp_aco": "server3b",
         "op_aco": "server3",
         "online_bin_packing": "server3",
+        "vrptw_construct": "server3b",
     },
     2: {
         "tsp_construct": "server3b",
         "cvrp_aco": "server3",
         "op_aco": "server3b",
         "online_bin_packing": "server3",
+        "vrptw_construct": "server3b",
     },
     3: {
         "tsp_construct": "server3",
         "cvrp_aco": "server3",
         "op_aco": "server3",
         "online_bin_packing": "server3b",
+        "vrptw_construct": "server3b",
     },
 }
 

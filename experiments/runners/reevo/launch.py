@@ -21,7 +21,7 @@ METHOD_LABEL = "ReEvo"
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Launch four-task, three-repeat ReEvo experiments into free "
+            "Launch five-task, three-repeat ReEvo experiments into free "
             "LLM backend slots."
         )
     )

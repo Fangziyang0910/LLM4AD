@@ -21,7 +21,7 @@ METHOD_LABEL = "ShinkaEvolve"
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Launch four-task, three-repeat ShinkaEvolve experiments into "
+            "Launch five-task, three-repeat ShinkaEvolve experiments into "
             "free LLM backend slots."
         )
     )

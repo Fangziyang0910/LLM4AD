@@ -21,7 +21,7 @@ METHOD_LABEL = "MCTS-AHD"
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Launch four-task, three-repeat MCTS-AHD experiments into free "
+            "Launch five-task, three-repeat MCTS-AHD experiments into free "
             "LLM backend slots."
         )
     )

@@ -5,15 +5,15 @@ from collections import Counter
 from experiments.runners.traceaad.launch_v915 import _done, build_plan, launch_pending
 
 
-def test_v915_plan_has_twelve_runs_balanced_across_both_servers() -> None:
+def test_v915_plan_has_fifteen_runs_balanced_across_both_servers() -> None:
     plan = build_plan(batch="batch")
 
-    assert len(plan) == 12
-    assert len({item.session for item in plan}) == 12
-    assert len({item.run_name for item in plan}) == 12
+    assert len(plan) == 15
+    assert len({item.session for item in plan}) == 15
+    assert len({item.run_name for item in plan}) == 15
     assert Counter(item.backend for item in plan) == {
-        "server3": 6,
-        "server3b": 6,
+        "server3": 8,
+        "server3b": 7,
     }
     assert Counter((item.task, item.repeat) for item in plan) == {
         (task, repeat): 1
@@ -23,6 +23,7 @@ def test_v915_plan_has_twelve_runs_balanced_across_both_servers() -> None:
             "cvrp_aco",
             "op_aco",
             "online_bin_packing",
+            "vrptw_construct",
         }
     }
     assert all("traceaad_v9_15" in str(item.run_dir) for item in plan)

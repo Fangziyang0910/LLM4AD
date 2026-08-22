@@ -34,7 +34,6 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from experiments.eval_artifacts import pick_best_sample  # noqa: E402
 from llm4ad.base.evaluate import SecureEvaluator  # noqa: E402
-from llm4ad.task.optimization.cflp_construct import CFLPEvaluation  # noqa: E402
 from llm4ad.task.optimization.cvrp_aco import (  # noqa: E402
     CVRPACOEvaluation,
     load_split_instances as load_cvrp_instances,
@@ -42,13 +41,11 @@ from llm4ad.task.optimization.cvrp_aco import (  # noqa: E402
 from llm4ad.task.optimization.generated_data_config import (  # noqa: E402
     get_generated_task_kwargs,
 )
-from llm4ad.task.optimization.jssp_construct import JSSPEvaluation  # noqa: E402
 from llm4ad.task.optimization.online_bin_packing import OBPEvaluation  # noqa: E402
 from llm4ad.task.optimization.op_aco import (  # noqa: E402
     OPACOEvaluation,
     load_split_instances as load_op_instances,
 )
-from llm4ad.task.optimization.set_cover_construct import SCPEvaluation  # noqa: E402
 from llm4ad.task.optimization.tsp_construct import TSPEvaluation  # noqa: E402
 from llm4ad.task.optimization.vrptw_construct import VRPTWEvaluation  # noqa: E402
 
@@ -387,29 +384,14 @@ def _make_obp_spec() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# generated-instance template tasks (jssp / cflp / scp / vrptw)
+# generated-instance template task (vrptw)
 # ---------------------------------------------------------------------------
 
 _GENERATED_TASK_EVAL_CLASSES: dict[str, type] = {
-    "jssp_construct": JSSPEvaluation,
-    "cflp_construct": CFLPEvaluation,
-    "set_cover_construct": SCPEvaluation,
     "vrptw_construct": VRPTWEvaluation,
 }
 
 _GENERATED_SCORE_SEMANTICS = {
-    "jssp_construct": (
-        "score is negative mean makespan across the eval split; "
-        "higher is better and lower objective is better"
-    ),
-    "cflp_construct": (
-        "score is negative mean assignment cost across the eval split; "
-        "higher is better and lower objective is better"
-    ),
-    "set_cover_construct": (
-        "score is negative mean number of subsets used across the eval split; "
-        "higher is better and lower objective is better"
-    ),
     "vrptw_construct": (
         "score is negative mean total distance across the eval split; "
         "higher is better and lower objective is better"

@@ -21,7 +21,7 @@ METHOD_LABEL = "PathWise"
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Launch four-task, three-repeat PathWise experiments into free "
+            "Launch five-task, three-repeat PathWise experiments into free "
             "LLM backend slots."
         )
     )

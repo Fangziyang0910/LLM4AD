@@ -50,17 +50,17 @@ def test_reevo_run_config_records_paper_settings(tmp_path: Path) -> None:
     assert "api_key" not in payload["llm"]
 
 
-def test_reevo_launcher_builds_twelve_runs() -> None:
+def test_reevo_launcher_builds_fifteen_runs() -> None:
     args = launch.build_parser().parse_args(
         ["--batch", "20260730_010203", "--dry-run"]
     )
     plan = launch.build_launch_plan(args, module=launch.MODULE, method=launch.METHOD)
 
-    assert len(plan) == 12
+    assert len(plan) == 15
     assert {item.task for item in plan} == set(run.TASKS)
     assert {item.repeat for item in plan} == {1, 2, 3}
-    assert len({item.session for item in plan}) == 12
-    assert len({item.run_dir for item in plan}) == 12
+    assert len({item.session for item in plan}) == 15
+    assert len({item.run_dir for item in plan}) == 15
     assert all(item.backend is None for item in plan)
 
 
