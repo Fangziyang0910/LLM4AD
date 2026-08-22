@@ -41,10 +41,30 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXPERIMENTS_ROOT = REPO_ROOT / "experiments"
-# Any traceaad run directory that speaks the CSV artifact format; runs
-# without evaluations.csv (older artifact generations) are ignored.
-# The second pattern catches extension-task batches named tm_<date>_...
-DEFAULT_PATTERNS = ("*/traceaad_*/v*_[0-9]*", "*/traceaad_*/tm_[0-9]*")
+# Any run directory that speaks one of the supported artifact formats. The
+# traceaad patterns catch the versioned batches (v*_) and extension batches
+# (tm_); the baseline patterns catch five-method comparison batches whose
+# run names start with a date (20260822_142500_...).
+DEFAULT_PATTERNS = (
+    "*/traceaad_*/v*_[0-9]*",
+    "*/traceaad_*/tm_[0-9]*",
+    "*/eoh/[0-9]*_*",
+    "*/reevo/[0-9]*_*",
+    "*/mcts_ahd/[0-9]*_*",
+    "*/pathwise/[0-9]*_*",
+    "*/calm/[0-9]*_*",
+)
+
+# Baseline method directories get their paper name as the tab label; traceaad
+# versions keep the V9.x parsing.
+METHOD_LABELS = {
+    "eoh": "EoH",
+    "reevo": "ReEvo",
+    "mcts_ahd": "MCTS-AHD",
+    "pathwise": "PathWise",
+    "calm": "CALM",
+    "shinka_evo": "ShinkaEvo",
+}
 
 # 历史中间版本：结果已凝练进 docs/experiments/归档实验结果.md，
 # 不再进入监控面板（连同其子批次，如 V9.5 的两个日期批次）。
@@ -105,10 +125,14 @@ class RunState:
     def __init__(self, run_dir: Path) -> None:
         self.run_dir = run_dir
         self.task = run_dir.parent.parent.name
-        # traceaad_v9_8 -> V9.8
-        self.base_version = (
-            run_dir.parent.name.removeprefix("traceaad_").replace("_", ".").upper()
-        )
+        parent_name = run_dir.parent.name
+        if parent_name.startswith("traceaad_"):
+            # traceaad_v9_8 -> V9.8
+            self.base_version = (
+                parent_name.removeprefix("traceaad_").replace("_", ".").upper()
+            )
+        else:
+            self.base_version = METHOD_LABELS.get(parent_name, parent_name.upper())
         self.version = self.base_version
         # Batches sharing a version directory get a tab suffix (V9.7·0814);
         # qwen38 is the model-swap batch and keeps its explicit name.
@@ -144,8 +168,12 @@ class RunState:
             self._config = {}
             return 1000
         self._config = config
-        budget = config.get("method_params", {}).get("budget")
-        return budget if isinstance(budget, int) and budget > 0 else 1000
+        params = config.get("method_params", {})
+        for key in ("budget", "max_sample_nums"):
+            budget = params.get(key)
+            if isinstance(budget, int) and budget > 0:
+                return budget
+        return 1000
 
     def _poll_evaluations_csv(
         self,
@@ -196,6 +224,68 @@ class RunState:
             return None, 0, None, [], None, None
         return pts, n_evals, best, mech, n_explore, n_protected
 
+    def _poll_baseline_samples(
+        self,
+    ) -> tuple[list[list] | None, int, float | None]:
+        """Baseline five-method runs: logs/samples/samples_*.json shards.
+
+        Curve points use (sample_order, score), the same axis the docs
+        search-curve figures use. Budget progress comes from
+        method_events.jsonl: sample_registered rows with counts_budget=True
+        (EoH's initial pool is evaluated but outside the formal budget);
+        methods without that event (MCTS-AHD counts expansions, CALM reports
+        per-epoch sample_count) fall back to their own counters.
+        """
+        shards = sorted((self.run_dir / "logs" / "samples").glob("samples_*.json"))
+        if not shards:
+            return None, 0, None
+        pts: list[list] = []
+        best = None
+        max_order = 0
+        for shard in shards:
+            try:
+                rows = json.loads(shard.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            for row in rows:
+                order = row.get("sample_order")
+                if not isinstance(order, int):
+                    continue
+                score = _f(row.get("score"))
+                pts.append([order, score, 0 if score is not None else 1])
+                max_order = max(max_order, order)
+                if score is not None and (best is None or score > best):
+                    best = score
+        pts.sort(key=lambda p: p[0])
+        n_evals = self._baseline_n_evals(max_order)
+        return pts, n_evals, best
+
+    def _baseline_n_evals(self, fallback: int) -> int:
+        path = self.run_dir / "logs" / "method_events.jsonl"
+        budgeted = 0
+        has_registered = False
+        epoch_count = 0
+        try:
+            with path.open(encoding="utf-8") as handle:
+                for line in handle:
+                    try:
+                        row = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if row.get("event") == "sample_registered":
+                        has_registered = True
+                        if row.get("counts_budget"):
+                            budgeted += 1
+                    elif row.get("event") == "epoch":
+                        count = row.get("sample_count")
+                        if isinstance(count, int):
+                            epoch_count = max(epoch_count, count)
+        except OSError:
+            return fallback
+        if has_registered:
+            return budgeted
+        return epoch_count or fallback
+
     def _poll_candidates_jsonl(self) -> tuple[list[list], int, float | None]:
         # Older artifact generations: no evaluations.csv, one JSON line per
         # attempt. Budget axis = rows that actually called the evaluator
@@ -230,6 +320,9 @@ class RunState:
             self._poll_evaluations_csv()
         )
         if pts is None:
+            pts, n_evals, best = self._poll_baseline_samples()
+            mech, n_explore, n_protected = [], None, None
+        if pts is None:
             pts, n_evals, best = self._poll_candidates_jsonl()
             mech, n_explore, n_protected = [], None, None
         self.pts = pts
@@ -261,10 +354,16 @@ class RunState:
         try:
             self.last_ts = (self.run_dir / "evaluations.csv").stat().st_mtime
         except OSError:
-            try:
-                self.last_ts = (self.run_dir / "artifacts" / "candidates.jsonl").stat().st_mtime
-            except OSError:
-                self.last_ts = None
+            shards = sorted((self.run_dir / "logs" / "samples").glob("samples_*.json"))
+            if shards:
+                self.last_ts = shards[-1].stat().st_mtime
+            else:
+                try:
+                    self.last_ts = (
+                        self.run_dir / "artifacts" / "candidates.jsonl"
+                    ).stat().st_mtime
+                except OSError:
+                    self.last_ts = None
         now = time.time()
         self.samples = [s for s in self.samples if now - s[0] <= RATE_WINDOW_S]
         self.samples.append([now, self.n_evals])
@@ -285,13 +384,16 @@ class RunState:
         return None
 
     def _finished(self) -> bool:
-        try:
-            summary = json.loads(
-                (self.run_dir / "logs" / "summary.json").read_text(encoding="utf-8")
-            )
-        except (OSError, json.JSONDecodeError):
-            return False
-        return summary.get("status") == "finished"
+        for name in ("summary.json", "run_summary.json"):
+            try:
+                summary = json.loads(
+                    (self.run_dir / "logs" / name).read_text(encoding="utf-8")
+                )
+            except (OSError, json.JSONDecodeError):
+                continue
+            if summary.get("status") == "finished":
+                return True
+        return False
 
     def payload(self) -> dict:
         finished = self._finished()
@@ -333,6 +435,9 @@ class Monitor:
                     and (
                         (run_dir / "evaluations.csv").is_file()
                         or (run_dir / "artifacts" / "candidates.jsonl").is_file()
+                        or any(
+                            (run_dir / "logs" / "samples").glob("samples_*.json")
+                        )
                     )
                     and run_dir.parent.name.removeprefix("traceaad_")
                         .replace("_", ".")
@@ -666,7 +771,8 @@ function render(state){
   const runs=byVersion[activeVersion];
   const fin=runs.filter(r=>r.finished).length;
   const unfinished=runs.filter(r=>!r.finished);
-  const remain=unfinished.length?Math.max(0,...unfinished.map(etaHours)):null;
+  const etas=unfinished.map(etaHours).filter(h=>h!=null);
+  const remain=etas.length?Math.max(...etas):null;
   const avgPct=Math.round(runs.reduce((s,r)=>s+Math.min(1,r.n_evals/(r.budget||BUDGET)),0)/runs.length*100);
   const totalRate=unfinished.reduce((s,r)=>s+(ratePerHour(r)||0),0);
   document.getElementById("strip").innerHTML=
