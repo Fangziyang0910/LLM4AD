@@ -59,6 +59,19 @@ from llm4ad.method.traceaad_v9_15 import (
     RunArtifacts as V915RunArtifacts,
     TraceAADV915,
 )
+from llm4ad.method.traceaad_v9_16 import (
+    ESS_FRACTION as V916_ESS_FRACTION,
+    EXPLORE_PROBABILITY as V916_EXPLORE_PROBABILITY,
+    INITIAL_ROOT_COUNT as V916_INITIAL_ROOT_COUNT,
+    LANDING_HORIZON as V916_LANDING_HORIZON,
+    LANDING_PROBABILITY as V916_LANDING_PROBABILITY,
+    LANDING_RATIO as V916_LANDING_RATIO,
+    MAX_HISTORY_EVENTS as V916_MAX_HISTORY_EVENTS,
+    MIN_ESS_TARGET as V916_MIN_ESS_TARGET,
+    REFINE_PROBABILITY as V916_REFINE_PROBABILITY,
+    RunArtifacts as V916RunArtifacts,
+    TraceAADV916,
+)
 
 from .._common import (
     ALL_TASKS,
@@ -83,6 +96,7 @@ VersionName = Literal[
     "v9_7",
     "v9_14",
     "v9_15",
+    "v9_16",
 ]
 
 VERSIONS: tuple[VersionName, ...] = (
@@ -93,8 +107,10 @@ VERSIONS: tuple[VersionName, ...] = (
     "v9_7",
     "v9_14",
     "v9_15",
+    "v9_16",
 )
 TRACEAAD_V915_VERSIONS = {"v9_15"}
+TRACEAAD_V916_VERSIONS = {"v9_16"}
 V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
 V9_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V9_OPERATORS]
 
@@ -170,6 +186,8 @@ def make_run_spec(
             if version == "v9_14"
             else V915_INITIAL_ROOT_COUNT
             if version in TRACEAAD_V915_VERSIONS
+            else V916_INITIAL_ROOT_COUNT
+            if version in TRACEAAD_V916_VERSIONS
             else 10
             if version in {"v8", "v9"}
             else 30
@@ -187,6 +205,7 @@ def make_run_spec(
                 "v9_7",
                 "v9_14",
                 "v9_15",
+                "v9_16",
             }
             else 24576
             if context_token_limit is None
@@ -208,6 +227,8 @@ def make_run_spec(
         raise ValueError("TraceAAD V9.14 requires exactly eight initial roots")
     if spec.version in TRACEAAD_V915_VERSIONS and spec.n_init != V915_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.15 requires exactly eight initial roots")
+    if spec.version in TRACEAAD_V916_VERSIONS and spec.n_init != V916_INITIAL_ROOT_COUNT:
+        raise ValueError("TraceAAD V9.16 requires exactly eight initial roots")
     if spec.eval_workers is not None and spec.eval_workers <= 0:
         raise ValueError("eval_workers must be positive")
     if spec.llm_output_tokens <= 0:
@@ -269,6 +290,19 @@ def build_method(
             n_roots=spec.n_init,
             max_tokens=spec.llm_output_tokens,
             max_history=V915_MAX_HISTORY_EVENTS,
+            seed=spec.seed,
+            resume_from=resume_from,
+            checkpoint_dir=run_dir / "checkpoints",
+        )
+    if spec.version == "v9_16":
+        return TraceAADV916(
+            llm=llm,
+            evaluation=evaluation,
+            artifacts=V916RunArtifacts(run_dir=run_dir),
+            budget=spec.budget,
+            n_roots=spec.n_init,
+            max_tokens=spec.llm_output_tokens,
+            max_history=V916_MAX_HISTORY_EVENTS,
             seed=spec.seed,
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
@@ -359,6 +393,7 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         "v9_7",
         "v9_14",
         "v9_15",
+        "v9_16",
     }:
         return
     _, task_kwargs = build_task(spec.task, spec.eval_workers)
@@ -367,11 +402,14 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         "v9_7",
         "v9_14",
         "v9_15",
+        "v9_16",
     }:
         if spec.version == "v9_7":
             expected_method_params = _v97_method_params(spec)
         elif spec.version == "v9_14":
             expected_method_params = _v914_method_params(spec)
+        elif spec.version == "v9_16":
+            expected_method_params = _v916_method_params(spec)
         else:
             expected_method_params = _v915_method_params(spec)
         expected_protocol = {
@@ -486,6 +524,8 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         method_params = _v914_method_params(spec)
     elif spec.version == "v9_15":
         method_params = _v915_method_params(spec)
+    elif spec.version == "v9_16":
+        method_params = _v916_method_params(spec)
     elif spec.version in {"v8", "v9"}:
         method_params = {
             "max_sample_nums": spec.budget,
@@ -554,6 +594,7 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         "v9_7",
         "v9_14",
         "v9_15",
+        "v9_16",
     }:
         payload["generator_environment"] = _versioned_generator_environment(spec)
     else:
@@ -574,7 +615,7 @@ def _versioned_logical_model_name(spec: RunSpec) -> str:
         return "Qwen3.8-27B"
     if spec.version == "v9_14":
         return "Qwen3.6-27B"
-    if spec.version in TRACEAAD_V915_VERSIONS:
+    if spec.version in TRACEAAD_V915_VERSIONS | TRACEAAD_V916_VERSIONS:
         return "Qwen3.6-27B"
     return V97_LOGICAL_MODEL_NAME
 
@@ -632,6 +673,29 @@ def _v915_method_params(spec: RunSpec) -> dict[str, object]:
         "trajectory_window": V915_TRAJECTORY_WINDOW,
         "ess_fraction": V915_ESS_FRACTION,
         "min_ess_target": V915_MIN_ESS_TARGET,
+        "error_handling": True,
+        "error_retries": 2,
+        "retry_policy": "two_bounded_repairs",
+        "retry_budget": "initial_candidates",
+    }
+
+
+def _v916_method_params(spec: RunSpec) -> dict[str, object]:
+    return {
+        "budget": spec.budget,
+        "n_roots": spec.n_init,
+        "max_history": V916_MAX_HISTORY_EVENTS,
+        "maximize": True,
+        "max_tokens": spec.llm_output_tokens,
+        "seed": spec.seed,
+        "refine_probability": V916_REFINE_PROBABILITY,
+        "explore_probability": V916_EXPLORE_PROBABILITY,
+        "ess_fraction": V916_ESS_FRACTION,
+        "min_ess_target": V916_MIN_ESS_TARGET,
+        "landing_ratio": V916_LANDING_RATIO,
+        "landing_probability": V916_LANDING_PROBABILITY,
+        "landing_horizon": V916_LANDING_HORIZON,
+        "parent_score": "quality_only",
         "error_handling": True,
         "error_retries": 2,
         "retry_policy": "two_bounded_repairs",

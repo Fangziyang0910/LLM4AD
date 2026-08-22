@@ -13,6 +13,7 @@ from llm4ad.method.traceaad_v9 import TraceAADV9
 from llm4ad.method.traceaad_v9_7 import TraceAADV97
 from llm4ad.method.traceaad_v9_14 import TraceAADV914
 from llm4ad.method.traceaad_v9_15 import TraceAADV915
+from llm4ad.method.traceaad_v9_16 import TraceAADV916
 
 
 @pytest.mark.parametrize("task", run.TASKS)
@@ -37,6 +38,7 @@ def test_unified_runner_builds_each_task_and_version(
         "v9_7": TraceAADV97,
         "v9_14": TraceAADV914,
         "v9_15": TraceAADV915,
+        "v9_16": TraceAADV916,
     }[version]
     assert isinstance(method, expected_type)
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
