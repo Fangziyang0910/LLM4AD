@@ -1,13 +1,18 @@
-"""Plot per-task search curves for the 7-method comparison figure.
+"""Plot per-task search curves for the TraceAAD version comparison figure.
 
-Methods: TraceAAD V9 / V9.7 (ours) + MCTS-AHD, PathWise, EoH, ReEvo, CALM.
-Each task gets one figure with best-so-far curves (mean + min-max band over 3 runs).
+Methods: TraceAAD V9.7 / V9.14 / V9.15. Each task gets one figure with
+best-so-far curves (mean + min-max band over 3 runs). V9.7 reads
+``artifacts/candidates.jsonl``; V9.14 / V9.15 read ``evaluations.csv``.
+Every earlier TraceAAD version and the five external baselines lost their
+per-sample histories in the 2026-08-21 cleanup; those curves survive only
+in the git history of the committed figures. V9.16 joins the figure once
+its batch finishes.
 """
 
 from __future__ import annotations
 
+import csv
 import json
-import re
 from pathlib import Path
 
 import matplotlib
@@ -22,33 +27,17 @@ ROOT = Path(__file__).resolve().parents[2]
 TASKS = ["tsp_construct", "cvrp_aco", "op_aco", "online_bin_packing"]
 
 METHODS = {
-    "TraceAAD V9": {
-        "color": "#D62728",
-        "band": "#F5A9A9",
-    },
     "TraceAAD V9.7": {
         "color": "#FF7F0E",
         "band": "#FCC07E",
     },
-    "MCTS-AHD": {
-        "color": "#247BA0",
-        "band": "#A9D6E5",
+    "TraceAAD V9.14": {
+        "color": "#2CA02C",
+        "band": "#A8D8A8",
     },
-    "PathWise": {
-        "color": "#E76F51",
-        "band": "#FFB4A2",
-    },
-    "EoH": {
-        "color": "#CC79A7",
-        "band": "#E8B9D5",
-    },
-    "ReEvo": {
-        "color": "#56B4E9",
-        "band": "#A8D8F0",
-    },
-    "CALM": {
-        "color": "#8C8C8C",
-        "band": "#C9C9C9",
+    "TraceAAD V9.15": {
+        "color": "#9467BD",
+        "band": "#CDB6E0",
     },
 }
 
@@ -57,45 +46,32 @@ BUDGET = 1000
 
 RUN_GLOBS = {
     "tsp_construct": {
-        "TraceAAD V9": ["traceaad_v9/version9/*_v9_*_rep*"],
         "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
-        "MCTS-AHD": ["mcts_ahd/20260709_2135*"],
-        "PathWise": ["pathwise/20260730_1755_*_pw_rep*"],
-        "EoH": ["eoh/eoh_paper_*_eoh_rep*"],
-        "ReEvo": ["reevo/*_reevo_rep*"],
-        "CALM": ["calm/*_calm_rep*"],
+        "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
+        "TraceAAD V9.15": ["traceaad_v9_15/v9_15_*_rep*"],
     },
     "cvrp_aco": {
-        "TraceAAD V9": ["traceaad_v9/version9/*_v9_*_rep*"],
         "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
-        "MCTS-AHD": [
-            "mcts_ahd/20260812_113425_cvrp_local_rep1",
-            "mcts_ahd/20260812_113425_cvrp_local_rep2",
-            "mcts_ahd/20260812_113425_cvrp_local_rep3",
-        ],
-        "PathWise": ["pathwise/20260730_1755_*_pw_rep*"],
-        "EoH": ["eoh/eoh_paper_*_eoh_rep*"],
-        "ReEvo": ["reevo/*_reevo_rep*"],
-        "CALM": ["calm/*_calm_rep*"],
+        "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
+        "TraceAAD V9.15": ["traceaad_v9_15/v9_15_*_rep*"],
     },
     "op_aco": {
-        "TraceAAD V9": ["traceaad_v9/version9/*_v9_*_rep*"],
         "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
-        "MCTS-AHD": ["mcts_ahd/*mctsahd_rep*"],
-        "PathWise": ["pathwise/20260730_1755_*_pw_rep*"],
-        "EoH": ["eoh/eoh_paper_*_eoh_rep*"],
-        "ReEvo": ["reevo/*_reevo_rep*"],
-        "CALM": ["calm/*_calm_rep*"],
+        "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
+        "TraceAAD V9.15": ["traceaad_v9_15/v9_15_*_rep*"],
     },
     "online_bin_packing": {
-        "TraceAAD V9": ["traceaad_v9/version9/*_v9_*_rep*"],
         "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
-        "MCTS-AHD": ["mcts_ahd/*mctsahd_rep*"],
-        "PathWise": ["pathwise/20260730_1755_*_pw_rep*"],
-        "EoH": ["eoh/eoh_paper_*_eoh_rep*"],
-        "ReEvo": ["reevo/*_reevo_rep*"],
-        "CALM": ["calm/*_calm_rep*"],
+        "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
+        "TraceAAD V9.15": ["traceaad_v9_15/v9_15_*_rep*"],
     },
+}
+
+# 每个方法的曲线加载器依赖的工件；run 目录必须包含对应文件才计入。
+METHOD_ARTIFACTS = {
+    "TraceAAD V9.7": "artifacts/candidates.jsonl",
+    "TraceAAD V9.14": "evaluations.csv",
+    "TraceAAD V9.15": "evaluations.csv",
 }
 
 
@@ -104,7 +80,8 @@ def run_dirs(task: str, method: str) -> list[Path]:
     dirs: list[Path] = []
     for pattern in RUN_GLOBS[task][method]:
         dirs.extend(td.glob(pattern))
-    return sorted(dirs)
+    artifact = METHOD_ARTIFACTS[method]
+    return sorted(d for d in dirs if (d / artifact).is_file())
 
 
 def _v9_points(run: Path) -> list[tuple[int, float]]:
@@ -118,49 +95,24 @@ def _v9_points(run: Path) -> list[tuple[int, float]]:
     return pts
 
 
-def _calm_points(run: Path) -> list[tuple[int, float]]:
-    log = run / "logs" / "calm" / "output.log"
+def _csv_points(run: Path) -> list[tuple[int, float]]:
+    """V9.14+/V9.15 runner: eval_count 为预算轴，fitness 空缺即失败行。"""
     pts: list[tuple[int, float]] = []
-    eval_re = re.compile(r"Evals: (\d+)/\d+")
-    perf_re = re.compile(r"Perf: (-?[\d.]+)")
-    for line in log.read_text().splitlines():
-        m = eval_re.search(line)
-        p = perf_re.search(line)
-        if m and p:
-            pts.append((int(m.group(1)), float(p.group(1))))
-    if not pts:
-        return pts
-    seed = None
-    for f in sorted((run / "logs" / "samples").glob("samples_*.json")):
-        for s in json.loads(f.read_text()):
-            if isinstance(s.get("sample_order"), int) and isinstance(s.get("score"), (int, float)):
-                if seed is None or s["sample_order"] < seed[0]:
-                    seed = (s["sample_order"], float(s["score"]))
-    if seed is not None:
-        pts.append((seed[0], seed[1]))
-    pts.sort(key=lambda x: x[0])
-    return pts
-
-
-def _generic_points(run: Path) -> list[tuple[int, float]]:
-    pts: list[tuple[int, float]] = []
-    for f in sorted((run / "logs" / "samples").glob("samples_*.json")):
-        if f.name == "samples_best.json":
-            continue
-        for s in json.loads(f.read_text()):
-            order, score = s.get("sample_order"), s.get("score")
-            if isinstance(order, int) and isinstance(score, (int, float)):
-                pts.append((order, float(score)))
+    with (run / "evaluations.csv").open(encoding="utf-8", newline="") as handle:
+        for row in csv.DictReader(handle):
+            order = row.get("eval_count")
+            score = row.get("fitness")
+            if order is None or score in (None, ""):
+                continue
+            try:
+                pts.append((int(order), float(score)))
+            except ValueError:
+                continue
     return pts
 
 
 def load_curve(run: Path, method: str) -> np.ndarray:
-    if method in ("TraceAAD V9", "TraceAAD V9.7"):
-        pts = _v9_points(run)
-    elif method == "CALM":
-        pts = _calm_points(run)
-    else:
-        pts = _generic_points(run)
+    pts = _csv_points(run) if METHOD_ARTIFACTS[method] == "evaluations.csv" else _v9_points(run)
     arr = np.full(BUDGET, -np.inf)
     for n, s in pts:
         if 1 <= n <= BUDGET:
@@ -182,7 +134,13 @@ def plot_task(task: str) -> Path:
     handles = []
     all_values = []
     for name, cfg in METHODS.items():
-        runs = [d for d in run_dirs(task, name) if (d / "logs").exists()]
+        runs = run_dirs(task, name)
+        if not runs:
+            raise SystemExit(
+                f"{task}/{name}: no runs with {METHOD_ARTIFACTS[name]} under "
+                f"{RUN_GLOBS[task][name]}; refusing to write a figure that "
+                "silently drops a method"
+            )
         curves = np.vstack([load_curve(r, name) for r in runs])
         x = np.arange(1, BUDGET + 1)
         all_values.append(curves[np.isfinite(curves)])
@@ -229,7 +187,7 @@ def plot_task(task: str) -> Path:
         frameon=False,
         loc="lower center",
         bbox_to_anchor=(0.5, 0.015),
-        ncol=4,
+        ncol=3,
         fontsize=8.0,
         handlelength=2.6,
         handletextpad=0.6,

@@ -427,6 +427,11 @@ class Monitor:
         self.states: dict[Path, RunState] = {}
 
     def poll(self) -> list[RunState]:
+        # 清理旧版本时整个 run 目录会被删掉；已消失的目录必须逐出，
+        # 否则它读不到 summary.json 无法判完成、last_ts 归零无法判停滞，
+        # 会永远以"运行中"留在面板上。
+        for gone in [d for d in self.states if not d.is_dir()]:
+            del self.states[gone]
         for pattern in self.patterns:
             for run_dir in sorted(EXPERIMENTS_ROOT.glob(pattern)):
                 if (
