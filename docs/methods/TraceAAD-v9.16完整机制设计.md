@@ -1,130 +1,146 @@
 # TraceAAD V9.16 完整机制设计
 
-本文定义 V9.16 的分配机制与识别协议。V9.16 以 V9.15 的单父算法树、轨迹条件生成和错误处理为运行基线，重新定义在线延续信用：历史形成事实继续保存，未来延续价值先通过随机化固定视界观测，再在证据足够时进入预算分配。
+V9.16 是一个机制识别版本。V9.15 的重放显示，`C_traj` 会广泛改变父节点排序，初生保护 `B` 对真实选择的影响很小；Explore child 的出生回撤与后续机会不足是值得检验的现象，但尚未证明“三步续段”就是根因。
 
-## 1. 设计目标
+本版本把问题收窄为一个可证伪假设：**全局质量驱动的逐步重选，是否会使一部分结构性 Explore proposal 在尚未完成短期发展前就失去机会？** 干预是对有效 Explore child 随机提供一次固定的、连续的三步 Refine landing。landing 有效只说明这一种短期承诺策略有价值，不等于已经估计了 continuation value 或识别了算法簇。
 
-V9.15 的在线分数把当前真实质量、初生保护和历史 realized gain 放在同一排序式中。重放显示 `C_traj` 广泛改变父节点排序，但它没有测量额外预算带来的未来收益。V9.16 的目标是让三类信息各司其职：
+V9.16 不实现分层先验、LCB、算法簇在线标签、development license 或状态控制器。
 
-- `q(a)` 表示当前已观测的真实质量；
-- 轨迹事实 `tau(a)` 表示算法怎样形成，主要用于生成上下文和诊断；
-- continuation value 表示从当前入口继续投入的短期边际收益，只由固定视界观测估计。
+## 1. 研究对象
 
-V9.16 不以四个任务每一列都超过 V9.15 作为设计前提。它要求在线信用的选择改变能够预测后续固定视界收益，并降低最差任务的退化风险。[待验证]
+一次评价预算回答三个操作问题：
 
-## 2. 冻结的运行协议
+1. 从哪个已有算法继续；
+2. 用哪条形成历史作为生成上下文；
+3. 本次生成采用 Refine 还是 Explore 意图。
 
-以下内容保持与 V9.15 一致，以便把变化归因到分配信用：
+V9.16 只改变第一个问题的一小部分：成功 Explore child 有固定概率获得 landing，landing 连续沿同一入口进行三次 Refine。形成历史仍只用于提示，Explore/Refine 仍只改变生成意图。
 
-1. 虚拟根下的单父纯算法树和完整形成轨迹；
-2. 8 个初始候选、1000 个初始候选槽位预算和 evaluator 记账；
-3. 当前算法与父代改进来时路的生成上下文；
-4. Refine / Explore 的生成意图语义和单次 `Idea + Code` 输出；
-5. Qwen3.6-27B、四任务、三重复发现批次与独立 held-out 协议；
-6. 两次有界修复、修复调用额外计数、完整错误反馈和失败可见规则。
+`entry` 是来源记录单位，不等同于算法簇。初始根各自建立 root entry；成功 Explore child 建立新的 Explore entry；该 child 的 Refine 后代继承入口 ID；后续 Explore child 建立新入口。入口 ID 只用于记录 landing、投入和谱系，不作为质量标签。
 
-V9.16 的正式比较必须在四个任务中使用同一错误处理、槽位预算和 evaluator 计账协议。模型响应、解析失败、评价失败和修复调用分别记录；真实评价预算仍以初始候选槽位消耗为运行时钟。
+## 2. 固定控制与直接因果对照
 
-## 3. 在线分配接口
+V9.16 同时移除 V9.15 的 `C_traj`、`B` 和动态 `p_E`，并把算子先验固定为 `Refine=0.7`、`Explore=0.3`。因此它不是相对 V9.15 的单一变量变化；V9.15 只作为历史诊断和已完成版本结果保留。
 
-每次原子预算只选择一个父节点和一个生成意图。父节点分数统一写为：
+V9.16 的直接因果对照是同一固定 proposal protocol 下的：
 
-$$
-S_{16}(a,o)=q(a)+B(a,o)+V_{\mathrm{cal}}(a,o)
-$$
+```text
+q baseline       = quality-only allocation, no landing
+q + landing      = the same baseline with fixed Explore landing
+```
 
-其中 `B` 保留 V9.15 的有界、快衰减初生保护，`V_cal` 是经过固定视界探针校准的正向延续价值。`C_traj` 不再直接进入在线排序，只作为日志字段保存。没有足够样本或下置信界不为正时，`V_cal=0`，分配退回 `q+B`，不会因为某条谱系过去产生过正增益而自动获得未来信用。
+两者固定模型、提示、初始根、随机种子、错误处理和 primary evaluator slots。只有这组对照用于归因 landing 的作用。
 
-给定算子后的概率采样仍使用 V9.15 的稳定 ESS 求解，但目标广度的统计单位改为有效入口：同一算法区域的重复代码、同一 Explore 入口的后代和只改变表面语法的节点不重复贡献在线广度。[待验证]
-
-## 4. 固定视界续段探针
-
-### 4.1 抽样规则
-
-探针不按当前排序挑选，以避免只测量已被分配器偏爱的节点。每轮从以下冻结分层中随机抽取少量入口：
-
-- 入口类型：Explore child 与 Refine 回撤 child；
-- 当前质量：任务内质量分位；
-- 谱系深度：浅、中、深；
-- 生成意图和错误状态：Refine / Explore、有效 / 修复后有效。
-
-探针占用预先冻结的评价配额，不能在结果出来后扩大。每个入口记录 `H in {1, 3, 5}` 的固定视界续段，不改变正式搜索的父节点重选规则。
-
-### 4.2 观测量
-
-对每个入口记录：
-
-- 是否恢复入口父代；
-- 是否超过入口父代；
-- 固定视界内的最大正向质量增益；
-- 每一步的有效率、修复率和等待时间；
-- 静态/行为区域进入与重访情况；
-- 是否产生全局新 best。
-
-内部改进、父代恢复和全局突破分开统计。内部改进不自动视为 parent recovery，也不自动形成在线预算承诺。
-
-### 4.3 延续价值估计
-
-对入口类型、任务内质量分位、深度和 operator 分层，估计：
+V9.16 的父节点质量分数为：
 
 $$
-\widehat V_H(a,o)=
-P(\mathrm{over\_parent}\mid a,o,H)
-\times
-E[\Delta q_+\mid \mathrm{over\_parent},a,o,H]
+S(a)=q(a).
 $$
 
-定义
+其中 `q` 是当前真实质量。所有有效节点经过 Boltzmann 分布采样，逆温度由目标 `ESS=max(0.1N,2)` 求解；`N` 为有效节点数。该规则沿用 V9.15 的抽样强度，但不再使用 `B` 或 `C_traj`。
+
+算子先验固定为：
 
 $$
-V_{\mathrm{cal}}(a,o) =
-\begin{cases}
-\max(0,\mathrm{LCB}(\widehat V_H(a,o))), & n_{\mathrm{probe}} \ge n_{\min} \\
-0, & n_{\mathrm{probe}} < n_{\min}
-\end{cases}
+P(\mathrm{Refine})=0.7,\qquad P(\mathrm{Explore})=0.3.
 $$
 
-其中 `LCB`、`n_min`、探针比例、视界选择和最大 credit 必须在批次开始前固定。没有证据时不添加不确定性奖励；覆盖由随机分层探针保证。
+`p_E` 不再随全局停滞变化。这样 V9.16 不同时改变新入口产生率。
 
-## 5. 停滞状态
+这一改动检验一个明确的取舍：普通协议在每次评价后立即重新选择，具有即时纠错能力；landing 暂时禁止全局重选，用少量连续预算换取结构性 proposal 的短期发展视界。结果应解释为这两种分配协议的比较。
 
-V9.16 将全局停滞拆成三类可观测状态，不把所有失败压缩成一个计数器：
+## 3. Landing 规则
 
-1. **质量停滞**：候选仍有效，但严格改进率下降；
-2. **提议停滞**：行为/静态区域重复率上升，换簇率下降；
-3. **可靠性停滞**：无效率、超时率或修复失败率上升。
+### 3.1 预算
 
-第一版只让质量停滞调整 `p_E`。提议停滞和可靠性停滞先记录并用于分层诊断，避免把错误处理失败误读成需要更多 Explore。只有受控消融显示状态量能预测后续收益后，才允许它们改变在线算子先验。[待验证]
+总预算为 `1000` 个 `primary evaluator slots`，初始化建立 `8` 个有效根。初始化后的剩余预算中，最多 `10%` 用于 landing；在标准预算下为 `99` 个 slot，因此最多完成 `33` 个三步 landing。未用完的 landing 配额回到普通搜索。
 
-## 6. 算法区域广度
+每个 landing 步的第一次候选占用一个 primary slot。解析失败、运行失败、超时和两次修复失败都算该步失败并消耗该 slot，失败后 landing 继续尝试下一步。修复可以再次调用 evaluator，但只增加 `repair evaluator calls`，不增加 primary slots。
 
-区域标签只用于探针分层、ESS 诊断和结果报告，不直接作为质量目标或节点淘汰条件。区域识别至少报告：区域切换率、区域重访率、同区域近邻比例和标签不确定性。静态代码代理与行为代理不等价于真实算法簇；在其稳定性得到独立验证前，不把代理标签写成算法簇事实。
+### 3.2 抽样
 
-## 7. 受控识别顺序
+每个成功 Explore child 以固定 `landing_probability=0.125` 独立抽签一次。抽签只在 child 创建时进行，结果写入 checkpoint；同一 entry 不重复获得 ticket。抽签随机数使用独立于普通父节点选择的派生种子，恢复运行不会改变既有 ticket。
 
-V9.16 的机制识别按单因素顺序进行：
+`0.125` 与 `10%` 上限按固定 `p_E=0.3`、每次 landing 三个 slot 粗略匹配：每个普通 slot 的期望 landing 消耗为 `0.3 * 0.125 * 3 = 0.1125`，对应总预算约 `10.1%`。有效 Explore 比例会使实际占用低于上限，因此 `10%` 是最大干预预算，不是保证每个任务使用的比例；正式报告实际 landing ratio。
 
-| 对照 | 唯一变化 | 识别对象 |
+抽中后立即执行该 entry 的三步 landing；landing 完成后恢复普通搜索。landing 配额不足三步时不再发放 ticket，未用配额由普通搜索使用。普通搜索不会因为 landing 结果改变父节点分数。
+
+### 3.3 三步延续
+
+landing 从获得 ticket 的 Explore child 开始，连续执行最多三步 Refine：
+
+1. 第一步父节点是 Explore child；
+2. 后续步骤父节点是上一步产生的最新有效 child；
+3. 生成提示仍包含该父节点和完整形成历史；
+4. landing 步固定使用 Refine 意图；
+5. 没有有效 child 时，下一步仍按原入口的最近有效节点继续；若不存在有效节点，landing 提前结束。
+
+landing child 正常加入主树、参与 best 和后续普通搜索。这是一个在线预算干预，V9.16 报告其搜索影响，不把它解释成无干预反事实。`H=3`、连续执行和 Refine-only 是本版本的具体 policy；结果不外推到所有 continuation policy。
+
+## 4. 记录的过程量
+
+每个入口和每次 landing 记录：
+
+- ticket 是否抽中以及抽签时的 evaluator slot；
+- 三步的父节点、子节点、状态、fitness、修复次数和耗时；
+- 有效步数、严格改进步数、相对入口父代的最终质量差；
+- 是否恢复入口父代、是否超过入口父代、最大增益；
+- 入口内连续 Refine 长度、全局 best-at-budget 曲线和运行间离散度。
+
+对 `q baseline` 还要记录 Explore child 的出生质量差：
+
+$$
+\Delta q_{birth}=q(child)-q(parent).
+$$
+
+按出生回撤分层报告普通搜索中的入口重访概率和首次重访等待时间。这样可以先检查“出生回撤导致普通分配早夭”这一前提，再把 landing 的入口内发展、后代增益和有限预算结果串起来。
+
+这些量是过程证据。三步增益不自动等于算法簇识别，也不进入后续质量分数。
+
+## 5. 错误处理与预算口径
+
+V9.16 沿用 V9.15 的错误处理：一次初始候选最多两次有界修复，完整错误反馈返回模型。初始尝试计入 `budget_slots`，修复单独计入 `repair LLM calls` 与 `repair evaluator calls`；总 evaluator 调用数不作为 primary budget。所有 ordinary 和 landing 初始尝试使用同一规则。
+
+运行日志必须区分 `ordinary` 与 `landing`，并记录 `landing_id`、`landing_step`、`entry_id`、`parent_id`、`attempt_kind` 和状态。checkpoint 必须保存未完成 ticket、当前 landing step、普通搜索计数和树，支持中断恢复。
+
+## 6. 原子运行协议
+
+````text
+Input: task, evaluator, LLM, budget B = 1000
+
+Generate 8 valid roots.
+Set Refine/Explore prior to 0.7/0.3.
+Set landing cap to floor(0.10 * (B - 8)).
+
+While evaluator slots remain:
+    If a landing ticket is active and the landing cap has room:
+        run the next Refine step from that ticket's latest valid child;
+        charge one primary evaluator slot;
+        record the step and keep the ticket active until 3 steps;
+    Else:
+        sample intent with fixed 0.7/0.3 prior;
+        sample parent by q(a) through the fixed ESS rule;
+        generate, evaluate, and record one ordinary child;
+        when a successful Explore child is created, draw its one landing ticket.
+
+Return the best valid algorithm by the true search objective.
+````
+
+## 7. 实验对照与判断
+
+V9.16 的主对照是：
+
+| 对照 | 唯一变化 | 目的 |
 | --- | --- | --- |
-| V9.15 重放基线 | 无 | 联合版本行为 |
-| `q + B` | 移除在线 `C_traj` | 历史奖励是否造成错误重排 |
-| `q + B + probe` | 加入固定视界随机探针 | 延续价值是否可被观测 |
-| `q + B + calibrated V` | 使用探针估计的 `V` | 校准信用是否改善选择 |
-| `calibrated V + state response` | 加入停滞状态响应 | 状态条件策略是否优于统一先验 |
+| `q` baseline | 固定 `0.7/0.3`，无 landing | 质量分配基线 |
+| `V9.16` | 在同一基线上加入固定 landing | 检验短期连续精炼机会 |
 
-每个对照固定模型、提示、初始根、seed、错误处理和预算。过程层报告选择改变率、探针覆盖率、`H=1/3/5` 续段曲线、区域重访率、有效率和等待时间；完整搜索层报告 100/250/500/750/1000 评价的 best-so-far；终局报告搜索 best、同规模 held-out、跨规模 held-out 和最差任务退化。
+V9.15 作为已完成版本保留其原始结果。V9.16 的 5 个正式任务为 `tsp_construct`、`cvrp_aco`、`op_aco`、`online_bin_packing` 和 `vrptw_construct`；每个任务使用 `1000` 个 primary evaluator slots 和三次重复。三重复是筛选批次，不单独承担“机制已经稳定改善”的结论；若出现清晰信号，再用新的独立 seeds 将关键任务扩展到至少六次重复。
 
-机制识别至少使用 6 个配对重复。三重复结果只用于发现方向，不能单独承担任务自适应机制已被识别的结论。探针不能预测固定视界收益时，在线版本停留在 `q+B`，不继续叠加信用项。
+报告顺序为：landing 激活与等待、入口内发展过程、`100/250/500/750/1000` best-at-budget、搜索 best、同规模 held-out、跨规模 held-out。过程改善不替代最终测试结果。
 
-## 8. 成功标准与边界
+若 landing 没有过程或有限预算改善，结论限定为“这一随机、连续、三步 Refine landing 未显示收益”，不据此否定所有 delayed continuation，也不继续向 V9.16 添加信用项。只有筛选批次出现清晰过程信号并经独立重复确认后，才在后续版本研究 landing 对象和视界的自适应分配。
 
-V9.16 的成功标准是机制可识别和风险可控：
+## 8. 设计边界
 
-- `C_traj` 移除后，V9.15 中退化任务的尾部风险下降；
-- 探针估计的 continuation value 能预测后续固定视界的真实收益；
-- 由 calibrated `V` 触发的选择改变与后续收益方向一致；
-- 至少两个任务重复一致改善，其他任务没有系统性退化；
-- 最差任务 regret 改善，且不依赖事后挑选重复；
-- 选择改变、完整搜索曲线和 held-out 方向在同一对照中相容。
-
-这些条件描述 V9.16 的实验判据，不预先宣称版本已经达到。V9.16 研究的核心不是寻找任务无关的固定探索率，而是验证“短期发展响应能否成为可校准的预算信号”。
+V9.16 不声称识别真实算法簇，不估计 individual-entry continuation value，不使用 landing 结果更新在线分数，不实现 LCB、分层 prior、license、动态 `p_E` 或 shadow search。它是对 V9.15 的一次小而可解释的机制修正。
