@@ -16,6 +16,7 @@ from .prompt import (
     build_generation_prompt,
     build_repair_prompt,
     build_root_prompt,
+    format_failure_feedback,
     parse_program_response,
     preflight_code,
 )
@@ -47,8 +48,8 @@ class TraceAADV915:
         seed: int | None = 0,
         checkpoint_dir: str | Path | None = None,
         resume_from: str | Path | None = None,
-        error_retries: int = 0,
-        error_handling: bool = False,
+        error_retries: int = 2,
+        error_handling: bool = True,
     ) -> None:
         if min(budget, n_roots, max_tokens, max_history) <= 0:
             raise ValueError("budget, n_roots, max_tokens, and max_history must be positive")
@@ -84,6 +85,7 @@ class TraceAADV915:
         self._tree = Tree(maximize=maximize)
         self._pending: Pending | None = None
         self._n_eval = 0
+        self._n_calls = 0
         self._n_stag = 0
         self._decision: Decision | None = None
 
@@ -138,7 +140,7 @@ class TraceAADV915:
                     stop_reason=stop_reason,
                     best_algorithm_id=None if best is None else best.id,
                     best_score=None if best is None else best.fitness,
-                    evaluator_call_count=self._n_eval,
+                    **self._summary_counts(),
                     n_algorithms=len(self._tree.valid_algorithms()),
                     n_roots=len(self._tree.root_algorithms()),
                     has_pending=self._pending is not None,
@@ -200,7 +202,7 @@ class TraceAADV915:
             child = self._process_pending()
             if child is not None or self._last_failure is None:
                 return child
-            if attempt > self._error_retries or not self._has_budget():
+            if not self._can_repair(attempt):
                 return None
             failure = self._last_failure
             parent_code = None
@@ -229,7 +231,7 @@ class TraceAADV915:
         self._preflight_error = preflight_code(parsed.code, self._function.name)
         result = self._evaluator.evaluate_program_with_details(parsed.code)
         self._attempt_elapsed = time.perf_counter() - started
-        self._n_eval += 1
+        self._charge_evaluation()
         if pending.parent_id != VIRTUAL_ROOT_ID:
             parent = self._tree.get_algorithm(pending.parent_id)
             parent.count += 1
@@ -247,6 +249,7 @@ class TraceAADV915:
                 message,
                 error_type=result.error_type,
                 code=parsed.code,
+                traceback=result.traceback,
             )
             if self._error_retries:
                 return None
@@ -267,6 +270,7 @@ class TraceAADV915:
                 ),
                 error_type=result.error_type,
                 code=parsed.code,
+                traceback=result.traceback,
             )
 
         child = self._tree.add_algorithm(
@@ -310,6 +314,7 @@ class TraceAADV915:
         *,
         error_type: str | None = None,
         code: str = "",
+        traceback: str | None = None,
     ) -> None:
         pending = self._pending
         assert pending is not None
@@ -320,7 +325,11 @@ class TraceAADV915:
             diagnostic = f"{self._preflight_error}; {error}"
         self._last_failure = {
             "code": code,
-            "error": one_line(diagnostic, ERROR_MAX_CHARS),
+            "error": format_failure_feedback(
+                error_type=error_type,
+                error=diagnostic,
+                traceback=traceback,
+            ),
         }
         save_checkpoint(self)
         if self._log is not None:
@@ -345,6 +354,17 @@ class TraceAADV915:
 
     def _has_budget(self) -> bool:
         return self._n_eval < self._budget
+
+    def _charge_evaluation(self) -> None:
+        self._n_calls += 1
+        if self._attempt_kind == "initial":
+            self._n_eval += 1
+
+    def _can_repair(self, attempt: int) -> bool:
+        return attempt <= self._error_retries
+
+    def _summary_counts(self) -> dict[str, int]:
+        return {"evaluator_call_count": self._n_calls, "budget_slots": self._n_eval}
 
 
 __all__ = ["TraceAADV915"]

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from experiments.runners.traceaad.launch_v915 import build_plan, launch_pending
+from experiments.runners.traceaad.launch_v915 import _done, build_plan, launch_pending
 
 
 def test_v915_plan_has_twelve_runs_balanced_across_both_servers() -> None:
@@ -49,3 +49,22 @@ def test_v915_launch_limits_each_backend(monkeypatch) -> None:
 
     assert count == 6
     assert Counter(launched) == {"server3": 4, "server3b": 2}
+
+
+def test_v915_done_uses_search_slots_when_repairs_add_calls(tmp_path) -> None:
+    item = build_plan(batch="batch")[0]
+    item = type(item)(
+        task=item.task,
+        repeat=item.repeat,
+        backend=item.backend,
+        session=item.session,
+        run_name=item.run_name,
+        run_dir=tmp_path / "run",
+    )
+    summary = item.run_dir / "logs" / "summary.json"
+    summary.parent.mkdir(parents=True)
+    summary.write_text(
+        '{"status":"finished","budget_slots":1000,"evaluator_call_count":1173}\n'
+    )
+
+    assert _done(item)

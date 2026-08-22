@@ -11,7 +11,6 @@ import pytest
 from llm4ad.base import Evaluation, LLM
 from llm4ad.method.traceaad_v9_15 import RunArtifacts, TraceAADV915
 from llm4ad.method.traceaad_v9_15.prompt import preflight_code
-from llm4ad.method.traceaad_v9_15_eh import TraceAADV915EH
 from llm4ad.method.traceaad_v9_15.checkpoint import save_checkpoint
 from llm4ad.method.traceaad_v9_15.selection import (
     boltzmann_probabilities,
@@ -304,12 +303,12 @@ def test_search_loop_updates_counters_stagnation_and_artifacts(
     assert (run_dir / "best_program.py").is_file()
 
 
-def test_failed_evaluation_consumes_budget_counts_and_stagnation(
+def test_failed_candidate_repairs_share_one_search_slot(
     tmp_path: Path,
 ) -> None:
     run_dir = tmp_path / "failed"
     method = TraceAADV915(
-        llm=ScriptedLLM([10.0, 99.0], invalid_at={2}),
+        llm=ScriptedLLM([10.0, 99.0, 98.0, 97.0], invalid_at={2, 3, 4}),
         evaluation=IncrementalEvaluation(),
         artifacts=RunArtifacts(run_dir, console_output=False),
         budget=2,
@@ -319,15 +318,22 @@ def test_failed_evaluation_consumes_budget_counts_and_stagnation(
 
     root = method._tree.root_algorithms()[0]
     assert method._n_eval == 2
-    assert root.count == 1
-    assert root.refine_count + root.explore_count == 1
+    assert method._n_calls == 4
+    assert root.count == 3
+    assert root.refine_count + root.explore_count == 3
     assert len(method._tree.valid_algorithms()) == 1
-    assert method._n_stag == 1
+    assert method._n_stag == 3
     with (run_dir / "evaluations.csv").open() as handle:
         rows = list(csv.DictReader(handle))
     assert rows[0]["status"] == "ok"
     assert rows[1]["status"] == "exec_error"
-    assert rows[1]["n_stag"] == "1"
+    assert [row["attempt_kind"] for row in rows] == [
+        "initial",
+        "initial",
+        "repair",
+        "repair",
+    ]
+    assert rows[-1]["n_stag"] == "3"
 
 
 def test_preflight_checks_syntax_and_target_function() -> None:
@@ -336,12 +342,12 @@ def test_preflight_checks_syntax_and_target_function() -> None:
     assert preflight_code("def choose(value)\n    return value\n", "choose")
 
 
-def test_error_handling_repairs_once_and_logs_each_real_evaluation(
+def test_error_handling_repairs_do_not_consume_search_budget(
     tmp_path: Path,
 ) -> None:
     run_dir = tmp_path / "error_handling"
-    method = TraceAADV915EH(
-        llm=ScriptedLLM([10.0, 11.0, 12.0], invalid_at={2}),
+    method = TraceAADV915(
+        llm=ScriptedLLM([10.0, 11.0, 12.0, 13.0], invalid_at={2}),
         evaluation=IncrementalEvaluation(),
         artifacts=RunArtifacts(run_dir, console_output=False),
         budget=3,
@@ -349,18 +355,27 @@ def test_error_handling_repairs_once_and_logs_each_real_evaluation(
     )
     method.run()
 
-    assert method._n_eval == 3
-    assert method._llm.calls == 3
-    assert method.best.fitness == 12.0
+    assert method._n_eval == 3  # budget counts initial candidates only
+    assert method._n_calls == 4  # the repair is an extra evaluator call
+    assert method._llm.calls == 4
+    assert method.best.fitness == 13.0
     with (run_dir / "evaluations.csv").open() as handle:
         rows = list(csv.DictReader(handle))
-    assert [row["attempt_kind"] for row in rows] == ["initial", "initial", "repair"]
+    assert [row["attempt_kind"] for row in rows] == [
+        "initial",
+        "initial",
+        "repair",
+        "initial",
+    ]
     assert rows[1]["status"] == "exec_error"
     assert rows[1]["error_type"] == "SyntaxError"
     assert rows[2]["status"] == "ok"
     assert rows[2]["attempt"] == "2"
     assert all(row["candidate_hash"] for row in rows)
     assert all(float(row["elapsed_seconds"]) >= 0.0 for row in rows)
+    summary = json.loads((run_dir / "logs/summary.json").read_text())
+    assert summary["evaluator_call_count"] == 4
+    assert summary["budget_slots"] == 3
 
 
 def test_checkpoint_round_trips_stagnation_and_counters(tmp_path: Path) -> None:
@@ -374,6 +389,7 @@ def test_checkpoint_round_trips_stagnation_and_counters(tmp_path: Path) -> None:
     )
     root = method._tree.add_algorithm(code=TEMPLATE, fitness=10.0)
     method._n_eval = 1
+    method._n_calls = 1
     method._n_stag = 5
     method._pending = Pending(
         parent_id=root.id,
@@ -385,7 +401,15 @@ def test_checkpoint_round_trips_stagnation_and_counters(tmp_path: Path) -> None:
     )
     path = save_checkpoint(method)
     state = json.loads(path.read_text())
-    assert set(state) == {"tree", "pending", "n_eval", "n_stag"}
+    assert set(state) == {
+        "tree",
+        "pending",
+        "n_eval",
+        "n_calls",
+        "n_stag",
+        "attempt",
+        "attempt_kind",
+    }
     assert state["n_stag"] == 5
 
     resumed = TraceAADV915(
@@ -484,10 +508,11 @@ def test_interrupted_run_resumes_to_identical_trajectory(tmp_path: Path) -> None
     assert resumed._n_eval == full._n_eval == 6
     assert trajectory(part_dir) == trajectory(full_dir)
     # idea strings are model output; every decision-relevant field matches
-    stripped = lambda payload: [
-        {key: value for key, value in item.items() if key != "idea"}
-        for item in payload["algorithms"]
-    ]
+    def stripped(payload):
+        return [
+            {key: value for key, value in item.items() if key != "idea"}
+            for item in payload["algorithms"]
+        ]
     assert stripped(resumed._tree.to_dict()) == stripped(full._tree.to_dict())
 
 

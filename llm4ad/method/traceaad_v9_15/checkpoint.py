@@ -16,17 +16,17 @@ def save_checkpoint(method, directory: str | Path | None = None) -> Path | None:
         return None
     path = Path(target) / "latest.json"
     path.parent.mkdir(parents=True, exist_ok=True)
+    state: dict[str, object] = {
+        "tree": method._tree.to_dict(),
+        "pending": None if method._pending is None else asdict(method._pending),
+        "n_eval": method._n_eval,
+        "n_stag": method._n_stag,
+        "attempt": method._attempt_number,
+        "attempt_kind": method._attempt_kind,
+    }
+    state["n_calls"] = method._n_calls
     path.write_text(
-        json.dumps(
-            {
-                "tree": method._tree.to_dict(),
-                "pending": None if method._pending is None else asdict(method._pending),
-                "n_eval": method._n_eval,
-                "n_stag": method._n_stag,
-            },
-            indent=2,
-        )
-        + "\n",
+        json.dumps(state, indent=2) + "\n",
         encoding="utf-8",
     )
     return path
@@ -41,6 +41,9 @@ def load_checkpoint(method, path: str | Path) -> Path:
     )
     method._n_eval = state["n_eval"]
     method._n_stag = state["n_stag"]
+    method._attempt_number = state.get("attempt", 1)
+    method._attempt_kind = state.get("attempt_kind", "initial")
+    method._n_calls = state.get("n_calls", method._n_eval)
     return checkpoint
 
 

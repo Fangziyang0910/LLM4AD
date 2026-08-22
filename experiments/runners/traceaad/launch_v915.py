@@ -85,10 +85,10 @@ def _done(item: Item) -> bool:
     if not path.is_file():
         return False
     summary = json.loads(path.read_text(encoding="utf-8"))
-    return (
-        summary.get("status") == "finished"
-        and summary.get("evaluator_call_count") == 1000
+    completed_slots = summary.get(
+        "budget_slots", summary.get("evaluator_call_count")
     )
+    return summary.get("status") == "finished" and completed_slots == 1000
 
 
 def launch(item: Item, *, dry_run: bool = False) -> None:

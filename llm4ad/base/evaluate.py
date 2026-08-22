@@ -43,6 +43,7 @@ class EvaluationOutcome:
     failure_kind: str | None = None
     error_type: str | None = None
     error: str | None = None
+    traceback: str | None = None
 
 
 class Evaluation(ABC):
@@ -428,11 +429,12 @@ class SecureEvaluator:
     @staticmethod
     def _failure(kind: str, exc: Exception) -> EvaluationOutcome:
         message = str(exc)
-        if len(message) > 1000:
-            message = message[:997] + '...'
+        if len(message) > 20000:
+            message = message[:19997] + '...'
         return EvaluationOutcome(
             result=None,
             failure_kind=kind,
             error_type=type(exc).__name__,
             error=message,
+            traceback=traceback.format_exc(),
         )

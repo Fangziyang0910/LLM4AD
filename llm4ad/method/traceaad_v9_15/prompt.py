@@ -186,6 +186,80 @@ def preflight_code(code: str, function_name: str) -> str | None:
     return None
 
 
+_TIMEOUT_GUIDANCE = (
+    "The failure is the per-call time limit: reduce the computational cost of"
+    " each call (vectorize, precompute tables, shrink candidate lists) and keep"
+    " the algorithmic idea."
+)
+
+_INTERNAL_FRAME_MARKERS = (
+    "site-packages",
+    "llm4ad",
+    "lib/python",
+    "multiprocessing",
+    "concurrent/futures",
+)
+
+_MAX_FEEDBACK_FRAMES = 8
+
+
+def _traceback_frame_blocks(traceback_text: str | None) -> list[str]:
+    """Split a traceback into `File ...` blocks, innermost last."""
+    if not traceback_text:
+        return []
+    blocks: list[str] = []
+    current: list[str] = []
+    for line in traceback_text.splitlines():
+        if line.lstrip().startswith('File "'):
+            if current:
+                blocks.append("\n".join(current))
+            current = [line]
+        elif current:
+            current.append(line)
+    if current:
+        blocks.append("\n".join(current))
+    return blocks
+
+
+def _candidate_frames(traceback_text: str | None) -> list[str]:
+    """Keep frames from the generated code; fall back to the innermost frames."""
+    blocks = _traceback_frame_blocks(traceback_text)
+    kept = [
+        block
+        for block in blocks
+        if not any(marker in block for marker in _INTERNAL_FRAME_MARKERS)
+    ]
+    if not kept:
+        kept = blocks[-2:]
+    return kept[-_MAX_FEEDBACK_FRAMES:]
+
+
+def format_failure_feedback(
+    *,
+    error_type: str | None,
+    error: str,
+    traceback: str | None = None,
+    preflight_error: str | None = None,
+) -> str:
+    """Compose the full failure report for the repair prompt.
+
+    Keeps the complete exception message, adds the type name, and keeps only
+    traceback frames from the generated code instead of evaluator internals.
+    """
+    head = error if not error_type else f"{error_type}: {error}"
+    if preflight_error is not None:
+        head = f"{head}\nPreflight: {preflight_error}"
+    parts = [head]
+    if error_type == "TimeoutError":
+        parts.append(_TIMEOUT_GUIDANCE)
+    frames = _candidate_frames(traceback)
+    if frames:
+        parts.append(
+            "Traceback (candidate frames, innermost last):\n" + "\n".join(frames)
+        )
+    return "\n".join(parts)
+
+
 def parse_program_response(response: str) -> ParsedCandidate:
     text = str(response)
     first_fence = text.find("```")
@@ -233,6 +307,7 @@ __all__ = [
     "build_root_prompt",
     "extract_idea",
     "fitness_direction_hint",
+    "format_failure_feedback",
     "parse_program_response",
     "preflight_code",
 ]
