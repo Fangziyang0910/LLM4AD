@@ -1,4 +1,4 @@
-"""Unified candidate error-boundary contract tests for TraceAAD V4 through V9.13.
+"""Unified candidate error-boundary contract tests for TraceAAD V4 through V9.7.
 
 Every version must follow the V9.14 semantics: a completed model response is
 leniently extracted (fenced block, else text after ``Code:``, else the whole
@@ -20,14 +20,7 @@ from llm4ad.method.traceaad_v4 import TraceAADV4
 from llm4ad.method.traceaad_v5 import TraceAADV5
 from llm4ad.method.traceaad_v8 import TraceAADV8
 from llm4ad.method.traceaad_v9 import TraceAADV9
-from llm4ad.method.traceaad_v9_10 import TraceAADV910
-from llm4ad.method.traceaad_v9_11 import TraceAADV911
-from llm4ad.method.traceaad_v9_12 import TraceAADV912
-from llm4ad.method.traceaad_v9_13 import TraceAADV913
 from llm4ad.method.traceaad_v9_7 import TraceAADV97
-from llm4ad.method.traceaad_v9_7_co import TraceAADV97CO
-from llm4ad.method.traceaad_v9_8 import TraceAADV98
-from llm4ad.method.traceaad_v9_9 import TraceAADV99
 
 TEMPLATE = """def choose(value: int) -> int:
     return value
@@ -39,25 +32,6 @@ VERSIONS = [
     "v8",
     "v9",
     "v9_7",
-    "v9_7_co",
-    "v9_8",
-    "v9_9",
-    "v9_10",
-    "v9_11",
-    "v9_12",
-    "v9_13",
-]
-
-# Versions that persist an un-evaluated pending response inside checkpoints.
-PENDING_VERSIONS = [
-    "v9_7",
-    "v9_7_co",
-    "v9_8",
-    "v9_9",
-    "v9_10",
-    "v9_11",
-    "v9_12",
-    "v9_13",
 ]
 
 
@@ -203,28 +177,11 @@ def build_method(
         "artifacts": artifacts,
         "budget": budget,
         "n_roots": n_init,
-        "context_limit": 32768,
         "checkpoint_dir": checkpoint_dir,
         "seed": 1,
         "resume_from": resume,
     }
-    if version in {"v9_7", "v9_7_co", "v9_8", "v9_9", "v9_10", "v9_11", "v9_12", "v9_13"}:
-        family_kwargs.pop("context_limit")
-    if version == "v9_7":
-        return TraceAADV97(**family_kwargs)
-    if version == "v9_7_co":
-        return TraceAADV97CO(**family_kwargs)
-    if version == "v9_8":
-        return TraceAADV98(**family_kwargs)
-    if version == "v9_9":
-        return TraceAADV99(**family_kwargs)
-    if version == "v9_10":
-        return TraceAADV910(**family_kwargs)
-    if version == "v9_11":
-        return TraceAADV911(**family_kwargs)
-    if version == "v9_12":
-        return TraceAADV912(**family_kwargs)
-    return TraceAADV913(task_key="tsp_construct", **family_kwargs)
+    return TraceAADV97(**family_kwargs)
 
 
 def run_one(version: str, response: str, tmp_path: Path, *, budget: int = 1, increment: bool = False):
@@ -385,7 +342,7 @@ def test_init_stops_by_budget_exhaustion_with_invalid_candidates(
 # 10. Pending checkpoint responses are evaluated exactly once after resume
 # ==============================================================================
 
-PENDING_SIMPLE_VERSIONS = ["v9_7", "v9_7_co", "v9_11", "v9_12", "v9_13"]
+PENDING_SIMPLE_VERSIONS = ["v9_7"]
 
 
 @pytest.mark.parametrize("version", PENDING_SIMPLE_VERSIONS)
@@ -452,13 +409,6 @@ TRANSPORT_DIRECT_VERSIONS = [
     "v8",
     "v9",
     "v9_7",
-    "v9_7_co",
-    "v9_8",
-    "v9_9",
-    "v9_10",
-    "v9_11",
-    "v9_12",
-    "v9_13",
 ]
 
 

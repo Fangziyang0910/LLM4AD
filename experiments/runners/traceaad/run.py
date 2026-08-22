@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import subprocess
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
@@ -39,80 +37,6 @@ from llm4ad.method.traceaad_v9_7 import (
     RunArtifacts as V97RunArtifacts,
     TraceAADV97,
 )
-from llm4ad.method.traceaad_v9_7_co import (
-    INITIAL_ROOT_COUNT as V97CO_INITIAL_ROOT_COUNT,
-    LOGICAL_MODEL_NAME as V97CO_LOGICAL_MODEL_NAME,
-    REFINE_PROBABILITY as V97CO_REFINE_PROBABILITY,
-    RunArtifacts as V97CORunArtifacts,
-    TraceAADV97CO,
-)
-from llm4ad.method.traceaad_v9_8 import (
-    DEFAULT_MAX_RESPONSES as V98_DEFAULT_MAX_RESPONSES,
-    INITIAL_ROOT_COUNT as V98_INITIAL_ROOT_COUNT,
-    LOGICAL_MODEL_NAME as V98_LOGICAL_MODEL_NAME,
-    MAX_HISTORY_EVENTS as V98_MAX_HISTORY_EVENTS,
-    REFINE_PROBABILITY as V98_REFINE_PROBABILITY,
-    AllocationPolicy as V98AllocationPolicy,
-    RunArtifacts as V98RunArtifacts,
-    TraceAADV98,
-)
-from llm4ad.method.traceaad_v9_9 import (
-    EXPLORE_PRIOR as V99_EXPLORE_PRIOR,
-    INITIAL_ROOT_COUNT as V99_INITIAL_ROOT_COUNT,
-    LAMBDA_U as V99_LAMBDA_U,
-    LOGICAL_MODEL_NAME as V99_LOGICAL_MODEL_NAME,
-    MAX_HISTORY_EVENTS as V99_MAX_HISTORY_EVENTS,
-    PATH_HALF_LIFE as V99_PATH_HALF_LIFE,
-    RANK_HALF_LIFE as V99_RANK_HALF_LIFE,
-    REFINE_PRIOR as V99_REFINE_PRIOR,
-    TEMPERATURE as V99_TEMPERATURE,
-    RunArtifacts as V99RunArtifacts,
-    TraceAADV99,
-)
-from llm4ad.method.traceaad_v9_10 import (
-    CHILD_WINDOW as V910_CHILD_WINDOW,
-    EXPLORE_PRIOR as V910_EXPLORE_PRIOR,
-    INITIAL_ROOT_COUNT as V910_INITIAL_ROOT_COUNT,
-    LOGICAL_MODEL_NAME as V910_LOGICAL_MODEL_NAME,
-    MAX_HISTORY_EVENTS as V910_MAX_HISTORY_EVENTS,
-    PARENT_CHAIN_HALF_LIFE as V910_PARENT_CHAIN_HALF_LIFE,
-    PARENT_CHAIN_WINDOW as V910_PARENT_CHAIN_WINDOW,
-    PRIOR_STRENGTH as V910_PRIOR_STRENGTH,
-    RECENCY_HALF_LIFE as V910_RECENCY_HALF_LIFE,
-    REFINE_PRIOR as V910_REFINE_PRIOR,
-    RunArtifacts as V910RunArtifacts,
-    TraceAADV910,
-)
-from llm4ad.method.traceaad_v9_11 import (
-    INITIAL_ROOT_COUNT as V911_INITIAL_ROOT_COUNT,
-    LOGICAL_MODEL_NAME as V911_LOGICAL_MODEL_NAME,
-    MAX_HISTORY_EVENTS as V911_MAX_HISTORY_EVENTS,
-    MIN_EXPLORE_REMAINING_EVALS as V911_MIN_EXPLORE_REMAINING_EVALS,
-    STAGNATION_WINDOW as V911_STAGNATION_WINDOW,
-    RunArtifacts as V911RunArtifacts,
-    TraceAADV911,
-)
-from llm4ad.method.traceaad_v9_12 import (
-    EXPLORE_PROBABILITY_MAX as V912_EXPLORE_PROBABILITY_MAX,
-    EXPLORE_PROBABILITY_MIN as V912_EXPLORE_PROBABILITY_MIN,
-    INITIAL_ROOT_COUNT as V912_INITIAL_ROOT_COUNT,
-    LOGICAL_MODEL_NAME as V912_LOGICAL_MODEL_NAME,
-    MAX_HISTORY_EVENTS as V912_MAX_HISTORY_EVENTS,
-    MIN_EXPLORE_REMAINING_EVALS as V912_MIN_EXPLORE_REMAINING_EVALS,
-    PROGRESS_WINDOW as V912_PROGRESS_WINDOW,
-    RunArtifacts as V912RunArtifacts,
-    TraceAADV912,
-)
-from llm4ad.method.traceaad_v9_13 import (
-    FRONTIER_ACTIVATION_EVALS as V913_FRONTIER_ACTIVATION_EVALS,
-    INITIAL_ROOT_COUNT as V913_INITIAL_ROOT_COUNT,
-    LOGICAL_MODEL_NAME as V913_LOGICAL_MODEL_NAME,
-    MAX_HISTORY_EVENTS as V913_MAX_HISTORY_EVENTS,
-    REFINE_PROBABILITY as V913_REFINE_PROBABILITY,
-    RunArtifacts as V913RunArtifacts,
-    TraceAADV913,
-    Treatment as V913Treatment,
-)
 from llm4ad.method.traceaad_v9_14 import (
     INITIAL_ROOT_COUNT as V914_INITIAL_ROOT_COUNT,
     MAX_HISTORY_EVENTS as V914_MAX_HISTORY_EVENTS,
@@ -135,13 +59,12 @@ from llm4ad.method.traceaad_v9_15 import (
     RunArtifacts as V915RunArtifacts,
     TraceAADV915,
 )
-from llm4ad.method.traceaad_v9_15_eh import TraceAADV915EH
 
 from .._common import (
     ALL_TASKS,
     BACKENDS,
     EXPERIMENTS_ROOT,
-    TASKS,
+    TASKS as TASKS,
     TaskName,
     build_llm_client,
     build_task,
@@ -158,16 +81,8 @@ VersionName = Literal[
     "v8",
     "v9",
     "v9_7",
-    "v9_7_co",
-    "v9_8",
-    "v9_9",
-    "v9_10",
-    "v9_11",
-    "v9_12",
-    "v9_13",
     "v9_14",
     "v9_15",
-    "v9_15_eh",
 ]
 
 VERSIONS: tuple[VersionName, ...] = (
@@ -176,18 +91,10 @@ VERSIONS: tuple[VersionName, ...] = (
     "v8",
     "v9",
     "v9_7",
-    "v9_7_co",
-    "v9_8",
-    "v9_9",
-    "v9_10",
-    "v9_11",
-    "v9_12",
-    "v9_13",
     "v9_14",
     "v9_15",
-    "v9_15_eh",
 )
-TRACEAAD_V915_VERSIONS = {"v9_15", "v9_15_eh"}
+TRACEAAD_V915_VERSIONS = {"v9_15"}
 V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
 V9_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V9_OPERATORS]
 
@@ -210,12 +117,6 @@ class RunSpec:
     repeat: int | None = None
     run_name: str | None = None
     resume_from: Path | None = None
-    allocation_policy: str = V98AllocationPolicy.FULL.value
-    max_responses: int = V98_DEFAULT_MAX_RESPONSES
-    v910_child_window: int | None = None
-    v910_settlement_mode: str = "depth"
-    v910_allocation_mode: str = "thompson"
-    treatment: str = V913Treatment.FP.value
     experiments_root: Path = EXPERIMENTS_ROOT
 
     @property
@@ -251,12 +152,6 @@ def make_run_spec(
     repeat: int | None = None,
     run_name: str | None = None,
     resume_from: Path | None = None,
-    allocation_policy: str = V98AllocationPolicy.FULL.value,
-    max_responses: int = V98_DEFAULT_MAX_RESPONSES,
-    v910_child_window: int | None = None,
-    v910_settlement_mode: str = "depth",
-    v910_allocation_mode: str = "thompson",
-    treatment: str = V913Treatment.FP.value,
     experiments_root: Path = EXPERIMENTS_ROOT,
 ) -> RunSpec:
     profile = resolve_backend(backend, base_url, model, no_proxy)
@@ -271,24 +166,10 @@ def make_run_spec(
         n_init=(
             V97_INITIAL_ROOT_COUNT
             if version == "v9_7"
-            else V98_INITIAL_ROOT_COUNT
-            if version == "v9_8"
-            else V99_INITIAL_ROOT_COUNT
-            if version == "v9_9"
-            else V910_INITIAL_ROOT_COUNT
-            if version == "v9_10"
-            else V911_INITIAL_ROOT_COUNT
-            if version == "v9_11"
-            else V912_INITIAL_ROOT_COUNT
-            if version == "v9_12"
-            else V913_INITIAL_ROOT_COUNT
-            if version == "v9_13"
             else V914_INITIAL_ROOT_COUNT
             if version == "v9_14"
             else V915_INITIAL_ROOT_COUNT
             if version in TRACEAAD_V915_VERSIONS
-            else V97CO_INITIAL_ROOT_COUNT
-            if version == "v9_7_co"
             else 10
             if version in {"v8", "v9"}
             else 30
@@ -304,16 +185,8 @@ def make_run_spec(
             and version
             in {
                 "v9_7",
-                "v9_7_co",
-                "v9_8",
-                "v9_9",
-                "v9_10",
-                "v9_11",
-                "v9_12",
-                "v9_13",
                 "v9_14",
                 "v9_15",
-                "v9_15_eh",
             }
             else 24576
             if context_token_limit is None
@@ -323,12 +196,6 @@ def make_run_spec(
         repeat=repeat,
         run_name=run_name,
         resume_from=None if resume_from is None else resume_from.resolve(),
-        allocation_policy=allocation_policy,
-        max_responses=max_responses,
-        v910_child_window=v910_child_window,
-        v910_settlement_mode=v910_settlement_mode,
-        v910_allocation_mode=v910_allocation_mode,
-        treatment=treatment,
         experiments_root=experiments_root.resolve(),
     )
     if spec.budget <= 0:
@@ -337,36 +204,10 @@ def make_run_spec(
         raise ValueError("n_init must be positive")
     if spec.version == "v9_7" and spec.n_init != V97_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.7 requires exactly eight initial roots")
-    if spec.version == "v9_7_co" and spec.n_init != V97CO_INITIAL_ROOT_COUNT:
-        raise ValueError("TraceAAD V9.7-CO requires exactly eight initial roots")
-    if spec.version == "v9_8" and spec.n_init != V98_INITIAL_ROOT_COUNT:
-        raise ValueError("TraceAAD V9.8 requires exactly eight initial roots")
-    if spec.version == "v9_9" and spec.n_init != V99_INITIAL_ROOT_COUNT:
-        raise ValueError("TraceAAD V9.9 requires exactly eight independent roots")
-    if spec.version == "v9_8":
-        V98AllocationPolicy(spec.allocation_policy)
-        if spec.max_responses <= 0:
-            raise ValueError("V9.8 response safety limit must be positive")
-    if spec.version == "v9_9":
-        if spec.max_responses <= 0:
-            raise ValueError("V9.9 response safety limit must be positive")
-    if spec.version == "v9_10":
-        if spec.n_init != V910_INITIAL_ROOT_COUNT:
-            raise ValueError("TraceAAD V9.10 requires exactly eight independent roots")
-        if spec.max_responses <= 0:
-            raise ValueError("V9.10 response safety limit must be positive")
-    if spec.version == "v9_11" and spec.n_init != V911_INITIAL_ROOT_COUNT:
-        raise ValueError("TraceAAD V9.11 requires exactly eight initial roots")
-    if spec.version == "v9_12" and spec.n_init != V912_INITIAL_ROOT_COUNT:
-        raise ValueError("TraceAAD V9.12 requires exactly eight initial roots")
-    if spec.version == "v9_13":
-        if spec.n_init != V913_INITIAL_ROOT_COUNT:
-            raise ValueError("TraceAAD V9.13 requires exactly eight initial roots")
-        V913Treatment(spec.treatment)
     if spec.version == "v9_14" and spec.n_init != V914_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.14 requires exactly eight initial roots")
     if spec.version in TRACEAAD_V915_VERSIONS and spec.n_init != V915_INITIAL_ROOT_COUNT:
-        raise ValueError("TraceAAD V9.15 variants require exactly eight initial roots")
+        raise ValueError("TraceAAD V9.15 requires exactly eight initial roots")
     if spec.eval_workers is not None and spec.eval_workers <= 0:
         raise ValueError("eval_workers must be positive")
     if spec.llm_output_tokens <= 0:
@@ -406,109 +247,6 @@ def build_method(
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
         )
-    if spec.version == "v9_8":
-        return TraceAADV98(
-            llm=llm,
-            evaluation=evaluation,
-            artifacts=V98RunArtifacts(run_dir=run_dir),
-            budget=spec.budget,
-            n_roots=spec.n_init,
-            max_tokens=spec.llm_output_tokens,
-            max_history=V98_MAX_HISTORY_EVENTS,
-            seed=spec.seed,
-            allocation_policy=spec.allocation_policy,
-            max_responses=spec.max_responses,
-            resume_from=resume_from,
-            checkpoint_dir=run_dir / "checkpoints",
-        )
-    if spec.version == "v9_9":
-        return TraceAADV99(
-            llm=llm,
-            evaluation=evaluation,
-            artifacts=V99RunArtifacts(run_dir=run_dir),
-            budget=spec.budget,
-            n_roots=spec.n_init,
-            max_tokens=spec.llm_output_tokens,
-            max_history=V99_MAX_HISTORY_EVENTS,
-            seed=spec.seed,
-            max_responses=spec.max_responses,
-            resume_from=resume_from,
-            checkpoint_dir=run_dir / "checkpoints",
-        )
-    if spec.version == "v9_10":
-        return TraceAADV910(
-            llm=llm,
-            evaluation=evaluation,
-            artifacts=V910RunArtifacts(run_dir=run_dir),
-            budget=spec.budget,
-            n_roots=spec.n_init,
-            max_tokens=spec.llm_output_tokens,
-            max_history=V910_MAX_HISTORY_EVENTS,
-            seed=spec.seed,
-            max_responses=spec.max_responses,
-            child_window=(
-                V910_CHILD_WINDOW
-                if spec.v910_child_window is None
-                else spec.v910_child_window
-            ),
-            settlement_mode=spec.v910_settlement_mode,
-            allocation_mode=spec.v910_allocation_mode,
-            resume_from=resume_from,
-            checkpoint_dir=run_dir / "checkpoints",
-        )
-    if spec.version == "v9_11":
-        return TraceAADV911(
-            llm=llm,
-            evaluation=evaluation,
-            artifacts=V911RunArtifacts(run_dir=run_dir),
-            budget=spec.budget,
-            n_roots=spec.n_init,
-            max_tokens=spec.llm_output_tokens,
-            max_history=V911_MAX_HISTORY_EVENTS,
-            seed=spec.seed,
-            resume_from=resume_from,
-            checkpoint_dir=run_dir / "checkpoints",
-        )
-    if spec.version == "v9_12":
-        return TraceAADV912(
-            llm=llm,
-            evaluation=evaluation,
-            artifacts=V912RunArtifacts(run_dir=run_dir),
-            budget=spec.budget,
-            n_roots=spec.n_init,
-            max_tokens=spec.llm_output_tokens,
-            max_history=V912_MAX_HISTORY_EVENTS,
-            seed=spec.seed,
-            resume_from=resume_from,
-            checkpoint_dir=run_dir / "checkpoints",
-        )
-    if spec.version == "v9_7_co":
-        return TraceAADV97CO(
-            llm=llm,
-            evaluation=evaluation,
-            artifacts=V97CORunArtifacts(run_dir=run_dir),
-            budget=spec.budget,
-            n_roots=spec.n_init,
-            max_tokens=spec.llm_output_tokens,
-            seed=spec.seed,
-            resume_from=resume_from,
-            checkpoint_dir=run_dir / "checkpoints",
-        )
-    if spec.version == "v9_13":
-        return TraceAADV913(
-            llm=llm,
-            evaluation=evaluation,
-            artifacts=V913RunArtifacts(run_dir=run_dir),
-            budget=spec.budget,
-            task_key=spec.task,
-            treatment=spec.treatment,
-            n_roots=spec.n_init,
-            max_tokens=spec.llm_output_tokens,
-            max_history=V913_MAX_HISTORY_EVENTS,
-            seed=spec.seed,
-            resume_from=resume_from,
-            checkpoint_dir=run_dir / "checkpoints",
-        )
     if spec.version == "v9_14":
         return TraceAADV914(
             llm=llm,
@@ -519,20 +257,6 @@ def build_method(
             max_tokens=spec.llm_output_tokens,
             max_history=V914_MAX_HISTORY_EVENTS,
             seed=spec.seed,
-            resume_from=resume_from,
-            checkpoint_dir=run_dir / "checkpoints",
-        )
-    if spec.version == "v9_15_eh":
-        return TraceAADV915EH(
-            llm=llm,
-            evaluation=evaluation,
-            artifacts=V915RunArtifacts(run_dir=run_dir),
-            budget=spec.budget,
-            n_roots=spec.n_init,
-            max_tokens=spec.llm_output_tokens,
-            max_history=V915_MAX_HISTORY_EVENTS,
-            seed=spec.seed,
-            error_retries=1,
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
         )
@@ -633,55 +357,23 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         "v8",
         "v9",
         "v9_7",
-        "v9_7_co",
-        "v9_8",
-        "v9_9",
-        "v9_10",
-        "v9_11",
-        "v9_12",
-        "v9_13",
         "v9_14",
         "v9_15",
-        "v9_15_eh",
     }:
         return
     _, task_kwargs = build_task(spec.task, spec.eval_workers)
     normalized_task_kwargs = json.loads(json.dumps(task_kwargs, sort_keys=True))
     if spec.version in {
         "v9_7",
-        "v9_7_co",
-        "v9_8",
-        "v9_9",
-        "v9_10",
-        "v9_11",
-        "v9_12",
-        "v9_13",
         "v9_14",
         "v9_15",
-        "v9_15_eh",
     }:
         if spec.version == "v9_7":
             expected_method_params = _v97_method_params(spec)
-        elif spec.version == "v9_7_co":
-            expected_method_params = _v97co_method_params(spec)
-        elif spec.version == "v9_8":
-            expected_method_params = _v98_method_params(spec)
-        elif spec.version == "v9_9":
-            expected_method_params = _v99_method_params(spec)
-        elif spec.version == "v9_11":
-            expected_method_params = _v911_method_params(spec)
-        elif spec.version == "v9_12":
-            expected_method_params = _v912_method_params(spec)
-        elif spec.version == "v9_13":
-            expected_method_params = _v913_method_params(spec)
         elif spec.version == "v9_14":
             expected_method_params = _v914_method_params(spec)
-        elif spec.version == "v9_15":
-            expected_method_params = _v915_method_params(spec)
-        elif spec.version == "v9_15_eh":
-            expected_method_params = _v915_eh_method_params(spec)
         else:
-            expected_method_params = _v910_method_params(spec)
+            expected_method_params = _v915_method_params(spec)
         expected_protocol = {
             "task_eval": _task_eval_protocol(normalized_task_kwargs),
             "method_params": expected_method_params,
@@ -790,26 +482,10 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     method_params: dict[str, object]
     if spec.version == "v9_7":
         method_params = _v97_method_params(spec)
-    elif spec.version == "v9_8":
-        method_params = _v98_method_params(spec)
-    elif spec.version == "v9_9":
-        method_params = _v99_method_params(spec)
-    elif spec.version == "v9_10":
-        method_params = _v910_method_params(spec)
-    elif spec.version == "v9_11":
-        method_params = _v911_method_params(spec)
-    elif spec.version == "v9_12":
-        method_params = _v912_method_params(spec)
-    elif spec.version == "v9_7_co":
-        method_params = _v97co_method_params(spec)
-    elif spec.version == "v9_13":
-        method_params = _v913_method_params(spec)
     elif spec.version == "v9_14":
         method_params = _v914_method_params(spec)
     elif spec.version == "v9_15":
         method_params = _v915_method_params(spec)
-    elif spec.version == "v9_15_eh":
-        method_params = _v915_eh_method_params(spec)
     elif spec.version in {"v8", "v9"}:
         method_params = {
             "max_sample_nums": spec.budget,
@@ -876,20 +552,10 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     }
     if spec.version in {
         "v9_7",
-        "v9_7_co",
-        "v9_8",
-        "v9_9",
-        "v9_10",
-        "v9_11",
-        "v9_12",
-        "v9_13",
         "v9_14",
         "v9_15",
-        "v9_15_eh",
     }:
         payload["generator_environment"] = _versioned_generator_environment(spec)
-        if spec.version == "v9_8":
-            payload["implementation"] = _v98_implementation_identity()
     else:
         payload["backend"] = spec.backend
         payload["llm"] = llm_payload(
@@ -906,23 +572,11 @@ def _versioned_logical_model_name(spec: RunSpec) -> str:
     model = spec.model.lower()
     if "qwen3.8" in model:
         return "Qwen3.8-27B"
-    if spec.version == "v9_10":
-        return V910_LOGICAL_MODEL_NAME
-    if spec.version == "v9_11":
-        return V911_LOGICAL_MODEL_NAME
-    if spec.version == "v9_12":
-        return V912_LOGICAL_MODEL_NAME
     if spec.version == "v9_14":
         return "Qwen3.6-27B"
     if spec.version in TRACEAAD_V915_VERSIONS:
         return "Qwen3.6-27B"
-    if spec.version == "v9_13":
-        return V913_LOGICAL_MODEL_NAME
-    if spec.version == "v9_7_co":
-        return V97CO_LOGICAL_MODEL_NAME
-    if spec.version == "v9_9":
-        return V99_LOGICAL_MODEL_NAME
-    return V98_LOGICAL_MODEL_NAME if spec.version == "v9_8" else V97_LOGICAL_MODEL_NAME
+    return V97_LOGICAL_MODEL_NAME
 
 
 def _versioned_generator_environment(spec: RunSpec) -> dict[str, object]:
@@ -945,127 +599,6 @@ def _v97_method_params(spec: RunSpec) -> dict[str, object]:
         "seed": spec.seed,
         "refine_probability": V97_REFINE_PROBABILITY,
         "explore_probability": 1.0 - V97_REFINE_PROBABILITY,
-    }
-
-
-def _v97co_method_params(spec: RunSpec) -> dict[str, object]:
-    return {
-        "budget": spec.budget,
-        "n_roots": spec.n_init,
-        "maximize": True,
-        "max_tokens": spec.llm_output_tokens,
-        "seed": spec.seed,
-        "refine_probability": V97CO_REFINE_PROBABILITY,
-        "explore_probability": 1.0 - V97CO_REFINE_PROBABILITY,
-        "generation_context": "code_only",
-    }
-
-
-def _v98_method_params(spec: RunSpec) -> dict[str, object]:
-    return {
-        "allocation_policy": spec.allocation_policy,
-        "budget": spec.budget,
-        "n_roots": spec.n_init,
-        "max_history": V98_MAX_HISTORY_EVENTS,
-        "maximize": True,
-        "max_tokens": spec.llm_output_tokens,
-        "seed": spec.seed,
-        "refine_probability": V98_REFINE_PROBABILITY,
-        "explore_probability": 1.0 - V98_REFINE_PROBABILITY,
-        "max_responses": spec.max_responses,
-    }
-
-
-def _v99_method_params(spec: RunSpec) -> dict[str, object]:
-    return {
-        "budget": spec.budget,
-        "n_roots": spec.n_init,
-        "max_history": V99_MAX_HISTORY_EVENTS,
-        "maximize": True,
-        "max_tokens": spec.llm_output_tokens,
-        "seed": spec.seed,
-        "lambda_u": V99_LAMBDA_U,
-        "path_half_life": V99_PATH_HALF_LIFE,
-        "rank_half_life": V99_RANK_HALF_LIFE,
-        "temperature": V99_TEMPERATURE,
-        "refine_prior": V99_REFINE_PRIOR,
-        "explore_prior": V99_EXPLORE_PRIOR,
-        "max_responses": spec.max_responses,
-    }
-
-
-def _v910_method_params(spec: RunSpec) -> dict[str, object]:
-    return {
-        "budget": spec.budget,
-        "n_roots": spec.n_init,
-        "max_history": V910_MAX_HISTORY_EVENTS,
-        "maximize": True,
-        "max_tokens": spec.llm_output_tokens,
-        "seed": spec.seed,
-        "prior_strength": V910_PRIOR_STRENGTH,
-        "refine_prior": V910_REFINE_PRIOR,
-        "explore_prior": V910_EXPLORE_PRIOR,
-        "recency_half_life": V910_RECENCY_HALF_LIFE,
-        "child_window": (
-            V910_CHILD_WINDOW
-            if spec.v910_child_window is None
-            else spec.v910_child_window
-        ),
-        "settlement_mode": spec.v910_settlement_mode,
-        "allocation_mode": spec.v910_allocation_mode,
-        "parent_chain_window": V910_PARENT_CHAIN_WINDOW,
-        "parent_chain_half_life": V910_PARENT_CHAIN_HALF_LIFE,
-        "max_responses": spec.max_responses,
-    }
-
-
-def _v911_method_params(spec: RunSpec) -> dict[str, object]:
-    return {
-        "budget": spec.budget,
-        "n_roots": spec.n_init,
-        "max_history": V911_MAX_HISTORY_EVENTS,
-        "maximize": True,
-        "max_tokens": spec.llm_output_tokens,
-        "seed": spec.seed,
-        "stagnation_window": V911_STAGNATION_WINDOW,
-        "min_explore_remaining_evals": V911_MIN_EXPLORE_REMAINING_EVALS,
-        "default_intent": "refine",
-        "explore_trigger": "strict_global_stagnation",
-        "landing_responses": 1,
-    }
-
-
-def _v912_method_params(spec: RunSpec) -> dict[str, object]:
-    return {
-        "budget": spec.budget,
-        "n_roots": spec.n_init,
-        "max_history": V912_MAX_HISTORY_EVENTS,
-        "maximize": True,
-        "max_tokens": spec.llm_output_tokens,
-        "seed": spec.seed,
-        "progress_window": V912_PROGRESS_WINDOW,
-        "explore_probability_min": V912_EXPLORE_PROBABILITY_MIN,
-        "explore_probability_max": V912_EXPLORE_PROBABILITY_MAX,
-        "min_explore_remaining_evals": V912_MIN_EXPLORE_REMAINING_EVALS,
-        "default_intent": "refine",
-        "operator_policy": "recent_segment_refine_failure_evidence",
-        "explore_followup_responses": 1,
-    }
-
-
-def _v913_method_params(spec: RunSpec) -> dict[str, object]:
-    return {
-        "budget": spec.budget,
-        "n_roots": spec.n_init,
-        "max_history": V913_MAX_HISTORY_EVENTS,
-        "maximize": True,
-        "max_tokens": spec.llm_output_tokens,
-        "seed": spec.seed,
-        "refine_probability": V913_REFINE_PROBABILITY,
-        "explore_probability": 1.0 - V913_REFINE_PROBABILITY,
-        "task_key": spec.task,
-        "treatment": spec.treatment,
-        "frontier_activation_evals": V913_FRONTIER_ACTIVATION_EVALS,
     }
 
 
@@ -1099,60 +632,10 @@ def _v915_method_params(spec: RunSpec) -> dict[str, object]:
         "trajectory_window": V915_TRAJECTORY_WINDOW,
         "ess_fraction": V915_ESS_FRACTION,
         "min_ess_target": V915_MIN_ESS_TARGET,
-    }
-
-
-def _v915_eh_method_params(spec: RunSpec) -> dict[str, object]:
-    params = _v915_method_params(spec)
-    params.update(
-        {
-            "error_handling": True,
-            "error_retries": 1,
-            "retry_policy": "single_bounded_repair",
-            "retry_budget": "real_evaluator_calls",
-        }
-    )
-    return params
-
-
-def _v98_implementation_identity() -> dict[str, object]:
-    source_root = Path(__file__).resolve().parents[3]
-    paths = sorted((source_root / "llm4ad" / "method" / "traceaad_v9_8").glob("*.py"))
-    paths.extend(
-        [
-            Path(__file__).resolve(),
-            Path(__file__).with_name("v98_mechanism_probe.py"),
-            Path(__file__).with_name("v98_continuation_probe.py"),
-        ]
-    )
-    digest = hashlib.sha256()
-    for path in paths:
-        relative = path.relative_to(source_root)
-        digest.update(str(relative).encode())
-        digest.update(b"\0")
-        digest.update(path.read_bytes())
-        digest.update(b"\0")
-    commit = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=source_root,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-    dirty = bool(
-        subprocess.run(
-            ["git", "status", "--porcelain"],
-            cwd=source_root,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-    )
-    return {
-        "git_commit": commit,
-        "worktree_dirty": dirty,
-        "protocol_source_sha256": digest.hexdigest(),
-        "source_files": [str(path.relative_to(source_root)) for path in paths],
+        "error_handling": True,
+        "error_retries": 2,
+        "retry_policy": "two_bounded_repairs",
+        "retry_budget": "initial_candidates",
     }
 
 
@@ -1192,29 +675,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--repeat", type=int)
     parser.add_argument("--run-name")
     parser.add_argument("--resume-from", type=Path)
-    parser.add_argument(
-        "--allocation-policy",
-        choices=tuple(item.value for item in V98AllocationPolicy),
-        default=V98AllocationPolicy.FULL.value,
-    )
-    parser.add_argument("--max-responses", type=int, default=V98_DEFAULT_MAX_RESPONSES)
-    parser.add_argument("--v910-child-window", type=int)
-    parser.add_argument(
-        "--v910-settlement-mode",
-        choices=("depth", "response_age"),
-        default="depth",
-    )
-    parser.add_argument(
-        "--v910-allocation-mode",
-        choices=("thompson", "uniform"),
-        default="thompson",
-    )
-    parser.add_argument(
-        "--treatment",
-        choices=tuple(item.value for item in V913Treatment),
-        default=V913Treatment.FP.value,
-        help="V9.13 frozen Explore context treatment (Stage P selection)",
-    )
     return parser
 
 
@@ -1236,12 +696,6 @@ def spec_from_args(args: argparse.Namespace) -> RunSpec:
         repeat=args.repeat,
         run_name=args.run_name,
         resume_from=args.resume_from,
-        allocation_policy=args.allocation_policy,
-        max_responses=args.max_responses,
-        v910_child_window=args.v910_child_window,
-        v910_settlement_mode=args.v910_settlement_mode,
-        v910_allocation_mode=args.v910_allocation_mode,
-        treatment=args.treatment,
     )
 
 

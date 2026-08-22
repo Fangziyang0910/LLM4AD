@@ -11,16 +11,8 @@ from llm4ad.method.traceaad_v5 import TraceAADV5
 from llm4ad.method.traceaad_v8 import TraceAADV8
 from llm4ad.method.traceaad_v9 import TraceAADV9
 from llm4ad.method.traceaad_v9_7 import TraceAADV97
-from llm4ad.method.traceaad_v9_7_co import TraceAADV97CO
-from llm4ad.method.traceaad_v9_8 import TraceAADV98
-from llm4ad.method.traceaad_v9_9 import TraceAADV99
-from llm4ad.method.traceaad_v9_10 import TraceAADV910
-from llm4ad.method.traceaad_v9_11 import TraceAADV911
-from llm4ad.method.traceaad_v9_12 import TraceAADV912
-from llm4ad.method.traceaad_v9_13 import TraceAADV913
 from llm4ad.method.traceaad_v9_14 import TraceAADV914
 from llm4ad.method.traceaad_v9_15 import TraceAADV915
-from llm4ad.method.traceaad_v9_15_eh import TraceAADV915EH
 
 
 @pytest.mark.parametrize("task", run.TASKS)
@@ -43,16 +35,8 @@ def test_unified_runner_builds_each_task_and_version(
         "v8": TraceAADV8,
         "v9": TraceAADV9,
         "v9_7": TraceAADV97,
-        "v9_7_co": TraceAADV97CO,
-        "v9_8": TraceAADV98,
-        "v9_9": TraceAADV99,
-        "v9_10": TraceAADV910,
-        "v9_11": TraceAADV911,
-        "v9_12": TraceAADV912,
-        "v9_13": TraceAADV913,
         "v9_14": TraceAADV914,
         "v9_15": TraceAADV915,
-        "v9_15_eh": TraceAADV915EH,
     }[version]
     assert isinstance(method, expected_type)
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
@@ -61,9 +45,9 @@ def test_unified_runner_builds_each_task_and_version(
         assert method._llm.max_tokens == 16384
     else:
         assert method._llm.max_tokens == 8192
-        if version == "v9_15_eh":
+        if version == "v9_15":
             assert method._error_handling is True
-            assert method._error_retries == 1
+            assert method._error_retries == 2
         if version in {"v8", "v9"}:
             assert spec.n_init == 10
             assert not hasattr(method, "_action_max_tokens")
@@ -107,10 +91,10 @@ def test_runner_writes_one_reproducible_config_per_run(tmp_path: Path) -> None:
     assert payload["llm"]["api_key_configured"] is False
 
 
-def test_v915_eh_config_is_distinct_and_records_retry_policy(tmp_path: Path) -> None:
+def test_v915_config_records_retry_policy(tmp_path: Path) -> None:
     spec = run.make_run_spec(
         task="tsp_construct",
-        version="v9_15_eh",
+        version="v9_15",
         repeat=1,
         experiments_root=tmp_path,
     )
@@ -119,11 +103,11 @@ def test_v915_eh_config_is_distinct_and_records_retry_policy(tmp_path: Path) -> 
     payload = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
 
     assert not resumed
-    assert payload["method"] == "traceaad_v9_15_eh"
+    assert payload["method"] == "traceaad_v9_15"
     assert payload["method_params"]["error_handling"] is True
-    assert payload["method_params"]["error_retries"] == 1
-    assert payload["method_params"]["retry_policy"] == "single_bounded_repair"
-    assert payload["method_params"]["retry_budget"] == "real_evaluator_calls"
+    assert payload["method_params"]["error_retries"] == 2
+    assert payload["method_params"]["retry_policy"] == "two_bounded_repairs"
+    assert payload["method_params"]["retry_budget"] == "initial_candidates"
 
 
 def test_v8_runner_records_tree_protocol_without_population_controls(
@@ -220,28 +204,6 @@ def test_aco_tasks_default_to_four_local_eval_workers() -> None:
     assert op.n_workers == 4
     assert cvrp_kwargs["n_workers"] == 4
     assert op_kwargs["n_workers"] == 4
-
-
-def test_v99_resume_allows_eval_worker_count_change(tmp_path: Path) -> None:
-    run_dir = tmp_path / "v99"
-    run_dir.mkdir()
-    original = run.make_run_spec(
-        task="cvrp_aco",
-        version="v9_9",
-        eval_workers=10,
-        experiments_root=tmp_path,
-    )
-    run.write_run_config(original, run_dir, run_dir.name)
-    changed = run.make_run_spec(
-        task="cvrp_aco",
-        version="v9_9",
-        eval_workers=2,
-        resume_from=run_dir,
-        experiments_root=tmp_path,
-    )
-    resolved, _, resumed = run.resolve_run_dir(changed)
-    assert resumed
-    assert resolved == run_dir
 
 
 def test_old_task_specific_traceaad_runners_are_removed() -> None:
