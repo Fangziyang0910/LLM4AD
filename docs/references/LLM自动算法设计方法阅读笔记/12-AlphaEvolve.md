@@ -4,7 +4,7 @@
 
 ## 1. 核心问题与方法
 
-AlphaEvolve 将强 LLM 与自动 evaluator 组成异步演化系统：候选程序在数据库中按质量与多样性管理，模型依据父程序、反馈和任务说明提出 patch；评估器验证并回传指标。论文覆盖算法、硬件/系统和科学计算等任务，强调人类提供问题框架、系统自动改进其中可验证部分。
+AlphaEvolve 将强 LLM 与自动 evaluator 组成异步演化系统：候选程序在数据库中按质量与多样性管理（实现"inspired by MAP-Elites 与 island-based population models"，岛数/迁移率/精英数等细节原文未展开），模型依据父程序、反馈和任务说明提出 diff 形式 patch；评估器验证并回传指标。prompt 由数据库采样的多个先前解（parent + inspirations）加系统指令构成，四类可定制成分：显式上下文、stochastic formatting（模板占位符带概率分布替代，以提高多样性）、渲染的评价结果、meta prompt evolution（LLM 自荐指令并在独立数据库中共同进化）。多模型为 Flash/Pro 静态分工（吞吐与偶发突破），无在线调度；评价是难度递增的级联。注意：后续复现工作命名的"PBAB"缩写在原文中不存在，原文称 Prompt sampler。论文覆盖算法、硬件/系统和科学计算等任务，强调人类提供问题框架、系统自动改进其中可验证部分。
 
 ## 2. 论文宣称的机制贡献（逐项）
 

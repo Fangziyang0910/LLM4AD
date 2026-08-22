@@ -4,7 +4,7 @@
 
 ## 1. 核心问题与方法
 
-RoCo 将生成、批评、反思等职责分给预定义角色，并把协作输出接入进化式启发式产生。系统定义包含 agent、role、环境、通信及协作输入/输出；论文还定义启发式表示与反思机制。目标不是训练模型参数，而是通过角色分工提升一次搜索中的候选质量。
+RoCo 将生成、批评、反思等职责分给预定义角色：explorer（"creative, diversity-driven thinking"，采样温度 1.3）、exploiter（"conservative, efficiency-oriented refinements"，温度 0.8）、integrator（显式权衡 explorer 的长期创新与 exploiter 的短期精修）、critic（比较精英对产出反馈，反思区分成功模式与失败教训"avoid..."）。外层继承 EoH 的种群与五算子（E1/E2/M1/M2/M3），精英按偏置分布 $p_i\propto 1/(i+1)^3$ 采样；T=3 轮 explorer/exploiter 并行生成、critic 评估、integrator 融合，再做长期反思蒸馏（把 $(R^{short}, g_{t-1}, g_t, \Delta g_t)$ 一起压缩，反思与性能动态挂钩）。目标不是训练模型参数，而是通过角色分工提升一次搜索中的候选质量。
 
 ## 2. 论文宣称的机制贡献（逐项）
 
@@ -17,7 +17,7 @@ RoCo 将生成、批评、反思等职责分给预定义角色，并把协作输
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
 |完整 RoCo 在五类 ACO 任务上有竞争力|Tables `tab:whitebox`、`tab:black_box_table`，Fig. `fig:whiteboxcurve`|间接支持|主结果均为完整协作配方，不能归因给角色或反思。|
-|角色/反思组件的影响|Table `tab:ablation`，§`sec:ablation`|部分支持|表标题为 RoCo components on TSP、含白盒与黑盒；它只支持所列组件删除版本，仍需注意通信量/调用数是否随之变化。|
+|角色/反思组件的影响|Table `tab:ablation`，§`sec:ablation`|部分支持|白盒 TSP 下完整 RoCo 8.256 与 EoH 8.257 几乎持平——角色协作的增益集中在反馈受限场景；黑盒下去 integrator 退化最大（8.641 vs 8.256），协作轮数 1→3 显著改善（9.341→8.254）、4–5 轮边际。仍需注意通信量/调用数是否随之变化。|
 |多任务稳定性|Fig. `fig:blackbox`|部分支持|黑盒图为四次独立运行的均值和标准差；白盒主表为 64 实例、三次平均，不覆盖所有设置。|
 |局部搜索变体解释收益|Table `tab:gls`|间接支持|只说明 LS variants 的表现，不能证明角色协作收益来自 LS。|
 

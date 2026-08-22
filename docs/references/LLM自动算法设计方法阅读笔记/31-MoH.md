@@ -16,9 +16,10 @@ MoH 把搜索升至两层：外层当前 meta-optimizer 一次生成 M 个 heuri
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|在 TSP、在线 BPP 上有竞争力|Tables `tsp_heu`、`bpp_table`，§Empirical Result|部分支持|支持报告设置下的端到端表现，不分离两层选择的作用。|
-|跨分布/跨问题泛化|Appendix Tables `tab:crossprob`、`tab:clustertsp`、`tab:tsplib_small/large`|部分支持|这些是所定义训练—测试迁移的直接观测，不等价于所有 COP 的泛化。|
-|元优化与自然语言 ideas 有用|Table `ablation`、Fig. `fig:ablation_fig`|直接支持|在作者的变体和预算下支持；并未证明递归层数越多越好。|
+|在 TSP、在线 BPP 上有竞争力|Tables `tsp_heu`、`bpp_table`，§Empirical Result（口径为三次独立运行中最好启发式在测试集上的平均，best-of-3 而非三次均值）|部分支持|支持报告设置下的端到端表现，不分离两层选择的作用。|
+|跨分布/跨问题泛化|Appendix Tables `tab:crossprob`、`tab:clustertsp`、`tab:tsplib_small/large`|部分支持|`tab:tsplib_*` 采用逐实例从各尺度最优启发式中挑选的策略（instance-wise selection，所有方法同口径），评价的是 portfolio 而非单一启发式泛化；`tab:crossprob`（5 次运行均值±标准误）无任何基线对照，论文 FAQ 自认只是初步实验、不直接跨问题泛化单一启发式。|
+|自然语言 ideas 有用|Table `ablation`（w/o ideas）、Fig. `fig:ablation_fig`（种群规模 1/5/10）|直接支持|该表只消融两件事：w/o ideas 与种群规模。|
+|元优化本身有用|与固定 EC 基线（EoH/ReEvo/HSEvo/MCTS-AHD）的整系统比较|间接支持|没有"固定 seed optimizer、不做外层进化"的变体；未把外层候选数 M、内层 best-of-K 与总预算逐因素分离。|
 |模型选择稳健|Table `LLM_table`|间接支持|只是一组 backbone 比较，不能推出机制与模型无交互。|
 
 ## 4. 机制的底层逻辑（阅读分析，不是作者已证明结论）
@@ -32,7 +33,7 @@ MoH 把搜索升至两层：外层当前 meta-optimizer 一次生成 M 个 heuri
 
 ## 6. 证据边界
 
-主实验为 TSP、BPP，并补 CVRP/离线 BPP和 TSPLIB；表格所报口径随任务改变。论文有消融和收敛曲线，但未把外层候选数、内层 best-of-K 与搜索总预算全部逐因素分离；因此不能把端到端收益完全归因于“元优化”。
+主实验为 TSP、BPP，并补 CVRP/离线 BPP 和 TSPLIB；表格所报口径随任务改变（主表 best-of-3，跨问题表 5 次均值）。optimizer utility 按任务规模加权（$w_i\propto s_i$，Eq. 2）。论文有消融和收敛曲线，但未把外层候选数、内层 best-of-K 与搜索总预算（T=10、种群 10、1000 次启发式评估）逐因素分离；附录另有同预算与 Concorde/OR-Tools/LEHD/SIL/NeuOpt 的比较、八 LLM 全面比较与统计显著性分析。结论自认外层与多任务带来额外计算开销。
 
 ## 7. 论文内定位
 

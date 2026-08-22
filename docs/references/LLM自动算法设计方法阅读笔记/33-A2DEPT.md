@@ -19,7 +19,7 @@ A2DEPT 的机制单独看都是标准件，值得记录的是它们咬合的逻�
 
 | 主张 | 论文证据 | 证据等级 | 判断 |
 | --- | --- | --- | --- |
-| 程序级搜索优于组件级 AHD | Table `tab:main_results`：4 个标准基准 × 2 backbone 对 FunSearch/EoH/ReEvo/MCTS-AHD 全胜 | 间接支持 | 支持完整配方；表示、维护、控制器同时变化，不能归因给程序树单一因素。摘要 9.8% 是跨任务归一化 gap 的平均，非每任务效应。 |
+| 程序级搜索优于组件级 AHD | Table `tab:main_results`：4 个标准基准 × 2 backbone 对 FunSearch/EoH/ReEvo/MCTS-AHD 全胜 | 间接支持 | 支持完整配方；表示、维护、控制器同时变化，不能归因给程序树单一因素。摘要/贡献 (iv)/§`sec:exp_standard` 三处称"对最优竞品 AAD 方法的**平均 gap 相对下降** 9.8%"，但该数字**无法从主表复现**：按 DeepSeek 组逐任务最优竞品均值（17.35%）对 A2DEPT（10.85%）实算相对下降约 37.5%——论文内部数字不一致，引用时以主表为准。 |
 | 每个循环组件有贡献 | Table `tab:ablation_unified`：去 Boltzmann、去自适应调度、随机选择、固定模板均退化 | 直接支持（任务条件） | 只覆盖 CVRP/FJSP 两任务，是任务条件下的组件证据，非普适必需性。 |
 | 维护提高可执行性 | §`subsec:engineering` 的机制描述 | 未验证 | 消融没有"只关维护"的变体；三大宣称机制之一缺少独立量化。 |
 | AAD 后期上限更高 | Table `tab:convergence_stages`、Fig. `fig:convergence` | 部分支持 | 两点快照加单任务曲线，见 §4.1。 |
@@ -67,7 +67,7 @@ SA、Boltzmann 选择、softmax 算子调度、语义交叉单独看均为标准
 
 ## 6. 证据边界
 
-全系统同时改变搜索对象、维护与控制器，联合结果不能归因单组件。预算口径为 500 次 LLM 调用（修复循环同样消耗），与按真实评价次数统一的口径不可直接对齐。标准基准仅 3 次重复，部分单元格标准差大；消融只覆盖 CVRP/FJSP；$k$ 敏感性在 CVRP 上方向不一致（$k{=}7$ 优于 $k{=}5$）。收敛阶段证据为两点快照，case study 为单条谱系事后叙述。骨架结论限于 DeepSeek v3.2 与 Gemini 2.5 Flash（附录另有 Qwen-3.5 scaling 与 token 预算对等分析，见 `app:scaling_budget`）。
+全系统同时改变搜索对象、维护与控制器，联合结果不能归因单组件。预算口径为 500 次 LLM 调用（修复循环同样消耗），与按真实评价次数统一的口径不可直接对齐；附录 `app:scaling_budget` 的等 token/货币预算实验（5/10 CNY 下仍全胜）部分回应该公平性质疑。标准基准仅 3 次重复，部分单元格标准差大；消融只覆盖 CVRP/FJSP；$k$ 敏感性在 CVRP 上方向不一致（$k{=}7$ 优于 $k{=}5$）。高约束任务（`tab:high_constraint`：CEVRPTW gap 0.00、IR 2.56；MRCPSP IR 15.89，20 次重复）是"开放式 AAD 可执行性"主张的最直接证据；OOD 迁移矩阵（`app:ood_generalization`，VRPTW Solomon C/R/RC 3×3）显示跨分布 gap ≤ 约 1.5× 内分布；Gemini 2.5 Flash-lite 上退化（`app:llm_backbones`），方法对模型代码能力有下限要求。收敛阶段证据为两点快照，case study 为单条谱系事后叙述。
 
 ## 7. 论文内定位
 

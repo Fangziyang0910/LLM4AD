@@ -4,7 +4,7 @@
 
 ## 1. 核心问题与方法
 
-EvoTune 将 evaluator 驱动的进化搜索与 RL 微调结合：进化产生、筛选高质量程序，同时将搜索获得的信号转为对 LLM 生成策略的训练，使后续采样偏向有用算法。主文的 Method 图和 TSP、bin packing、flatpack 曲线描述该闭环；这不是纯 inference-time 搜索，也不是仅离线微调。
+EvoTune 将 evaluator 驱动的进化搜索与 RL 微调结合：进化搜索是探索策略与数据收集器，RL 是策略优化器（作者引 Bitter Lesson："Search generates new data, while learning distills patterns from the data"）。数据库（6 岛，类 replay buffer）同时供 prompt 构造（in-context）与训练（in-weight）；每次 RL 更新从基模型 $\pi^0$ 重新出发，防止策略漂移累积。防探索侵蚀的机制群：forward-KL 正则的 DPO（mass-covering）、训练数据覆盖全搜索历史（非只用近期）、数据库采样百分位随时间退火（显式 explore→exploit 时间表）。偏好对来自同一 prompt 的 K=8 个输出按分数配对，正样本须超过动态 30 百分位阈值，无效程序与有效程序配成额外对（教模型避免无效输出）。
 
 ## 2. 论文宣称的机制贡献（逐项）
 
@@ -17,7 +17,7 @@ EvoTune 将 evaluator 驱动的进化搜索与 RL 微调结合：进化产生、
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
 |联合方法在任务上改进|§`sec:results`，Table `table:best_50` 与 Fig. `fig:results_horizontal`|间接支持|完整方法相对 evolution-only FunSearch 同时包含 RL 更新与其数据/训练配方，不能单独归因给 RL。|
-|RL 使搜索更有效|Table `table:best_50`（三任务、三模型、10 seeds，FunSearch 不训练 LLM）|部分支持|这是 evolution-only 基线与联合方法的直接系统比较；并非“关闭 RL 但其他训练/数据路径完全相同”的匹配单组件消融。|
+|RL 使搜索更有效|Table `table:best_50`（三任务、三模型、10 seeds）|直接支持|FunSearch 基线与 EvoTune 共享 prompt 构造、数据库与评估协议，仅去掉 RL-Update（Algorithm 1）——同构去 RL 对照，10 seeds、三预算一致占优；训练期额外算力未入预算对比。|
 |程序分布发生有益变化|Fig. `fig:combined`(a)，Appendix Figs `appendix:fig-pdb-hist-bin/tsp/fp`|间接支持|分布变化不等于因果地带来最终质量。|
 |RL 算法选择的影响|Appendix §`app:rest`、Fig. `fig:rest-em`|部分支持|Granite/bin-packing、三学习率下比较 DPO 与 ReST-EM；仅支持该 RL 更新选择。|
 
@@ -32,7 +32,7 @@ EvoTune 将 evaluator 驱动的进化搜索与 RL 微调结合：进化产生、
 
 ## 6. 证据边界
 
-主比较为 Llama3.2-1B、Phi3.5-mini、Granite3.1-2B，bin packing/TSP/flatpack，10 random seeds；每个预算为 9.6k、16k、22.4k sampled programs，且报告 validation、validation-perturbed、同分布 test（§`sec:results`、Table `table:best_50`）。论文没有 evolution-only 的受控“RL off”消融，因此不能将完整联合优势进一步分给 RL、进化数据库或 prompt 构造；曲线/分布只是过程证据。
+主比较为 Llama3.2-1B、Phi3.5-mini、Granite3.1-2B，bin packing/TSP/flatpack，10 random seeds；每个预算为 9.6k、16k、22.4k sampled programs，报告 validation、validation-perturbed 与同分布 test（§`sec:results`、Table `table:best_50`）。FunSearch 基线即同构去 RL 对照（共享搜索环、仅去 RL-Update），因此 RL 的贡献可以被归因；尚缺的是 RL 内部配方（forward/reverse KL、数据覆盖、采样退火）与数据库/prompt 构造的进一步分解——forward vs reverse KL 的对照存在（BP + Llama-1B，forward 的 top-50 与唯一解计数均更高），DPO vs ReSt-EM 的对照存在（DPO 一致更优）。训练算力成本论文自认未入账。
 
 ## 7. 论文内定位
 

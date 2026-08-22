@@ -16,10 +16,10 @@
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|端到端约简设计能与固定 GAF 方法竞争|§Experiments，Tables `tab:main-sbs`、`tab:tsp-sbs`、`tab:main-aco`，六类 COP、三次运行均值|间接支持|支持该配置在所列白盒/黑盒任务的整法结果；比较含文献复用结果，不能单独归因给约简。|
+|端到端约简设计能与固定 GAF 方法竞争|§Experiments，Tables `tab:main-sbs`、`tab:main-aco`（三次运行均值）与 `tab:tsp-sbs`（三次运行中最好的启发式，且该启发式因随机选起点对每实例再跑 3 次取均值——best-of-3 口径），六类 COP|间接支持|支持该配置在所列白盒/黑盒任务的整法结果；比较含文献复用结果，不能单独归因给约简。|
 |约简精炼有益|Table `tab:ablation-reduc-refi`|直接支持|该消融改变精炼步骤，能检验其对报告任务的影响；不是对所有约简或预算的普遍证明。|
-|多问题交叉参考有益|Appendix Table `tab:ablation-reduc`|直接支持|支持该实验配置下的跨问题 LLM-EPS；Figure `fig:demo` 只是一个说明性个案。|
-|设计 LLM / 底层 EPS 选择不关键|Tables `tab:ablation-llm`、`tab:ablation-llmeps`|反向或混合证据|它们检验敏感性，不能推出模型或搜索器可互换。|
+|多问题交叉参考有益|Appendix Table `tab:ablation-reduc`（M=1 vs M=3）|直接支持|支持该实验配置下的跨问题 LLM-EPS；Figure `fig:demo` 只是一个说明性个案。|
+|模型与底层 EPS 影响结果方向|Tables `tab:ablation-llm`、`tab:ablation-llmeps`|部分支持|换 o3-mini 后 OBPP/CVRP 显著改善（CVRP OOD 13.516 优于 OR-Tools）；RedAHD[MEoH] 最优、RedAVO[ReEvo] 略差——证据方向为"更强模型/更强 EPS 更好、框架可移植"。|
 
 ## 4. 机制的底层逻辑（阅读分析，不是作者已证明结论）
 
@@ -32,7 +32,7 @@
 
 ## 6. 证据边界
 
-设置为 GPT-4o-mini、温度 1、M=3、初始候选 10、默认 EoH 两算子，三次重复（§`subsec:setup`）；任务、GAF、训练集与基线并不完全同源。报告主要是平均性能，未见对约简正确性、跨任务迁移来源或每个候选执行率的独立统计。不能把联合版本结果解释成某一个约简机制的因果效应。
+设置为 GPT-4o-mini、温度 1、M=3、初始候选 10、种群 N=20、停滞耐心 T=3 代、默认 EoH 两算子，三次重复（§`subsec:setup`）；任务、GAF、训练集与基线并不完全同源。附录 `subapp:cost` 给出资源口径：单次训练成本 ≤$0.3（GPT-4o-mini，约 1.5 小时）、fitness 评估 ≥870 且总计 ≤1000 次——与本仓库 1000 次真实评价口径直接可比。论文自认局限（`subapp:limit`）：初始贪心选 top-M LR 可能丢弃更有潜力的约简；LR 不保证近似比保持。报告主要是平均性能，未见对约简正确性、跨任务迁移来源或每个候选执行率的独立统计。
 
 ## 7. 论文内定位
 

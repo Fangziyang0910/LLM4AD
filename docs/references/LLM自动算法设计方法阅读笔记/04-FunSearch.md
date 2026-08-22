@@ -4,7 +4,7 @@
 
 ## 1. 核心问题与方法
 
-FunSearch 不让 LLM 直接回答数学对象，而搜索生成该对象的程序。系统由预训练代码模型和确定性 evaluator 构成：从 island 内按分数抽取多个程序组成 prompt，模型改写被指定函数，evaluator 执行并将新候选存回按岛分隔的程序库；异步并行扩展评估。论文把固定算法骨架与可演化的 `priority` 函数分开，用于 cap set 和 online bin packing。
+FunSearch 不让 LLM 直接回答数学对象，而搜索生成该对象的程序。系统由预训练代码模型和确定性 evaluator 构成；采样是两级温度调度：均匀选岛 → 岛内按签名聚簇、簇级 Boltzmann 采样（$P_i\propto e^{s_i/T_{cluster}}$，$T_{cluster}=T_0(1-(n\bmod N)/N)$ 随岛内程序数周期退火——岛越满选择压力越强，重置后回到高温度）→ 簇内偏向更短程序（$\propto e^{\tilde\ell_i/T_{program}}$，显式 parsimony 压力）；取 k=2 个程序按分数排序进 prompt（消融确定：两个优于一个，更多边际递减）。每 4 小时（壁钟）重置：淘汰最好个体分数最低的 m/2 个岛，用随机幸存岛的最高分程序重新播种。论文把固定算法骨架与可演化的 `priority` 函数分开，用于 cap set 和 online bin packing；LLM 被定位为"带偶尔有趣想法的多样程序源"，进步来自进化回路对边际改进的累积。
 
 ## 2. 论文宣称的机制贡献（逐项）
 
@@ -32,7 +32,7 @@ FunSearch 不让 LLM 直接回答数学对象，而搜索生成该对象的程�
 
 ## 6. 证据边界
 
-cap set、admissible set 与 bin packing 的有效性口径不同；部分结果采用多次运行取报告结果，且非所有任务给统一重复/显著性协议。异步硬件规模、模型、提示和 evaluator 共同构成方法条件，不能直接外推到低预算通用 AAD。
+cap set、admissible set 与 bin packing 的有效性口径不同；部分结果采用多次运行取报告结果（cap set n=8 的 512 构造在 140 次实验中仅 4 次成功），且非所有任务给统一重复/显著性协议。簇温度超参 $T_0$、$N$、$T_{program}$ 与岛数 m 的数值在补充材料 Appendix E.1（本地未含），正文未给出；组件消融同样在补充 Appendix A。异步硬件规模（15 sampler + 150 evaluator CPU）、模型（Codey）、提示和 evaluator 共同构成方法条件（总样本百万级），不能直接外推到低预算通用 AAD。
 
 ## 7. 论文内定位
 

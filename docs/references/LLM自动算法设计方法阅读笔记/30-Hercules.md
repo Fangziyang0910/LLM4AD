@@ -4,7 +4,7 @@
 
 ## 1. 核心问题与方法
 
-Hercules 针对 LLM-EPS 的两类代价：搜索方向常空泛，且所有候选都要真评估。CAP（Core Abstraction Prompting）先从精英启发式抽取核心组成作为先验，再据此提出具体改进方向并生成代码。Hercules-P 额外用 PPP：让 LLM 根据待评估代码与已评估代码的语义相似性，预测性能及置信度；只真实评估部分候选，用预测分数参与筛选。搜索仍是进化式产生、评估和保留候选。
+Hercules 针对 LLM-EPS 的两类代价：搜索方向常空泛，且所有候选都要真评估。CAP（Core Abstraction Prompting）有基于 information gain 的理论刻画（IG = $-\sum_j p_j\log p_j \in (0,\log(k{+}1)]$，附录 A 证明）并做分段使用：前 λ=0.7 比例迭代用精英启发式的抽象组件，之后直接用父代核心组件以保多样性；配 rank-based 父代选择。Hercules-P 额外用 PPP：让 LLM 根据待评估代码与已评估代码的语义相似性预测性能及置信度；只真实评估部分候选，用预测分数参与筛选（ConS 分层复评兜底）。搜索仍是进化式产生、评估和保留候选；Hercules-P 相对 Hercules 搜索时间减 7%–59%，代价是上下文 token 约 1.5 倍。
 
 ## 2. 论文宣称的机制贡献（逐项）
 
@@ -18,8 +18,8 @@ Hercules 针对 LLM-EPS 的两类代价：搜索方向常空泛，且所有候�
 |---|---|---|---|
 |在 TSP GLS 上兼顾质量与搜索成本|§`4.1`，Tables `tabgls`、`tabsearchreport`|间接支持|支持所列设置与基线的整法比较；成本口径应与 evaluator、模型调用和候选数一起读。|
 |可迁移到构造、ACO、NCO 设计对象|§`4.2`--`4.4`，Tables `tabselect`、`tabaco`、`tabNCO`|间接支持|说明完整方法覆盖多个设计槽；没有将“对象扩展”自身与统一控制器独立随机化。|
-|CAP、PPP 各自有效|Table `ablation`，§`4.5`；Table `accuracy`（EXEMPLAR 变体）|直接支持|组件消融提供直接证据，但范围限于所挑任务与预算。|
-|预测性能可替代真实评估|PPP 描述、Table `tabsearchreport`|间接支持|只支持用于该筛选流程降低调用；不能证明预测分数可作可靠 fitness 或跨域可校准。|
+|CAP、PPP 各自有效|Table `ablation`、§`4.5`；Fig. `accuracy`（EXEMPLAR 变体预测精度箱线图，图非表）|直接支持|组件消融提供直接证据（w/o rank-based selection 8.49 vs 完整 11.10），但范围限于所挑任务与预算。|
+|预测性能可替代真实评估|PPP 描述、Table `tabsearchreport`|间接支持|论文自认 PPP 预测精度一般（预测值与真值 Pearson r=0.39、ANOVA p=0.6），EXEMPLAR 使预测精度中位数提升 26%/37%（p=0.048/0.004），可靠性靠 ConS 分层复评兜底；支持用于该筛选流程降低调用，不能证明预测分数可作可靠 fitness。|
 
 ## 4. 机制的底层逻辑（阅读分析，不是作者已证明结论）
 

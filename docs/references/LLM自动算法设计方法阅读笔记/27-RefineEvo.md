@@ -4,7 +4,7 @@
 
 ## 1. 核心问题与方法
 
-RefineEvo 将启发式进化分为规划与细化：规划阶段选择下一类修改方向，细化阶段生成代码；经验分为正向（带来改进）与反向（失败/退化）两类，双向经验共同进入后续提示，试图避免只模仿成功样本而重复已知失败。
+RefineEvo 保持种群进化骨架（N=10、精英截断、1000 评价），把"静态试错"改造为规划引导 + 经验驱动：Planner 感知种群状态 $\mathcal S_t=(\Phi_{pop},\Psi_{ops})$——含种群多样性 $D_t$（分数标准差归一化）与改进率 $R_t$（窗口 $w=1$ 的最优值增量）、各算子近效（代码有效率、子代超父率）——输出 exploration/exploitation 模式开关与算子优先级（早熟收敛→Exploration 模式优先结构新奇算子；稳步提升→Exploitation 模式局部精炼）。经验分正负两库，各条含修改摘要、建议与适用条件，语义检索 top-3 注入 prompt（"Insights to Follow" + "Pitfalls to Avoid"）；经验效用分 ±1 更新、负分删除、矛盾条目互相惩罚。算子描述本身可被事件触发的 incremental/radical 重写（连续无改进时）。
 
 ## 2. 论文宣称的机制贡献（逐项）
 
@@ -17,7 +17,7 @@ RefineEvo 将启发式进化分为规划与细化：规划阶段选择下一类�
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
 |整体效果|`04_experiment.tex` 主结果；`curves.pdf`、`bar_chart.pdf`、`aco_results_*`|间接支持|是规划、双向经验及其他流程的联合比较。|
-|双向经验池|Appendix 的 `tab:ablation_bep`：移除 experiences 后 TSPLIB 表现退化|直接支持|目标经验池的移除对照支持该 TSP/TSPLIB 场景的局部贡献。|
+|双向经验池|Appendix 的 `tab:ablation_bep`：w/o Experience 15.91%、w/o Negative 13.94%、w/o Positive 12.92%（完整 11.54%，TSPLIB）|直接支持|移除对照齐全且方向一致；**负经验比正经验更重要**（去负退化大于去正），负经验承担"不重复失败"的探索侧保护。|
 |规划/操作精炼|Appendix `tab:full_k_ablation` 比较 Random/Planner Selection 与 Fixed-Interval Refinement 的 $k$|部分支持|参数/策略对照支持所测设置，不证明“规划”全部语义内容。|
 |经验避免失败|`survival_rate_heatmap1.pdf`、`survival_rate_heatmap2.pdf`|间接支持|过程统计可描述现象，不能确认经验是唯一原因。|
 

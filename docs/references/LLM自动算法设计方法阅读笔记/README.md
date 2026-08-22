@@ -1,6 +1,6 @@
 # LLM 自动算法设计方法阅读笔记
 
-本目录逐篇记录 60 篇 LLM 自动算法设计、广义程序发现与机制分析论文，覆盖 59 个方法和 1 篇纯进化算子分析。每篇笔记只依据本地论文正文或附录，分开记录论文宣称、实验事实和本文分析。
+本目录逐篇记录 71 篇 LLM 自动算法设计、广义程序发现与机制分析论文，覆盖 59 个方法与 12 篇机制分析、奖励进化、记忆理论与轨迹结构化研究（不计入方法数）。每篇笔记只依据本地论文正文或附录，分开记录论文宣称、实验事实和本文分析；全部笔记已对照论文原文逐一核验。
 
 ## 证据口径
 
@@ -56,6 +56,9 @@
 19. [MeEvo](19-MeEvo.md)
 20. [DeltaEvolve](20-DeltaEvolve.md)
 21. [PhyloEvolve](21-PhyloEvolve.md)
+67. [LinTree](67-LinTree.md)
+70. [Memento 2](70-Memento-2.md)
+71. [Experience Memory Graph](71-Experience-Memory-Graph.md)
 
 ### 树搜索、规划与预算分配
 
@@ -94,6 +97,7 @@
 46. [Latent Heuristic Search](46-Latent-Heuristic-Search.md)
 50. [GAE](50-GAE.md)
 57. [Teacher-Aware Evolution](57-Teacher-Aware-Evolution.md)
+69. [GP with RL-Trained Transformer](69-GPRT.md)
 
 ### 知识、轨迹与结构反馈
 
@@ -106,21 +110,31 @@
 ### 种群组织、信用与预算机制
 
 48. [SMCEvolve](48-SMCEvolve.md)
-49. [Mutation Without Variation](49-Mutation-Without-Variation.md)
 51. [DGA²D](51-DGA2D.md)
 53. [RelayEvolve](53-RelayEvolve.md)
 54. [BehaveSim](54-BehaveSim.md)
 55. [EvoStage](55-EvoStage.md)
 58. [TurboEvolve](58-TurboEvolve.md)
 60. [PartEvo](60-PartEvo.md)
+68. [REvolve](68-REvolve.md)
+
+### 机制分析与批判性评测
+
+49. [Mutation Without Variation](49-Mutation-Without-Variation.md)
+61. [Code Repair EET / REx](61-Code-Repair-EET.md)
+62. [Understanding the Importance of Evolutionary Search](62-Understanding-Evolutionary-Search.md)
+63. [Fitness Landscape of LLM-Assisted Algorithm Search](63-Fitness-Landscape.md)
+64. [Code Evolution Graphs](64-Code-Evolution-Graphs.md)
+65. [What Makes an LLM a Good Optimizer](65-LLM-Optimizer-Trajectory-Analysis.md)
+66. [Behaviour Space Analysis](66-Behaviour-Space-Analysis.md)
 
 ## 跨论文认识
 
-60 篇笔记共记录 246 项“主张—证据”判断：60 项直接支持、72 项部分支持、83 项间接支持、25 项未验证、6 项反向或混合证据。这里统计的是判断条目而不是论文篇数；同一论文可以同时包含直接消融证据和未经验证的机制解释。
+71 篇笔记共记录 283 项“主张—证据”判断：80 项直接支持、83 项部分支持、86 项间接支持、25 项未验证、9 项反向或混合证据。这里统计的是判断条目而不是论文篇数；同一论文可以同时包含直接消融证据和未经验证的机制解释。
 
 ### 1. 最稳定的共同基础是可执行外部反馈
 
-[ELM](01-ELM.md)、[Evolving Code](03-Evolving-Code.md) 和 [FunSearch](04-FunSearch.md) 说明，LLM 的程序先验只有进入执行—评价—选择闭环后，才会转化为可积累的算法改进。底层逻辑是 evaluator 把语言上合理的候选筛成满足任务目标的可执行程序。可学习之处是先保证 evaluator 的可行性、方向、超时和测试边界可靠；否则更强的搜索只会更快利用评价漏洞。
+[ELM](01-ELM.md)、[Evolving Code](03-Evolving-Code.md) 和 [FunSearch](04-FunSearch.md) 说明，LLM 的程序先验只有进入执行—评价—选择闭环后，才会转化为可积累的算法改进；[Understanding the Importance of Evolutionary Search](62-Understanding-Evolutionary-Search.md) 在统一基准下给出量化版本：最小 (1+1) 循环 500 次查询超过独立采样 10000 次，且搜索增益在任务×模型格间高度不均匀。底层逻辑是 evaluator 把语言上合理的候选筛成满足任务目标的可执行程序。可学习之处是先保证 evaluator 的可行性、方向、超时和测试边界可靠；否则更强的搜索只会更快利用评价漏洞。
 
 ### 2. LLM 的优势在语义变化，但变化幅度必须受控
 
@@ -128,11 +142,11 @@
 
 ### 3. 历史有用的关键是可追溯，不是摘要越多越好
 
-[DeltaEvolve](20-DeltaEvolve.md) 的受控比较支持代码上下文比只有标量分数更有信息；[ReEvo](15-ReEvo.md)、[HiFo-Prompt](16-HiFo-Prompt.md) 和 [PathWise](24-PathWise.md) 分别探索反思、前后视提示和路径反馈，但独立证据强度并不相同。底层逻辑是历史改变下一次生成的条件分布；只有历史与真实父子边、操作和结果绑定，模型才可能区分可延续变化与失败。可学习之处是优先保留结构化 action–result 事实，再检验摘要或记忆是否在相同 token 预算下产生额外增益。
+[DeltaEvolve](20-DeltaEvolve.md) 的受控比较支持代码上下文比只有标量分数更有信息；[ReEvo](15-ReEvo.md)、[HiFo-Prompt](16-HiFo-Prompt.md) 和 [PathWise](24-PathWise.md) 分别探索反思、前后视提示和路径反馈，但独立证据强度并不相同；[LinTree](67-LinTree.md) 证明裸轨迹访问不足以胜过强基线、显式树拓扑才兑现轨迹条件化优势，[Experience Memory Graph](71-Experience-Memory-Graph.md) 用确定性结构 diff 替代自由文本反思，[Memento 2](70-Memento-2.md) 把记忆系统的值差分解为生成器局部胜任误差与覆盖误差。底层逻辑是历史改变下一次生成的条件分布；只有历史与真实父子边、操作和结果绑定，模型才可能区分可延续变化与失败。可学习之处是优先保留结构化 action–result 事实，再检验摘要或记忆是否在相同 token 预算下产生额外增益。
 
 ### 4. 树和规划首先是预算分配机制
 
-[Planning of Heuristics](23-Planning-of-Heuristics.md) 对搜索策略进行了受控比较，[PathWise](24-PathWise.md) 对 critic 和提示多样性给出消融，[Compute Allocation / BaSE](28-Compute-Allocation-BaSE.md) 直接研究深度与广度的调用分配；[MCTS-AHD](22-MCTS-AHD.md) 的整法结果则不能自动证明 UCT、回传和渐进扩展各自有效。底层逻辑是搜索结构决定有限预算落在哪些候选和路线，而不替代 LLM 单步生成。可学习之处是分开评价起点选择、下一步生成和最终输出，并同时报告 evaluator 次数、LLM 调用和 token。
+[Planning of Heuristics](23-Planning-of-Heuristics.md) 对搜索策略进行了受控比较，[PathWise](24-PathWise.md) 对 critic 和提示多样性给出消融，[Compute Allocation / BaSE](28-Compute-Allocation-BaSE.md) 直接研究深度与广度的调用分配，[Code Repair EET](61-Code-Repair-EET.md) 给出分配层的理论模板（失败计数 Beta 后验 + Thompson 采样）；[MCTS-AHD](22-MCTS-AHD.md) 的整法结果则不能自动证明 UCT、回传和渐进扩展各自有效。底层逻辑是搜索结构决定有限预算落在哪些候选和路线，而不替代 LLM 单步生成。可学习之处是分开评价起点选择、下一步生成和最终输出，并同时报告 evaluator 次数、LLM 调用和 token。
 
 ### 5. 多样性只有转化为有效路线覆盖才有价值
 
@@ -152,7 +166,7 @@ MEoH、HSEvo、QUBE、CDEoH、EoH-S、ShinkaEvolve 和 RoCo 分别用 Pareto、�
 
 ### 9. 算子本身会收敛，多样性要测行为而不只测代码
 
-[Mutation Without Variation](49-Mutation-Without-Variation.md) 在移除选择压力后仍观察到结构 attractor、自环和短周期；[BehaveSim](54-BehaveSim.md) 与 [PartEvo](60-PartEvo.md) 分别说明执行轨迹和有意义特征构造的 niche 比随机或静态表面差异更能组织搜索。可学习之处是同时监测 lineage 重访、程序骨架和 held-out 行为距离，并验证多样路线是否真的贡献突破。
+[Mutation Without Variation](49-Mutation-Without-Variation.md) 在移除选择压力后仍观察到结构 attractor、自环和短周期；[Fitness Landscape](63-Fitness-Landscape.md) 显示经验景观无漏斗、低连通，[Code Evolution Graphs](64-Code-Evolution-Graphs.md) 显示不同 LLM 的代码指纹互不重叠且复杂度默认单调上涨，[What Makes an LLM a Good Optimizer](65-LLM-Optimizer-Trajectory-Analysis.md) 证明局部精炼率（而非新颖性）是性能主因、新颖性只在局部化条件下有用，[Behaviour Space Analysis](66-Behaviour-Space-Analysis.md) 支持双意图提示 + 精英保留；[BehaveSim](54-BehaveSim.md) 与 [PartEvo](60-PartEvo.md) 分别说明执行轨迹和有意义特征构造的 niche 比随机或静态表面差异更能组织搜索。可学习之处是同时监测 lineage 重访、程序骨架和 held-out 行为距离，并验证多样路线是否真的贡献突破。
 
 ### 10. 外部知识只有与当前失败证据对齐时才稳定有用
 

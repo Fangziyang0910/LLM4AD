@@ -4,7 +4,7 @@
 
 ## 1. 核心问题与方法
 
-PartEvo 将代码或 rationale 投影到 feature space，以 K-means 构造 language-space niches；每个 niche 内均匀分配预算并运行 reflection evolution（RE）、summarization evolution（SE），不同 niche 间运行 crossover（CN）和 local-global evolution（LGE）。
+PartEvo 将代码相似度向量（CodeBLEU 两两相似度矩阵的行）或思想嵌入投影到特征空间，以 K-means 构造 language-space niches；跨 niche 均匀分配采样资源，niche 内精英保留的概率选择。四个算子（RE 反思演化、SE 摘要演化、CN 跨 niche 交叉、LGE 局部-全局引导）**在每个 niche 内都执行**：CN 随机选 k=2 个其它 niche 的代表与当前个体以当前者为框架融合，LGE 组装"个体 + 本 niche 最优 + 全局最优"三元组进 prompt——两者引用跨 niche 信息但运行位置在 niche 内。
 
 ## 2. 论文宣称的机制贡献（逐项）
 

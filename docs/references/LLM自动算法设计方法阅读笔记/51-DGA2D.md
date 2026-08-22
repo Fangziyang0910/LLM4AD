@@ -20,7 +20,8 @@ DGA²D 把算法空间表示为带多份代码实现的 directed operator graph�
 |directed graph 表示有益|§4.3、Table 2|直接支持|同搜索设置逐步放松/替换结构表示，DGA²D 最好。|
 |first-order credit 优于无上下文信用|§4.3、Table 3|直接支持|四任务上 first-order 一致优于 zero-order。|
 |更长历史一定更好|Table 3|反向或混合证据|second-order 与 full-path 更差，支持“适度上下文”而非越长越好。|
-|first-order 的有限样本逻辑|Appendix D.2、Theorem 2|部分支持|在 first-order sufficiency 等假设下给出偏差—方差分析；真实任务未验证该假设普遍成立。|
+|实现池容量的影响|§4.3.3、Table 4（K∈{4,8,15,20}）|部分支持|K=4 全面最差；FJSP 最优在 K=15、CVRP/MIS/3D-CLP 最优在 K=20——容量与任务相关，非越大越好。|
+|first-order 的有限样本逻辑|Appendix D.2、Theorem 2（另有 Theorems 3–5：谱表达力、信用更新收敛与漂移跟踪界）|部分支持|在 first-order sufficiency 等假设下给出偏差—方差分析；论文在 D.2 自认不主张 first-order 普遍最优，真实任务未验证该假设。|
 
 ## 4. 机制的底层逻辑（阅读分析，不是作者已证明结论）
 
@@ -32,7 +33,7 @@ zero-order 混合了不同前驱造成偏差，full-path 又把样本切得太�
 
 ## 6. 证据边界
 
-Table 3 消融只覆盖四个代表任务；first-order 不是理论上无条件最优。完整系统同时学习 policy 并修改图与实现池，终端信用仍可能错误归因到 pipeline 内无关操作。
+Table 3 消融只覆盖四个代表任务；first-order 不是理论上无条件最优。完整系统同时学习 policy 并修改图与实现池，终端信用仍可能错误归因到 pipeline 内无关操作。预算口径：每域 500 次 LLM calls、每实例 90 秒、10 次独立种子、τ=0.7、双 backbone（DeepSeek-V4-Flash / GPT-5.6 Sol），平均 normalized gap 分别降 9.67 / 10.96 个百分点；论文自认局限：生成算法的计算成本、对初始算子池敏感、跨模块不一致。
 
 ## 7. 论文内定位
 

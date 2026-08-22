@@ -20,7 +20,7 @@ Hero 用 Qwen2.5-Coder-14B 通过 GRPO 训练生成 standalone solver，不在�
 |solver 可跨实例复用|Table `tab:compile_once_main`；Appendix `app:baseline_eval_additions` 固定代码协议|直接支持|Frozen Hero 在整套 held-out SDS 上不变执行；论文报告选择规则和 matched fixed-code evaluator。|
 |结构 scaffold 有益|§Ablation “Necessity of Structural Scaffolding”；Appendix Table `tab:ablation_configs` 的 `w/o Structure`|部分支持|`w/o Structure` 同时移除结构检测与 curriculum，故支持该组合而非两者各自。|
 |硬 gate/奖励归一化有益|Appendix `app:ablation_rewards`（Soft Gate、normalization sensitivity）|部分支持|与 Hero 匹配的 3-seed 比较直接支持所列替代配方；不是每个奖励项的独立效应。|
-|RL 的收益超过单纯增加采样|Fig. `fig:scaling_gap`|部分支持|同 prompt 的 base pass@k 曲线与 greedy Hero 有直接对照，但训练成本未包含在该摊销执行成本列。|
+|RL 的收益超过单纯增加采样|Fig. `fig:scaling_gap`；Appendix `app:universal_search` 的 universal search 锦标赛|直接支持|除 base pass@k 曲线对照外，对 191,699 个去重 base 代码做自适应锦标赛，最优代码仍只有 24.04% gap（Hero 约 5%）——直接回应"分布锐化器"质疑；训练成本未包含在该摊销执行成本列。|
 
 ## 4. 机制的底层逻辑（阅读分析，不是作者已证明结论）
 
@@ -33,7 +33,7 @@ RL 把“写出正确搜索循环和约束保护”从实例内采样转成模�
 
 ## 6. 证据边界
 
-GRPO 配置为 14B、group 64、90 steps、360 prompts/23,040 episodes（Table `tab:grpo_hyperparams`）；SDS 训练集 10,000 实例（Table `tab:dataset_generation`）。SDS 主结果三 seed，JSSP 也是 101/202/303 三 seed，但奖励/solver contract 有域适配；时间列排除 LLM inference，不能读为端到端训练成本比较。HumanEval/MBPP 为三 seed（Table `tab:bigcode_results`），只支持未见显著通用代码退化的该测试。
+GRPO 配置为 14B、group 64、90 steps、360 prompts/23,040 episodes（Table `tab:grpo_hyperparams`）；SDS 训练集 10,000 实例。关键数字：Hero 97.8% pass / 5.0±1.3% gap vs Base Best-of-64 85.6% / 28.7±2.3%，比累积 Best-of-64 摊销执行成本低 91×；Frozen Hero 97.87%/4.34%；base 代码审计显示 21.9% 为 SA-like、其中 28.8% 带 global-best bug。SDS 主结果三 seed，JSSP 也是 101/202/303 三 seed，但奖励/solver contract 有域适配；时间列排除 LLM inference，不能读为端到端训练成本比较。论文自认局限：SDS 为自建基准、结论 SDS-specific。
 
 ## 7. 论文内定位
 

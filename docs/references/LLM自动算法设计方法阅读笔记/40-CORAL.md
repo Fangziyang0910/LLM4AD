@@ -16,9 +16,9 @@ CORAL 把检索、提出、评估、更新四阶段的决定权由固定外循�
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|完整 CORAL 能完成开放式压力任务|`sections/experiments.tex` 主实验表/图|间接支持|整体胜出不能分配给记忆、异步性或 heartbeat。|
-|知识积累的作用|Table `tab:ablations` 的 “Knowledge Accumulation (1-Agent)”|部分支持|表明确消融该核心组件，支持三项 stress-test 和 Claude Code + Opus 4.6 的设置。|
-|多 agent 共演化超出单纯增加计算|Table `tab:ablations` 的 “Co-evolution (4-Agent)”；§实验文字比较 4-agent co-evolution 与 best-of-4 独立单 agent|直接支持|这是一项针对“协同而非仅四份独立计算”的匹配比较，范围仅三任务。|
+|完整 CORAL 能完成开放式压力任务|`sections/experiments.tex` 主实验表/图（单 agent CORAL 在全部 11 个任务得分最高、8 项新 SOTA；改进率高 3–10×、5–20 次评估收敛，基线 60–100）|间接支持|整体胜出不能分配给记忆、异步性或 heartbeat。|
+|知识积累的作用|Table `tab:ablations` 的 "Knowledge Accumulation (1-Agent)"（关闭使 Kernel Eng. 1350→1601 即 18.6% 退化、Polyominoes 80.2→77.3、Txn 4566→4444）|部分支持|表明确消融该核心组件，支持三项 stress-test 和 Claude Code + Opus 4.6 的设置。|
+|多 agent 共演化超出单纯增加计算|Table `tab:ablations` 的 "Co-evolution (4-Agent)"（vs best-of-4 独立单 agent：1103 vs 1180、84.2 vs 80.8、4694 vs 4629）；附录轨迹分析（Kernel Eng. 36% 尝试以他人 commit 为父且改进率 17% vs 9%；Polyominoes 87% 轮次引用他人知识）|直接支持|匹配的 best-of-4 对照排除"四份独立计算"解释；轨迹分析给出协同的机制性证据；范围仅三任务。|
 |heartbeat 是性能来源|方法描述与系统分析|未验证|在实验标签中未见对 heartbeat 的独立受控消融。|
 
 ## 4. 机制的底层逻辑（阅读分析，不是作者已证明结论）
@@ -32,8 +32,8 @@ CORAL 把检索、提出、评估、更新四阶段的决定权由固定外循�
 
 ## 6. 证据边界
 
-消融仅在三个 stress-test、Claude Code + Opus 4.6 下进行；开放式 evaluator 的任务定义和隐藏 grader 会影响可复现性。论文未以该表证明 heartbeat，亦未证明自主检索/评估/更新三个决策可分别带来收益。
+消融仅在三个 stress-test、Claude Code + Opus 4.6 下进行（另有开源栈泛化：MiniMax M2.5 + OpenCode；4-agent 相对 1-agent 的收益随任务变化：Kernel Eng. −18.3% cycles、Polyominoes +5.0%）；开放式 evaluator 的任务定义和隐藏 grader 会影响可复现性。论文未以该表证明 heartbeat，亦未证明自主检索/评估/更新三个决策分别带来收益（论文自己把 inspection 的隔离留给 future work）。
 
 ## 7. 论文内定位
 
-`colm2026_conference.tex` 输入 `sections/method.tex`、`sections/experiments.tex`、`sections/appendix.tex`；方法 §“From Fixed Search to Autonomous Multi-Agent Evolution”，Fig. `fig:paradigm_comparison`；实验 Table `tab:ablations`，架构图 `fig:coral_overview`。
+`colm2026_conference.tex` 输入 `sections/method.tex`、`sections/experiments.tex`、`sections/appendix.tex`；架构图 label 为 `fig:coral-diagram`（文件名 coral_overview.pdf），范式对比图 `fig:paradigm_comparison` 定义于 `sections/introduction.tex`；实验 Table `tab:ablations`。

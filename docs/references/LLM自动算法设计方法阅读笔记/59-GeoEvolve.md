@@ -4,22 +4,22 @@
 
 ## 1. 核心问题与方法
 
-GeoEvolve 以内层 OpenEvolve 生成/变异代码，外层 controller 评估 global elite；code analyzer 诊断缺失知识并提出查询，GeoKnowRAG 从 141 份地理文档检索，RAG-Fusion 形成下一轮领域提示。Code-to-Formula agent 负责把用户代码转成标准搜索接口。
+GeoEvolve 以内层 OpenEvolve 生成/变异代码，外层 controller 评估并保留 global elite；四个组件为 code evolver（OpenEvolve）、evolved code analyzer（诊断缺失知识并提出查询，§3.2）、geospatial knowledge retriever（GeoKnowRAG，从 141 份地理文档检索：五类关键词、Wikipedia/arXiv/GitHub 三源、300 词 50 重叠分块、text-embedding-3-small + Chroma、RRF 重排）、geo-informed prompt generator（RAG-Fusion 形成下一轮领域提示）。
 
 ## 2. 论文宣称的机制贡献（逐项）
 
 - 双层 evolution+agent loop 将领域诊断接到动态检索。
 - GeoKnowRAG 注入空间异质性、邻域和不确定性等理论先验。
-- 自动接口转换降低领域模型进入代码进化的门槛。
+- 自动化、可扩展的地学建模流水线。
 
 ## 3. 实验究竟支持了什么
 
 |机制主张|论文证据|证据等级|判断|
 |---|---|---|---|
-|完整系统改善 Kriging/GeoCP|Tables 1–2、Figures 4–5|间接支持|两任务的联合系统结果。|
-|动态结构化检索优于移除检索|§4、Tables 1–2，GeoEvolve w/o GeoKnowRAG|直接支持|相同进化预算下完整方法总体更好。|
-|仅静态加知识 prompt 足够|Tables 1–2，OpenEvolve+GeoKnowledge|反向或混合证据|静态知识有时改善、有时恶化；GeoCP interval score 比 OpenEvolve 更差。|
-|code analyzer 的主动查询单独必要|§3.3–3.4|未验证|未分别关闭 analyzer、RAG-Fusion 或 outer-loop elite 控制。|
+|完整系统改善 Kriging/GeoCP|Tables 1–2、Figures 4–5（相对原始 kriging RMSE 降 15.4%/21.2%/13.0% Cu/Pb/Zn；GeoCP interval score 55.37→46.12 即 −16.7%）|间接支持|两任务的联合系统结果；headline 对 OpenEvolve（52.37）的优势含 10 倍迭代差——OpenEvolve 系基线只跑 10 次迭代，GeoEvolve 系跑 10 外层 × 10 内层 = 100 次（§4 开头）。|
+|动态结构化检索优于移除检索|§4、Tables 1–2，GeoEvolve w/o GeoKnowRAG|直接支持|相同进化预算（同为 100 次迭代）下完整方法总体更好——"identical budgets" 只适用于这一消融对。|
+|仅静态加知识 prompt 足够|Tables 1–2，OpenEvolve+GeoKnowledge|反向或混合证据|静态知识有时改善、有时恶化（GeoCP 54.80 差于 OpenEvolve 52.37；kriging 上 Cu/Pb 变差、Zn 略好）。|
+|code analyzer 的主动查询单独必要|§3.2–3.4|未验证|未分别关闭 analyzer、RAG-Fusion 或 outer-loop elite 控制。||
 
 ## 4. 机制的底层逻辑（阅读分析，不是作者已证明结论）
 
@@ -31,7 +31,7 @@ GeoEvolve 以内层 OpenEvolve 生成/变异代码，外层 controller 评估 gl
 
 ## 6. 证据边界
 
-只覆盖两个 geospatial tasks；knowledge base 141 文档、关键词人工选定。论文也以 LLM 辅助分析算法差异，定性机制解释不能替代代码组件消融。
+只覆盖两个 geospatial tasks；knowledge base 141 文档、关键词人工选定（附录 A.3 自认故意只建小规模库验证有效性）。与 OpenEvolve 基线的迭代预算不对称（100 vs 10）使 headline 优势不能直接归因于知识机制；论文也以 LLM 辅助分析算法差异，定性机制解释不能替代代码组件消融。
 
 ## 7. 论文内定位
 
