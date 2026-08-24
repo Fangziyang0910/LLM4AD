@@ -1,7 +1,7 @@
 # TraceAAD 全层机制演化与经验得失全景总结
 
 > 本文系统汇总 TraceAAD 自立项以来在各层（状态表示与拓扑、初始化、预算分配、单步生成与提示、评价与评分诊断）所尝试过的机制演化、实验事实与核心得失。
-> 相关参考：[研究认识](研究认识.md)、[历史机制探索](../methods/TraceAAD-历史机制探索.md)、[V9.12 机制诊断](../analysis/TraceAAD研究历程与V9.12机制诊断.md)、[V9.14 机制设计](../methods/TraceAAD-v9.14完整机制设计.md)、[层级研究索引](../research/README.md)。
+> 相关参考：[研究认识](研究认识.md)、[研究历程](研究历程.md)、[历史机制探索](../methods/TraceAAD-历史机制探索.md)、[V9.12 机制诊断](../analysis/TraceAAD-V9.12机制诊断.md)、[V9.14 机制设计](../methods/TraceAAD-V9.14完整机制设计.md)。
 
 ---
 

@@ -345,6 +345,8 @@ checkpoint 需要保存：
 
 每次 Discovery 记录来源假设、Explore 出生质量和成熟后质量。每个 block 记录 $Q_{before}$、$Q_{after}$、$g$、三次父节点选择、有效结果数和下一 sweep 状态。每次 Competition 记录候选排名、当时竞争线和状态变化。
 
+全局最好节点每次刷新时，把当时 primary slot 数、fitness、节点 ID 和完整程序追加进 `best_history.jsonl`，使任意预算处的最优程序可直接取用；`best_program.py` 始终保存当前全局最优程序。
+
 ## 13. 可证伪的机制预期
 
 V9.17 的关键预期为：

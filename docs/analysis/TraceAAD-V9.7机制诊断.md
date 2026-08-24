@@ -446,7 +446,36 @@ V9.7 应作为冻结基座，生成与分配分开识别。
 
 干预率、路线数、树深和 Explore 份额不是优化目标。最终要识别的是：什么轨迹事实能够预测额外一份计算的边际价值，并且这种预测是否在不同任务上形成可复用的在线行为。
 
-## 15. 结论
+## 15. 机制区域重访与静态语义空间分析
+
+对 V9.7 正式四任务三重复搜索按程序创建顺序重放，测量每次生成落在静态机制代理区域的新颖度：
+
+### 15.1 语义空间小且早期耗尽
+每 run 访问宏簇 4–6 个、不同标签组合 10–48 个，对照每任务 2,400–2,900 个 code-novel child。进入初始根之外的新宏簇每 run 2–3 次，全部发生在前 125 次评价（四任务进入时点中位数为第 4–73 次）。此后约 85% 以上的预算在已访问宏簇内运动。
+
+### 15.2 Explore 的换簇几乎全部落在已访问宏簇
+
+| 任务 | Explore child | 换簇率 | 换簇后落回已访问宏簇 | 标签组合重访 | 宏簇重访（全部 child） |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| TSP | 709 | 37.2% | 98.1% | 92.2% | 99.3% |
+| CVRP | 786 | 48.9% | 97.9% | 92.2% | 99.0% |
+| OP | 854 | 53.9% | 99.8% | 98.7% | 99.9% |
+| OBP | 845 | 36.9% | 98.4% | 97.4% | 99.4% |
+
+Refine 参照：换簇率 2.3%–12.1%，换簇后落回已访问宏簇 98.7%–100%。
+
+### 15.3 重入来自下方且亚前沿重入显著
+- Explore child 只有 5.2%–7.4% 在出生时达到所在宏簇的当时前沿；三分之一到五分之四低于前沿超过一个 $s$。换簇目的地集中在主导家族（TSP 为 `local_score` 68%，CVRP 为 `angular_radial` 57%）。
+- 无新标签的 Explore child 占总搜索响应的 23.4%–27.8%（亚前沿重入占用约四分之一预算）。
+- 被放弃路线几乎没有宏簇级独有知识（12 run 中仅 3 例，吸收态没有造成宏簇知识损失）。
+
+### 15.4 分析结论
+1. **全局信息的信息量小**：每 run 4–6 个宏簇即可完整描述已访问区域及其前沿。
+2. **发现事件前置且稀有**：新宏簇进入集中在初始化后前 100 余次评价，awareness 机制的设计目标是避免亚前沿重入，而非延长发现期。
+
+---
+
+## 16. 结论
 
 V9.7 的科学价值不在于证明了复杂预算分配，而在于找到了当前最可靠的工作点：
 
@@ -468,7 +497,8 @@ $$
 
 - V9.7 搜索几何：[`analyze_v97_search_geometry.py`](../../experiments/analysis/analyze_v97_search_geometry.py) 与 [`summary.json`](traceaad_v97_search_geometry/summary.json)
 - V9.7 机制价值：[`analyze_v97_mechanism_value.py`](../../experiments/analysis/analyze_v97_mechanism_value.py) 与 [`traceaad_v97_mechanism_value/`](traceaad_v97_mechanism_value/)
-- 固定锚点来时路实验：[TraceAAD 固定锚点单步生成识别实验](TraceAAD-固定锚点单步生成识别实验.md)
+- V9.7 区域重访：[`analyze_v97_region_revisit.py`](../../experiments/analysis/analyze_v97_region_revisit.py) 与 [`summary.json`](traceaad_v97_region_revisit/summary.json)
+- 前期机制与单步实验：[V1–V9.6 机制诊断](TraceAAD-V1-V9.6机制诊断.md)
 - 来时路完整搜索消融：[父代来时路完整搜索消融](../experiments/父代来时路完整搜索消融.md)（批次 `ppab_20260820_131000`）
 - 历史机制：[TraceAAD 历史机制探索](../methods/TraceAAD-历史机制探索.md)
 - 后续机制反例：[V9.8](TraceAAD-V9.8机制诊断.md)、[V9.9](TraceAAD-V9.9机制诊断.md)、[V9.10](TraceAAD-V9.10机制诊断.md)、[V9.11](TraceAAD-V9.11机制诊断.md)

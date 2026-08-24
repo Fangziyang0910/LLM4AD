@@ -4,7 +4,7 @@
 
 ## 1. 核心问题与方法
 
-两个问题：条件于完整搜索轨迹的策略是否优于只见局部状态的 LLM 启发式搜索；把轨迹的树拓扑显式化是否让历史更有用。隐式轨迹线性化为 `EXPAND ACT {action} -> {resulting state}`；LinTree 显式格式加父指针 `EXPAND sid=i ACT ... -> sid=j {state}`。两种格式来自同一批底层搜索、同一训练流程，差异仅归因于表示。GRPO 奖励 $R(\tau)=\mathbf 1[\text{valid}\wedge\text{correct}](1-\lambda\sum_{t}\gamma^t)$（$\lambda=0.005$、$\gamma=0.99$），正确轨迹恒为正收益；启发式侧用 softmax 策略梯度 $\pi(c\mid\mathcal C)=e^{-h_\theta(c)}/\sum e^{-h_\theta}$。附录报告两种被弃奖励（封顶线性罚、几何衰减乘子）不稳定。
+两个问题：条件于完整搜索轨迹的策略是否优于只见局部状态的 LLM 启发式搜索；把轨迹的树拓扑显式化是否让历史更有用。隐式轨迹线性化为 `EXPAND ACT {action} -> {resulting state}`；LinTree 显式格式加父指针 `EXPAND sid=i ACT ... -> sid=j {state}`。两种格式来自同一批底层搜索、同一训练流程，差异仅归因于表示。GRPO 奖励 $R(\tau)=\mathbf 1_{\mathrm{valid}\wedge\mathrm{correct}} \cdot (1-\lambda\sum_{t}\gamma^t)$（$\lambda=0.005$、$\gamma=0.99$），正确轨迹恒为正收益；启发式侧用 softmax 策略梯度 $\pi(c\mid\mathcal C)=e^{-h_\theta(c)}/\sum e^{-h_\theta}$。附录报告两种被弃奖励（封顶线性罚、几何衰减乘子）不稳定。
 
 ## 2. 论文宣称的机制贡献（逐项）
 

@@ -1,4 +1,4 @@
-# TraceAAD V9.16 结果与机制分析
+# TraceAAD V9.16 机制诊断
 
 ## 1. 核心判断
 
@@ -283,7 +283,7 @@ V9.7 固定了“早期承诺 + 长区域发展”，V9.16 固定了“增长型
 1. entry 完成统一三步成熟后，当前 frontier $Q$ 决定是否进入固定大小的 active portfolio；
 2. 只有已经进入 portfolio 的 entry，近期三步 block gain 才决定是否连续获得下一个 block。
 
-block gain 不进入跨 entry 排名，也不给竞争线以下的 entry 发放 runway。active portfolio 中全部方向都停止推进后，再从当前最好方向发起 Explore。完整状态、父节点分配、预算规则与伪代码见[V9.17 完整机制设计](../methods/TraceAAD-v9.17完整机制设计.md)。
+block gain 不进入跨 entry 排名，也不给竞争线以下的 entry 发放 runway。active portfolio 中全部方向都停止推进后，再从当前最好方向发起 Explore。完整状态、父节点分配、预算规则与伪代码见[V9.17 完整机制设计](../methods/TraceAAD-V9.17完整机制设计.md)。
 
 ### 8.3 删除的过分设计
 
@@ -334,11 +334,10 @@ V9.17 应把这条过程变成少量、及时结算、可受控比较的决策�
 ## 证据入口
 
 - [TraceAAD 研究认识](../knowledge/研究认识.md)
-- [V9.7 完整机制设计](../methods/TraceAAD-v9.7完整机制设计.md)与[V9.7 机制诊断](TraceAAD-V9.7机制诊断.md)
-- [V9.14 完整机制设计](../methods/TraceAAD-v9.14完整机制设计.md)
-- [V9.15 完整机制设计](../methods/TraceAAD-v9.15完整机制设计.md)与[V9.15 机制诊断](TraceAAD-V9.15机制诊断.md)
-- [V9.16 完整机制设计](../methods/TraceAAD-v9.16完整机制设计.md)
-- [L2 预算分配](../research/L2-预算分配.md)、[L3 单步生成](../research/L3-单步生成.md)与[L4 诊断](../research/L4-诊断.md)
+- [V9.7 完整机制设计](../methods/TraceAAD-V9.7完整机制设计.md)与[V9.7 机制诊断](TraceAAD-V9.7机制诊断.md)
+- [V9.14 完整机制设计](../methods/TraceAAD-V9.14完整机制设计.md)
+- [V9.15 完整机制设计](../methods/TraceAAD-V9.15完整机制设计.md)与[V9.15 机制诊断](TraceAAD-V9.15机制诊断.md)
+- [V9.16 完整机制设计](../methods/TraceAAD-V9.16完整机制设计.md)
 - [BaSE 阅读笔记](../references/LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md)、[MCTS-AHD 阅读笔记](../references/LLM自动算法设计方法阅读笔记/22-MCTS-AHD.md)与[PathWise 阅读笔记](../references/LLM自动算法设计方法阅读笔记/24-PathWise.md)
 - [LLM 作为进化算子的机制分析](../references/LLM作为进化算子的机制分析论文.md)
 - [实验结果](../experiments/实验结果.md)、[同规模测试结果](../experiments/同规模测试结果.md)与[搜索结果](../experiments/搜索结果.md)

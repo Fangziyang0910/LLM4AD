@@ -1,7 +1,7 @@
 # TraceAAD 历史机制探索
 
 > 本文系统汇总 TraceAAD 历史探索版本（V2–V9.6、V9.8–V9.13）的核心机制设计、实验事实与主要结论。
-> 主线有效版本规范保留于独立的机制设计文档中：[V9-Core](TraceAAD-v9-core完整机制设计.md)、[V9.7](TraceAAD-v9.7完整机制设计.md)、[V9.14](TraceAAD-v9.14完整机制设计.md)、[V9.15](TraceAAD-v9.15完整机制设计.md) 与 [V9.16](TraceAAD-v9.16完整机制设计.md)。相关诊断分析见 [分析索引](../analysis/README.md) 与 [研究认识](../knowledge/研究认识.md)。
+> 主线有效版本规范保留于独立的机制设计文档中：[V9-Core](TraceAAD-V9-Core完整机制设计.md)、[V9.7](TraceAAD-V9.7完整机制设计.md)、[V9.14](TraceAAD-V9.14完整机制设计.md)、[V9.15](TraceAAD-V9.15完整机制设计.md)、[V9.16](TraceAAD-V9.16完整机制设计.md) 与 [V9.17](TraceAAD-V9.17完整机制设计.md)。相关诊断分析见 [V1–V9.6 机制诊断](../analysis/TraceAAD-V1-V9.6机制诊断.md) 与 [研究认识](../knowledge/研究认识.md)。
 
 ---
 
