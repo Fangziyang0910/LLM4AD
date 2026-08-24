@@ -4,8 +4,6 @@ V9.16 是一个机制识别版本。V9.15 的重放显示，`C_traj` 会广泛�
 
 本版本把问题收窄为一个可证伪假设：**全局质量驱动的逐步重选，是否会使一部分结构性 Explore proposal 在尚未完成短期发展前就失去机会？** 干预是对有效 Explore child 随机提供一次固定的、连续的三步 Refine landing。landing 有效只说明这一种短期承诺策略有价值，不等于已经估计了 continuation value 或识别了算法簇。
 
-V9.16 不实现分层先验、LCB、算法簇在线标签、development license 或状态控制器。
-
 ## 1. 研究对象
 
 一次评价预算回答三个操作问题：
@@ -140,7 +138,3 @@ V9.15 作为已完成版本保留其原始结果。V9.16 的 5 个正式任务�
 报告顺序为：landing 激活与等待、入口内发展过程、`100/250/500/750/1000` best-at-budget、搜索 best、同规模 held-out、跨规模 held-out。过程改善不替代最终测试结果。
 
 若 landing 没有过程或有限预算改善，结论限定为“这一随机、连续、三步 Refine landing 未显示收益”，不据此否定所有 delayed continuation，也不继续向 V9.16 添加信用项。只有筛选批次出现清晰过程信号并经独立重复确认后，才在后续版本研究 landing 对象和视界的自适应分配。
-
-## 8. 设计边界
-
-V9.16 不声称识别真实算法簇，不估计 individual-entry continuation value，不使用 landing 结果更新在线分数，不实现 LCB、分层 prior、license、动态 `p_E` 或 shadow search。它是对 V9.15 的一次小而可解释的机制修正。

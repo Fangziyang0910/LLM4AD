@@ -56,7 +56,7 @@ evaluator 为生成过程提供外部事实。语法错误、接口错误、不�
 
 ## 四、搜索集与独立测试
 
-自动算法设计在 $S_{\mathrm{search}}$ 上反复评价、选择和修改候选。这个过程搜索算法候选，LLM 参数通常保持不变，因此本文将其使用的实例称为搜索集。
+自动算法设计在 $S_{\mathrm{search}}$ 上反复评价、选择和修改候选。这个过程搜索算法候选，LLM 参数通常保持不变，因此将其使用的实例称为搜索集。
 
 | 实例集 | 用途 |
 | --- | --- |
@@ -99,12 +99,3 @@ TraceAAD 首先研究如何利用算法改进轨迹构造更高效的在线搜�
 进一步的研究路线是把搜索过程中形成的任务、上下文、修改行为、候选代码和评价结果转化为可学习信号，通过强化学习把有效的算法改进策略内化到模型中，使模型用更少的在线搜索提出更好的候选。
 
 [待验证] 长期目标是在相同任务和评价条件下，使较小模型达到或超过较大模型的算法设计性能，同时降低模型调用与搜索成本。该目标需要通过跨任务实验、独立测试和完整成本核算验证。
-
-## 参考论文
-
-- [No Free Lunch Theorems for Optimization](https://doi.org/10.1109/4235.585893)
-- [LLM4AD: A Platform for Algorithm Design with Large Language Model](https://arxiv.org/abs/2412.17287)
-- [Mathematical Discoveries from Program Search with Large Language Models（FunSearch）](https://www.nature.com/articles/s41586-023-06924-6)
-- [Evolution of Heuristics: Towards Efficient Automatic Algorithm Design Using Large Language Model](https://proceedings.mlr.press/v235/liu24bs.html)
-- [ReEvo: Large Language Models as Hyper-Heuristics with Reflective Evolution](https://proceedings.neurips.cc/paper_files/paper/2024/hash/4ced59d480e07d290b6f29fc8798f195-Abstract-Conference.html)
-- [AlphaEvolve: A Coding Agent for Scientific and Algorithmic Discovery](https://arxiv.org/abs/2506.13131)
