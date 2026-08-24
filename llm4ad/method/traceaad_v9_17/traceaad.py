@@ -707,7 +707,12 @@ class TraceAADV917:
             status="ok",
         )
         if self.best is child and self._log is not None:
-            self._log.record_best(code=parsed.code, fitness=fitness)
+            self._log.record_best(
+                code=parsed.code,
+                fitness=fitness,
+                eval_count=self._n_eval,
+                child_id=child.id,
+            )
         self._pending = None
         self._generation = None
         save_checkpoint(self)

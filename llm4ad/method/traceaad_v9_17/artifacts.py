@@ -54,6 +54,9 @@ class RunArtifacts:
         self._events_file: TextIO = (
             self._run_dir / "mechanism_events.jsonl"
         ).open("a", encoding="utf-8")
+        self._best_history_file: TextIO = (
+            self._run_dir / "best_history.jsonl"
+        ).open("a", encoding="utf-8")
 
     def record_evaluation(self, **payload: object) -> None:
         row = {key: payload.get(key, "") for key in EVALUATIONS_CSV_HEADER}
@@ -77,10 +80,23 @@ class RunArtifacts:
         )
         self._events_file.flush()
 
-    def record_best(self, *, code: str, fitness: float) -> None:
+    def record_best(self, *, code: str, fitness: float, eval_count: int, child_id: int) -> None:
         self._run_dir.joinpath("best_program.py").write_text(
             f"# Fitness: {fitness:.6g}\n\n{code.rstrip()}\n", encoding="utf-8"
         )
+        self._best_history_file.write(
+            json.dumps(
+                {
+                    "eval_count": eval_count,
+                    "fitness": fitness,
+                    "child_id": child_id,
+                    "program": code,
+                },
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
+        self._best_history_file.flush()
 
     def write_summary(self, **payload: object) -> None:
         path = self._run_dir / "logs" / "summary.json"
@@ -92,6 +108,7 @@ class RunArtifacts:
     def finish(self) -> None:
         self._evaluations_file.close()
         self._events_file.close()
+        self._best_history_file.close()
 
 
 __all__ = ["EVALUATIONS_CSV_HEADER", "RunArtifacts"]
