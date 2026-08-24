@@ -39,7 +39,3 @@ verbal 层把进化历史转成 LLM 可消费的改动语言，并刻意缩小�
 ## 6. 证据边界
 
 任务为 OBP、step-by-step TSP、ACO-CVRP、ACO-OP；主实验以 2,000 LLM queries（OBP 外各任务；基线约 1,000 heuristic evaluations）对齐，且比较的模型不同：API verbal-only 用 GPT-4o-mini，GRPO 版本为 INT4 Qwen2.5-7B（§`sec:experiment`）。OBP/TSP 用与 MCTS-AHD 相同数据；TSP 每尺度 1,000 测试实例，CVRP/OP 每尺度 64 随机实例。`tab:ablation` 只在 OBP、OP 三次平均，未报告置信区间，也不检验 operator×GRPO、collapse×GRPO 的交互。因此，论文支持“该共进化配方在这些设置有效”，不支持把任一 operator、任一 reward 项或在线训练外推为普遍最优。
-
-## 7. 论文内定位
-
-`main.tex`：§Methodology（Prompt Generation、Collapse Mechanism、Reward Function，Eq. `eq:collapse-round-expectation`、`eq:reward`）；§`sec:experiment`；Tables `tab:obp`、`tab:tsp`、`tab:cvrp_op`、`tab:ablation`；Fig. `fig:training-curve`；附录入口 `appendix.tex` 的 `appendix-sec:algorithm`、`appendix-sec:prompts`、`appendix-sec:crossover`、`appendix-sec:collapse`、`appendix-sec:running-time`。

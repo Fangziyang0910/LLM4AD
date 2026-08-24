@@ -33,7 +33,3 @@
 ## 6. 证据边界
 
 论文覆盖 CO、SCO、SR、PE，但不同任务实例化和 evaluator 不同；知识文本由 LLM 生成，真实性没有自动验证。部分 top-down 优势体现在泛化而非训练最好值，不能概括为全程支配。
-
-## 7. 论文内定位
-
-§3；Figure 1；§4 population/tree instantiations；Figure 2；Tables 1–4；Figure 3；Appendix H case studies。

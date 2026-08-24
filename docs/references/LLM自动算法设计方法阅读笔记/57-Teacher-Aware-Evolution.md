@@ -33,7 +33,3 @@ teacher 把稀疏终点奖励分解为局部行动偏好，而任务 evaluator �
 ## 6. 证据边界
 
 每个任务需独立训练且接口可对齐的教师，也增加 analyzer 调用；因此不是免费训练信号。教师参数不由 AAD 过程更新，不能归为“训练 LLM 设计器”。
-
-## 7. 论文内定位
-
-§3.2–3.4；Table 1；Figure 1；Tables 2–7；§4.4 Table 8；Appendix Algorithm 1、Figure 2。

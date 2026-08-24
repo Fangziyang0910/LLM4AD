@@ -34,7 +34,3 @@ MoH 把搜索升至两层：外层当前 meta-optimizer 一次生成 M 个 heuri
 ## 6. 证据边界
 
 主实验为 TSP、BPP，并补 CVRP/离线 BPP 和 TSPLIB；表格所报口径随任务改变（主表 best-of-3，跨问题表 5 次均值）。optimizer utility 按任务规模加权（$w_i\propto s_i$，Eq. 2）。论文有消融和收敛曲线，但未把外层候选数、内层 best-of-K 与搜索总预算（T=10、种群 10、1000 次启发式评估）逐因素分离；附录另有同预算与 Concorde/OR-Tools/LEHD/SIL/NeuOpt 的比较、八 LLM 全面比较与统计显著性分析。结论自认外层与多任务带来额外计算开销。
-
-## 7. 论文内定位
-
-`main.tex`：§`sec_method`、Fig. `fig:workflow`、`fig:improve_algorithm`；§Experiments，Tables `tsp_heu`、`bpp_table`、`tab:cvrp_bpp`、`LLM_table`、`ablation`；Appendix `tab:crossprob`、`tab:clustertsp`。

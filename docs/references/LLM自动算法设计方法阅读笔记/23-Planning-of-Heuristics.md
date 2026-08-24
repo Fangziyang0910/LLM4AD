@@ -34,7 +34,3 @@ PoH 将启发式设计显式建模为 MDP + 战略规划：状态=启发式，�
 ## 6. 证据边界
 
 树搜索的“访问”“价值”“回传”是不同变量；搜索策略消融（Greedy 34 个 0.530%、Beam 72 个 0.260%、MCTS 60 个 0.227%，TSP200 总探索启发式数固定）是少见的"同转移、同动作生成、只换策略"受控对照，但结论限 3 次重复、无组件级（如去反思）消融。正文与主表在 FSSP n50m20 的 EoH/LS 数字上自相矛盾（正文 0.19%/0.47% vs 主表 0.60%/4.67%），引用时以主表为准。
-
-## 7. 论文内定位
-
-入口：[example_paper.tex](../../../../papers/Planning_of_Heuristics_Strategic_Planning_on_Large_Language_Models_with_Monte_Carlo_Tree/example_paper.tex)。方法图 `Planning of Heuristics Method`；主表 `tab:tsplib`、`tab: main-exp-gls`、`tab:fssp`；搜索消融 `fig:ablation`、`tab:LLM`；提示附录 `tab: tsp_prompt`、`tab: FSSP_prompt`。

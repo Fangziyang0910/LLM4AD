@@ -35,7 +35,3 @@ RefineEvo 保持种群进化骨架（N=10、精英截断、1000 评价），把"
 ## 6. 证据边界
 
 曲线、雷达图和 survival heatmap 是整体或过程证据；只有明示受控消融才能支持组件因果。需要区分搜索 evaluator 与 held-out 测试、每次运行的预算与 LLM 调用数，并避免把存活率直接等同最终泛化。
-
-## 7. 论文内定位
-
-入口：[main.tex](../../../../papers/RefineEvo_Planning-Guided_Heuristic_Evolution_with_Bidirectional_Experience/main.tex)。方法 `03_method.tex`；实验 `04_experiment.tex`；附录 `06_appendix.tex`（`tab:ablation_bep`、`tab:full_k_ablation`、`tab:std_tsp`、`tab:std_bpp`）；过程图 `curves.pdf`、`survival_rate_heatmap1.pdf`、`survival_rate_heatmap2.pdf`。

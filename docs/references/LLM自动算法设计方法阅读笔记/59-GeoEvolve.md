@@ -32,7 +32,3 @@ GeoEvolve 以内层 OpenEvolve 生成/变异代码，外层 controller 评估并
 ## 6. 证据边界
 
 只覆盖两个 geospatial tasks；knowledge base 141 文档、关键词人工选定（附录 A.3 自认故意只建小规模库验证有效性）。与 OpenEvolve 基线的迭代预算不对称（100 vs 10）使 headline 优势不能直接归因于知识机制；论文也以 LLM 辅助分析算法差异，定性机制解释不能替代代码组件消融。
-
-## 7. 论文内定位
-
-Figures 1–3；§3.1–3.4；Tables 1–2；Figures 4–5；§5；Appendix A.2–A.4、Figures 6–7。

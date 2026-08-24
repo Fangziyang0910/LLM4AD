@@ -33,7 +33,3 @@ AlphaEvolve 将强 LLM 与自动 evaluator 组成异步演化系统：候选程�
 ## 6. 证据边界
 
 结果横跨异质任务，评价口径和可用专家知识不同；案例成功不等于一个共享的 effect size。组件消融的解释须严格限于 `ablations.tex` 中实际控制的变量；没有报告之处不可假定独立重复或显著性。
-
-## 7. 论文内定位
-
-入口：[`main.tex`](../../../../papers/AlphaEvolve/main.tex)，方法：[`methods.tex`](../../../../papers/AlphaEvolve/methods.tex)，结果：[`results.tex`](../../../../papers/AlphaEvolve/results.tex)，消融：[`ablations.tex`](../../../../papers/AlphaEvolve/ablations.tex)，补充：`appendix.tex`、`discovered_program*.tex`。

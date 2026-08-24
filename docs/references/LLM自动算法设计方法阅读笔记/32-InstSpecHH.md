@@ -32,7 +32,3 @@
 ## 6. 证据边界
 
 设置在 Table `tab:setting`；intra/inter subclass 的任务划分和 candidate 数在 Tables `tab:intra_main`、`tab:inter_main`。`tab:inv_analysis` 明确把单实例 EoH 与 InstSpecHH 的在线时间分开，Fig. `fig:time_analysis` 再估算离线＋在线总成本。论文的敏感性（`fig:scal`、`fig:ns_analysis`、`fig:topk`）不是随机种子置信区间，不能据此声称稳定泛化。
-
-## 7. 论文内定位
-
-`main.tex` 的 `\input` 入口；`section/framework.tex`（框架），`section/experiments.tex`（主结果/消融），`supp_content.tex`（补充）；图像入口 `images/code_cvrp.pdf`、`images/code_obpp.pdf`、`images/time_*`、`images/radar_*`。

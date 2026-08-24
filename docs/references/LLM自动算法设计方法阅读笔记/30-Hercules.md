@@ -33,7 +33,3 @@ CAP 将候选代码压缩为可复用的“设计理由”，减少 LLM 从冗�
 ## 6. 证据边界
 
 论文覆盖多类 COP/GAF，附录 `tabparams` 给出超参，另有真实 TSP 和黑盒 CVRP（Appendix）。但不同任务的 evaluator、模型和成本不天然等价；消融未自动证明 CAP 的知识抽取、PPP 预测和进化算子彼此独立。报告没有据此建立跨模型、跨预算的统计泛化结论。
-
-## 7. 论文内定位
-
-主入口 `sample-sigconf.tex`：§3.1 CAP、§3.2 PPP、Fig. `figframework`；§4、Tables `tabsearchreport`、`tabselect`、`tabaco`、`tabNCO`、`ablation`、`accuracy`；Appendix `appendixD`--`appendixE`。

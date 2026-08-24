@@ -34,7 +34,3 @@ PhyloEvolve 将候选代码及其亲缘关系组织为系统发育树，而非�
 ## 6. 证据边界
 
 谱系树、父代选择、提示上下文和淘汰规则是耦合干预。主结果不能证明“树”本身；若没有跨任务消融、独立 test evaluator 或重复统计，结论应止于论文场景。
-
-## 7. 论文内定位
-
-入口：[main.tex](../../../../papers/PhyloEvolve_LLM-Powered_Evolutionary_Code_Optimization_on_a_Phylogenetic_Tree/main.tex)。背景 `tex/3_background.tex`；方法 `tex/4_method.tex`；实验 `tex/5_experiments.tex`；讨论 `tex/6_discussion.tex`；结论 `tex/7_conclusion.tex`。

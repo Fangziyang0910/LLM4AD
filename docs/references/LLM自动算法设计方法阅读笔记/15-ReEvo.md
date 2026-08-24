@@ -35,7 +35,3 @@ ReEvo 关注在昂贵评价下怎样提高启发式搜索的样本效率。每�
 ## 6. 证据边界
 
 论文明确把启发式评价限制为 100 shots（§7）；主结果涉及多任务、多模型，ACO 曲线说明为三次运行平均，但并非每个比较都报告完整方差、显著性或独立测试协议。景观分析仅 TSP50 的有限随机游走；它是过程相关证据，不能替代受控机制实验。
-
-## 7. 论文内定位
-
-入口：[main.tex](../../../../papers/ReEvo/main.tex)。方法：`sections/04_evolution.tex`；主应用：`sections/05_applications.tex`；机制和主比较：`sections/06_ablation.tex`（`tab:autocorrelation`、`tab:ablation_study`）；提示与设置：`appendix/01_prompts.tex`、`appendix/02_experimental_setup.tex`。

@@ -33,7 +33,3 @@ FunSearch 不让 LLM 直接回答数学对象，而搜索生成该对象的程�
 ## 6. 证据边界
 
 cap set、admissible set 与 bin packing 的有效性口径不同；部分结果采用多次运行取报告结果（cap set n=8 的 512 构造在 140 次实验中仅 4 次成功），且非所有任务给统一重复/显著性协议。簇温度超参 $T_0$、$N$、$T_{program}$ 与岛数 m 的数值在补充材料 Appendix E.1（本地未含），正文未给出；组件消融同样在补充 Appendix A。异步硬件规模（15 sampler + 150 evaluator CPU）、模型（Codey）、提示和 evaluator 共同构成方法条件（总样本百万级），不能直接外推到低预算通用 AAD。
-
-## 7. 论文内定位
-
-PDF 主文 Fig. 1–6、Table 1；Methods（LLM、program database、islands、distributed system）；Supplementary Information Appendix A（方法/消融）、B（发现）、C（程序）、E.4–E.5（bin packing）。

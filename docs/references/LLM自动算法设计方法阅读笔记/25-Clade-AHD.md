@@ -35,7 +35,3 @@ Clade-AHD 指出逐节点 UCT 在稀疏访问下"结构性过度开发"：点估
 ## 6. 证据边界
 
 主结果、组件消融与 $\lambda$ 敏感性支持各机制装置的增量贡献（3 次重复，无显著性检验）。评价超时正文 180 秒与附录表 60 秒自相矛盾；超参表列有 "K (Population) 10"，该种群与树的关系原文未明确。深度衰减解决均匀回传的信用错配，但 Beta-Bernoulli 的二值化粒度（伪代码注释为 win/loss 转换）原文未完全明确。
-
-## 7. 论文内定位
-
-入口：[main.tex](../../../../papers/Clade-AHD_Clade-level_Selection_for_MCTS_in_Automatic_Heuristic_Design/main.tex)、[appendix.tex](../../../../papers/Clade-AHD_Clade-level_Selection_for_MCTS_in_Automatic_Heuristic_Design/appendix.tex)。图资产 `flow.pdf`、`comparison.pdf`、`lambda.pdf`；表图 label 以两 tex 实际定义复核。

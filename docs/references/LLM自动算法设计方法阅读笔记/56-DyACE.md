@@ -32,7 +32,3 @@ DyACE 不把启发式当作一次生成后固定的程序，而把算法与解�
 ## 6. 证据边界
 
 Meta-Controller 推理延迟显著；当前每实例从头开始，未使用跨实例历史。Table 4 仅三项 JSSP，且“causal grounding”是作者措辞，实验实际支持的是受控关联而非因果状态识别正确性。
-
-## 7. 论文内定位
-
-Figure 1；§3；Tables 1–3；Figure 2；§4.4 Table 4；Appendix Figure 3。

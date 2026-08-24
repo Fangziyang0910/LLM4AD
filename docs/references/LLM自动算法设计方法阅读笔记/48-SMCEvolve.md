@@ -2,7 +2,7 @@
 
 - 论文：Jiachen Jiang、Huminhao Zhu、Zhihui Zhu，*SMCEvolve: Principled Scientific Discovery via Sequential Monte Carlo Evolution*，arXiv:2605.15308v1，2026-05-14，预印本。
 - 本地来源：[paper.pdf](../../../../papers/SMCEvolve_Principled_Scientific_Discovery_via_Sequential_Monte_Carlo_Evolution/paper.pdf)。
-- 原始实现：[kongwanbianjinyu/SMCEvolve](https://github.com/kongwanbianjinyu/SMCEvolve)，本笔记于 2026-08-19 核对 `main` 分支。
+- 原始实现：[kongwanbianjinyu/SMCEvolve](https://github.com/kongwanbianjinyu/SMCEvolve)。
 - 设计对象：带外部 evaluator 的 LLM 程序进化，覆盖数学构造、数值程序加速、符号回归和端到端 ML 研究程序。
 
 ## 1. 核心判断
@@ -357,15 +357,3 @@ TraceAAD 已有证据表明即时退步状态可能在有限续段内恢复。SM
 SMCEvolve 是一篇理论视角强、机制组合有启发、实证边界需要谨慎读取的工作。它最成功的部分，是将父代重采样、LLM mutation、接受与终止放进 reward-tilted SMC 的同一语言中，并以 29/34 个表格任务最好和较少调用展示了完整系统在低预算下的早期搜索效率。它最薄弱的部分，是理论保证依赖真实实现未满足或未验证的条件，主实验只报 best-of-3，预算未严格匹配且搜索视界较短，接受与自动停止缺少独立消融，ESS 也不能完成论文动机中“高质量收敛与低质量停滞”的区分。当前证据可以支持“初始加速度较强”，尚不能支持“长时进化能力更强”。
 
 对 TraceAAD 的直接结论是：继续坚持生成与分配实验上拆开、理论上耦合；将每个 proposal 的生成、接受、回访和后续价值分层观测；把有效样本量作为分配退化诊断；优先研究低维、反馈充分的 operator 选择和 rejected archive 的信息价值。SMCEvolve 没有证明应把 TraceAAD 改造成粒子滤波器，也没有证明 reward-only 重采样能识别有意义的路线。它提供的是一套更严格地提问和设计对照实验的语言。
-
-## 14. 论文内定位
-
-- 问题、痛点与贡献：Abstract、§1。
-- Reward-tilted 目标与 SMC 基础：§2.1–2.2、Lemma 2.1。
-- 三个核心机制：§2.3、Equations 6–11、Algorithm 1、Figures 2–3。
-- 有限样本结果与假设：§3、Theorem 3.1、Appendix F 与 F.1。
-- 主实验：§4.1、Tables 1–3、Figure 4。
-- 机制消融：§4.2、Table 4。
-- 精确 MH 与 reward-only 近似：Appendices C、E。
-- islands、理论—实现映射与超参数：Appendix G、Tables 5、10。
-- 完整搜索过程可视化：Appendix M、Figure 5。

@@ -34,7 +34,3 @@
 ## 6. 证据边界
 
 三领域、多超参扫描，但主模型为 GPT-4；无 regret 界；修复域的反馈离散、可归因，AAD 域的迁移未经直接测试。
-
-## 7. 论文内定位
-
-`main.tex`：建模与后验公式（Methods）、策略比较实验（Experiments）、附录 `Prompts/`；bandit 引用见 `bandit.bib`。

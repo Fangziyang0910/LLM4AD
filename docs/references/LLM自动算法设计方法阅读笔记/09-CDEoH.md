@@ -33,7 +33,3 @@ CDEoH 以类别驱动 LLM 演化：先将候选或设计思想归入类别，再
 ## 6. 证据边界
 
 类别生成、类别数量、类别更新频率和模型提示是耦合变量；若论文未给等预算消融、独立种子和测试实例重评，不能主张类别机制在所有优化问题稳定有效。
-
-## 7. 论文内定位
-
-入口：[`main.tex`](../../../../papers/CDEoH_Category_Driven_Automatic_Algorithm_Design_With_Large_Language_Models/main.tex)。使用 §Method 的 `fig:Method`、`fig:Line_Chart`、§Experiments 的 `tab:obp_results`、`tab:tsp_results`、`tab:ablation_results`。

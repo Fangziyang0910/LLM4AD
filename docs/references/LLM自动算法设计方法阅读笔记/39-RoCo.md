@@ -33,7 +33,3 @@ RoCo 将生成、批评、反思等职责分给预定义角色：explorer（"cre
 ## 6. 证据边界
 
 白盒测试集每项 64 实例、LLM-AHD 结果三次平均（`tab:whitebox` caption）；黑盒图为四次运行。任务限 TSP、OP、CVRP、MKP、BPP 的 ACO 框架；没有模型参数训练的证据，也不能把角色数/通信格式外推为普遍最优。
-
-## 7. 论文内定位
-
-`main.tex`：§Proposed RoCo（Fig. `fig:roco-arch`、角色与协作小节）；§Experiments，Tables `tab:whitebox`、`tab:black_box_table`、`tab:ablation`、`tab:gls`，Figs `fig:whiteboxcurve`、`fig:blackbox`；`appendix.tex`。

@@ -35,7 +35,3 @@ HiFo-Prompt 将指导拆为 hindsight 与 foresight。前者从精英代码蒸�
 ## 6. 证据边界
 
 正文设置为 CO 8 代、BO 4 代、种群 8；Insight Pool 容量 30，主 AHD 结果称为三次平均。未见对 insight 真实性、检索命中因果或 Navigator 每个状态规则的逐项随机化对照；主结果不能拆解为两个模块内部所有设计的证据。
-
-## 7. 论文内定位
-
-入口：[templateArxiv.tex](../../../../papers/HiFo_Prompt_Prompting_with_Hindsight_and_Foresight_for_LLM_based_Automatic_Heuristic_Des/templateArxiv.tex)。方法 §Methodology（图 `fig:pipline`、`fig:prompt`）；设置 §Experiments；主表 `tab:tsp_construct`、`tab:tsp_gls`、`tab:bpp`、`tab:fssp`；消融 `tab:ablation` 及附录标签 `appendix:prompt`、`app:additional_ablation`。

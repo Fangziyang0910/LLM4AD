@@ -33,7 +33,3 @@ ShinkaEvolve 是带档案的 LLM 演化 harness：多模型提出程序修改，
 ## 6. 证据边界
 
 圆打包、MoE 和 ALE-Bench 的 evaluator、成本、初始程序均不相同。ALE-Bench 使用公开测试分数作 fitness，附录虽报告 top-5 私测比较从 1923.5 到 1927.0、未观察显著过拟合证据，但这不是多种子统计检验。MoE 演化仅 30 iterations，且演化与放大模型相近，作者也在附录指出预算/架构限制。
-
-## 7. 论文内定位
-
-入口：[`main.tex`](../../../../papers/ShinkaEvolve/main.tex)；方法 [`sections/03_method.tex`](../../../../papers/ShinkaEvolve/sections/03_method.tex)，结果 [`04_results.tex`](../../../../papers/ShinkaEvolve/sections/04_results.tex)，分析 [`05_analysis.tex`](../../../../papers/ShinkaEvolve/sections/05_analysis.tex)，附录 `sections/appendix.tex`（ALE-Bench、MoE 细节）。

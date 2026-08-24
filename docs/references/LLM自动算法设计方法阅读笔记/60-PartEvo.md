@@ -34,7 +34,3 @@ niche 的核心不是“代码看起来不同”，而是把有限 LLM 查询分
 ## 6. 证据边界
 
 主实验多用 GPT-4o-mini、K=4、500 samples；特征/聚类本身仍是代理。操作符消融很完整，但多个 operator 的调用与 prompt 长度差异使“机制收益”和额外推理成本仍需联合报告。
-
-## 7. 论文内定位
-
-Figure 1；§3.1–3.2；Tables 1–6；Figure 2；§4.4；Appendix Tables 8–14、Figures 3–4。

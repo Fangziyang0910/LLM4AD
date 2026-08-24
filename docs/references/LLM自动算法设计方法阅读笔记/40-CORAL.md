@@ -33,7 +33,3 @@ CORAL 把检索、提出、评估、更新四阶段的决定权由固定外循�
 ## 6. 证据边界
 
 消融仅在三个 stress-test、Claude Code + Opus 4.6 下进行（另有开源栈泛化：MiniMax M2.5 + OpenCode；4-agent 相对 1-agent 的收益随任务变化：Kernel Eng. −18.3% cycles、Polyominoes +5.0%）；开放式 evaluator 的任务定义和隐藏 grader 会影响可复现性。论文未以该表证明 heartbeat，亦未证明自主检索/评估/更新三个决策分别带来收益（论文自己把 inspection 的隔离留给 future work）。
-
-## 7. 论文内定位
-
-`colm2026_conference.tex` 输入 `sections/method.tex`、`sections/experiments.tex`、`sections/appendix.tex`；架构图 label 为 `fig:coral-diagram`（文件名 coral_overview.pdf），范式对比图 `fig:paradigm_comparison` 定义于 `sections/introduction.tex`；实验 Table `tab:ablations`。

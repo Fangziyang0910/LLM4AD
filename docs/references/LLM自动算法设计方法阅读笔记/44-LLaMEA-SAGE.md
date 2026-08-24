@@ -32,7 +32,3 @@ surrogate 把历史样本变成局部方向信号，SHAP 再将不可直接用�
 ## 6. 证据边界
 
 主文以 GPT-5-mini、SBOX-COST 与 MA-BBOB 为主；结构特征不含动态行为与交互效应。末期最好值、token 成本和统计显著性并非在所有设置一致占优。
-
-## 7. 论文内定位
-
-Algorithm 1；§3.1–3.3；Figures 2–11；§5 Results；Appendix B Figure 12；Appendix C Figures 13–15。

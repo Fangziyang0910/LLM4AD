@@ -33,7 +33,3 @@
 ## 6. 证据边界
 
 实验实例化为模型合并而非组合优化启发式（3 轮 × 3000 个算法，seed 为 openchat-3.5-1210，DPO 取 top 3%/bottom 10%，LoRA rank 256，温度 1.2 按 β=0.2 衰减，最终只评跨轮 top-15 防测试泄漏）；算法最终仍由预训练 LLM 的代码先验产生。论文没有任何消融（grep "ablation" 零命中）：不能证明每轮 DPO、温度衰减各自必要，也没有把训练成本与纯搜索扩预算完整等价比较（迭代改善不能排除累积采样效应）。
-
-## 7. 论文内定位
-
-§2.1–2.4；Figure 1；§3.2 Q1–Q4（GSM8k 76.1 vs seed 70.1、人工最优 71.9；MATH 8.5 vs 0.5）；Tables 1–3；Figures 3–7；§4 Transferability；Appendix B、Figures 8–9、Table 4。

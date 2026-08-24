@@ -33,7 +33,3 @@ QUBE 针对只按当前质量选父代会过早收敛的问题，在 FunSearch �
 ## 6. 证据边界
 
 不确定性定义（UCB 访问计数）与 $Q_t(C)$ 的统计、$k$ 的取值均是任务相关实现选择；主比较在 80K–2M 样本档（岛重置周期以样本数计，TSP 用 1 岛关闭重置），与 1000 评价档结论不能互推。没有足够重复、方差和训练/测试实例分隔时，质量提升可能来自评价偶然性。换 Deepseek-coder-6.7b 结论方向不变。
-
-## 7. 论文内定位
-
-入口：[`main.tex`](../../../../papers/QUBE_Enhancing_Automatic_Heuristic_Design_via_Quality_Uncertainty_Balanced_Evolution/main.tex)。使用 §Quality-Uncertainty Balanced Evolution（`eq:uiq`）、§Experiments 的 `tab: main_result`、`fig: bp score`、`tab: ablate_method`、`tab: ablate_llm`、§Limitations。

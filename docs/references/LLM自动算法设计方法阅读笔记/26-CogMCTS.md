@@ -35,7 +35,3 @@ CogMCTS 保留 MCTS 的选择—扩展—模拟—回传，根节点虚拟、其
 ## 6. 证据边界
 
 正文设 $T=1000$、初始节点 10、每函数 60 秒；GPT-3.5-turbo 与 GPT-4o-mini，主 AHD 方法各三次。表的平均值及 KP 动作消融支持有限场景；ReEvo 在 KP 的早停无数据也使部分横比缺失，不能被当作零分基线。
-
-## 7. 论文内定位
-
-入口：[ijcai26.tex](../../../../papers/CogMCTS_Cognitive-Guided_MCTS_for_Iterative_Heuristic_Evolution/ijcai26.tex)。方法 §Methodology（选择、扩展、回传）；实验 §Experiments；消融 §Ablation Study，`tab:kp100_actions`、`aco_op_kp`、`aco_mkp_cvrp`。

@@ -33,7 +33,3 @@
 ## 6. 证据边界
 
 无消融、无探索-利用机制主张；演示任务是受限符号回归，结论不能外推到 AAD 主流任务。定位是框架化/教学实现（ALFAECLLM 包）与分类学，机制证据应看 ELM/LMX/FunSearch 各自的原始论文。
-
-## 7. 论文内定位
-
-入口：[`ELM_GP_jrnl_2023.tex`](../../../../papers/Evolving_Code_with_A_Large_Language_Model/ELM_GP_jrnl_2023.tex)，依次 include `methods.tex`、`experiments.tex`、`appendix.tex`、`discussion.tex`。重点为 Methods 的算子代数与三步协议、Experiments 的成本/错误分析。

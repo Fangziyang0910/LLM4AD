@@ -32,7 +32,3 @@ GAE 用 relational GNN 把 AST 解析成 typed computation graph 并在线回归
 ## 6. 证据边界
 
 核心实验是单一 Nonlinear Oscillators 数据集、GAE 3 runs；基线预算与模型并非全部一致。KL 项按正文仅监控而不贡献梯度，这与常规 GRPO 描述不同，复现时不能按名称臆测。
-
-## 7. 论文内定位
-
-Figure 1；§3.3–3.5；Equations 5–9；Tables 1–2；Figure 2；Appendix B Tables 3–4。

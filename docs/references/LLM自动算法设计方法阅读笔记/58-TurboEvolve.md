@@ -33,7 +33,3 @@ TurboEvolve 让一次 LLM 调用通过 Verbalized Sampling 产生 K 个带自报
 ## 6. 证据边界
 
 成本结论依赖供应商定价与批量输出；自报 sampling weights 不用于选择，不能视为校准概率。warm-start 要求外部高质量 pool，和 cold-start 方法并非同一问题。
-
-## 7. 论文内定位
-
-Figure 1；§3.1–3.3；§4 RQ1–RQ3；§5 main comparisons；§6.1 within-event analysis；Appendix A prompt comparison。

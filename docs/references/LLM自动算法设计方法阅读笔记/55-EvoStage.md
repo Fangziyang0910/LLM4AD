@@ -32,7 +32,3 @@ Stagewise-Design 由 coordinator 自动把算法任务分解为顺序阶段，�
 ## 6. 证据边界
 
 核心工业结果是 global placement，公开指标部分脱敏；Figure 6 的干净消融只设计 learning-rate schedule。阶段反馈同时改变 prompt 长度和 evaluator 调用时点，成本需显式计入。
-
-## 7. 论文内定位
-
-Figures 1–5；§2.2；Tables 1–5；§3.1 Ablation、Figure 6；§4 Figure 9；Appendix Tables 6–7。

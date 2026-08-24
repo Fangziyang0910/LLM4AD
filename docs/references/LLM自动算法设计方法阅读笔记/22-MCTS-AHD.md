@@ -35,7 +35,3 @@ MCTS-AHD 将每个可执行启发式表示为树节点，在预算内循环选�
 ## 6. 证据边界
 
 原论文中 TSP 搜索预算为 T=1000，T=2000 属在线 BPP，不可与测试实例数混淆。主表为三次平均（消融与 p 值实验 5–10 次），显著性：构造式 TSP50 p=0.0029、KP p=0.0275 等单尾 t 检验。max 回传使"子树曾出过一次高分"永久抬高祖先价值，是 Clade-AHD 批评的结构性过度开发来源之一；λ 敏感性显示 0.05 与 0.2 在不同任务上互有优劣（KP 偏好 0.2）。若比较方法具有不同原生预算或每次样本的 LLM 调用数不同，最终质量不能解释为纯树策略效应。
-
-## 7. 论文内定位
-
-入口：[icml2025.tex](../../../../papers/MCTS-AHD/icml2025.tex)。图资产：`MCTS-pipeline.pdf`、`MCTS-action.pdf`、`MCTS-figure1.pdf`、`Population-figure1.pdf`、`trend.pdf`、`tsp.pdf`、`KP-show.pdf`；表、算法和 appendix label 均从主 tex 追踪。

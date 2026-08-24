@@ -34,7 +34,3 @@ MeLA 进化的对象是**指导生成的元认知 prompt**而非启发式代码�
 ## 6. 证据边界
 
 元认知、反思、错误修复和生成提示作为联合系统出现；消融支持 PA 与阶段推进的增量贡献（3 次独立运行），但纯元认知（无表型探索）的上限由 MeEvo 的 (/,M) 对照揭示（ACS 588.50 vs 组合 578.16）。元认知三任务中仅"创新假设"是探索成分且无条件触发；状态摘要错误时额外层会放大误导。须以正文的 evaluator、测试集与重复设置限制外推。
-
-## 7. 论文内定位
-
-入口：[main.tex](../../../../papers/MeLA_Metacognitive_LLM-Driven_Architecture_for_Automatic_Heuristic_Design/main.tex)。方法、实验和附录均由该主文件定位；流程图：`MeEvo.drawio.pdf`、`PE.drawio.pdf`。

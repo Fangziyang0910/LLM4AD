@@ -33,7 +33,3 @@ MEoH 把启发式设计重构为**多目标优化**：目标向量为（最优 g
 ## 6. 证据边界
 
 MEoH 的证据由文内 BPP、随机 TSP 与 TSPLIB 配置限定；正文表格报告 in-/out-of-distribution 结果，但没有为每项机制给出独立种子方差或显著性检验。评价实例是否和搜索实例分离仍决定泛化解释。
-
-## 7. 论文内定位
-
-入口：[`MEoH.tex`](../../../../papers/MEoH/MEoH.tex)。使用 §Methodology（`alg:MEoH`、`fig:dominance-dissimilarity`）、§Experiments（`tab: BPP`、`tab: TSP_GLS_random`、`tab: TSP_GLS`、`fig: BPP_ablation`、`fig: TSP_ablation`）及 §Algorithm Details。

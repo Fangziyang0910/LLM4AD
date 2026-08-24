@@ -2,7 +2,7 @@
 
 ## 范围
 
-本文汇总 `../papers/` 中**做自动算法设计（AAD）或自动启发式设计（AHD）**、且有实验报告的工作。综述、适应度景观/轨迹分析、纯 benchmark、端到端实例求解器、软件工程 agent、GPU 内核优化等不纳入正文。
+汇总 `../papers/` 中**做自动算法设计（AAD）或自动启发式设计（AHD）**、且有实验报告的工作。
 
 证据来自各论文实验章节与附录；找不到的项标「论文未明确」。各论文协议不统一，数字不宜直接横向比较。
 
@@ -42,8 +42,6 @@
 | CORAL | Math×6（Circle Packing、Signal Processing、Erdős Overlap、MMD-16-2、MMD-14-3、3rd Autocorr）；System×5（EPLB、PRISM、LLM-SQL、Txn Sched.、Cloudcast）；Stress×2（Kernel Engineering、Polyominoes） | 100 iter 或 3h 墙钟 | Claude Opus 等 | OpenEvolve、ShinkaEvolve、EvoX |
 | BaSE | Circle Packing；MinMaxDist；Heilbronn Triangle | 512 LLM 调用 | Qwen3 / Llama | OpenEvolve、ShinkaEvolve、greedy |
 | AutoEP | TSP；CVRP；FSSP；UAV-IoT | 非启发式设计预算（调参循环） | Qwen3-30B | PT、GLEET、EoH、ReEvo |
-
----
 
 ## FunSearch
 
@@ -381,8 +379,6 @@
 - **指标**: Opt.gap%；运行时间
 - **备注**: 主贡献是元启发**超参在线控制**，非直接演化启发式代码。本地 `manuscript.tex` 曾与综述源混淆；实验以 arXiv:2509.23189 为准
 
----
-
 ## 未纳入正文的论文（简述）
 
 | 类型 | 目录示例 | 原因 |
@@ -395,8 +391,6 @@
 
 早期相关但协议偏演示或通用算子：`Language_Model_Crossover_...`、`Evolving_Code_with_A_Large_Language_Model`（符号回归等），未展开。
 
----
-
 ## 协议差异（读结果时注意）
 
 1. **主预算应统一为启发式评估次数**。ReEvo 等已明确主张：在启发式评估昂贵时，应以 eval 次数而非 LLM query/token 作为主比较轴。LLM 调用与 token 反映生成成本，应另报，不宜替代 eval。
@@ -407,7 +401,3 @@
 6. **重复与聚合**：3 次均值、10 次最优、单次报告并存。
 
 本仓库正式比较已固定：**评估预算 = 1000 eval**；主表外部对照为 **EoH、ReEvo、MCTS-AHD、PathWise、CALM**；主实验 task 为 **Online BPP、TSP-构造、CVRP-ACO、OP-ACO、VRPTW-构造**（见 [实验配置](../experiments/配置.md)）。其中 CALM 当前阶段跑 **w/o GRPO** 搜索框架，微调阶段再补 **w/ GRPO**。任务协议取舍：OBP 保持多容量现状；TSP-构造维持降采样（同标准重跑）；CVRP-ACO 测试含 **CVRP200×64**；OP-ACO 保持现状。统一比较时再固定嵌入框架 × LLM，并另报 LLM 调用与 token 作为成本辅指标。
-
-## 入口
-
-论文原文见仓库上级的 [`papers/` 目录](../../../papers/)；机制层面的逐方法阅读笔记见 [LLM 自动算法设计方法阅读笔记](LLM自动算法设计方法阅读笔记/)。

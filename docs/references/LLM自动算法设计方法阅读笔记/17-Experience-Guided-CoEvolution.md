@@ -34,7 +34,3 @@
 ## 6. 证据边界
 
 需以主 tex 实际列出的任务、模型（Gemini-2.5-pro，温度 0.8，20 迭代，5 岛，单次执行限 600s）、预算及重复为准：消融表未标重复次数与方差。联合共演化混合了 prompt、经验、岛屿选择和代码更新，只能说"整套循环"有效与组件级相对退化量，不能宣称单一组件独立充分。
-
-## 7. 论文内定位
-
-入口：[iclr2026_conference.tex](../../../../papers/Experience-Guided_Reflective_Co-Evolution_of_Prompts_and_Heuristics/iclr2026_conference.tex)。流程资产：`framework.pdf`、`algorithm.pdf`、`PromptEvolution.pdf`、`iteration.pdf`；案例：`TSPPrompt.pdf`、`BPPPrompt.pdf`、`Case.pdf`。本次只据主 tex 已呈现的 Method/Experiments/Appendix 定位；未把图资产当作消融证据。

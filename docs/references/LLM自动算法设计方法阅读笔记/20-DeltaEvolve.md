@@ -35,7 +35,3 @@ DeltaEvolve 不直接保存历史完整代码，而让 LLM 为每条父子边生
 ## 6. 证据边界
 
 主结果报告五个开放任务域（黑箱优化、六边形 packing、符号回归、PDE solver、卷积），两个模型族 ensemble；每法三随机种子但报的是最大 best score 与平均 token，不是三 seed 的均值/置信区间。`tab:ablation_raw` 只检验 AlphaEvolve 的分数/上下文设置，非 DeltaEvolve 的完整组件消融；附录过程图为固定 seed 42。因而既不能从最大值推出稳定优势，也不能把 token 降低归因于动量而非压缩表示/检索策略。
-
-## 7. 论文内定位
-
-入口：[main.tex](../../../../papers/DeltaEvolve_Accelerating_Scientific_Discovery_through_Momentum_Driven_Evolution/main.tex)。框架：`sections/3_framework.tex`（`tab:ablation_raw`）；方法：`sections/4_methods.tex`（`sec:motivation`、`sec:multilevel-db`、`sec:progressive`）；实验：`sections/5_experiments.tex`（`tab:main_exp`）；附录：`sections/appendix.tex`（`fig:bbob_evolution`、`fig:case_study`、`tab:system_config`）。

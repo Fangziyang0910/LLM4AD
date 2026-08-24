@@ -33,7 +33,3 @@
 ## 6. 证据边界
 
 论文明确部分主表为三次重复，但这种重复不自动覆盖所有 OOD、采样和离线结果；优化目标是对已知最优/最好算法的 gap，须注意 evaluator 口径。模型参数训练不提供“历史轨迹利用”本身有效的证据。
-
-## 7. 论文内定位
-
-`iclr2026_conference.tex`：§`sec:expt1`、`sec:search_performance`、`sec:generalized_performance`；Figs `expt1_2`、`admi_search`、`cvrp_search`、`convergence_ood`；Tables `tab:admi_search`、`tab:cvrp_search`、`table:ood`。

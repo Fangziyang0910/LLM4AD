@@ -34,7 +34,3 @@ RL 把“写出正确搜索循环和约束保护”从实例内采样转成模�
 ## 6. 证据边界
 
 GRPO 配置为 14B、group 64、90 steps、360 prompts/23,040 episodes（Table `tab:grpo_hyperparams`）；SDS 训练集 10,000 实例。关键数字：Hero 97.8% pass / 5.0±1.3% gap vs Base Best-of-64 85.6% / 28.7±2.3%，比累积 Best-of-64 摊销执行成本低 91×；Frozen Hero 97.87%/4.34%；base 代码审计显示 21.9% 为 SA-like、其中 28.8% 带 global-best bug。SDS 主结果三 seed，JSSP 也是 101/202/303 三 seed，但奖励/solver contract 有域适配；时间列排除 LLM inference，不能读为端到端训练成本比较。论文自认局限：SDS 为自建基准、结论 SDS-specific。
-
-## 7. 论文内定位
-
-`template.tex`：§`sec:methodology`、§`sec:experiments`；Figs `fig:main_performance`、`fig:scaling_gap`、`fig:prompt_comparison`、`fig:logic_gap`；Tables `tab:main_results`、`tab:compile_once_main`、`tab:ablation_configs`、`tab:grpo_hyperparams`、`tab:bigcode_results`；Appendices `app:rewards`、`app:experimental_details`、`app:baseline_eval_additions`、`app:transfer_domains`。

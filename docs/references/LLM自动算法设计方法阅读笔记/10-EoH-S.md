@@ -33,7 +33,3 @@ EoH-S 指出单一启发式通常只能覆盖问题的一部分状态或实例�
 ## 6. 证据边界
 
 集合大小、成员生成成本、组合器、评估实例和种子都会影响结果；没有集合大小匹配的预算对照与成员消融时，不能把主表优势解释为互补性。集合对未见实例是否泛化还须独立测试。
-
-## 7. 论文内定位
-
-入口：[`eohs.tex`](../../../../papers/EoH_S_Evolution_of_Heuristic_Set_using_LLMs_for_Automated_Heuristic_Design/eohs.tex)。使用 §EoH-S 的 `fig:framework`、§Experimental Studies 的 `table:main_obp`、`table:main_tsp_cvrp`、`table:benchmark`、`fig:comparison`、`tab:ablation`，以及附录 `convergence_obp`、`convergence_cvrp_eohs`。

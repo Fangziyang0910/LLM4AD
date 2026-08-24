@@ -33,7 +33,3 @@ MEMOIR 让每个树分支对应一种算法设计。branch-local memory 保留�
 ## 6. 证据边界
 
 每题独立运行，尚未证明跨问题迁移；global entry 是 LLM 摘要，可能失真。branch budget 分配规则是启发式而非学习得到；更强 critic/reflect 模型也影响记忆质量。
-
-## 7. 论文内定位
-
-Figure 1；§3.2、§3.2.3；Table 1；§4.2–4.3；Table 2；Figures 2–3；Appendix Algorithm 1、Tables 3–4。

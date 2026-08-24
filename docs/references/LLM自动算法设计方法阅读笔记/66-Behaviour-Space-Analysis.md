@@ -43,7 +43,3 @@ LLaMEA + o4-mini-2025-04-16，10 个无噪 BBOB 函数（5D），5 训练 + 10 �
 ## 6. 证据边界
 
 单 LLM（o4-mini）、单框架（LLaMEA）、5D BBOB、每配置 5 次运行；配置比较未报告显著性检验；行为-性能关系为观察关联。注意该文 L4 的第二提示是"生成与之前都不同的新算法"（random-new），自适应幅度提示在 L5/L6——引用时勿混。
-
-## 7. 论文内定位
-
-六配置定义（Setup）、行为指标四组与 AOCC（Results）、PCP 与 CEG 复杂度曲线（Analysis）、STN 构造（Discussion/Appendix）。

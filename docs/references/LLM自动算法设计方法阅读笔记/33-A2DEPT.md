@@ -25,7 +25,7 @@ A2DEPT 的机制单独看都是标准件，值得记录的是它们咬合的逻�
 | AAD 后期上限更高 | Table `tab:convergence_stages`、Fig. `fig:convergence` | 部分支持 | 两点快照加单任务曲线，见 §4.1。 |
 | AHD 与 AAD 互补 | Tables `tab:paradigm_generalization`、`tab:gls_random` | 直接支持（FJSP 单点） | 见 §4.3。 |
 
-## 4. 研究见解（本文分析，非作者已证明结论）
+## 4. 研究见解
 
 ### 4.1 收敛阶段性：早期预算购买结构，后期兑现
 
@@ -68,7 +68,3 @@ SA、Boltzmann 选择、softmax 算子调度、语义交叉单独看均为标准
 ## 6. 证据边界
 
 全系统同时改变搜索对象、维护与控制器，联合结果不能归因单组件。预算口径为 500 次 LLM 调用（修复循环同样消耗），与按真实评价次数统一的口径不可直接对齐；附录 `app:scaling_budget` 的等 token/货币预算实验（5/10 CNY 下仍全胜）部分回应该公平性质疑。标准基准仅 3 次重复，部分单元格标准差大；消融只覆盖 CVRP/FJSP；$k$ 敏感性在 CVRP 上方向不一致（$k{=}7$ 优于 $k{=}5$）。高约束任务（`tab:high_constraint`：CEVRPTW gap 0.00、IR 2.56；MRCPSP IR 15.89，20 次重复）是"开放式 AAD 可执行性"主张的最直接证据；OOD 迁移矩阵（`app:ood_generalization`，VRPTW Solomon C/R/RC 3×3）显示跨分布 gap ≤ 约 1.5× 内分布；Gemini 2.5 Flash-lite 上退化（`app:llm_backbones`），方法对模型代码能力有下限要求。收敛阶段证据为两点快照，case study 为单条谱系事后叙述。
-
-## 7. 论文内定位
-
-`paper.tex`：§`sec:introduction`（pilot 与三挑战，Fig. `fig:motivation`）、§`sec:methodology`（含 design rationale 段）、Tables `tab:main_results` / `tab:ablation_unified`；附录 `sec:appendix_implementation`（Algorithm `alg:aadept` 与全部超参）、`app:prompts`（Template I/II 系列）、`app:convergence_stages`、`app:scaling_budget`、`app:gls_random`、`app:case_study`（Fig. `fig:code_evolution` 与 `fig:failure_code`）。

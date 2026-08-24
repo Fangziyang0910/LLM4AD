@@ -33,7 +33,3 @@ EvoTune 将 evaluator 驱动的进化搜索与 RL 微调结合：进化搜索是
 ## 6. 证据边界
 
 主比较为 Llama3.2-1B、Phi3.5-mini、Granite3.1-2B，bin packing/TSP/flatpack，10 random seeds；每个预算为 9.6k、16k、22.4k sampled programs，报告 validation、validation-perturbed 与同分布 test（§`sec:results`、Table `table:best_50`）。FunSearch 基线即同构去 RL 对照（共享搜索环、仅去 RL-Update），因此 RL 的贡献可以被归因；尚缺的是 RL 内部配方（forward/reverse KL、数据覆盖、采样退火）与数据库/prompt 构造的进一步分解——forward vs reverse KL 的对照存在（BP + Llama-1B，forward 的 top-50 与唯一解计数均更高），DPO vs ReSt-EM 的对照存在（DPO 一致更优）。训练算力成本论文自认未入账。
-
-## 7. 论文内定位
-
-`colm2025_conference.tex`：Method 图 `images/Method.pdf`，实验节；过程图 `tsp_avg_reward.pdf`、`bin_avg_reward.pdf`、`flatpack_avg_reward.pdf`、`pdb_dist_example_bintspflatpack_3x2.pdf`、`Hashcode_and_LLMSR_results.pdf`。

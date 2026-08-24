@@ -33,7 +33,3 @@ CEG 定义为有向图 $G=(V,E)$：节点 $v_i=(f_i,x_i,m_i)$——归一化性�
 ## 6. 证据边界
 
 每配置约 3 次运行、无显著性检验；观察性诊断工具价值大于结论价值；AST 特征对超参与运行行为盲。结论限 BBOB/OBP/TSP 与 LLaMEA/EoH 框架。
-
-## 7. 论文内定位
-
-CEG 定义与特征清单（Method）、PCA/t-SNE 与 token 曲线（Results）、逐任务相关表（Analysis）。

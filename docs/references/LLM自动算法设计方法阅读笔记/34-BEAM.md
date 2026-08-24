@@ -34,7 +34,3 @@
 ## 6. 证据边界
 
 Table `tab:budget` 给出与 LHH 比较的 evolving-stage 预算；四张端到端比较表为 `tab:traditionalmain`、`tab:CAF`、`tab:CombinedTable`、`tab:BBOBTable`。`tab:ablation` 未报告随机种子置信区间或逐项 token/调用控制，因此不能把完整 BEAM 的优势拆成双层控制、记忆内容或代码复杂度的因果效应；Fig. `fig:codeLength` 还显示其生成程序更长、更复杂，是重要混杂。
-
-## 7. 论文内定位
-
-主入口 `bare_jrnl_new_sample4.tex`；`sections/beam_framework.tex`（双层机制与 Adaptive Memory）、`sections/benchmark.tex`（KA-guided 评测管线 HeuBase/KnoBase）、`sections/experiments.tex`（Tables `tab:traditionalmain`、`tab:CAF`、`tab:CombinedTable`、`tab:BBOBTable`、`tab:ablation`、`tab:stability`、`tab:budget`）、`sections/appendix.tex`（设置与补充）。

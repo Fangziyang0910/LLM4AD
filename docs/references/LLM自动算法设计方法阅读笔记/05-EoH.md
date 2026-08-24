@@ -33,7 +33,3 @@ EoH 将 LLM 作为启发式代码的初始化与变异/交叉生成器，并用�
 ## 6. 证据边界
 
 论文的比较受任务集、基线实现、LLM 与调用预算约束；`fig:evolution` 明示 population=10、20 generations，但 `tab:versions` 不是全因子 prompt 消融，且正文未报告可用于所有比较的置信区间/显著性检验（主实验多数单 run，消融 3 runs）。代码有效率与最终质量也是不同结论。LLM 消融（GPT-3.5 0.66 < Gemini Pro 0.71 < CodeLlama 1.07 < Deepseek 1.41；任何 LLM 的 EoH 2000 查询均优于 GPT-3.5 随机采样 10000 次的 2.44）显示进化回路本身的收益大于换更强 LLM。
-
-## 7. 论文内定位
-
-入口 `main.tex`，依次 include [`3-method.tex`](../../../../papers/Evolution_of_Heuristics_Towards_Efficient_Automatic_Algorithm_Design_Using_Large_Languag/3-method.tex)、[`4-experiment.tex`](../../../../papers/Evolution_of_Heuristics_Towards_Efficient_Automatic_Algorithm_Design_Using_Large_Languag/4-experiment.tex)、[`7-appendix.tex`](../../../../papers/Evolution_of_Heuristics_Towards_Efficient_Automatic_Algorithm_Design_Using_Large_Languag/7-appendix.tex)。

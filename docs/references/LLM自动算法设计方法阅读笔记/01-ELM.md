@@ -35,7 +35,3 @@ ELM 问的问题是：通用遗传编程的局部、随机代码突变很难同�
 ## 6. 证据边界
 
 主体是 Sodarace 与 4-Parity，使用 Python、特定 diff 模型、模拟评估和 MAP-Elites；正文不提供能覆盖 LLM4AD 多任务的独立重复和显著性检验。阶段图含两个数据 cutoff，且训练、搜索和 RL 的贡献交织；因此不能由单一曲线断言某组件因果有效。
-
-## 7. 论文内定位
-
-入口：[`main.tex`](../../../../papers/Evolution_through_Large_Models/main.tex)。使用 §Approach: Evolution through Large Models（Mutation through Diff、MAP-Elites、Fine-tuning）、§Experiment and Results、Fig. `intelligent_mutation`、`ELM-diagram`、`perf-across-stages-tunnel/bumpy` 及 intelligent perturbation 附录。

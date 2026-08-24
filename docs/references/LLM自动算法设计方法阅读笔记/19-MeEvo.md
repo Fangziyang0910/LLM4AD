@@ -35,7 +35,3 @@ MeEvo 把 LLM 产物拆成两个成分：**reasoning trace 作为可遗传基因
 ## 6. 证据边界
 
 主结果是组合系统证据，但组件消融与显著性检验齐全（5 次运行 × Mann-Whitney）。成本约 49 万 tokens（L=100），为 FunSearch 的 7 倍、ReEvo 的 2 倍；作者论证额外 token 在复杂约束问题（ACS/WSN 对 FunSearch gap 114.94%/89.72%）杠杆最大，在已收敛的简单问题上收益小。TSP-Construct 上仍全面落后 GP 与 POMO——元认知收益有任务边界。
-
-## 7. 论文内定位
-
-入口：[main.tex](../../../../papers/MeEvo_Metacognitive_Evolution_for_Automatic_Heuristic_Design/main.tex)。使用 Methodology（交替协议、$p_c$ 调度、ME 两步管道）、Experiments 的 `tab:comparative`、消融 `tab:ablation_nm` 与 $\alpha/\beta/K$ 敏感性表、Mann-Whitney 检验；相关工作含本组最系统的方法谱系表（Natural Evolution / Prompt-level / Metacognitive / hybrid 四类）。

@@ -33,7 +33,3 @@
 ## 6. 证据边界
 
 training-free；结论依赖 Qwen-3.5-Flash/Plus 的价格与能力组合。Relay Gain 混合质量和 embedding 多样性，尚不能分别归因；论文提交时间很新，外部复核有限。
-
-## 7. 论文内定位
-
-Figures 1–3；§Trajectory Analysis；§Relay Objective and Relay Gain；Table 1；Figure 4 ablations；Figure 5。

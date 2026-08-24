@@ -32,7 +32,3 @@ AutoSND 分三阶段：Stage I 从简单启发式广搜并记录质量、运行�
 ## 6. 证据边界
 
 任务只覆盖 network dismantling，且论文标注 KDD 2027 稿件；Stage II 有 10 次 induction calls，额外预算需要计入。搜索期使用 proxy graphs 和 relaxed normalization，最终才做 strict full-permutation 检查。
-
-## 7. 论文内定位
-
-Figures 1–2；§4.1–4.3；Table 1；§5.3 Figure 4；Table 2；Figures 5–6；Appendix A Tables 3–5；Appendix D Tables 10–12。

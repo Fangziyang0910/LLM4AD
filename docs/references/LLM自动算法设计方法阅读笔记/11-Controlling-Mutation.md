@@ -33,7 +33,3 @@
 ## 6. 证据边界
 
 各图所用任务、模型、prompt 数和评价次数须逐项读取 `samplepaper.tex`；图中趋势不等于跨基准统计结论。没有行为层的消融，不能把代码差异本身认定为机制变量。
-
-## 7. 论文内定位
-
-入口：[`samplepaper.tex`](../../../../papers/Controlling_the_Mutation_in_LLMs_for_Efficient_Evolution_of_Algorithms/samplepaper.tex)；图表源为 `ratio-mutation.tex`、`ratio-prompts.tex`、`code-diff-mutation.tex`、`score.tex`、`mse.tex`、`convergence.tex`、`aggregated_plots.tex`。

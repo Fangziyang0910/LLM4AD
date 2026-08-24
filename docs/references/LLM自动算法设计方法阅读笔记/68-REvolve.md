@@ -33,7 +33,3 @@
 ## 6. 证据边界
 
 计算昂贵（每代约 50h AirSim / 24h MuJoCo，16×A100）、依赖闭源 GPT-4；仅 2 种子；迁移限于同族环境；周期性迁移在正文提及但伪代码中该步被注释（实现细节原文未明确）。
-
-## 7. 论文内定位
-
-RDP 形式化（§Problem）、岛屿 GP 与算子定义（§Method）、Elo 协议与主表（§Experiments）、AirSim 消融与泛化（§Analysis）。

@@ -33,7 +33,3 @@
 ## 6. 证据边界
 
 设置为 GPT-4o-mini、温度 1、M=3、初始候选 10、种群 N=20、停滞耐心 T=3 代、默认 EoH 两算子，三次重复（§`subsec:setup`）；任务、GAF、训练集与基线并不完全同源。附录 `subapp:cost` 给出资源口径：单次训练成本 ≤$0.3（GPT-4o-mini，约 1.5 小时）、fitness 评估 ≥870 且总计 ≤1000 次——与本仓库 1000 次真实评价口径直接可比。论文自认局限（`subapp:limit`）：初始贪心选 top-M LR 可能丢弃更有潜力的约简；LR 不保证近似比保持。报告主要是平均性能，未见对约简正确性、跨任务迁移来源或每个候选执行率的独立统计。
-
-## 7. 论文内定位
-
-主入口 `main_neurips.tex`：§`sec:redahd`，Fig. `fig:redahd`、`fig:demo`；§`sec:exp`，Tables `tab:main-sbs`、`tab:main-aco`、`tab:ablation-reduc-refi`、`tab:ablation-llm`、`tab:ablation-llmeps`；Appendix §`app:exp`、Table `tab:ablation-reduc`。

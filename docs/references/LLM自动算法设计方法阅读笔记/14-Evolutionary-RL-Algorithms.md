@@ -33,7 +33,3 @@
 ## 6. 证据边界
 
 进化只用五个训练环境、两个 evolutionary seeds，单代约 30 小时、四张 A100；最终算法以五个训练 seed、每 seed 选最高 eval checkpoint、100 episodes 评估并汇总。环境归一化参考值含经验基准，影响选择目标；结果虽含未见环境，仍有 post-evolution 调参，不能将其等同严格无调参泛化。文中没有以同一随机设计检验所有生成模型、prompt 与正则交互。
-
-## 7. 论文内定位
-
-入口：[`main.tex`](../../../../papers/Evolutionary_Discovery_of_RL_Algorithms_via_LLMs/main.tex)。使用 §Method、§Results 的 Fig. `evolution_curves`/`env_comparison`、Table `results`，§Ablation Studies 的 Fig. `alpha_ablation`、Table `ablation_value_bootstrap`，Appendix `app: fair comparison`、`app:env details`、`app:best_evolved_algorithms`、Prompts。

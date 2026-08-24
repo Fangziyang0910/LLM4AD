@@ -35,7 +35,3 @@ PathWise 把启发式发现建模为**蕴含图上的序贯决策 + 多智能体
 ## 6. 证据边界
 
 路径长度、调用数、评价预算和测试协议必须与最终分数一起报告。没有父子 ID 时，任何后验路径重建均是近似，不能作为论文已证明的信用分配证据。
-
-## 7. 论文内定位
-
-入口：[example_paper.tex](../../../../papers/PathWise/example_paper.tex)。方法 `sec:method`、`sec:method-graph`、`sec:method-critics`、`sec:method-evolution`；主表 `tab:tsp_kp_step_by_step`、`tab:aco_general_framework_merged`；消融 `sec:exp-ablation`、`tab:ablation-ours`、`tab:ablation-diversity-v2`；扩展参数消融 `tab:ablation-ours-nanw`、`tab:ablation-ours-np`、`tab:ablation-ours-imax`。

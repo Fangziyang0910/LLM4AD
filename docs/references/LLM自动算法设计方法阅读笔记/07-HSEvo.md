@@ -33,7 +33,3 @@ HSEvo 先测量再设计：提出两个嵌入空间多样性指标（SWDI、CDI�
 ## 6. 证据边界
 
 多样性指标未被用作在线选择信号，其因果价值未知；3 次重复、无统计检验；角色初始化、flash reflection、交叉、精英变异各组件无逐项消融（仅 HS 与 reflection 两组）。结论限于其任务、模型（gpt-4o-mini）与 token 预算（425K）。
-
-## 7. 论文内定位
-
-入口：[`aaai25.tex`](../../../../papers/HSEvo/aaai25.tex)，补充：[`appendix.tex`](../../../../papers/HSEvo/appendix.tex)。使用 `fig:hsevo_pipline`、`tab:hsevo_results`、`tab:ablation_hs`、`tab:ablation_flash_reflection`、`fig:hsevo_di`；附录 `tab:app-problem-size`、Prompt 10（参数抽取）与 prompt examples。

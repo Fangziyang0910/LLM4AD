@@ -33,7 +33,3 @@ BehaveSim 将候选在实例求解时产生的中间解序列定义为 problem-s
 ## 6. 证据边界
 
 三项 AAD 任务、特定轨迹定义与 probe 分布；DTW 距离不等于因果机制差异。trajectory truncation/sampling 虽有敏感性分析，部署成本和跨规模稳定性仍需单独评估。
-
-## 7. 论文内定位
-
-Figures 1–2；§3；Tables 1–3；Figures 3–5；Appendix B Tables 4–9、Figures 6–7；Appendix F Figures 8–10。

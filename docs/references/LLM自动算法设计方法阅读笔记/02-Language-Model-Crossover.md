@@ -35,7 +35,3 @@ LMX 将种群中少量父代按一定顺序串进 few-shot prompt，让自回归
 ## 6. 证据边界
 
 论文自己说明实验重 breadth、轻 depth，且为省计算每次只抽少数父代。任务、模型、评分器和重复次数并不构成一份统一统计协议；未见对 prompt 长度、排序、采样温度和模型能力的全因子消融。因此“跨域潜力”应视为演示性证据。
-
-## 7. 论文内定位
-
-入口：[`main.tex`](../../../../papers/Language_Model_Crossover_Variation_through_Few_Shot_Prompting/main.tex)。使用 Introduction、§3 Approach: LMX、§4 Experiments（binary、style、symbolic regression、image、Python）及 `zfuture_works.tex` 的局限说明、相关图文件。
