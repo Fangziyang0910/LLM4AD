@@ -295,6 +295,7 @@ class LaunchItem:
     run_dir: Path
     seed: int
     module: str
+    extra_args: tuple[str, ...] = ()
 
     def with_backend(self, backend: BackendName) -> LaunchItem:
         return LaunchItem(
@@ -306,6 +307,7 @@ class LaunchItem:
             run_dir=self.run_dir,
             seed=self.seed,
             module=self.module,
+            extra_args=self.extra_args,
         )
 
     def command(self) -> tuple[str, ...]:
@@ -325,6 +327,7 @@ class LaunchItem:
             str(self.seed),
             "--run-name",
             self.run_name,
+            *self.extra_args,
         )
 
 
