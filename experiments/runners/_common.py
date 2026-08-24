@@ -107,7 +107,7 @@ BACKEND_CAPACITY: dict[BackendName, int] = {
     "server3b": 9,
     "local": 3,  # llama.cpp 32k × 3 slots; 正式调度仍只用 PRIMARY_BACKENDS
 }
-PRIMARY_BACKENDS: tuple[BackendName, ...] = ("server3", "server3b")
+PRIMARY_BACKENDS: tuple[BackendName, ...] = ("server3", "server3b", "server1")
 # Host:port markers only — `--backend` matching uses detect_backend().
 BACKEND_MARKERS: dict[BackendName, tuple[str, ...]] = {
     "zhong": ("183.36.243.124",),
@@ -406,8 +406,6 @@ def count_backend_usage() -> dict[BackendName, int]:
     counts: dict[BackendName, int] = {name: 0 for name in BACKEND_CAPACITY}
     for cmdline in _process_cmdlines():
         matched = detect_backend(cmdline)
-        if matched is None and "traceaad_v4.run_experiment" in cmdline:
-            matched = "local"
         if matched is not None:
             counts[matched] += 1
     return counts

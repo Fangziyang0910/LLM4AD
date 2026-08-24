@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import math
 from pathlib import Path
 
@@ -449,3 +450,37 @@ def test_insufficient_discovery_budget_is_spent_on_refine() -> None:
     assert method._explore_slots == 0
     assert method._block_counts[BlockKind.TERMINAL.value] == 1
     assert method._phase is Phase.TERMINAL
+
+
+def test_best_history_appends_every_global_best_improvement(tmp_path: Path) -> None:
+    values = [
+        10,
+        20,
+        *([10] * 3),
+        *([20] * 3),
+        *([20] * 3),
+        *([10] * 3),
+        30,
+        *([30] * 3),
+    ]
+    method = TraceAADV917(
+        llm=ScriptedLLM([_program(value) for value in values]),
+        evaluation=ValueEvaluation(),
+        artifacts=RunArtifacts(tmp_path, console_output=False),
+        budget=len(values),
+        n_roots=2,
+        checkpoint_dir=tmp_path / "checkpoints",
+    )
+    method.run()
+
+    lines = (tmp_path / "best_history.jsonl").read_text(encoding="utf-8").splitlines()
+    entries = [json.loads(line) for line in lines]
+    assert [(entry["eval_count"], entry["fitness"]) for entry in entries] == [
+        (1, 10.0),
+        (2, 20.0),
+        (15, 30.0),
+    ]
+    assert [entry["child_id"] for entry in entries] == [1, 2, 15]
+    assert "return 30" in entries[-1]["program"]
+    best_program = (tmp_path / "best_program.py").read_text(encoding="utf-8")
+    assert entries[-1]["program"] in best_program

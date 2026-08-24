@@ -5,31 +5,11 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
-from llm4ad.method.traceaad_v4 import (
-    RunArtifacts as V4RunArtifacts,
-    TraceAADV4,
-    ValueWeights as V4ValueWeights,
-)
-from llm4ad.method.traceaad_v5 import (
-    RunArtifacts as V5RunArtifacts,
-    TraceAADV5,
-    ValueWeights as V5ValueWeights,
-)
-from llm4ad.method.traceaad_v8 import (
-    RunArtifacts as V8RunArtifacts,
-    TraceAADV8,
-)
-from llm4ad.method.traceaad_v8.operators import DEFAULT_OPERATORS as V8_OPERATORS
-from llm4ad.method.traceaad_v9 import (
-    RunArtifacts as V9RunArtifacts,
-    TraceAADV9,
-)
-from llm4ad.method.traceaad_v9.operators import DEFAULT_OPERATORS as V9_OPERATORS
 from llm4ad.method.traceaad_v9_7 import (
     INITIAL_ROOT_COUNT as V97_INITIAL_ROOT_COUNT,
     LOGICAL_MODEL_NAME as V97_LOGICAL_MODEL_NAME,
@@ -90,7 +70,6 @@ from .._common import (
     TaskName,
     build_llm_client,
     build_task,
-    llm_payload,
     resolve_backend,
     resolve_run_dir as resolve_run_dir_file,
     run_in_tmux_log,
@@ -98,10 +77,6 @@ from .._common import (
 )
 
 VersionName = Literal[
-    "v4",
-    "v5",
-    "v8",
-    "v9",
     "v9_7",
     "v9_14",
     "v9_15",
@@ -111,10 +86,6 @@ VersionName = Literal[
 ]
 
 VERSIONS: tuple[VersionName, ...] = (
-    "v4",
-    "v5",
-    "v8",
-    "v9",
     "v9_7",
     "v9_14",
     "v9_15",
@@ -125,8 +96,6 @@ VERSIONS: tuple[VersionName, ...] = (
 TRACEAAD_V915_VERSIONS = {"v9_15"}
 TRACEAAD_V916_VERSIONS = {"v9_16"}
 TRACEAAD_V917_VERSIONS = {"v9_17", "v9_17_fixed_cycle"}
-V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
-V9_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V9_OPERATORS]
 
 
 @dataclass(frozen=True, slots=True)
@@ -141,7 +110,6 @@ class RunSpec:
     budget: int = 1000
     eval_workers: int | None = None
     output_tokens: int | None = None
-    action_max_tokens: int = 1024
     context_token_limit: int = 24576
     seed: int = 0
     repeat: int | None = None
@@ -162,7 +130,7 @@ class RunSpec:
     def llm_output_tokens(self) -> int:
         if self.output_tokens is not None:
             return self.output_tokens
-        return 16384 if self.version == "v4" else 8192
+        return 8192
 
 
 def make_run_spec(
@@ -177,7 +145,6 @@ def make_run_spec(
     n_init: int | None = None,
     eval_workers: int | None = None,
     output_tokens: int | None = None,
-    action_max_tokens: int = 1024,
     context_token_limit: int | None = None,
     seed: int = 0,
     repeat: int | None = None,
@@ -205,16 +172,11 @@ def make_run_spec(
             else V916_INITIAL_ROOT_COUNT
             if version in TRACEAAD_V916_VERSIONS
             else V917_INITIAL_ROOT_COUNT
-            if version in TRACEAAD_V917_VERSIONS
-            else 10
-            if version in {"v8", "v9"}
-            else 30
         )
         if n_init is None
         else n_init,
         eval_workers=eval_workers,
         output_tokens=output_tokens,
-        action_max_tokens=action_max_tokens,
         context_token_limit=(
             32768
             if context_token_limit is None
@@ -260,8 +222,6 @@ def make_run_spec(
         raise ValueError("eval_workers must be positive")
     if spec.llm_output_tokens <= 0:
         raise ValueError("output_tokens must be positive")
-    if spec.action_max_tokens <= 0:
-        raise ValueError("action_max_tokens must be positive")
     if spec.context_token_limit <= 0:
         raise ValueError("context_token_limit must be positive")
     if spec.resume_from is not None and spec.run_name is not None:
@@ -364,55 +324,7 @@ def build_method(
             adaptive_sweeps=spec.version == "v9_17",
             fork_from_initialization=fork_from_initialization,
         )
-    common = {
-        "llm": llm,
-        "evaluation": evaluation,
-        "max_sample_nums": spec.budget,
-        "n_init": spec.n_init,
-        "max_stalled_iterations": 20,
-        "checkpoint_interval": 10,
-        "resume_from": resume_from,
-        "checkpoint_dir": run_dir / "checkpoints",
-    }
-    if spec.version in {"v8", "v9"}:
-        method_type = TraceAADV8 if spec.version == "v8" else TraceAADV9
-        artifacts_type = V8RunArtifacts if spec.version == "v8" else V9RunArtifacts
-        return method_type(
-            artifacts=artifacts_type(run_dir=run_dir),
-            ancestor_history_limit=8,
-            direct_child_limit=8,
-            direct_child_top_count=4,
-            code_max_tokens=spec.llm_output_tokens,
-            context_token_limit=spec.context_token_limit,
-            random_seed=spec.seed,
-            offspring_per_iteration=2,
-            reference_temperature=0.2,
-            exploration_constant=0.1,
-            expansion_prior_weight=1.0,
-            **common,
-        )
-    population_common = {
-        "actions_per_iteration": 2,
-        "max_trajectory_length": 8,
-        "max_active_trajectories": 30,
-        "softmax_temperature": 0.2,
-    }
-    if spec.version == "v4":
-        return TraceAADV4(
-            artifacts=V4RunArtifacts(run_dir=run_dir),
-            value_weights=V4ValueWeights(),
-            **population_common,
-            **common,
-        )
-    return TraceAADV5(
-        artifacts=V5RunArtifacts(run_dir=run_dir),
-        value_weights=V5ValueWeights(),
-        elite_count=3,
-        action_max_tokens=spec.action_max_tokens,
-        random_seed=spec.seed,
-        **population_common,
-        **common,
-    )
+    raise ValueError(f"unsupported TraceAAD version: {spec.version}")
 
 
 def resolve_run_dir(spec: RunSpec) -> tuple[Path, str, bool]:
@@ -444,143 +356,46 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     actual = {key: payload.get(key) for key in expected}
     if actual != expected:
         raise ValueError(f"resume config mismatch: expected {expected}, found {actual}")
-    if spec.version not in {
-        "v8",
-        "v9",
-        "v9_7",
-        "v9_14",
-        "v9_15",
-        "v9_16",
-        "v9_17",
-        "v9_17_fixed_cycle",
-    }:
-        return
     _, task_kwargs = build_task(spec.task, spec.eval_workers)
     normalized_task_kwargs = json.loads(json.dumps(task_kwargs, sort_keys=True))
-    if spec.version in {
-        "v9_7",
-        "v9_14",
-        "v9_15",
-        "v9_16",
-        "v9_17",
-        "v9_17_fixed_cycle",
-    }:
-        if spec.version == "v9_7":
-            expected_method_params = _v97_method_params(spec)
-        elif spec.version == "v9_14":
-            expected_method_params = _v914_method_params(spec)
-        elif spec.version == "v9_16":
-            expected_method_params = _v916_method_params(spec)
-        elif spec.version in TRACEAAD_V917_VERSIONS:
-            expected_method_params = _v917_method_params(spec)
-        else:
-            expected_method_params = _v915_method_params(spec)
-        expected_protocol = {
-            "task_eval": _task_eval_protocol(normalized_task_kwargs),
-            "method_params": expected_method_params,
-            "generator_environment": _versioned_generator_environment(spec),
-        }
-        actual_protocol = {
-            "task_eval": _task_eval_protocol(payload.get("task_eval")),
-            "method_params": {
-                key: payload.get("method_params", {}).get(key)
-                for key in expected_method_params
-            },
-            "generator_environment": payload.get("generator_environment"),
-        }
-        if actual_protocol != expected_protocol:
-            raise ValueError(
-                f"resume config mismatch for TraceAAD {spec.version.upper()}; "
-                "use the original "
-                "model, evaluation, budget, and context settings"
-            )
-        return
-    if spec.version == "v8":
-        operator_names = V8_OPERATOR_NAMES
+    if spec.version == "v9_7":
+        expected_method_params = _v97_method_params(spec)
+    elif spec.version == "v9_14":
+        expected_method_params = _v914_method_params(spec)
+    elif spec.version == "v9_16":
+        expected_method_params = _v916_method_params(spec)
+    elif spec.version in TRACEAAD_V917_VERSIONS:
+        expected_method_params = _v917_method_params(spec)
     else:
-        operator_names = V9_OPERATOR_NAMES
-    expected_method_params = {
-        "max_sample_nums": spec.budget,
-        "n_init": spec.n_init,
-        "generation_protocol": "direct_code",
-        "offspring_per_iteration": 2,
-        "quality_normalization": "global_midrank_percentile",
-        "expansion_policy": "adaptive_new_child_uct",
-        "expansion_reward": "batch_subtree_best_midrank",
-        "failed_expansion_reward": 0.0,
-        "root_expansion": False,
-        "reference_temperature": 0.2,
-        "exploration_constant": 0.1,
-        "expansion_prior_weight": 1.0,
-        "ancestor_history_limit": 8,
-        "direct_child_limit": 8,
-        "direct_child_top_count": 4,
-        "maximize": True,
-        "operators": operator_names,
-        "max_stalled_iterations": 20,
-        "checkpoint_interval": 10,
-        "code_max_tokens": spec.llm_output_tokens,
-        "context_token_limit": spec.context_token_limit,
-        "random_seed": spec.seed,
-    }
-    if spec.version == "v9":
-        expected_method_params["history_protocol"] = "matched_history"
+        expected_method_params = _v915_method_params(spec)
     expected_protocol = {
-        "backend": spec.backend,
         "task_eval": _task_eval_protocol(normalized_task_kwargs),
-        "llm": {
-            "base_url": spec.base_url,
-            "model": spec.model,
-            "max_tokens": spec.llm_output_tokens,
-            "no_proxy": spec.no_proxy,
-        },
         "method_params": expected_method_params,
+        "generator_environment": _versioned_generator_environment(spec),
     }
     actual_protocol = {
-        "backend": payload.get("backend"),
         "task_eval": _task_eval_protocol(payload.get("task_eval")),
-        "llm": {
-            key: payload.get("llm", {}).get(key) for key in expected_protocol["llm"]
-        },
         "method_params": {
             key: payload.get("method_params", {}).get(key)
-            for key in expected_protocol["method_params"]
+            for key in expected_method_params
         },
+        "generator_environment": payload.get("generator_environment"),
     }
     if actual_protocol != expected_protocol:
         raise ValueError(
             f"resume config mismatch for TraceAAD {spec.version.upper()}; "
-            "use the original model, "
-            "evaluation, budget, seed, and context settings"
+            "use the original "
+            "model, evaluation, budget, and context settings"
         )
 
 
 def checkpoint_source(spec: RunSpec, run_dir: Path) -> Path:
-    """Return the checkpoint path used for resume.
-
-    Canonical location is ``run_dir/checkpoints/latest.json``. V4 also accepts
-    legacy locations when the canonical file is missing.
-    """
-    canonical = run_dir / "checkpoints" / "latest.json"
-    if canonical.is_file() or spec.version != "v4":
-        return canonical
-    from llm4ad.method.traceaad_v4.checkpoint import find_latest_checkpoint
-
-    try:
-        return find_latest_checkpoint(run_dir)
-    except FileNotFoundError:
-        return canonical
+    """Return the checkpoint path used for resume."""
+    return run_dir / "checkpoints" / "latest.json"
 
 
 def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     _, task_kwargs = build_task(spec.task, spec.eval_workers)
-    if spec.version == "v4":
-        weights = V4ValueWeights()
-    elif spec.version == "v5":
-        weights = V5ValueWeights()
-    else:
-        weights = None
-    method_params: dict[str, object]
     if spec.version == "v9_7":
         method_params = _v97_method_params(spec)
     elif spec.version == "v9_14":
@@ -589,62 +404,8 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         method_params = _v915_method_params(spec)
     elif spec.version == "v9_16":
         method_params = _v916_method_params(spec)
-    elif spec.version in TRACEAAD_V917_VERSIONS:
-        method_params = _v917_method_params(spec)
-    elif spec.version in {"v8", "v9"}:
-        method_params = {
-            "max_sample_nums": spec.budget,
-            "n_init": spec.n_init,
-            "generation_protocol": "direct_code",
-            "offspring_per_iteration": 2,
-            "quality_normalization": "global_midrank_percentile",
-            "expansion_policy": "adaptive_new_child_uct",
-            "expansion_reward": "batch_subtree_best_midrank",
-            "failed_expansion_reward": 0.0,
-            "root_expansion": False,
-            "reference_temperature": 0.2,
-            "exploration_constant": 0.1,
-            "expansion_prior_weight": 1.0,
-            "ancestor_history_limit": 8,
-            "direct_child_limit": 8,
-            "direct_child_top_count": 4,
-            "max_stalled_iterations": 20,
-            "checkpoint_interval": 10,
-        }
-        if spec.version == "v9":
-            method_params["history_protocol"] = "matched_history"
     else:
-        method_params = {
-            "max_sample_nums": spec.budget,
-            "n_init": spec.n_init,
-            "actions_per_iteration": 2,
-            "max_trajectory_length": 8,
-            "max_active_trajectories": 30,
-            "softmax_temperature": 0.2,
-            "max_stalled_iterations": 20,
-            "checkpoint_interval": 10,
-            "value_weights": asdict(weights),
-        }
-    if spec.version == "v5":
-        method_params.update(
-            {
-                "elite_count": 3,
-                "action_max_tokens": spec.action_max_tokens,
-                "random_seed": spec.seed,
-            }
-        )
-    if spec.version in {"v8", "v9"}:
-        method_params.update(
-            {
-                "maximize": True,
-                "operators": (
-                    V8_OPERATOR_NAMES if spec.version == "v8" else V9_OPERATOR_NAMES
-                ),
-                "code_max_tokens": spec.llm_output_tokens,
-                "context_token_limit": spec.context_token_limit,
-                "random_seed": spec.seed,
-            }
-        )
+        method_params = _v917_method_params(spec)
     payload = {
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "run_dir": str(run_dir),
@@ -655,24 +416,7 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         "task_eval": task_kwargs,
         "method_params": method_params,
     }
-    if spec.version in {
-        "v9_7",
-        "v9_14",
-        "v9_15",
-        "v9_16",
-        "v9_17",
-        "v9_17_fixed_cycle",
-    }:
-        payload["generator_environment"] = _versioned_generator_environment(spec)
-    else:
-        payload["backend"] = spec.backend
-        payload["llm"] = llm_payload(
-            base_url=spec.base_url,
-            model=spec.model,
-            no_proxy=spec.no_proxy,
-            max_tokens=spec.llm_output_tokens,
-            temperature=1.0,
-        )
+    payload["generator_environment"] = _versioned_generator_environment(spec)
     if spec.initialization_checkpoint is not None:
         metadata_path = spec.initialization_checkpoint.parent / "complete.json"
         metadata = (
@@ -863,7 +607,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--n-init", type=int)
     parser.add_argument("--eval-workers", type=int)
     parser.add_argument("--output-tokens", type=int)
-    parser.add_argument("--action-max-tokens", type=int, default=1024)
     parser.add_argument("--context-token-limit", type=int)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--repeat", type=int)
@@ -885,7 +628,6 @@ def spec_from_args(args: argparse.Namespace) -> RunSpec:
         n_init=args.n_init,
         eval_workers=args.eval_workers,
         output_tokens=args.output_tokens,
-        action_max_tokens=args.action_max_tokens,
         context_token_limit=args.context_token_limit,
         seed=args.seed,
         repeat=args.repeat,
