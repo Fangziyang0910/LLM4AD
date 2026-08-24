@@ -14,6 +14,7 @@ from llm4ad.method.traceaad_v9_7 import TraceAADV97
 from llm4ad.method.traceaad_v9_14 import TraceAADV914
 from llm4ad.method.traceaad_v9_15 import TraceAADV915
 from llm4ad.method.traceaad_v9_16 import TraceAADV916
+from llm4ad.method.traceaad_v9_17 import TraceAADV917
 
 
 @pytest.mark.parametrize("task", run.TASKS)
@@ -39,6 +40,8 @@ def test_unified_runner_builds_each_task_and_version(
         "v9_14": TraceAADV914,
         "v9_15": TraceAADV915,
         "v9_16": TraceAADV916,
+        "v9_17": TraceAADV917,
+        "v9_17_fixed_cycle": TraceAADV917,
     }[version]
     assert isinstance(method, expected_type)
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
@@ -62,6 +65,9 @@ def test_unified_runner_builds_each_task_and_version(
         else:
             assert spec.n_init == 8
             assert method._n_roots == 8
+            if version in {"v9_17", "v9_17_fixed_cycle"}:
+                assert method._active_capacity == 8
+                assert method._adaptive_sweeps is (version == "v9_17")
             assert not hasattr(method, "_context_limit")
             assert not hasattr(method, "_operators")
         assert not hasattr(method, "_global_experience")
@@ -110,6 +116,44 @@ def test_v915_config_records_retry_policy(tmp_path: Path) -> None:
     assert payload["method_params"]["error_retries"] == 2
     assert payload["method_params"]["retry_policy"] == "two_bounded_repairs"
     assert payload["method_params"]["retry_budget"] == "initial_candidates"
+
+
+def test_v917_config_records_the_fixed_hypothesis_protocol(tmp_path: Path) -> None:
+    spec = run.make_run_spec(
+        task="tsp_construct",
+        version="v9_17",
+        repeat=1,
+        experiments_root=tmp_path,
+    )
+    run_dir, run_name, resumed = run.resolve_run_dir(spec)
+    run.write_run_config(spec, run_dir, run_name)
+    payload = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
+
+    assert not resumed
+    params = payload["method_params"]
+    assert params["n_roots"] == 8
+    assert params["active_capacity"] == 8
+    assert params["block_horizon"] == 3
+    assert params["max_history"] == 8
+    assert params["competition_rank"] == "frontier_quality_then_creation"
+    assert params["development_continuation"] == "positive_block_gain"
+    assert params["retry_budget"] == "primary_candidates"
+    assert "refine_probability" not in params
+    assert "explore_probability" not in params
+
+
+def test_v917_fixed_cycle_config_differs_only_in_scheduler_rule() -> None:
+    adaptive = run.make_run_spec(task="tsp_construct", version="v9_17")
+    fixed = run.make_run_spec(task="tsp_construct", version="v9_17_fixed_cycle")
+    adaptive_params = run._v917_method_params(adaptive)
+    fixed_params = run._v917_method_params(fixed)
+    differing = {
+        key
+        for key in adaptive_params | fixed_params
+        if adaptive_params.get(key) != fixed_params.get(key)
+    }
+    assert differing == {"development_continuation"}
+    assert fixed_params["development_continuation"] == "fixed_cycle_after_full_sweep"
 
 
 def test_v8_runner_records_tree_protocol_without_population_controls(

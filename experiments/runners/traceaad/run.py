@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
@@ -72,6 +73,14 @@ from llm4ad.method.traceaad_v9_16 import (
     RunArtifacts as V916RunArtifacts,
     TraceAADV916,
 )
+from llm4ad.method.traceaad_v9_17 import (
+    ACTIVE_CAPACITY as V917_ACTIVE_CAPACITY,
+    BLOCK_HORIZON as V917_BLOCK_HORIZON,
+    INITIAL_ROOT_COUNT as V917_INITIAL_ROOT_COUNT,
+    MAX_HISTORY_EVENTS as V917_MAX_HISTORY_EVENTS,
+    RunArtifacts as V917RunArtifacts,
+    TraceAADV917,
+)
 
 from .._common import (
     ALL_TASKS,
@@ -97,6 +106,8 @@ VersionName = Literal[
     "v9_14",
     "v9_15",
     "v9_16",
+    "v9_17",
+    "v9_17_fixed_cycle",
 ]
 
 VERSIONS: tuple[VersionName, ...] = (
@@ -108,9 +119,12 @@ VERSIONS: tuple[VersionName, ...] = (
     "v9_14",
     "v9_15",
     "v9_16",
+    "v9_17",
+    "v9_17_fixed_cycle",
 )
 TRACEAAD_V915_VERSIONS = {"v9_15"}
 TRACEAAD_V916_VERSIONS = {"v9_16"}
+TRACEAAD_V917_VERSIONS = {"v9_17", "v9_17_fixed_cycle"}
 V8_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V8_OPERATORS]
 V9_OPERATOR_NAMES = [str(operator_type.name) for operator_type in V9_OPERATORS]
 
@@ -133,6 +147,7 @@ class RunSpec:
     repeat: int | None = None
     run_name: str | None = None
     resume_from: Path | None = None
+    initialization_checkpoint: Path | None = None
     experiments_root: Path = EXPERIMENTS_ROOT
 
     @property
@@ -168,6 +183,7 @@ def make_run_spec(
     repeat: int | None = None,
     run_name: str | None = None,
     resume_from: Path | None = None,
+    initialization_checkpoint: Path | None = None,
     experiments_root: Path = EXPERIMENTS_ROOT,
 ) -> RunSpec:
     profile = resolve_backend(backend, base_url, model, no_proxy)
@@ -188,6 +204,8 @@ def make_run_spec(
             if version in TRACEAAD_V915_VERSIONS
             else V916_INITIAL_ROOT_COUNT
             if version in TRACEAAD_V916_VERSIONS
+            else V917_INITIAL_ROOT_COUNT
+            if version in TRACEAAD_V917_VERSIONS
             else 10
             if version in {"v8", "v9"}
             else 30
@@ -206,6 +224,8 @@ def make_run_spec(
                 "v9_14",
                 "v9_15",
                 "v9_16",
+                "v9_17",
+                "v9_17_fixed_cycle",
             }
             else 24576
             if context_token_limit is None
@@ -215,6 +235,11 @@ def make_run_spec(
         repeat=repeat,
         run_name=run_name,
         resume_from=None if resume_from is None else resume_from.resolve(),
+        initialization_checkpoint=(
+            None
+            if initialization_checkpoint is None
+            else initialization_checkpoint.resolve()
+        ),
         experiments_root=experiments_root.resolve(),
     )
     if spec.budget <= 0:
@@ -229,6 +254,8 @@ def make_run_spec(
         raise ValueError("TraceAAD V9.15 requires exactly eight initial roots")
     if spec.version in TRACEAAD_V916_VERSIONS and spec.n_init != V916_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.16 requires exactly eight initial roots")
+    if spec.version in TRACEAAD_V917_VERSIONS and spec.n_init != V917_INITIAL_ROOT_COUNT:
+        raise ValueError("TraceAAD V9.17 requires exactly eight initial roots")
     if spec.eval_workers is not None and spec.eval_workers <= 0:
         raise ValueError("eval_workers must be positive")
     if spec.llm_output_tokens <= 0:
@@ -239,6 +266,15 @@ def make_run_spec(
         raise ValueError("context_token_limit must be positive")
     if spec.resume_from is not None and spec.run_name is not None:
         raise ValueError("run_name cannot be combined with resume_from")
+    if spec.resume_from is not None and spec.initialization_checkpoint is not None:
+        raise ValueError("resume_from cannot be combined with initialization_checkpoint")
+    if (
+        spec.initialization_checkpoint is not None
+        and spec.version != "v9_17_fixed_cycle"
+    ):
+        raise ValueError(
+            "initialization_checkpoint is only valid for V9.17 FixedCycle"
+        )
     return spec
 
 
@@ -306,6 +342,27 @@ def build_method(
             seed=spec.seed,
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
+        )
+    if spec.version in TRACEAAD_V917_VERSIONS:
+        method_resume = resume_from
+        fork_from_initialization = False
+        if method_resume is None and spec.initialization_checkpoint is not None:
+            _seed_paired_artifacts(spec.initialization_checkpoint, run_dir)
+            method_resume = spec.initialization_checkpoint
+            fork_from_initialization = True
+        return TraceAADV917(
+            llm=llm,
+            evaluation=evaluation,
+            artifacts=V917RunArtifacts(run_dir=run_dir),
+            budget=spec.budget,
+            n_roots=spec.n_init,
+            max_tokens=spec.llm_output_tokens,
+            max_history=V917_MAX_HISTORY_EVENTS,
+            seed=spec.seed,
+            resume_from=method_resume,
+            checkpoint_dir=run_dir / "checkpoints",
+            adaptive_sweeps=spec.version == "v9_17",
+            fork_from_initialization=fork_from_initialization,
         )
     common = {
         "llm": llm,
@@ -394,6 +451,8 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         "v9_14",
         "v9_15",
         "v9_16",
+        "v9_17",
+        "v9_17_fixed_cycle",
     }:
         return
     _, task_kwargs = build_task(spec.task, spec.eval_workers)
@@ -403,6 +462,8 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         "v9_14",
         "v9_15",
         "v9_16",
+        "v9_17",
+        "v9_17_fixed_cycle",
     }:
         if spec.version == "v9_7":
             expected_method_params = _v97_method_params(spec)
@@ -410,6 +471,8 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
             expected_method_params = _v914_method_params(spec)
         elif spec.version == "v9_16":
             expected_method_params = _v916_method_params(spec)
+        elif spec.version in TRACEAAD_V917_VERSIONS:
+            expected_method_params = _v917_method_params(spec)
         else:
             expected_method_params = _v915_method_params(spec)
         expected_protocol = {
@@ -526,6 +589,8 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         method_params = _v915_method_params(spec)
     elif spec.version == "v9_16":
         method_params = _v916_method_params(spec)
+    elif spec.version in TRACEAAD_V917_VERSIONS:
+        method_params = _v917_method_params(spec)
     elif spec.version in {"v8", "v9"}:
         method_params = {
             "max_sample_nums": spec.budget,
@@ -595,6 +660,8 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         "v9_14",
         "v9_15",
         "v9_16",
+        "v9_17",
+        "v9_17_fixed_cycle",
     }:
         payload["generator_environment"] = _versioned_generator_environment(spec)
     else:
@@ -606,6 +673,17 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
             max_tokens=spec.llm_output_tokens,
             temperature=1.0,
         )
+    if spec.initialization_checkpoint is not None:
+        metadata_path = spec.initialization_checkpoint.parent / "complete.json"
+        metadata = (
+            json.loads(metadata_path.read_text(encoding="utf-8"))
+            if metadata_path.is_file()
+            else {}
+        )
+        payload["paired_initialization"] = {
+            "checkpoint": str(spec.initialization_checkpoint),
+            **metadata,
+        }
     write_run_config_file(run_dir, payload)
 
 
@@ -615,7 +693,11 @@ def _versioned_logical_model_name(spec: RunSpec) -> str:
         return "Qwen3.8-27B"
     if spec.version == "v9_14":
         return "Qwen3.6-27B"
-    if spec.version in TRACEAAD_V915_VERSIONS | TRACEAAD_V916_VERSIONS:
+    if spec.version in (
+        TRACEAAD_V915_VERSIONS
+        | TRACEAAD_V916_VERSIONS
+        | TRACEAAD_V917_VERSIONS
+    ):
         return "Qwen3.6-27B"
     return V97_LOGICAL_MODEL_NAME
 
@@ -703,6 +785,54 @@ def _v916_method_params(spec: RunSpec) -> dict[str, object]:
     }
 
 
+def _v917_method_params(spec: RunSpec) -> dict[str, object]:
+    params: dict[str, object] = {
+        "budget": spec.budget,
+        "n_roots": spec.n_init,
+        "active_capacity": V917_ACTIVE_CAPACITY,
+        "block_horizon": V917_BLOCK_HORIZON,
+        "max_history": V917_MAX_HISTORY_EVENTS,
+        "maximize": True,
+        "max_tokens": spec.llm_output_tokens,
+        "seed": spec.seed,
+        "hypothesis_birth": "valid_root_or_explore",
+        "competition_rank": "frontier_quality_then_creation",
+        "development_continuation": "positive_block_gain",
+        "refine_parent_score": "q_plus_frozen_scale_over_sqrt_count",
+        "discovery_source": "highest_active_frontier",
+        "error_handling": True,
+        "error_retries": 2,
+        "retry_policy": "two_bounded_repairs",
+        "retry_budget": "primary_candidates",
+    }
+    if spec.version == "v9_17_fixed_cycle":
+        params["development_continuation"] = "fixed_cycle_after_full_sweep"
+    return params
+
+
+def _seed_paired_artifacts(initialization_checkpoint: Path, run_dir: Path) -> None:
+    if not initialization_checkpoint.is_file():
+        raise FileNotFoundError(
+            f"paired initialization checkpoint does not exist: {initialization_checkpoint}"
+        )
+    bundle = initialization_checkpoint.parent
+    required = ("evaluations.csv", "mechanism_events.jsonl")
+    optional = ("best_program.py",)
+    run_dir.mkdir(parents=True, exist_ok=True)
+    for name in (*required, *optional):
+        source = bundle / name
+        if not source.is_file():
+            if name in required:
+                raise FileNotFoundError(f"paired initialization artifact is missing: {source}")
+            continue
+        target = run_dir / name
+        if target.is_file():
+            if target.read_bytes() != source.read_bytes():
+                raise ValueError(f"paired artifact already differs: {target}")
+            continue
+        shutil.copyfile(source, target)
+
+
 def run_experiment(spec: RunSpec) -> Path:
     run_dir, run_name, resumed = resolve_run_dir(spec)
     if not resumed:
@@ -739,6 +869,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--repeat", type=int)
     parser.add_argument("--run-name")
     parser.add_argument("--resume-from", type=Path)
+    parser.add_argument("--initialization-checkpoint", type=Path)
     return parser
 
 
@@ -760,6 +891,7 @@ def spec_from_args(args: argparse.Namespace) -> RunSpec:
         repeat=args.repeat,
         run_name=args.run_name,
         resume_from=args.resume_from,
+        initialization_checkpoint=args.initialization_checkpoint,
     )
 
 
