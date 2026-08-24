@@ -1,6 +1,6 @@
 # TraceAAD V9.7 机制诊断
 
-V9.7 是当前代表性同场比较中综合表现最强的 TraceAAD 版本，也是轨迹条件生成与轨迹感知分配第一次形成稳定联合体制的版本。它的优势不能归因于某一条分配公式：路线乐观项几乎没有持续改变选择，完整版本又同时包含父代来时路、Refine/Explore、路线—锚点选择和原子反馈循环。本文综合历史版本、固定锚点实验、正式搜索、同规模独立测试与 V9.8–V9.11 的后续反例，解释 V9.7 为什么强、强在哪里，以及哪些机制仍未被识别。
+V9.7 是当前代表性同场比较中综合表现最强的 TraceAAD 版本，也是轨迹条件生成与轨迹感知分配第一次形成稳定联合体制的版本。它的优势不能归因于某一条分配公式：路线乐观项几乎没有持续改变选择，完整版本又同时包含父代来时路、Refine/Explore、路线—锚点选择和原子反馈循环。
 
 ## 1. 核心判断
 
@@ -109,7 +109,7 @@ $$
 
 ## 4. 证据来源与因果结构
 
-本文使用四类证据，前一层不能替代后一层：
+证据分四层，前一层不能替代后一层：
 
 1. **实现与机制规范**：确认组件如何运行；
 2. **过程激活与选择重放**：判断组件是否实际改变选择；
@@ -473,8 +473,6 @@ Refine 参照：换簇率 2.3%–12.1%，换簇后落回已访问宏簇 98.7%–
 1. **全局信息的信息量小**：每 run 4–6 个宏簇即可完整描述已访问区域及其前沿。
 2. **发现事件前置且稀有**：新宏簇进入集中在初始化后前 100 余次评价，awareness 机制的设计目标是避免亚前沿重入，而非延长发现期。
 
----
-
 ## 16. 结论
 
 V9.7 的科学价值不在于证明了复杂预算分配，而在于找到了当前最可靠的工作点：
@@ -493,14 +491,8 @@ $$
 
 因此，V9.7 当前支持的最强结论是：**改进来时路可以成为有效的生成条件，而一个简单、局部化、即时反馈的搜索体制能够把这种生成能力兑现成强综合结果。** 它尚未证明轨迹感知分配已经解决。下一阶段的目标是在不破坏这条深精炼主链的前提下，识别何时应继续集中、何时应重新开放，以及哪些跨簇入口值得获得有限发展机会。
 
-## 复现入口与相关证据
+## 分析工件
 
 - V9.7 搜索几何：[`analyze_v97_search_geometry.py`](../../experiments/analysis/analyze_v97_search_geometry.py) 与 [`summary.json`](traceaad_v97_search_geometry/summary.json)
 - V9.7 机制价值：[`analyze_v97_mechanism_value.py`](../../experiments/analysis/analyze_v97_mechanism_value.py) 与 [`traceaad_v97_mechanism_value/`](traceaad_v97_mechanism_value/)
 - V9.7 区域重访：[`analyze_v97_region_revisit.py`](../../experiments/analysis/analyze_v97_region_revisit.py) 与 [`summary.json`](traceaad_v97_region_revisit/summary.json)
-- 前期机制与单步实验：[V1–V9.6 机制诊断](TraceAAD-V1-V9.6机制诊断.md)
-- 来时路完整搜索消融：[父代来时路完整搜索消融](../experiments/父代来时路完整搜索消融.md)（批次 `ppab_20260820_131000`）
-- 历史机制：[TraceAAD 历史机制探索](../methods/TraceAAD-历史机制探索.md)
-- 后续机制反例：[V9.8](TraceAAD-V9.8机制诊断.md)、[V9.9](TraceAAD-V9.9机制诊断.md)、[V9.10](TraceAAD-V9.10机制诊断.md)、[V9.11](TraceAAD-V9.11机制诊断.md)
-- 正式结果：[同规模测试结果](../experiments/同规模测试结果.md)、[搜索结果](../experiments/搜索结果.md) 与 [实验结果](../experiments/实验结果.md)
-- 生成模型敏感性：[生成模型对比](../experiments/生成模型对比.md)

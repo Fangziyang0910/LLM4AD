@@ -330,14 +330,3 @@ $$
 $$
 
 V9.17 应把这条过程变成少量、及时结算、可受控比较的决策，而不是继续增加节点分数项。V9.7 提供了区域内深精炼的可靠工作点，V9.16 提供了全局重开与短期发展观测；有界 portfolio 与 block feedback 是当前最自然的融合接口。
-
-## 证据入口
-
-- [TraceAAD 研究认识](../knowledge/研究认识.md)
-- [V9.7 完整机制设计](../methods/TraceAAD-V9.7完整机制设计.md)与[V9.7 机制诊断](TraceAAD-V9.7机制诊断.md)
-- [V9.14 完整机制设计](../methods/TraceAAD-V9.14完整机制设计.md)
-- [V9.15 完整机制设计](../methods/TraceAAD-V9.15完整机制设计.md)与[V9.15 机制诊断](TraceAAD-V9.15机制诊断.md)
-- [V9.16 完整机制设计](../methods/TraceAAD-V9.16完整机制设计.md)
-- [BaSE 阅读笔记](../references/LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md)、[MCTS-AHD 阅读笔记](../references/LLM自动算法设计方法阅读笔记/22-MCTS-AHD.md)与[PathWise 阅读笔记](../references/LLM自动算法设计方法阅读笔记/24-PathWise.md)
-- [LLM 作为进化算子的机制分析](../references/LLM作为进化算子的机制分析论文.md)
-- [实验结果](../experiments/实验结果.md)、[同规模测试结果](../experiments/同规模测试结果.md)与[搜索结果](../experiments/搜索结果.md)
