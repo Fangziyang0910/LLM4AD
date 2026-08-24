@@ -48,7 +48,7 @@ FixedCycle 的每个周期为：全部 active hypotheses 各执行一个三步 R
 
 ## 结果
 
-覆盖范围：OBP 两臂各 3 个重复；VRPTW Adaptive 3 个重复。OBP 的 bins 数值越低越好，配对差为 Adaptive − FixedCycle，负值表示 Adaptive 更少 bins。
+覆盖范围：OBP 两臂各 3 个重复；VRPTW Adaptive 3 个重复；TSP Adaptive rep2、rep3 与 FixedCycle rep1、rep3；OP Adaptive rep1、rep3。OBP 的 bins 数值越低越好，配对差为 Adaptive − FixedCycle，负值表示 Adaptive 更少 bins。
 
 ### Online Bin Packing
 
@@ -78,6 +78,23 @@ held-out（bins 均值，越低越好；前四行为同规模，后两行为跨�
 ### VRPTW（Adaptive 三重复）
 
 held-out test split（均值总距离，越低越好）：rep1 19.183、rep2 19.626、rep3 18.443，均值 19.084 ± 0.598；对应搜索 train best 19.368、19.044、18.779。FixedCycle 侧无已完成重复，无配对差。
+
+### TSP（Adaptive rep2、rep3；FixedCycle rep1、rep3）
+
+held-out（均值总距离，越低越好）：
+
+| 重复 | 臂 | train best | TSP50 | TSP100 | TSP200 |
+| --- | --- | --- | --- | --- | --- |
+| rep2 | Adaptive | 5.875 | 5.835 | 8.126 | 11.536 |
+| rep3 | Adaptive | 6.138 | 6.231 | 8.559 | 11.902 |
+| rep1 | FixedCycle | 6.078 | 6.173 | 8.561 | 11.925 |
+| rep3 | FixedCycle | 5.848 | 5.930 | 8.452 | 12.380 |
+
+rep3 为同 seed 配对：FixedCycle 的 train best 与 TSP50/100 更低（6.138 对 5.848、6.231 对 5.930、8.559 对 8.452），Adaptive 的 TSP200 更低（11.902 对 12.380）；跨规模方向不一致，完整配对差待 Adaptive rep1 与 FixedCycle rep2。
+
+### OP（Adaptive rep1、rep3）
+
+held-out（均值收益，越高越好）：rep1 15.134 / 30.482 / 54.761，rep3 15.187 / 30.770 / 56.070（OP50/100/200）；对应 train best 14.868、14.866。FixedCycle 侧无已完成重复，无配对差。
 
 ## 判定
 
