@@ -70,6 +70,7 @@ unsloth_compiled_cache/
 Thumbs.db
 .idea/
 .vscode/
+.zcode/
 *.swp
 *.swo
 *~
