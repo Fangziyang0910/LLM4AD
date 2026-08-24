@@ -1,12 +1,11 @@
 """Plot per-task search curves for the TraceAAD version comparison figure.
 
-Methods: TraceAAD V9.7 / V9.14 / V9.15. Each task gets one figure with
-best-so-far curves (mean + min-max band over 3 runs). V9.7 reads
-``artifacts/candidates.jsonl``; V9.14 / V9.15 read ``evaluations.csv``.
-Every earlier TraceAAD version and the five external baselines lost their
-per-sample histories in the 2026-08-21 cleanup; those curves survive only
-in the git history of the committed figures. V9.16 joins the figure once
-its batch finishes.
+Methods: TraceAAD V9.7 / V9.14 / V9.15 / V9.16 (VRPTW panel: V9.14 / V9.16).
+Each task gets one figure with best-so-far curves (mean + min-max band over
+3 runs). V9.7 reads ``artifacts/candidates.jsonl``; V9.14+ read
+``evaluations.csv``. Every earlier TraceAAD version and the five external
+baselines lost their per-sample histories in the 2026-08-21 cleanup; those
+curves survive only in the git history of the committed figures.
 """
 
 from __future__ import annotations
@@ -24,7 +23,13 @@ from matplotlib.patches import Patch
 
 ROOT = Path(__file__).resolve().parents[2]
 
-TASKS = ["tsp_construct", "cvrp_aco", "op_aco", "online_bin_packing"]
+TASKS = [
+    "tsp_construct",
+    "cvrp_aco",
+    "op_aco",
+    "online_bin_packing",
+    "vrptw_construct",
+]
 
 METHODS = {
     "TraceAAD V9.7": {
@@ -39,6 +44,10 @@ METHODS = {
         "color": "#9467BD",
         "band": "#CDB6E0",
     },
+    "TraceAAD V9.16": {
+        "color": "#D62728",
+        "band": "#E8B4B4",
+    },
 }
 
 BUDGET = 1000
@@ -49,21 +58,29 @@ RUN_GLOBS = {
         "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
         "TraceAAD V9.15": ["traceaad_v9_15/v9_15_*_rep*"],
+        "TraceAAD V9.16": ["traceaad_v9_16/v9_16_20260822_151700_*_rep*"],
     },
     "cvrp_aco": {
         "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
         "TraceAAD V9.15": ["traceaad_v9_15/v9_15_*_rep*"],
+        "TraceAAD V9.16": ["traceaad_v9_16/v9_16_20260822_151700_*_rep*"],
     },
     "op_aco": {
         "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
         "TraceAAD V9.15": ["traceaad_v9_15/v9_15_*_rep*"],
+        "TraceAAD V9.16": ["traceaad_v9_16/v9_16_20260822_151700_*_rep*"],
     },
     "online_bin_packing": {
         "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
         "TraceAAD V9.15": ["traceaad_v9_15/v9_15_*_rep*"],
+        "TraceAAD V9.16": ["traceaad_v9_16/v9_16_20260822_151700_*_rep*"],
+    },
+    "vrptw_construct": {
+        "TraceAAD V9.14": ["traceaad_v9_14/tm_20260821_vrptw_traceaad_v9_14_rep*"],
+        "TraceAAD V9.16": ["traceaad_v9_16/v9_16_20260822_151700_*_rep*"],
     },
 }
 
@@ -72,6 +89,7 @@ METHOD_ARTIFACTS = {
     "TraceAAD V9.7": "artifacts/candidates.jsonl",
     "TraceAAD V9.14": "evaluations.csv",
     "TraceAAD V9.15": "evaluations.csv",
+    "TraceAAD V9.16": "evaluations.csv",
 }
 
 
@@ -133,7 +151,9 @@ def plot_task(task: str) -> Path:
     fig, ax = plt.subplots(figsize=(6.75, 3.95))
     handles = []
     all_values = []
-    for name, cfg in METHODS.items():
+    task_methods = [name for name in METHODS if name in RUN_GLOBS[task]]
+    for name in task_methods:
+        cfg = METHODS[name]
         runs = run_dirs(task, name)
         if not runs:
             raise SystemExit(
@@ -187,7 +207,7 @@ def plot_task(task: str) -> Path:
         frameon=False,
         loc="lower center",
         bbox_to_anchor=(0.5, 0.015),
-        ncol=3,
+        ncol=min(4, len(task_methods)),
         fontsize=8.0,
         handlelength=2.6,
         handletextpad=0.6,

@@ -1,4 +1,9 @@
-"""Generate same-scale independent-test statistics and rankings."""
+"""Generate same-scale independent-test statistics and rankings.
+
+Old TraceAAD versions (V4-V9.12) lost their artifacts in the 2026-08-21
+cleanup and are skipped; their rows stay preserved in the committed doc as
+the distilled record, so this script prints instead of overwriting the doc.
+"""
 
 from __future__ import annotations
 
@@ -13,6 +18,7 @@ from experiments.analysis.recompute_search_rankings import (
     MAIN_METHODS,
     REPO,
     artifact_rel,
+    has_artifacts,
     ranks,
 )
 
@@ -100,9 +106,9 @@ def build_table(title: str, methods: list[str]) -> list[str]:
     return lines
 
 
-def build_single_version_table() -> list[str]:
+def build_single_version_table(versions: list[str]) -> list[str]:
     rows = []
-    for version in ALL_TRACEAAD:
+    for version in versions:
         methods = [version] + BASELINES
         rank = ranking(methods)
         position = sorted(methods, key=lambda item: rank[item]).index(version) + 1
@@ -121,14 +127,15 @@ def build_single_version_table() -> list[str]:
 
 
 def main() -> None:
+    available = {m for m in ALL_TRACEAAD + MAIN_METHODS if has_artifacts(m)}
     text = [
         "# 同规模测试结果",
         "",
         "这张表只评价与搜索集规模相同、但实例独立的测试集。它不使用搜索集 best，也不使用跨规模测试：TSP50、CVRP50、OP50，以及 OBP 的 1k/5k × capacity 100/500。OBP 的 10k 设置属于跨规模测试，保留在[实验结果](实验结果.md)。",
         "",
-        *build_single_version_table(),
+        *build_single_version_table([v for v in ALL_TRACEAAD if v in available]),
         "",
-        *build_table("## 主表方法", MAIN_METHODS),
+        *build_table("## 主表方法", [m for m in MAIN_METHODS if m in available]),
         "",
         "## 与其他口径的关系",
         "",
@@ -137,8 +144,8 @@ def main() -> None:
         "- held-out 全表：[实验结果](实验结果.md)，包含同规模与跨规模测试。",
         "",
     ]
-    OUTPUT.write_text("\n".join(text), encoding="utf-8")
-    print(f"wrote {OUTPUT}")
+    print("\n".join(text))
+    print(f"\n(wrote nothing; {OUTPUT.name} keeps pre-cleanup rows — merge manually)")
 
 
 if __name__ == "__main__":

@@ -3,7 +3,9 @@
 The source of truth is each formal held-out artifact's ``run_records`` block. It
 identifies the exact three search runs used by the result pages and records the
 best score found on the search evaluator. No held-out objective enters this
-report.
+report. Old TraceAAD versions (V4-V9.12) lost their artifacts in the 2026-08-21
+cleanup and are skipped; their rows stay preserved in the committed doc as the
+distilled record, so this script prints instead of overwriting the doc.
 
 Usage:
     uv run python experiments/analysis/recompute_search_rankings.py
@@ -20,6 +22,7 @@ from experiments.analysis.recompute_rankings import (
     BASELINES,
     MCTS_CVRP_BATCH2,
     REPO,
+    VRPTW_ARTIFACTS,
 )
 
 OUTPUT = REPO / "docs" / "experiments" / "搜索结果.md"
@@ -64,7 +67,7 @@ EXTRA_ARTIFACTS: dict[str, dict[str, str]] = {
     },
 }
 
-MAIN_TRACEAAD = ["V4", "V5", "V8", "V9", "V9.7", "V9.9", "V9.14", "V9.15"]
+MAIN_TRACEAAD = ["V4", "V5", "V8", "V9", "V9.7", "V9.9", "V9.14", "V9.15", "V9.16"]
 MAIN_METHODS = BASELINES + MAIN_TRACEAAD
 ARCHIVE_TRACEAAD = [
     "V6",
@@ -107,6 +110,7 @@ DISPLAY = {
     "V9.12": "TraceAAD V9.12",
     "V9.14": "TraceAAD V9.14",
     "V9.15": "TraceAAD V9.15",
+    "V9.16": "TraceAAD V9.16",
     "CALM": "CALM (w/o GRPO)",
 }
 
@@ -117,6 +121,18 @@ def artifact_rel(task: str, method: str) -> str:
     if task == "cvrp_aco" and method == "MCTS-AHD":
         return MCTS_CVRP_BATCH2
     return ARTIFACTS[task][method][0]
+
+
+def has_artifacts(method: str) -> bool:
+    try:
+        for task in TASKS:
+            path = REPO / "experiments" / task.key / artifact_rel(task.key, method) / "results.json"
+            if not path.is_file():
+                return False
+            load_scores(task, method)
+    except (FileNotFoundError, ValueError, KeyError):
+        return False
+    return True
 
 
 def load_scores(task: Task, method: str) -> list[float]:
@@ -178,7 +194,7 @@ def format_stat(task: Task, method: str, *, bold: bool = False) -> str:
     return f"**{text}**" if bold else text
 
 
-def main_table() -> list[str]:
+def main_table(methods: list[str]) -> list[str]:
     lines = [
         "## 主表方法",
         "",
@@ -187,12 +203,12 @@ def main_table() -> list[str]:
         "| 方法 | TSP Construct | CVRP-ACO | OP-ACO | Online Bin Packing | 平均名次 |",
         "| --- | ---: | ---: | ---: | ---: | ---: |",
     ]
-    rank = average_ranks(MAIN_METHODS)
+    rank = average_ranks(methods)
     best: dict[str, float] = {}
     for task in TASKS:
-        values = [mean_objective(task, method) for method in MAIN_METHODS]
+        values = [mean_objective(task, method) for method in methods]
         best[task.key] = max(values) if task.maximize else min(values)
-    for method in sorted(MAIN_METHODS, key=lambda item: rank[item]):
+    for method in sorted(methods, key=lambda item: rank[item]):
         cells = []
         for task in TASKS:
             is_best = mean_objective(task, method) == best[task.key]
@@ -203,7 +219,7 @@ def main_table() -> list[str]:
     return lines
 
 
-def single_version_table() -> list[str]:
+def single_version_table(versions: list[str]) -> list[str]:
     lines = [
         "## TraceAAD 单版本排名",
         "",
@@ -213,7 +229,7 @@ def single_version_table() -> list[str]:
         "| --- | ---: | ---: | ---: |",
     ]
     rows = []
-    for version in ALL_TRACEAAD:
+    for version in versions:
         methods = [version] + BASELINES
         rank = average_ranks(methods)
         position = sorted(methods, key=lambda item: rank[item]).index(version) + 1
@@ -236,24 +252,83 @@ def evidence_table() -> list[str]:
     ]
     for task in TASKS:
         lines.append(f"| {task.label} | {task.metric} | 3 |")
+    lines.append("| VRPTW Construct | VRPTW50 训练实例平均总距离 | 3 |")
+    return lines
+
+
+def vrptw_load_scores(method: str) -> list[float]:
+    rel = VRPTW_ARTIFACTS[method]
+    path = REPO / "experiments" / "vrptw_construct" / rel / "results.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    values: list[float] = []
+    for row in payload.get("run_records", []):
+        value = row.get("train_artifact_score")
+        if value is None:
+            value = row.get("train_best_score")
+        if value is not None:
+            values.append(float(value))
+    if len(values) != 3:
+        raise ValueError(f"vrptw_construct/{method}: expected 3 train scores in {path}, got {len(values)}")
+    return values
+
+
+def vrptw_table() -> list[str]:
+    methods = list(VRPTW_ARTIFACTS)
+    scores = {
+        method: [-score for score in vrptw_load_scores(method)]
+        for method in methods
+    }
+    means = {method: statistics.fmean(values) for method, values in scores.items()}
+    task_ranks = ranks([means[method] for method in methods], maximize=False)
+    rank = dict(zip(methods, task_ranks, strict=True))
+    best = min(means.values())
+    lines = [
+        "## VRPTW Construct",
+        "",
+        "VRPTW 只跑了五个外部对照与 V9.14、V9.16，单独成表。单元格为三次独立搜索的最终 best 均值 +/- 样本标准差，训练实例平均总距离，越低越好；加粗为最佳均值。",
+        "",
+        "| 方法 | 搜索 best | 名次 |",
+        "| --- | ---: | ---: |",
+    ]
+    for method in sorted(methods, key=lambda item: rank[item]):
+        mean = means[method]
+        std = statistics.stdev(scores[method])
+        text = f"{mean:.6f} ± {std:.6f}"
+        if mean == best:
+            text = f"**{text}**"
+        lines.append(
+            f"| {DISPLAY.get(method, method)} | {text} | {rank[method]:.1f} |"
+        )
     return lines
 
 
 def main() -> None:
+    candidates = list(dict.fromkeys(ALL_TRACEAAD + BASELINES))
+    available = {m for m in candidates if has_artifacts(m)}
+    unavailable = sorted(set(ALL_TRACEAAD) - available)
+    if unavailable:
+        print(
+            "skip (artifacts pruned 2026-08-21, rows preserved in the doc): "
+            + ", ".join(unavailable)
+        )
+    single_traceaad = [v for v in ALL_TRACEAAD if v in available]
+    main_methods = [m for m in MAIN_METHODS if m in available]
     sections = [
         "# 搜索结果",
         "",
-        "四个任务在统一正式搜索协议下的最终 best 与排名。这里评价方法在给定 evaluator 和 1000 次真实评价预算内找到高质量算法的能力；独立测试与跨规模迁移见[实验结果](实验结果.md)和[归档实验结果](归档实验结果.md)。",
+        "五个任务在统一正式搜索协议下的最终 best 与排名。这里评价方法在给定 evaluator 和 1000 次真实评价预算内找到高质量算法的能力；独立测试与跨规模迁移见[实验结果](实验结果.md)和[归档实验结果](归档实验结果.md)。四个已有完整版本覆盖的任务进入单版本排名与主表，VRPTW 单独成表。",
         "",
-        *single_version_table(),
+        *single_version_table(single_traceaad),
         "",
-        *main_table(),
+        *main_table(main_methods),
+        "",
+        *vrptw_table(),
         "",
         *evidence_table(),
         "",
     ]
-    OUTPUT.write_text("\n".join(sections), encoding="utf-8")
-    print(f"wrote {OUTPUT}")
+    print("\n".join(sections))
+    print(f"\n(wrote nothing; {OUTPUT.name} keeps pre-cleanup rows — merge manually)")
 
 
 if __name__ == "__main__":
