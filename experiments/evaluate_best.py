@@ -1,6 +1,6 @@
 """Evaluate the best program from finished search runs on held-out test sets.
 
-Unified entry for the four tasks. Task and method are derived from each
+Unified entry for the five tasks. Task and method are derived from each
 run directory's `run_config.json`.
 
     uv run python experiments/evaluate_best.py <run_dir> [...] --output-dir DIR
@@ -9,12 +9,13 @@ Per-task options:
     tsp_construct       --units 50,100,200  --timeout 1000  --workers 16
     cvrp_aco / op_aco   --units test_50,test_100,test_200  --workers 16
     online_bin_packing  --units 1k_100,5k_100,...,10k_500  --max-sample-order N
-    template tasks      single 'test' unit (eval seed from generated_data_config)
+    vrptw_construct     --units 50,100,200  (eval seed from generated_data_config)
 
 Batch mode evaluates every run dir on every unit and writes `results.json`
 under --output-dir. Single-run print mode (tsp_construct only) prints the
 train-sanity and per-unit scores without writing files.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -115,11 +116,15 @@ def tsp_eval_program(
     workers: int = 1,
 ) -> tuple[float | None, float]:
     if workers <= 1:
-        task = TSPEvaluation(timeout_seconds=timeout, n_instance=n_instance, problem_size=size, seed=seed)
+        task = TSPEvaluation(
+            timeout_seconds=timeout, n_instance=n_instance, problem_size=size, seed=seed
+        )
         evaluator = SecureEvaluator(task)
         return evaluator.evaluate_program_record_time(program)
 
-    task = TSPEvaluation(timeout_seconds=None, n_instance=n_instance, problem_size=size, seed=seed)
+    task = TSPEvaluation(
+        timeout_seconds=None, n_instance=n_instance, problem_size=size, seed=seed
+    )
     worker_args = [(program, size, dataset) for dataset in task._datasets]
     started_at = time.time()
     pool = multiprocessing.get_context("spawn").Pool(processes=min(workers, n_instance))
@@ -127,7 +132,9 @@ def tsp_eval_program(
         if timeout is None:
             scores = pool.map(_tsp_eval_one_instance, worker_args)
         else:
-            scores = pool.map_async(_tsp_eval_one_instance, worker_args).get(timeout=timeout)
+            scores = pool.map_async(_tsp_eval_one_instance, worker_args).get(
+                timeout=timeout
+            )
     except multiprocessing.TimeoutError:
         pool.terminate()
         pool.join()
@@ -148,7 +155,9 @@ def _tsp_parse_units(text: str) -> list[int]:
 
 
 def _make_tsp_spec() -> dict[str, Any]:
-    def eval_unit(program: str, size: int, timeout: int, workers: int) -> tuple[float, float]:
+    def eval_unit(
+        program: str, size: int, timeout: int, workers: int
+    ) -> tuple[float, float]:
         score, seconds = tsp_eval_program(
             program, size, TSP_EVAL_SEED, timeout=timeout, workers=workers
         )
@@ -213,7 +222,11 @@ def _aco_init_worker(
 
 def _aco_solve_instance(args: tuple[int, Any]) -> tuple[int, float]:
     index, instance = args
-    return index, float(_ACO_WORKER["evaluator"]._solve_instance(instance, _ACO_WORKER["heuristic"], index))
+    return index, float(
+        _ACO_WORKER["evaluator"]._solve_instance(
+            instance, _ACO_WORKER["heuristic"], index
+        )
+    )
 
 
 def _make_aco_eval(
@@ -224,7 +237,9 @@ def _make_aco_eval(
     aco_seed: int,
     score_transform: Callable[[float], float] = lambda value: value,
 ) -> Callable[[str, str, int], tuple[float, list[float], float]]:
-    def eval_program(program: str, split: str, workers: int) -> tuple[float, list[float], float]:
+    def eval_program(
+        program: str, split: str, workers: int
+    ) -> tuple[float, list[float], float]:
         instances, _ = load_instances(split)
         started_at = time.time()
         context = multiprocessing.get_context("spawn")
@@ -235,12 +250,18 @@ def _make_aco_eval(
         ) as pool:
             indexed = pool.map(_aco_solve_instance, list(enumerate(instances)))
         values = [value for _, value in sorted(indexed)]
-        return score_transform(statistics.fmean(values)), values, time.time() - started_at
+        return (
+            score_transform(statistics.fmean(values)),
+            values,
+            time.time() - started_at,
+        )
 
     return eval_program
 
 
-def _make_aco_spec(task: str, eval_cls: type, n_ants: int, n_iterations: int) -> dict[str, Any]:
+def _make_aco_spec(
+    task: str, eval_cls: type, n_ants: int, n_iterations: int
+) -> dict[str, Any]:
     is_op = task == "op_aco"
     load_instances = load_op_instances if is_op else load_cvrp_instances
     aco_seed = 1234
@@ -251,7 +272,9 @@ def _make_aco_spec(task: str, eval_cls: type, n_ants: int, n_iterations: int) ->
         eval_cls, load_instances, n_ants, n_iterations, aco_seed, score_transform
     )
 
-    def eval_unit(program: str, split: str, timeout: int, workers: int) -> tuple[float, float, list[float]]:
+    def eval_unit(
+        program: str, split: str, timeout: int, workers: int
+    ) -> tuple[float, float, list[float]]:
         score, values, seconds = eval_program(program, split, workers)
         return score, seconds, values
 
@@ -272,7 +295,11 @@ def _make_aco_spec(task: str, eval_cls: type, n_ants: int, n_iterations: int) ->
             if is_op
             else "score is negative mean best route length; higher score is better and lower objective is better"
         ),
-        "aco_config": {"n_ants": n_ants, "n_iterations": n_iterations, "aco_seed": aco_seed},
+        "aco_config": {
+            "n_ants": n_ants,
+            "n_iterations": n_iterations,
+            "aco_seed": aco_seed,
+        },
         "objective": objective,
         "print_mode": False,
     }
@@ -305,7 +332,9 @@ def _obp_parse_units(text: str) -> list[tuple[int, int]]:
         if not part:
             continue
         if "_" not in part:
-            raise ValueError(f"invalid scale {part!r}; expected like 5k_100 or 5000_100")
+            raise ValueError(
+                f"invalid scale {part!r}; expected like 5k_100 or 5000_100"
+            )
         left, right = part.rsplit("_", 1)
         capacity = int(right)
         if left.endswith("k") or left.endswith("K"):
@@ -318,7 +347,9 @@ def _obp_parse_units(text: str) -> list[tuple[int, int]]:
     return scales
 
 
-def _obp_task_kwargs_for_scale(base_kwargs: dict[str, Any], n_items: int, capacity: int) -> dict[str, Any]:
+def _obp_task_kwargs_for_scale(
+    base_kwargs: dict[str, Any], n_items: int, capacity: int
+) -> dict[str, Any]:
     kwargs = dict(base_kwargs)
     dataset_specs = kwargs.get("dataset_specs")
     if dataset_specs is None:
@@ -334,7 +365,9 @@ def _obp_task_kwargs_for_scale(base_kwargs: dict[str, Any], n_items: int, capaci
                 }
             ]
             return kwargs
-    raise ValueError(f"scale {n_items}_{capacity} is not part of the fixed OBP test protocol")
+    raise ValueError(
+        f"scale {n_items}_{capacity} is not part of the fixed OBP test protocol"
+    )
 
 
 def _obp_eval_program(program: str, task_kwargs: dict[str, Any]) -> tuple[float, float]:
@@ -345,7 +378,11 @@ def _obp_eval_program(program: str, task_kwargs: dict[str, Any]) -> tuple[float,
     evaluator = OBPEvaluation(**task_kwargs)
     started_at = time.time()
     score = evaluator.evaluate(namespace["priority"])
-    if score is None or not isinstance(score, (int, float)) or not math.isfinite(float(score)):
+    if (
+        score is None
+        or not isinstance(score, (int, float))
+        or not math.isfinite(float(score))
+    ):
         raise RuntimeError(f"evaluation returned invalid score: {score!r}")
     return float(score), time.time() - started_at
 
@@ -356,14 +393,20 @@ def _make_obp_spec() -> dict[str, Any]:
     ) -> tuple[float, float]:
         n_items, capacity = scale
         kwargs = _obp_task_kwargs_for_scale(
-            {**get_generated_task_kwargs("online_bin_packing", "eval"), "timeout_seconds": timeout},
+            {
+                **get_generated_task_kwargs("online_bin_packing", "eval"),
+                "timeout_seconds": timeout,
+            },
             n_items,
             capacity,
         )
         return _obp_eval_program(program, kwargs)
 
     def train_sanity(program: str, timeout: int, workers: int) -> tuple[float, float]:
-        kwargs = {**get_generated_task_kwargs("online_bin_packing", "train"), "timeout_seconds": timeout}
+        kwargs = {
+            **get_generated_task_kwargs("online_bin_packing", "train"),
+            "timeout_seconds": timeout,
+        }
         return _obp_eval_program(program, kwargs)
 
     return {
@@ -393,37 +436,57 @@ _GENERATED_TASK_EVAL_CLASSES: dict[str, type] = {
 
 _GENERATED_SCORE_SEMANTICS = {
     "vrptw_construct": (
-        "score is negative mean total distance across the eval split; "
+        "score is negative mean total distance across held-out instances; "
         "higher is better and lower objective is better"
     ),
 }
+
+VRPTW_DEFAULT_UNITS = (50, 100, 200)
+
+
+def _parse_vrptw_units(text: str) -> list[int]:
+    units = [int(value) for value in text.split(",") if value.strip()]
+    if not units or any(value <= 0 for value in units):
+        raise ValueError("VRPTW --units must contain positive problem sizes")
+    return units
+
+
+def _vrptw_eval_kwargs(problem_size: int, timeout: int) -> dict[str, Any]:
+    kwargs = get_generated_task_kwargs("vrptw_construct", "eval")
+    kwargs["problem_size"] = problem_size
+    kwargs["timeout_seconds"] = timeout
+    return kwargs
 
 
 def _make_generated_spec(task: str) -> dict[str, Any]:
     eval_cls = _GENERATED_TASK_EVAL_CLASSES[task]
 
     def eval_unit(
-        program: str, unit: str, timeout: int, workers: int
+        program: str, unit: int, timeout: int, workers: int
     ) -> tuple[float, float]:
-        evaluator = SecureEvaluator(eval_cls(**get_generated_task_kwargs(task, "eval")))
+        kwargs = _vrptw_eval_kwargs(unit, timeout)
+        evaluator = SecureEvaluator(eval_cls(**kwargs))
         score, seconds = evaluator.evaluate_program_record_time(program)
         if score is None:
             raise RuntimeError("generated-task eval returned no score")
         return float(score), seconds
 
     def train_sanity(program: str, timeout: int, workers: int) -> tuple[float, float]:
-        evaluator = SecureEvaluator(eval_cls(**get_generated_task_kwargs(task, "train")))
+        evaluator = SecureEvaluator(
+            eval_cls(**get_generated_task_kwargs(task, "train"))
+        )
         score, seconds = evaluator.evaluate_program_record_time(program)
         if score is None:
             raise RuntimeError("generated-task train sanity eval returned no score")
         return float(score), seconds
 
     return {
-        "default_units": ("test",),
-        "parse_units": lambda text: [x.strip() for x in text.split(",") if x.strip()],
-        "unit_key": lambda unit: unit,
-        "unit_label": lambda unit: unit.upper(),
+        "default_units": VRPTW_DEFAULT_UNITS,
+        "parse_units": _parse_vrptw_units,
+        "unit_key": lambda unit: f"vrptw{unit}",
+        "unit_label": lambda unit: f"VRPTW{unit}",
         "eval_unit": eval_unit,
+        "eval_config": _vrptw_eval_kwargs,
         "train_sanity": train_sanity,
         "train_sanity_label": "[sanity train  | seed 2024]",
         "container_key": "eval_results_by_split",
@@ -436,7 +499,9 @@ def _make_generated_spec(task: str) -> dict[str, Any]:
 
 TASK_SPECS: dict[str, dict[str, Any]] = {
     "tsp_construct": _make_tsp_spec(),
-    "cvrp_aco": _make_aco_spec("cvrp_aco", CVRPACOEvaluation, n_ants=30, n_iterations=100),
+    "cvrp_aco": _make_aco_spec(
+        "cvrp_aco", CVRPACOEvaluation, n_ants=30, n_iterations=100
+    ),
     "op_aco": _make_aco_spec("op_aco", OPACOEvaluation, n_ants=20, n_iterations=50),
     "online_bin_packing": _make_obp_spec(),
 }
@@ -456,16 +521,16 @@ def _run_batch(
 ) -> None:
     methods = {_resolve_method(run_dir) for run_dir in run_dirs}
     if len(methods) != 1:
-        raise ValueError(f"all run directories must belong to one method: {sorted(methods)}")
+        raise ValueError(
+            f"all run directories must belong to one method: {sorted(methods)}"
+        )
     method = next(iter(methods))
     output_dir.mkdir(parents=True, exist_ok=True)
 
     model = "unknown"
     run_records: list[dict[str, Any]] = []
     for run_dir in run_dirs:
-        best, all_samples = pick_best_sample(
-            run_dir, max_sample_order=max_sample_order
-        )
+        best, all_samples = pick_best_sample(run_dir, max_sample_order=max_sample_order)
         program = str(best["program"])
         sample_order = int(best["sample_order"])
         program_path = output_dir / f"{run_dir.name}_sample_{sample_order}_program.py"
@@ -547,7 +612,10 @@ def _run_batch(
             container[key]["n_items"] = n_items
             container[key]["capacity"] = capacity
             container[key]["eval_config"] = _obp_task_kwargs_for_scale(
-                {**get_generated_task_kwargs("online_bin_packing", "eval"), "timeout_seconds": timeout},
+                {
+                    **get_generated_task_kwargs("online_bin_packing", "eval"),
+                    "timeout_seconds": timeout,
+                },
                 n_items,
                 capacity,
             )
@@ -561,21 +629,26 @@ def _run_batch(
                 "workers": workers,
                 "evaluation_mode": "complete_run",
             }
+        elif task in _GENERATED_TASK_EVAL_CLASSES:
+            container[key]["problem_size"] = unit
+            container[key]["eval_config"] = spec["eval_config"](unit, timeout)
         else:
             container[key]["split"] = unit
-            if task in _GENERATED_TASK_EVAL_CLASSES:
-                container[key]["eval_config"] = get_generated_task_kwargs(task, "eval")
-            else:
-                container[key]["metadata"] = (
-                    load_op_instances(unit)[1] if task == "op_aco" else load_cvrp_instances(unit)[1]
-                )
-                container[key]["config"] = {**spec["aco_config"], "workers": workers}
+            container[key]["metadata"] = (
+                load_op_instances(unit)[1]
+                if task == "op_aco"
+                else load_cvrp_instances(unit)[1]
+            )
+            container[key]["config"] = {**spec["aco_config"], "workers": workers}
 
     for unit, key in [(unit, spec["unit_key"](unit)) for unit in units]:
         if task == "online_bin_packing":
             n_items, capacity = unit
             kwargs = _obp_task_kwargs_for_scale(
-                {**get_generated_task_kwargs("online_bin_packing", "eval"), "timeout_seconds": timeout},
+                {
+                    **get_generated_task_kwargs("online_bin_packing", "eval"),
+                    "timeout_seconds": timeout,
+                },
                 n_items,
                 capacity,
             )
@@ -602,8 +675,14 @@ def _run_batch(
         payload["eval_timeout_seconds"] = timeout
         payload["max_sample_order"] = max_sample_order
         payload["split_configs"] = {
-            "train": {**get_generated_task_kwargs("online_bin_packing", "train"), "timeout_seconds": timeout},
-            "eval_base": {**get_generated_task_kwargs("online_bin_packing", "eval"), "timeout_seconds": timeout},
+            "train": {
+                **get_generated_task_kwargs("online_bin_packing", "train"),
+                "timeout_seconds": timeout,
+            },
+            "eval_base": {
+                **get_generated_task_kwargs("online_bin_packing", "eval"),
+                "timeout_seconds": timeout,
+            },
         }
         payload["eval_results_by_scale"] = container
         train_scores = [float(row["train_recomputed_score"]) for row in run_records]
@@ -612,11 +691,16 @@ def _run_batch(
             "mean_train_recomputed_score": _mean_std(train_scores)["mean"],
             "sample_std_train_recomputed_score": _mean_std(train_scores)["sample_std"],
         }
+    elif task == "vrptw_construct":
+        payload["problem_sizes"] = units
+        payload["results_by_size"] = container
     else:
         payload["results_by_split"] = container
 
     output_path = output_dir / "results.json"
-    output_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    output_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     print(json.dumps(payload, indent=2, sort_keys=True))
 
 
@@ -650,12 +734,31 @@ def _print_single_run(
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("run_dirs", nargs="+", help="finished run directories")
-    ap.add_argument("--task", choices=sorted(TASK_SPECS), default=None, help="default: derive from run_config.json")
-    ap.add_argument("--units", default=None, help="per-task unit list; default per task")
-    ap.add_argument("--timeout", type=int, default=TSP_DEFAULT_TIMEOUT, help="timeout per unit in seconds (tsp/obp)")
+    ap.add_argument(
+        "--task",
+        choices=sorted(TASK_SPECS),
+        default=None,
+        help="default: derive from run_config.json",
+    )
+    ap.add_argument(
+        "--units", default=None, help="per-task unit list; default per task"
+    )
+    ap.add_argument(
+        "--timeout",
+        type=int,
+        default=TSP_DEFAULT_TIMEOUT,
+        help="timeout per unit in seconds",
+    )
     ap.add_argument("--workers", type=int, default=ACO_DEFAULT_WORKERS)
-    ap.add_argument("--sample-order", type=int, default=None, help="single-run print mode only")
-    ap.add_argument("--max-sample-order", type=int, default=None, help="only consider candidates up to this search evaluation (obp)")
+    ap.add_argument(
+        "--sample-order", type=int, default=None, help="single-run print mode only"
+    )
+    ap.add_argument(
+        "--max-sample-order",
+        type=int,
+        default=None,
+        help="only consider candidates up to this search evaluation (obp)",
+    )
     ap.add_argument("--output-dir", type=Path, default=None)
     args = ap.parse_args()
 
@@ -669,25 +772,48 @@ def main() -> None:
     if args.task is not None:
         tasks.add(args.task)
     if len(tasks) != 1:
-        raise ValueError(f"cannot derive one task from run dirs {sorted(tasks)}; pass --task explicitly")
+        raise ValueError(
+            f"cannot derive one task from run dirs {sorted(tasks)}; pass --task explicitly"
+        )
     task = next(iter(tasks))
     spec = TASK_SPECS[task]
-    units = spec["parse_units"](args.units) if args.units is not None else list(spec["default_units"])
+    units = (
+        spec["parse_units"](args.units)
+        if args.units is not None
+        else list(spec["default_units"])
+    )
 
     if args.output_dir is not None:
         if args.sample_order is not None:
-            raise ValueError("--sample-order is only supported in single-run print mode")
+            raise ValueError(
+                "--sample-order is only supported in single-run print mode"
+            )
         output_dir = args.output_dir
         if not output_dir.is_absolute():
             output_dir = PROJECT_ROOT / output_dir
-        _run_batch(task, spec, run_dirs, output_dir, units, args.timeout, args.workers, args.max_sample_order)
+        _run_batch(
+            task,
+            spec,
+            run_dirs,
+            output_dir,
+            units,
+            args.timeout,
+            args.workers,
+            args.max_sample_order,
+        )
         return
 
     if not spec["print_mode"]:
-        raise ValueError("print mode is only supported for tsp_construct; use --output-dir for batch")
+        raise ValueError(
+            "print mode is only supported for tsp_construct; use --output-dir for batch"
+        )
     if len(run_dirs) != 1:
-        raise ValueError("print mode accepts exactly one run_dir; use --output-dir for batch")
-    _print_single_run(task, spec, run_dirs[0], units, args.timeout, args.workers, args.sample_order)
+        raise ValueError(
+            "print mode accepts exactly one run_dir; use --output-dir for batch"
+        )
+    _print_single_run(
+        task, spec, run_dirs[0], units, args.timeout, args.workers, args.sample_order
+    )
 
 
 if __name__ == "__main__":
