@@ -1,17 +1,16 @@
 """Plot per-task search curves for the TraceAAD version comparison figure.
 
-Methods: TraceAAD V9.7 / V9.14 / V9.15 / V9.16 (VRPTW panel: V9.14 / V9.16).
+Methods: TraceAAD V9.14 / V9.16 / V9.17 / V9.17 FixedCycle (all five panels).
 Each task gets one figure with best-so-far curves (mean + min-max band over
-3 runs). V9.7 reads ``artifacts/candidates.jsonl``; V9.14+ read
-``evaluations.csv``. Every earlier TraceAAD version and the five external
-baselines lost their per-sample histories in the 2026-08-21 cleanup; those
-curves survive only in the git history of the committed figures.
+3 runs); curves read ``evaluations.csv``. Every earlier TraceAAD version and
+the five external baselines lost their per-sample histories in the 2026-08-21
+cleanup; those curves survive only in the git history of the committed
+figures.
 """
 
 from __future__ import annotations
 
 import csv
-import json
 from pathlib import Path
 
 import matplotlib
@@ -32,21 +31,21 @@ TASKS = [
 ]
 
 METHODS = {
-    "TraceAAD V9.7": {
-        "color": "#FF7F0E",
-        "band": "#FCC07E",
-    },
     "TraceAAD V9.14": {
         "color": "#2CA02C",
         "band": "#A8D8A8",
     },
-    "TraceAAD V9.15": {
-        "color": "#9467BD",
-        "band": "#CDB6E0",
-    },
     "TraceAAD V9.16": {
         "color": "#D62728",
         "band": "#E8B4B4",
+    },
+    "TraceAAD V9.17": {
+        "color": "#1F77B4",
+        "band": "#AEC7E8",
+    },
+    "TraceAAD V9.17 FixedCycle": {
+        "color": "#FF7F0E",
+        "band": "#FDD0A2",
     },
 }
 
@@ -55,41 +54,53 @@ BUDGET = 1000
 
 RUN_GLOBS = {
     "tsp_construct": {
-        "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
-        "TraceAAD V9.15": ["traceaad_v9_15/v9_15_*_rep*"],
         "TraceAAD V9.16": ["traceaad_v9_16/v9_16_20260822_151700_*_rep*"],
+        "TraceAAD V9.17": ["traceaad_v9_17/v9_17_20260823_adaptive_*_rep*"],
+        "TraceAAD V9.17 FixedCycle": [
+            "traceaad_v9_17_fixed_cycle/v9_17_fixed_cycle_20260824_paired_*_rep*"
+        ],
     },
     "cvrp_aco": {
-        "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
-        "TraceAAD V9.15": ["traceaad_v9_15/v9_15_*_rep*"],
         "TraceAAD V9.16": ["traceaad_v9_16/v9_16_20260822_151700_*_rep*"],
+        "TraceAAD V9.17": ["traceaad_v9_17/v9_17_20260823_adaptive_*_rep*"],
+        "TraceAAD V9.17 FixedCycle": [
+            "traceaad_v9_17_fixed_cycle/v9_17_fixed_cycle_20260824_paired_*_rep*"
+        ],
     },
     "op_aco": {
-        "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
-        "TraceAAD V9.15": ["traceaad_v9_15/v9_15_*_rep*"],
         "TraceAAD V9.16": ["traceaad_v9_16/v9_16_20260822_151700_*_rep*"],
+        "TraceAAD V9.17": ["traceaad_v9_17/v9_17_20260823_adaptive_*_rep*"],
+        "TraceAAD V9.17 FixedCycle": [
+            "traceaad_v9_17_fixed_cycle/v9_17_fixed_cycle_20260824_paired_*_rep*"
+        ],
     },
     "online_bin_packing": {
-        "TraceAAD V9.7": ["traceaad_v9_7/v9_7_20260814_150927_*_rep*"],
         "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
-        "TraceAAD V9.15": ["traceaad_v9_15/v9_15_*_rep*"],
         "TraceAAD V9.16": ["traceaad_v9_16/v9_16_20260822_151700_*_rep*"],
+        "TraceAAD V9.17": ["traceaad_v9_17/v9_17_20260823_adaptive_*_rep*"],
+        "TraceAAD V9.17 FixedCycle": [
+            "traceaad_v9_17_fixed_cycle/v9_17_fixed_cycle_20260824_paired_*_rep*"
+        ],
     },
     "vrptw_construct": {
         "TraceAAD V9.14": ["traceaad_v9_14/tm_20260821_vrptw_traceaad_v9_14_rep*"],
         "TraceAAD V9.16": ["traceaad_v9_16/v9_16_20260822_151700_*_rep*"],
+        "TraceAAD V9.17": ["traceaad_v9_17/v9_17_20260823_adaptive_*_rep*"],
+        "TraceAAD V9.17 FixedCycle": [
+            "traceaad_v9_17_fixed_cycle/v9_17_fixed_cycle_20260824_paired_*_rep*"
+        ],
     },
 }
 
 # 每个方法的曲线加载器依赖的工件；run 目录必须包含对应文件才计入。
 METHOD_ARTIFACTS = {
-    "TraceAAD V9.7": "artifacts/candidates.jsonl",
     "TraceAAD V9.14": "evaluations.csv",
-    "TraceAAD V9.15": "evaluations.csv",
     "TraceAAD V9.16": "evaluations.csv",
+    "TraceAAD V9.17": "evaluations.csv",
+    "TraceAAD V9.17 FixedCycle": "evaluations.csv",
 }
 
 
@@ -102,19 +113,8 @@ def run_dirs(task: str, method: str) -> list[Path]:
     return sorted(d for d in dirs if (d / artifact).is_file())
 
 
-def _v9_points(run: Path) -> list[tuple[int, float]]:
-    rows = [json.loads(l) for l in (run / "artifacts" / "candidates.jsonl").read_text().splitlines()]
-    pts = []
-    for r in rows:
-        s = r.get("score", r.get("child_fitness"))
-        order = r.get("sample_order", r.get("order"))
-        if r.get("status") == "ok" and isinstance(order, int) and isinstance(s, (int, float)):
-            pts.append((order, float(s)))
-    return pts
-
-
 def _csv_points(run: Path) -> list[tuple[int, float]]:
-    """V9.14+/V9.15 runner: eval_count 为预算轴，fitness 空缺即失败行。"""
+    """eval_count 为预算轴，fitness 空缺即失败行。"""
     pts: list[tuple[int, float]] = []
     with (run / "evaluations.csv").open(encoding="utf-8", newline="") as handle:
         for row in csv.DictReader(handle):
@@ -130,7 +130,7 @@ def _csv_points(run: Path) -> list[tuple[int, float]]:
 
 
 def load_curve(run: Path, method: str) -> np.ndarray:
-    pts = _csv_points(run) if METHOD_ARTIFACTS[method] == "evaluations.csv" else _v9_points(run)
+    pts = _csv_points(run)
     arr = np.full(BUDGET, -np.inf)
     for n, s in pts:
         if 1 <= n <= BUDGET:

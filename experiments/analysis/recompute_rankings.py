@@ -6,8 +6,9 @@
 
 整体同场放入代表性 TraceAAD 与 5 个外部对照。单版本上场为 1 个 TraceAAD
 + 5 个外部对照共 6 方法，用于比较全部内部版本。旧版本（V4–V9.12）的评估
-工件已在 2026-08-21 清理中删除，只重算工件仍存在的版本；VRPTW 单列一段
-（7 方法同场，仅基线与 V9.14/V9.16 跑过该任务）。
+工件已在 2026-08-21 清理中删除，只重算工件仍存在的版本；VRPTW 的
+50/100/200 三个 held-out 规模单列一段（8 方法同场，仅基线与
+V9.14/V9.16/V9.17 跑过该任务）。
 
 CVRP 的 MCTS-AHD 官方结果可通过 `--cvrp-mcts batch1|batch2` 切换：
 batch1 用 20260711/12 批次（test_50/100 取 eval_20260712_all3，test_200 取
@@ -64,21 +65,49 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9.14": ["traceaad_v9_14/eval_best_20260821_v914_complete"],
         "V9.15": ["traceaad_v9_15/eval_best_20260822_v915_complete"],
         "V9.16": ["traceaad_v9_16/eval_best_20260823_v916_complete"],
+        "V9.17": ["traceaad_v9_17/eval_best_20260824_v917_adaptive_complete"],
+        "V9.17 FixedCycle": [
+            "traceaad_v9_17_fixed_cycle/eval_best_20260824_v917_fixed_cycle_complete"
+        ],
     },
     "cvrp_aco": {
-        "MCTS-AHD": ["mcts_ahd/eval_20260712_all3", "mcts_ahd/eval_best_20260804_test200"],
-        "PathWise": ["pathwise/eval_best_20260730", "pathwise/eval_best_20260804_test200"],
+        "MCTS-AHD": [
+            "mcts_ahd/eval_20260712_all3",
+            "mcts_ahd/eval_best_20260804_test200",
+        ],
+        "PathWise": [
+            "pathwise/eval_best_20260730",
+            "pathwise/eval_best_20260804_test200",
+        ],
         "EoH": ["eoh/eval_best_eoh_paper_20260730", "eoh/eval_best_20260804_test200"],
         "ReEvo": ["reevo/eval_best_20260730", "reevo/eval_best_20260804_test200"],
         "CALM": ["calm/eval_best_20260807_183000", "calm/eval_best_20260804_test200"],
-        "V4": ["traceaad_v4/eval_best_20260723_204526", "traceaad_v4/eval_best_20260804_test200"],
-        "V5": ["traceaad_v5/eval_best_20260728_151736", "traceaad_v5/eval_best_20260804_test200"],
-        "V6": ["traceaad_v6/eval_best_20260802_170400", "traceaad_v6/eval_best_20260804_test200"],
-        "V7": ["traceaad_v7/eval_best_20260804_001931", "traceaad_v7/eval_best_20260804_test200"],
+        "V4": [
+            "traceaad_v4/eval_best_20260723_204526",
+            "traceaad_v4/eval_best_20260804_test200",
+        ],
+        "V5": [
+            "traceaad_v5/eval_best_20260728_151736",
+            "traceaad_v5/eval_best_20260804_test200",
+        ],
+        "V6": [
+            "traceaad_v6/eval_best_20260802_170400",
+            "traceaad_v6/eval_best_20260804_test200",
+        ],
+        "V7": [
+            "traceaad_v7/eval_best_20260804_001931",
+            "traceaad_v7/eval_best_20260804_test200",
+        ],
         "V8": ["traceaad_v8/eval_best_20260804_173300"],
         "V8.2": ["traceaad_v8/eval_best_20260804_203128"],
-        "V8.3": ["traceaad_v8_3/eval_best_20260805_final", "traceaad_v8_3/eval_best_20260804_test200"],
-        "V9": ["traceaad_v9/version9/eval_best_20260807_123753", "traceaad_v9/version9/eval_best_20260804_test200"],
+        "V8.3": [
+            "traceaad_v8_3/eval_best_20260805_final",
+            "traceaad_v8_3/eval_best_20260804_test200",
+        ],
+        "V9": [
+            "traceaad_v9/version9/eval_best_20260807_123753",
+            "traceaad_v9/version9/eval_best_20260804_test200",
+        ],
         "V9.6": ["traceaad_v9_6/eval_best_20260812_191011"],
         "V9.7": ["traceaad_v9_7/eval_best_20260815_parentpath"],
         "V9.8": ["traceaad_v9_8/eval_best_20260817_v98_complete"],
@@ -87,6 +116,10 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9.14": ["traceaad_v9_14/eval_best_20260821_v914_complete"],
         "V9.15": ["traceaad_v9_15/eval_best_20260822_v915_complete"],
         "V9.16": ["traceaad_v9_16/eval_best_20260823_v916_complete"],
+        "V9.17": ["traceaad_v9_17/eval_best_20260824_v917_adaptive_complete"],
+        "V9.17 FixedCycle": [
+            "traceaad_v9_17_fixed_cycle/eval_best_20260824_v917_fixed_cycle_complete"
+        ],
     },
     "op_aco": {
         "MCTS-AHD": ["mcts_ahd/eval_best_20260725_104402"],
@@ -110,6 +143,10 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9.14": ["traceaad_v9_14/eval_best_20260821_v914_complete"],
         "V9.15": ["traceaad_v9_15/eval_best_20260822_v915_complete"],
         "V9.16": ["traceaad_v9_16/eval_best_20260823_v916_complete"],
+        "V9.17": ["traceaad_v9_17/eval_best_20260824_v917_adaptive_complete"],
+        "V9.17 FixedCycle": [
+            "traceaad_v9_17_fixed_cycle/eval_best_20260824_v917_fixed_cycle_complete"
+        ],
     },
     "online_bin_packing": {
         "MCTS-AHD": ["mcts_ahd/eval_best_20260726_111852"],
@@ -133,23 +170,49 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         "V9.14": ["traceaad_v9_14/eval_best_20260821_v914_complete"],
         "V9.15": ["traceaad_v9_15/eval_best_20260822_v915_complete"],
         "V9.16": ["traceaad_v9_16/eval_best_20260823_v916_complete"],
+        "V9.17": ["traceaad_v9_17/eval_best_20260824_v917_adaptive_complete"],
+        "V9.17 FixedCycle": [
+            "traceaad_v9_17_fixed_cycle/eval_best_20260824_v917_fixed_cycle_complete"
+        ],
     },
 }
 
 VRPTW_ARTIFACTS: dict[str, str] = {
-    "MCTS-AHD": "mcts_ahd/eval_best_20260823_vrptw_complete",
-    "PathWise": "pathwise/eval_best_20260823_vrptw_complete",
-    "EoH": "eoh/eval_best_20260823_vrptw_complete",
-    "ReEvo": "reevo/eval_best_20260823_vrptw_complete",
-    "CALM": "calm/eval_best_20260823_vrptw_complete",
-    "V9.14": "traceaad_v9_14/eval_best_20260823_v914_complete",
-    "V9.16": "traceaad_v9_16/eval_best_20260823_v916_complete",
+    "MCTS-AHD": "mcts_ahd/eval_best_20260824_vrptw_multiscale",
+    "PathWise": "pathwise/eval_best_20260824_vrptw_multiscale",
+    "EoH": "eoh/eval_best_20260824_vrptw_multiscale",
+    "ReEvo": "reevo/eval_best_20260824_vrptw_multiscale",
+    "CALM": "calm/eval_best_20260824_vrptw_multiscale",
+    "V9.14": "traceaad_v9_14/eval_best_20260824_v914_multiscale",
+    "V9.16": "traceaad_v9_16/eval_best_20260824_v916_multiscale",
+    "V9.17": "traceaad_v9_17/eval_best_20260824_v917_adaptive_complete",
+    "V9.17 FixedCycle": "traceaad_v9_17_fixed_cycle/eval_best_20260824_v917_fixed_cycle_complete",
 }
+VRPTW_SCALES = ("vrptw50", "vrptw100", "vrptw200")
 
 MCTS_CVRP_BATCH2 = "mcts_ahd/eval_best_20260812_cvrp_local"
 
 BASELINES = ["MCTS-AHD", "PathWise", "EoH", "ReEvo", "CALM"]
-TRACEAAD_ALL = ["V4", "V5", "V6", "V7", "V8", "V8.2", "V8.3", "V9", "V9.6", "V9.7", "V9.8", "V9.9", "V9.12", "V9.14", "V9.15", "V9.16"]
+TRACEAAD_ALL = [
+    "V4",
+    "V5",
+    "V6",
+    "V7",
+    "V8",
+    "V8.2",
+    "V8.3",
+    "V9",
+    "V9.6",
+    "V9.7",
+    "V9.8",
+    "V9.9",
+    "V9.12",
+    "V9.14",
+    "V9.15",
+    "V9.16",
+    "V9.17",
+    "V9.17 FixedCycle",
+]
 TRACEAAD_REPRESENTATIVE = ["V8", "V9", "V9.7", "V9.8"]
 FIELD = TRACEAAD_REPRESENTATIVE + BASELINES
 ALL_METHODS = TRACEAAD_ALL + BASELINES
@@ -190,21 +253,32 @@ def load_means(task: str, method: str, cvrp_mcts: str) -> dict[str, float]:
     means = {k: statistics.fmean(v) for k, v in values.items()}
     missing = [k for k in next(t[1] for t in TASKS if t[0] == task) if k not in means]
     if missing:
-        raise ValueError(f"{task}/{method} missing scales {missing}: have {sorted(means)}")
+        raise ValueError(
+            f"{task}/{method} missing scales {missing}: have {sorted(means)}"
+        )
     return means
 
 
-def load_vrptw_means() -> dict[str, float]:
-    """返回 VRPTW test 上 {方法: 3 次运行 eval_objective 均值}。"""
-    values: dict[str, float] = {}
+def load_vrptw_means() -> dict[str, dict[str, float]]:
+    """返回 VRPTW 各规模上 {方法: {规模: eval_objective 均值}}。"""
+    values: dict[str, dict[str, float]] = {}
     for method, rel in VRPTW_ARTIFACTS.items():
         path = REPO / "experiments" / "vrptw_construct" / rel / "results.json"
         payload = json.loads(path.read_text(encoding="utf-8"))
-        block = payload["results_by_split"]["test"]
-        objectives = [float(r["eval_objective"]) for r in block["results"] if "eval_objective" in r]
-        if len(objectives) != 3:
-            raise ValueError(f"vrptw_construct/{method}: expected 3 objectives, found {len(objectives)}")
-        values[method] = statistics.fmean(objectives)
+        container = payload["results_by_size"]
+        values[method] = {}
+        for scale in VRPTW_SCALES:
+            objectives = [
+                float(row["eval_objective"])
+                for row in container[scale]["results"]
+                if "eval_objective" in row
+            ]
+            if len(objectives) != 3:
+                raise ValueError(
+                    f"vrptw_construct/{method}/{scale}: expected 3 objectives, "
+                    f"found {len(objectives)}"
+                )
+            values[method][scale] = statistics.fmean(objectives)
     return values
 
 
@@ -269,14 +343,20 @@ def main() -> None:
     field_avg = {m: rank_sum[m] / n_scales for m in field}
 
     if not args.markdown:
-        print(f"MCTS-AHD CVRP = {args.cvrp_mcts}；{n_scales} 规模 × {len(field)} 方法（代表性同场）\n")
-        print(f"=== 1. 代表性方法同场（{'+'.join(v for v in field if v not in BASELINES)} + 5 外部对照）===")
+        print(
+            f"MCTS-AHD CVRP = {args.cvrp_mcts}；{n_scales} 规模 × {len(field)} 方法（代表性同场）\n"
+        )
+        print(
+            f"=== 1. 代表性方法同场（{'+'.join(v for v in field if v not in BASELINES)} + 5 外部对照）==="
+        )
         for m in sorted(field_avg, key=lambda m: field_avg[m]):
             print(f"  {m:<12s} {field_avg[m]:.3f}")
 
     if not args.markdown:
         print("\n=== 2. 单版本上场（6 方法同场：1 TraceAAD + 5 外部对照）===")
-        print(f"{'版本':<6s} {'平均名次':>8s} {'6方法中':>6s} {'名次差':>7s} {'相对基线优势':>10s}")
+        print(
+            f"{'版本':<6s} {'平均名次':>8s} {'6方法中':>6s} {'名次差':>7s} {'相对基线优势':>10s}"
+        )
     else:
         print("| 版本 | 平均名次 | 六方法中位置 | 相对 MCTS-AHD |")
         print("| --- | ---: | ---: | ---: |")
@@ -306,12 +386,18 @@ def main() -> None:
             )
 
     vrptw = load_vrptw_means()
-    vrptw_rank = average_rank([vrptw[m] for m in VRPTW_ARTIFACTS], -1)
-    print("\n=== 3. VRPTW（7 方法同场，test 均值，越低越好）===")
-    for (m, _), rank in sorted(
-        zip(VRPTW_ARTIFACTS.items(), vrptw_rank), key=lambda pair: pair[1]
-    ):
-        print(f"  {m:<10s} rank {rank:.1f}  {vrptw[m]:.6f}")
+    vrptw_methods = list(VRPTW_ARTIFACTS)
+    vrptw_rank_sum = {method: 0.0 for method in vrptw_methods}
+    print(f"\n=== 3. VRPTW（{len(vrptw_methods)} 方法同场，50/100/200 test 均值，越低越好）===")
+    for scale in VRPTW_SCALES:
+        ranks = average_rank([vrptw[method][scale] for method in vrptw_methods], -1)
+        print(f"  {scale}:")
+        for method, rank in sorted(zip(vrptw_methods, ranks), key=lambda pair: pair[1]):
+            vrptw_rank_sum[method] += rank
+            print(f"    {method:<10s} rank {rank:.1f}  {vrptw[method][scale]:.6f}")
+    print("  三规模平均名次:")
+    for method in sorted(vrptw_methods, key=lambda name: vrptw_rank_sum[name]):
+        print(f"    {method:<10s} {vrptw_rank_sum[method] / len(VRPTW_SCALES):.3f}")
 
 
 if __name__ == "__main__":
