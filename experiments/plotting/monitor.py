@@ -14,7 +14,7 @@ When one version directory holds several batches (e.g. ``traceaad_v9_7``
 holds the 0814 canonical and the qwen38 model-swap batch), tabs carry a batch
 suffix so protocols never merge into one chart. Versions whose runs are all
 finished collapse into an archived group; the default tab is the version
-with unfinished runs.
+with the most runs still in progress.
 
     uv run python -m experiments.plotting.monitor [--port 8765] \
         [--pattern '*/traceaad_v9_9/v9_9_[0-9]*' ...]
@@ -66,7 +66,21 @@ METHOD_LABELS = {
     "shinka_evo": "ShinkaEvo",
 }
 
-# 历史中间版本：结果已凝练进 docs/experiments/归档实验结果.md，
+# Parent-dir remainder after stripping ``traceaad_``.
+DIR_LABELS = {
+    "v9_17_fixed_cycle": "V9.17 FixedCycle",
+    "v9_18_q_atomic": "V9.18 A0",
+    "v9_18_q_opportunity": "V9.18 A1",
+}
+
+MINIMIZE_TASKS = {
+    "tsp_construct",
+    "cvrp_aco",
+    "online_bin_packing",
+    "vrptw_construct",
+}
+
+# 历史中间版本：结果已凝练进 docs/experiments/其他实验/历史版本.md，
 # 不再进入监控面板（连同其子批次，如 V9.5 的两个日期批次）。
 HIDDEN_VERSIONS = {"V9.1", "V9.2", "V9.3", "V9.4", "V9.5", "V9.6"}
 
@@ -126,22 +140,28 @@ class RunState:
         self.run_dir = run_dir
         self.task = run_dir.parent.parent.name
         parent_name = run_dir.parent.name
+        run_name = run_dir.name
         if parent_name.startswith("traceaad_"):
-            # traceaad_v9_8 -> V9.8
-            self.base_version = (
-                parent_name.removeprefix("traceaad_").replace("_", ".").upper()
-            )
+            rest = parent_name.removeprefix("traceaad_")
+            if "bootstrap" in run_name:
+                self.base_version = "V9.18 bootstrap"
+            elif rest in DIR_LABELS:
+                self.base_version = DIR_LABELS[rest]
+            else:
+                self.base_version = rest.replace("_", ".").upper()
         else:
             self.base_version = METHOD_LABELS.get(parent_name, parent_name.upper())
         self.version = self.base_version
         # Batches sharing a version directory get a tab suffix (V9.7·0814);
         # qwen38 is the model-swap batch and keeps its explicit name.
-        if "qwen38" in run_dir.name:
+        if "qwen38" in run_name:
             self.batch = "qwen38"
         else:
-            m = re.search(r"_(\d{8})(?:_|$)", run_dir.name)
+            m = re.search(r"_(\d{8})(?:_|$)", run_name)
             self.batch = m.group(1)[4:] if m else ""
-        self.name = run_dir.name
+        self.name = run_name
+        self._mtime: float | None = None
+        self._frozen = False
         rep = None
         for part in self.name.split("_"):
             if part.startswith("rep") and part[3:].isdigit():
@@ -316,6 +336,10 @@ class RunState:
         return pts, n_evals, best
 
     def poll(self) -> None:
+        mtime = self._artifact_mtime()
+        if self._frozen and mtime is not None and mtime == self._mtime:
+            return
+        self._mtime = mtime
         pts, n_evals, best, mech, n_explore, n_protected = (
             self._poll_evaluations_csv()
         )
@@ -367,6 +391,41 @@ class RunState:
         now = time.time()
         self.samples = [s for s in self.samples if now - s[0] <= RATE_WINDOW_S]
         self.samples.append([now, self.n_evals])
+        if self._finished():
+            self._frozen = True
+
+    def _artifact_mtime(self) -> float | None:
+        for path in (
+            self.run_dir / "evaluations.csv",
+            self.run_dir / "logs" / "summary.json",
+            self.run_dir / "logs" / "run_summary.json",
+        ):
+            try:
+                return path.stat().st_mtime
+            except OSError:
+                continue
+        shards = sorted((self.run_dir / "logs" / "samples").glob("samples_*.json"))
+        if shards:
+            return shards[-1].stat().st_mtime
+        try:
+            return (self.run_dir / "artifacts" / "candidates.jsonl").stat().st_mtime
+        except OSError:
+            return None
+
+    @staticmethod
+    def _step_curve(pts: list[list]) -> list[list]:
+        """Best-so-far as step corners: small enough to send every poll."""
+        out: list[list] = []
+        best = None
+        for count, fitness, status in pts:
+            if status == 0 and fitness is not None and (best is None or fitness > best):
+                if out and out[-1][0] != count:
+                    out.append([count, best])
+                best = fitness
+                out.append([count, best])
+        if best is not None and pts and out[-1][0] != pts[-1][0]:
+            out.append([pts[-1][0], best])
+        return out
 
     def _rate_per_hour(self) -> float | None:
         """Eval rate from recent samples when available, full span otherwise."""
@@ -398,6 +457,18 @@ class RunState:
     def payload(self) -> dict:
         finished = self._finished()
         age = self.last_ts - time.time() if self.last_ts is not None else None
+        sign = -1.0 if self.task in MINIMIZE_TASKS else 1.0
+        curve = [
+            [n, None if b is None else round(sign * b, 6)]
+            for n, b in self._step_curve(self.pts)
+        ]
+        mech = []
+        if self.mech:
+            # Keep ~80 points: first, last, and a stride.
+            stride = max(1, len(self.mech) // 80)
+            mech = self.mech[::stride]
+            if mech[-1] is not self.mech[-1]:
+                mech.append(self.mech[-1])
         return {
             "version": self.version,
             "task": self.task,
@@ -413,9 +484,10 @@ class RunState:
             "last_ts": self.last_ts,
             "n_evals": self.n_evals,
             "rate_per_hour": self._rate_per_hour(),
-            "best": self.best,
-            "pts": self.pts,
-            "mech": self.mech,
+            "best": None if self.best is None else round(sign * self.best, 6),
+            "minimize": self.task in MINIMIZE_TASKS,
+            "curve": curve,
+            "mech": mech,
             "n_explore": self.n_explore,
             "n_protected": self.n_protected,
         }
@@ -577,9 +649,11 @@ function fmtDur(h){
 }
 function yTick(v){const a=Math.abs(v);return a>=1000?(v/1000).toFixed(1)+"k":a>=100?v.toFixed(0):a>=10?v.toFixed(1):v.toFixed(2);}
 function repColor(r){return REP_COLORS[(r-1)%REP_COLORS.length];}
+function curveOf(run){return run.curve||[];}
 
 function versionKey(v){const m=/^V(\d+)\.(\d+)/.exec(v);return m?[+m[1],+m[2]]:[0,0];}
 function cmpVersion(a,b){const ka=versionKey(a),kb=versionKey(b);return ka[0]-kb[0]||ka[1]-kb[1]||a.localeCompare(b);}
+function nRunning(rs){return rs.filter(r=>!r.finished&&!r.stalled).length;}
 
 function ratePerHour(run){
   if(run.rate_per_hour!=null)return run.rate_per_hour;
@@ -591,26 +665,12 @@ function etaHours(run){
   const rate=ratePerHour(run),budget=run.budget||BUDGET;
   return rate&&run.n_evals<budget?(budget-run.n_evals)/rate:null;
 }
-function bestSeries(run){
-  const best=[];let b=null;
-  for(const p of run.pts){
-    if(p[2]===0&&p[1]!=null&&(b==null||p[1]>b))b=p[1];
-    best.push(b);
-  }
-  return best;
-}
-// 突破点：best-so-far 序列发生跳变的位置（该次评价刷新了全局最好）
 function breakthroughs(run){
-  const b=bestSeries(run);const out=[];let prev=null;
-  b.forEach((v,i)=>{
-    if(v==null)return;
-    if(prev===null||v!==prev){out.push({x:run.pts[i][0],v});prev=v;}
-  });
-  return out;
-}
-function pct5(sorted){
-  const pos=(sorted.length-1)*.05,i=Math.floor(pos),j=Math.ceil(pos);
-  return i===j?sorted[i]:sorted[i]+(sorted[j]-sorted[i])*(pos-i);
+  const c=curveOf(run);const out=[];
+  for(let i=1;i<c.length;i++){
+    if(c[i][1]!==c[i-1][1]) out.push({x:c[i][0],v:c[i][1]});
+  }
+  return out.length<=8?out:out.slice(0,1).concat(out.slice(-7));
 }
 function niceStep(raw){
   const p=Math.pow(10,Math.floor(Math.log10(raw)));
@@ -650,13 +710,14 @@ function taskCard(task,runs){
       <td>${eta}</td></tr>`;
   }).join("");
   const byRep=new Map(runs.map(r=>[r.rep,r]));
+  const arrow=runs[0]&&runs[0].minimize?"↓":"↑";
   const legend=[...byRep.keys()].sort((a,b)=>a-b).map(rep=>{
     const r=byRep.get(rep);
     return `<span><i style="background:${repColor(rep)}"></i>rep${rep} · best ${fmt(r.best)} · 突破 ${breakthroughs(r).length} 次</span>`;
   }).join("");
   return `<section class="task">
     <h2>${esc(TASK_LABEL[task]||task)}<span class="tag">${fin}/${runs.length} 完成</span></h2>
-    <table><tr><th>运行</th><th>状态</th><th></th><th>评价</th><th>best</th>${hasMech?"<th>Exp%</th><th>保护</th>":""}<th>剩余 / 用时</th></tr>${rows}</table>
+    <table><tr><th>运行</th><th>状态</th><th></th><th>评价</th><th>best ${arrow}</th>${hasMech?"<th>Exp%</th><th>保护</th>":""}<th>剩余 / 用时</th></tr>${rows}</table>
     <div class="legend">${legend}</div>
     <div class="chart">${overlayChart(runs)}</div>
     ${hasMech?`<div class="legend"><span><i style="background:#98a1b6"></i>p_E 探索率（0.20 基线 → 0.50 上限）</span><span>圆点 = 受保护 Explore 子节点被选中</span></div><div class="chart">${mechChart(runs)}</div>`:""}
@@ -698,14 +759,16 @@ function mechChart(runs){
 
 function overlayChart(runs){
   const w=1160,h=320,padL=64,padR=20,padT=14,padB=32;
-  const series=runs.map(r=>({r,b:bestSeries(r)}));
-  const all=[];
-  for(const {b} of series)for(const v of b)if(v!=null)all.push(v);
-  if(!all.length)return `<div class="hint">尚无有效评价</div>`;
-  all.sort((x,y)=>x-y);
-  // 与 plot_search_curves 相同的下界裁剪：warmup 首评可能差一个量级
-  let lo=pct5(all),hi=all[all.length-1];
-  const pad=Math.max((hi-lo)*.07,.1);lo-=pad;hi+=pad;
+  const series=runs.map(r=>({r,c:curveOf(r)}));
+  const late=[];
+  for(const {c} of series)for(const [n,v] of c)if(v!=null&&n>=20)late.push(v);
+  if(!late.length){
+    for(const {c} of series)for(const p of c)if(p[1]!=null)late.push(p[1]);
+  }
+  if(!late.length)return `<div class="hint">尚无有效评价</div>`;
+  late.sort((x,y)=>x-y);
+  let lo=late[0],hi=late[late.length-1];
+  const pad=Math.max((hi-lo)*.08,.1);lo-=pad;hi+=pad;
   const iw=w-padL-padR,ih=h-padT-padB;
   const sx=v=>padL+Math.min(v,BUDGET)/BUDGET*iw;
   const sy=v=>padT+(1-Math.max(0,Math.min(1,(v-lo)/(hi-lo))))*ih;
@@ -720,17 +783,16 @@ function overlayChart(runs){
     g+=`<line x1="${sx(t)}" y1="${padT}" x2="${sx(t)}" y2="${padT+ih}" stroke="#f1f3f9"/>`+
        `<text x="${sx(t)}" y="${h-6}" text-anchor="middle">${t}</text>`;
   }
-  for(const {r,b} of series){
+  for(const {r,c} of series){
     const color=repColor(r.rep);
     let d="",last=null,started=false;
-    r.pts.forEach((p,i)=>{
-      if(b[i]==null)return;
-      const x=sx(Math.min(p[0],BUDGET)).toFixed(1),y=sy(b[i]).toFixed(1);
+    for(const [n,v] of c){
+      if(v==null)continue;
+      const x=sx(Math.min(n,BUDGET)).toFixed(1),y=sy(v).toFixed(1);
       d+=(started?"L":"M")+x+","+y;started=true;last=[x,y];
-    });
+    }
     g+=`<path d="${d}" fill="none" stroke="${color}" stroke-width="7" stroke-opacity="0"><title>rep${r.rep} · best ${fmt(r.best)} · ${r.n_evals} evals</title></path>`;
     g+=`<path d="${d}" fill="none" stroke="${color}" stroke-width="1.9" stroke-linejoin="round"/>`;
-    // 突破点：空心圆标记该 rep 每一次刷新全局最好
     for(const bt of breakthroughs(r)){
       const x=sx(Math.min(bt.x,BUDGET)).toFixed(1),y=sy(bt.v).toFixed(1);
       g+=`<circle cx="${x}" cy="${y}" r="3.4" fill="#fff" stroke="${color}" stroke-width="1.7"><title>rep${r.rep} 突破 · eval ${bt.x} · ${fmt(bt.v)}</title></circle>`;
@@ -752,20 +814,19 @@ function render(state){
     document.getElementById("tasks").innerHTML="";
     return;
   }
-  // 活跃 = 存在未完成且未停滞的 run；早已停止的旧批次（如 V9.5 的
-  // 10/12）不再占据活跃分组，自动落入归档。
-  const active=versions.filter(v=>byVersion[v].some(r=>!r.finished&&!r.stalled));
+  const active=versions.filter(v=>nRunning(byVersion[v])>0)
+    .sort((a,b)=>nRunning(byVersion[b])-nRunning(byVersion[a])||cmpVersion(a,b));
   const archived=versions.filter(v=>!active.includes(v));
   if(!activeVersion||!byVersion[activeVersion]){
-    activeVersion=active.length?active[active.length-1]:versions[versions.length-1];
+    activeVersion=active.length?active[0]:versions[versions.length-1];
   }
 
   let tabs=active.map(v=>{
-    const rs=byVersion[v],fin=rs.filter(r=>r.finished).length,run=rs.length-fin;
-    return `<button class="chip ${v===activeVersion?"active":""}" onclick="setVersion('${v}')">${esc(v)}<b>${run?`运行 ${run}`:`<span class="fin">${fin}/${rs.length}</span>`}</b></button>`;
+    const rs=byVersion[v],run=nRunning(rs);
+    return `<button class="chip ${v===activeVersion?"active":""}" onclick="setVersion('${v}')">${esc(v)}<b>运行 ${run}</b></button>`;
   }).join("");
   if(archived.length){
-    tabs+=`<span class="divider"></span><details class="arch" ${active.some(v=>archived.includes(v))?"":""}><summary>已归档版本 · ${archived.length}</summary>`+
+    tabs+=`<span class="divider"></span><details class="arch"><summary>已归档 · ${archived.length}</summary>`+
       archived.map(v=>{
         const rs=byVersion[v],fin=rs.filter(r=>r.finished).length;
         return `<button class="chip ${v===activeVersion?"active":""}" onclick="setVersion('${v}')">${esc(v)}<b><span class="fin">${fin}/${rs.length}</span></b></button>`;
@@ -842,7 +903,9 @@ def make_handler(cache: dict) -> type[BaseHTTPRequestHandler]:
                 payload = cache["payload"]
                 if payload is None:  # first poll still running
                     payload = {"updated": time.time(), "budget": 1000, "runs": []}
-                body = json.dumps(payload).encode("utf-8")
+                body = cache.get("body")
+                if body is None:
+                    body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Cache-Control", "no-store")
@@ -881,21 +944,29 @@ def main() -> None:
     args = parser.parse_args()
 
     monitor = Monitor(tuple(args.patterns or ()) or DEFAULT_PATTERNS)
-    cache: dict = {"payload": None}
+    cache: dict = {"payload": None, "body": None}
+
+    def store(payload: dict) -> None:
+        cache["payload"] = payload
+        cache["body"] = json.dumps(payload, separators=(",", ":")).encode("utf-8")
 
     def poll_forever() -> None:
         while True:
             started = time.time()
             try:
-                cache["payload"] = monitor.payload()
+                store(monitor.payload())
             except Exception as exc:  # keep serving the last good payload
                 print("poll failed:", exc, flush=True)
             time.sleep(max(1.0, POLL_INTERVAL_S - (time.time() - started)))
 
+    print("scanning runs…", flush=True)
+    store(monitor.payload())
     threading.Thread(target=poll_forever, daemon=True).start()
     server = ThreadingHTTPServer((args.host, args.port), make_handler(cache))
     print(
-        f"serving http://{args.host}:{args.port}  patterns:",
+        f"serving http://{args.host}:{args.port}  "
+        f"{len(cache['payload']['runs'])} runs  "
+        f"{len(cache['body'])/1e3:.0f} KB  patterns:",
         *[f"experiments/{p}" for p in monitor.patterns],
         flush=True,
     )

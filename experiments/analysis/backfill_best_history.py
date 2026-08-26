@@ -154,7 +154,13 @@ def main() -> None:
     report: list[tuple[str, str, str]] = []
     for task_dir in sorted(REPO.joinpath("experiments").iterdir()):
         if not task_dir.is_dir() or task_dir.name in {
-            "analysis", "plotting", "runners", "_logs", "generation_probe"
+            "analysis",
+            "plotting",
+            "runners",
+            "_logs",
+            "generation_probe",
+            "其他实验",
+            "机制实验",
         }:
             continue
         for method_dir in sorted(task_dir.iterdir()):

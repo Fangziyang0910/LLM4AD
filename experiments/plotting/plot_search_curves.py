@@ -1,244 +1,201 @@
-"""Plot per-task search curves for the TraceAAD version comparison figure.
+"""Five-task search curves: TraceAAD V9.16 vs five baselines (one figure).
 
-Methods: TraceAAD V9.14 / V9.16 / V9.17 / V9.17 FixedCycle (all five panels).
-Each task gets one figure with best-so-far curves (mean + min-max band over
-3 runs); curves read ``evaluations.csv``. Every earlier TraceAAD version and
-the five external baselines lost their per-sample histories in the 2026-08-21
-cleanup; those curves survive only in the git history of the committed
-figures.
+Baselines on TSP/CVRP/OP/OBP read the 20260824_rerun batch; VRPTW reads the
+original 20260822 runs. Curves are the mean of three runs, native metric.
 """
 
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
 
 import matplotlib
-import numpy as np
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
+BUDGET = 1000
+OUT = ROOT / "docs" / "experiments" / "主实验" / "figures"
 
 TASKS = [
-    "tsp_construct",
-    "cvrp_aco",
-    "op_aco",
-    "online_bin_packing",
-    "vrptw_construct",
+    ("tsp_construct", "tsp", "(a) TSP", "Tour length", False),
+    ("cvrp_aco", "cvrp", "(b) CVRP", "Route length", False),
+    ("op_aco", "op", "(c) OP", "Prize", True),
+    ("online_bin_packing", "obp", "(d) OBP", "Bins", False),
+    ("vrptw_construct", "vrptw", "(e) VRPTW", "Distance", False),
 ]
 
-METHODS = {
-    "TraceAAD V9.14": {
-        "color": "#2CA02C",
-        "band": "#A8D8A8",
-    },
-    "TraceAAD V9.16": {
-        "color": "#D62728",
-        "band": "#E8B4B4",
-    },
-    "TraceAAD V9.17": {
-        "color": "#1F77B4",
-        "band": "#AEC7E8",
-    },
-    "TraceAAD V9.17 FixedCycle": {
-        "color": "#FF7F0E",
-        "band": "#FDD0A2",
-    },
-}
-
-BUDGET = 1000
-
-
-RUN_GLOBS = {
-    "tsp_construct": {
-        "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
-        "TraceAAD V9.16": ["traceaad_v9_16/v9_16_20260822_151700_*_rep*"],
-        "TraceAAD V9.17": ["traceaad_v9_17/v9_17_20260823_adaptive_*_rep*"],
-        "TraceAAD V9.17 FixedCycle": [
-            "traceaad_v9_17_fixed_cycle/v9_17_fixed_cycle_20260824_paired_*_rep*"
-        ],
-    },
-    "cvrp_aco": {
-        "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
-        "TraceAAD V9.16": ["traceaad_v9_16/v9_16_20260822_151700_*_rep*"],
-        "TraceAAD V9.17": ["traceaad_v9_17/v9_17_20260823_adaptive_*_rep*"],
-        "TraceAAD V9.17 FixedCycle": [
-            "traceaad_v9_17_fixed_cycle/v9_17_fixed_cycle_20260824_paired_*_rep*"
-        ],
-    },
-    "op_aco": {
-        "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
-        "TraceAAD V9.16": ["traceaad_v9_16/v9_16_20260822_151700_*_rep*"],
-        "TraceAAD V9.17": ["traceaad_v9_17/v9_17_20260823_adaptive_*_rep*"],
-        "TraceAAD V9.17 FixedCycle": [
-            "traceaad_v9_17_fixed_cycle/v9_17_fixed_cycle_20260824_paired_*_rep*"
-        ],
-    },
-    "online_bin_packing": {
-        "TraceAAD V9.14": ["traceaad_v9_14/v9_14_20260821_001824_*_rep*"],
-        "TraceAAD V9.16": ["traceaad_v9_16/v9_16_20260822_151700_*_rep*"],
-        "TraceAAD V9.17": ["traceaad_v9_17/v9_17_20260823_adaptive_*_rep*"],
-        "TraceAAD V9.17 FixedCycle": [
-            "traceaad_v9_17_fixed_cycle/v9_17_fixed_cycle_20260824_paired_*_rep*"
-        ],
-    },
-    "vrptw_construct": {
-        "TraceAAD V9.14": ["traceaad_v9_14/tm_20260821_vrptw_traceaad_v9_14_rep*"],
-        "TraceAAD V9.16": ["traceaad_v9_16/v9_16_20260822_151700_*_rep*"],
-        "TraceAAD V9.17": ["traceaad_v9_17/v9_17_20260823_adaptive_*_rep*"],
-        "TraceAAD V9.17 FixedCycle": [
-            "traceaad_v9_17_fixed_cycle/v9_17_fixed_cycle_20260824_paired_*_rep*"
-        ],
-    },
-}
-
-# 每个方法的曲线加载器依赖的工件；run 目录必须包含对应文件才计入。
-METHOD_ARTIFACTS = {
-    "TraceAAD V9.14": "evaluations.csv",
-    "TraceAAD V9.16": "evaluations.csv",
-    "TraceAAD V9.17": "evaluations.csv",
-    "TraceAAD V9.17 FixedCycle": "evaluations.csv",
+# Okabe–Ito; TraceAAD in vermillion and drawn on top.
+METHODS = [
+    ("TraceAAD V9.16", "#D55E00", "-"),
+    ("EoH", "#0072B2", (0, (4, 1.4))),
+    ("ReEvo", "#E69F00", (0, (1, 0.8))),
+    ("MCTS-AHD", "#009E73", (0, (2.2, 1.1))),
+    ("PathWise", "#CC79A7", (0, (4, 1.2, 1, 1.2))),
+    ("CALM", "#56B4E9", (0, (4, 1.2, 1, 1.2, 1, 1.2))),
+]
+DIRNAME = {
+    "EoH": "eoh",
+    "ReEvo": "reevo",
+    "MCTS-AHD": "mcts_ahd",
+    "PathWise": "pathwise",
+    "CALM": "calm",
 }
 
 
-def run_dirs(task: str, method: str) -> list[Path]:
-    td = ROOT / "experiments" / task
-    dirs: list[Path] = []
-    for pattern in RUN_GLOBS[task][method]:
-        dirs.extend(td.glob(pattern))
-    artifact = METHOD_ARTIFACTS[method]
-    return sorted(d for d in dirs if (d / artifact).is_file())
-
-
-def _csv_points(run: Path) -> list[tuple[int, float]]:
-    """eval_count 为预算轴，fitness 空缺即失败行。"""
-    pts: list[tuple[int, float]] = []
-    with (run / "evaluations.csv").open(encoding="utf-8", newline="") as handle:
-        for row in csv.DictReader(handle):
-            order = row.get("eval_count")
-            score = row.get("fitness")
-            if order is None or score in (None, ""):
-                continue
-            try:
-                pts.append((int(order), float(score)))
-            except ValueError:
-                continue
-    return pts
-
-
-def load_curve(run: Path, method: str) -> np.ndarray:
-    pts = _csv_points(run)
+def to_curve(pts: list[tuple[int, float]]) -> np.ndarray:
     arr = np.full(BUDGET, -np.inf)
     for n, s in pts:
         if 1 <= n <= BUDGET:
             arr[n - 1] = max(arr[n - 1], s)
     curve = np.maximum.accumulate(arr)
-    finite = np.isfinite(curve)
-    if finite.any():
-        idx = np.where(finite)[0]
-        curve[: idx[0]] = curve[idx[0]]
-        curve[idx[-1] + 1 :] = curve[idx[-1]]
+    ok = np.isfinite(curve)
+    if ok.any():
+        i = np.where(ok)[0]
+        curve[i[-1] + 1 :] = curve[i[-1]]
+        curve[: i[0]] = np.nan
     return curve
 
 
-def plot_task(task: str) -> Path:
-    out = ROOT / "docs" / "experiments" / "figures"
-    out.mkdir(parents=True, exist_ok=True)
+def from_csv(run: Path) -> list[tuple[int, float]]:
+    pts = []
+    with (run / "evaluations.csv").open(newline="") as f:
+        for row in csv.DictReader(f):
+            n, s = row.get("eval_count"), row.get("fitness")
+            if n and s:
+                pts.append((int(n), float(s)))
+    return pts
 
-    fig, ax = plt.subplots(figsize=(6.75, 3.95))
-    handles = []
-    all_values = []
-    task_methods = [name for name in METHODS if name in RUN_GLOBS[task]]
-    for name in task_methods:
-        cfg = METHODS[name]
-        runs = run_dirs(task, name)
-        if not runs:
-            raise SystemExit(
-                f"{task}/{name}: no runs with {METHOD_ARTIFACTS[name]} under "
-                f"{RUN_GLOBS[task][name]}; refusing to write a figure that "
-                "silently drops a method"
-            )
-        curves = np.vstack([load_curve(r, name) for r in runs])
-        x = np.arange(1, BUDGET + 1)
-        all_values.append(curves[np.isfinite(curves)])
-        ax.fill_between(
-            x,
-            np.nanmin(curves, axis=0),
-            np.nanmax(curves, axis=0),
-            step="post",
-            color=cfg["band"],
-            alpha=0.3,
-            linewidth=0,
-        )
-        (line,) = ax.plot(
-            x,
-            np.nanmean(curves, axis=0),
-            drawstyle="steps-post",
-            color=cfg["color"],
-            linewidth=2.0,
-            label=name,
-        )
-        handles.append(line)
 
-    handles.append(
-        Patch(
-            facecolor="#999999",
-            edgecolor="none",
-            alpha=0.3,
-            label="Min–max range across three runs",
-        )
-    )
-    values = np.concatenate(all_values)
-    y_min = float(np.percentile(values, 5))
-    padding = max((float(values.max()) - y_min) * 0.08, 0.2)
-    ax.set(
-        xlim=(0, BUDGET),
-        ylim=(y_min - padding * 0.2, float(values.max()) + padding),
-        xlabel="Evaluations",
-        ylabel="Best-so-far score (higher is better)",
-    )
-    ax.grid(alpha=0.2)
-    fig.subplots_adjust(left=0.12, right=0.99, top=0.97, bottom=0.24)
-    fig.legend(
-        handles=handles,
-        frameon=False,
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.015),
-        ncol=min(4, len(task_methods)),
-        fontsize=8.0,
-        handlelength=2.6,
-        handletextpad=0.6,
-        columnspacing=1.3,
-        labelspacing=0.45,
-    )
-    png = out / f"{task}.png"
-    fig.savefig(png, dpi=300, bbox_inches="tight")
-    plt.close(fig)
-    return png
+def from_samples(run: Path) -> list[tuple[int, float]]:
+    pts = []
+    for f in sorted((run / "logs" / "samples").glob("samples_*.json")):
+        for rec in json.loads(f.read_text()):
+            n, s = rec.get("sample_order"), rec.get("score")
+            if isinstance(n, int) and isinstance(s, (int, float)):
+                pts.append((n, float(s)))
+    return pts
+
+
+def from_calm(run: Path) -> list[tuple[int, float]]:
+    pts = []
+    for line in (run / "logs" / "method_events.jsonl").read_text().splitlines():
+        ev = json.loads(line)
+        if ev.get("event") != "epoch":
+            continue
+        n, s = ev.get("sample_count"), ev.get("best_perf")
+        if isinstance(n, int) and isinstance(s, (int, float)):
+            pts.append((n, float(s)))
+    return pts
+
+
+def run_dirs(task: str, short: str, name: str) -> list[Path]:
+    if name.startswith("TraceAAD"):
+        base = ROOT / "experiments" / task
+        pattern = "traceaad_v9_16/v9_16_20260822_151700_*_rep*"
+    elif task == "vrptw_construct":
+        base = ROOT / "experiments" / task
+        m = DIRNAME[name]
+        pattern = f"{m}/20260822_142500_vrptw_{m}_rep*"
+    else:
+        base = ROOT / "experiments" / "其他实验" / "基线重跑-20260824" / task
+        m = DIRNAME[name]
+        pattern = f"{m}/20260824_rerun_{short}_{m}_rep*"
+    dirs = sorted(p for p in base.glob(pattern) if p.is_dir())
+    if len(dirs) != 3:
+        raise SystemExit(f"{task}/{name}: expected 3 runs, got {len(dirs)} for {pattern}")
+    return dirs
+
+
+def mean_curve(task: str, short: str, name: str) -> np.ndarray:
+    curves = []
+    for run in run_dirs(task, short, name):
+        if name.startswith("TraceAAD"):
+            pts = from_csv(run)
+        elif name == "CALM":
+            pts = from_calm(run)
+        else:
+            pts = from_samples(run)
+        if not pts:
+            raise SystemExit(f"no points in {run}")
+        curves.append(to_curve(pts))
+    stacked = np.vstack(curves)
+    count = np.isfinite(stacked).sum(axis=0)
+    out = np.full(BUDGET, np.nan)
+    ok = count > 0
+    out[ok] = np.nansum(stacked[:, ok], axis=0) / count[ok]
+    return out
 
 
 def main() -> None:
-    import argparse
-
-    ap = argparse.ArgumentParser()
-    ap.add_argument("tasks", nargs="*", default=list(TASKS), help="subset of tasks to plot")
-    args = ap.parse_args()
     plt.rcParams.update(
         {
             "font.family": "serif",
-            "font.serif": ["Times New Roman", "DejaVu Serif"],
-            "font.size": 10,
-            "axes.spines.top": False,
-            "axes.spines.right": False,
+            "font.serif": ["Times New Roman", "Nimbus Roman", "DejaVu Serif"],
+            "font.size": 8,
+            "axes.labelsize": 8,
+            "axes.titlesize": 9,
+            "legend.fontsize": 7.5,
+            "axes.linewidth": 0.6,
+            "xtick.major.width": 0.6,
+            "ytick.major.width": 0.6,
+            "pdf.fonttype": 42,
+            "ps.fonttype": 42,
         }
     )
-    for task in args.tasks:
-        if task not in TASKS:
-            raise SystemExit(f"unknown task {task}")
-        print("wrote", plot_task(task))
+    fig, axes = plt.subplots(2, 3, figsize=(7.0, 4.35))
+    x = np.arange(1, BUDGET + 1)
+    for ax, (task, short, title, ylabel, maximize) in zip(axes.ravel(), TASKS):
+        sign = 1.0 if maximize else -1.0
+        ys = []
+        for name, color, ls in METHODS:
+            y = sign * mean_curve(task, short, name)
+            ys.append(y)
+            ax.plot(
+                x,
+                y,
+                color=color,
+                linestyle=ls,
+                linewidth=2.05 if name.startswith("TraceAAD") else 1.2,
+                zorder=5 if name.startswith("TraceAAD") else 2,
+                label=name if ax is axes[0, 0] else None,
+            )
+        window = np.concatenate([y[19:] for y in ys])
+        window = window[np.isfinite(window)]
+        lo, hi = float(window.min()), float(window.max())
+        pad = max((hi - lo) * 0.08, 1e-3)
+        ax.set_ylim(lo - pad, hi + pad)
+        ax.set_title(title, loc="left", fontweight="bold", pad=3)
+        ax.set_xlim(0, BUDGET)
+        ax.set_ylabel(ylabel)
+        ax.set_xlabel("Evaluations")
+        ax.grid(True, alpha=0.25, linewidth=0.4)
+        ax.tick_params(length=2.5, pad=1.5)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+    axes[1, 2].axis("off")
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    axes[1, 2].legend(
+        handles,
+        labels,
+        loc="center",
+        frameon=False,
+        handlelength=2.4,
+        title="Method",
+        title_fontsize=8,
+    )
+    fig.tight_layout(w_pad=1.1, h_pad=1.0)
+    OUT.mkdir(parents=True, exist_ok=True)
+    png = OUT / "search_curves.png"
+    pdf = OUT / "search_curves.pdf"
+    fig.savefig(png, dpi=300, bbox_inches="tight")
+    fig.savefig(pdf, bbox_inches="tight")
+    plt.close(fig)
+    print("wrote", png)
+    print("wrote", pdf)
 
 
 if __name__ == "__main__":

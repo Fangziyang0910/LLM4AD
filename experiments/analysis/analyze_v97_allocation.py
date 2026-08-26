@@ -382,7 +382,9 @@ def aggregate_runs(runs: Sequence[dict[str, Any]]) -> dict[str, Any]:
 
 def discover_runs(batch: str) -> list[Path]:
     configs = sorted(
-        REPO.glob(f"experiments/*/traceaad_v9_7/*{batch}*/run_config.json")
+        REPO.glob(
+            f"experiments/其他实验/历史版本/*/traceaad_v9_7/*{batch}*/run_config.json"
+        )
     )
     return [path.parent for path in configs]
 

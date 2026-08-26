@@ -60,7 +60,7 @@ def test_backend_usage_deduplicates_forked_evaluator_cmdlines(monkeypatch) -> No
     )
     other = client.replace("run_a", "run_b")
     launcher = (
-        "/repo/.venv/bin/python3 -m experiments.runners.traceaad.launch_v98 "
+        "/repo/.venv/bin/python3 -m experiments.runners.traceaad.launch_v918 "
         "--backend server3 --watch"
     )
     stdout = "\n".join((client, client, client, other, launcher)) + "\n"

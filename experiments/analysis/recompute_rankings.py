@@ -1,8 +1,9 @@
 """从正式测试工件重算跨规模平均名次（代表性同场 / 单版本上场）。
 
 数据源为各任务目录下 `eval_best_*` 的 `results.json`（逐 run 的 eval_objective），
-与 `docs/experiments/实验结果.md` 记录的口径一致。规模共 15 个
-（TSP/CVRP/OP 各 3 + OBP 6），每规模在参与方法内排名，并列取平均名次。
+与 `docs/experiments/主实验/结果.md` 记录的口径一致；历史版本方法（V9.7、
+V9.14、V9.15、V9.17 FixedCycle）的工件在 `其他实验/历史版本/<task>/` 下。
+规模共 15 个（TSP/CVRP/OP 各 3 + OBP 6），每规模在参与方法内排名，并列取平均名次。
 
 整体同场放入代表性 TraceAAD 与 5 个外部对照。单版本上场为 1 个 TraceAAD
 + 5 个外部对照共 6 方法，用于比较全部内部版本。旧版本（V4–V9.12）的评估
@@ -192,6 +193,22 @@ VRPTW_SCALES = ("vrptw50", "vrptw100", "vrptw200")
 
 MCTS_CVRP_BATCH2 = "mcts_ahd/eval_best_20260812_cvrp_local"
 
+# 已归档到 experiments/其他实验/历史版本/<task>/ 下的方法
+HISTORY_METHODS = {
+    "traceaad_v9_7",
+    "traceaad_v9_14",
+    "traceaad_v9_15",
+    "traceaad_v9_17_fixed_cycle",
+}
+
+
+def artifact_dir(task: str, rel: str) -> Path:
+    """rel 形如 "<method>/<eval_dir>"；历史版本方法在 其他实验/历史版本/ 下。"""
+    if rel.split("/", 1)[0] in HISTORY_METHODS:
+        return REPO / "experiments" / "其他实验" / "历史版本" / task / rel
+    return REPO / "experiments" / task / rel
+
+
 BASELINES = ["MCTS-AHD", "PathWise", "EoH", "ReEvo", "CALM"]
 TRACEAAD_ALL = [
     "V4",
@@ -232,7 +249,7 @@ def load_means(task: str, method: str, cvrp_mcts: str) -> dict[str, float]:
     container_key = next(t[3] for t in TASKS if t[0] == task)
     values: dict[str, list[float]] = {}
     for rel in artifacts:
-        path = REPO / "experiments" / task / rel / "results.json"
+        path = artifact_dir(task, rel) / "results.json"
         if not path.exists():
             continue
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -263,7 +280,7 @@ def load_vrptw_means() -> dict[str, dict[str, float]]:
     """返回 VRPTW 各规模上 {方法: {规模: eval_objective 均值}}。"""
     values: dict[str, dict[str, float]] = {}
     for method, rel in VRPTW_ARTIFACTS.items():
-        path = REPO / "experiments" / "vrptw_construct" / rel / "results.json"
+        path = artifact_dir("vrptw_construct", rel) / "results.json"
         payload = json.loads(path.read_text(encoding="utf-8"))
         container = payload["results_by_size"]
         values[method] = {}
@@ -318,7 +335,7 @@ def main() -> None:
     ap.add_argument(
         "--markdown",
         action="store_true",
-        help="以 markdown 表格输出单版本上场排名（供实验结果.md 粘贴）",
+        help="以 markdown 表格输出单版本上场排名（供主实验/结果.md 粘贴）",
     )
     args = ap.parse_args()
 
