@@ -536,7 +536,17 @@ def _run_batch(
         program_path = output_dir / f"{run_dir.name}_sample_{sample_order}_program.py"
         program_path.write_text(program.rstrip() + "\n", encoding="utf-8")
         config = _read_run_config(run_dir)
-        model = config.get("llm", {}).get("model", model)
+        llm_config = config.get("llm")
+        if isinstance(llm_config, dict):
+            configured_model = llm_config.get("model")
+            if isinstance(configured_model, str) and configured_model.strip():
+                model = configured_model
+        if model == "unknown":
+            environment = config.get("generator_environment")
+            if isinstance(environment, dict):
+                logical_model = environment.get("logical_model_name")
+                if isinstance(logical_model, str) and logical_model.strip():
+                    model = logical_model
         record: dict[str, Any] = {
             "run_dir": _relative_to_root(run_dir),
             "run_name": run_dir.name,

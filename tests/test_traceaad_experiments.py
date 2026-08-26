@@ -11,6 +11,7 @@ from llm4ad.method.traceaad_v9_14 import TraceAADV914
 from llm4ad.method.traceaad_v9_15 import TraceAADV915
 from llm4ad.method.traceaad_v9_16 import TraceAADV916
 from llm4ad.method.traceaad_v9_17 import TraceAADV917
+from llm4ad.method.traceaad_v9_18 import TraceAADV918
 
 
 @pytest.mark.parametrize("task", run.TASKS)
@@ -34,6 +35,9 @@ def test_unified_runner_builds_each_task_and_version(
         "v9_16": TraceAADV916,
         "v9_17": TraceAADV917,
         "v9_17_fixed_cycle": TraceAADV917,
+        "v9_18_q_atomic": TraceAADV918,
+        "v9_18_q_opportunity": TraceAADV918,
+        "v9_18_facts": TraceAADV918,
     }[version]
     assert isinstance(method, expected_type)
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
@@ -47,6 +51,13 @@ def test_unified_runner_builds_each_task_and_version(
     if version in {"v9_17", "v9_17_fixed_cycle"}:
         assert method._active_capacity == 8
         assert method._adaptive_sweeps is (version == "v9_17")
+    if version in {"v9_18_q_atomic", "v9_18_q_opportunity", "v9_18_facts"}:
+        assert method._allocation_mode == (
+            "opportunity" if version == "v9_18_q_opportunity" else "q"
+        )
+        assert method._explore_context == (
+            "facts" if version == "v9_18_facts" else "legacy"
+        )
     assert not hasattr(method, "_context_limit")
     assert not hasattr(method, "_operators")
     assert not hasattr(method, "_global_experience")
@@ -74,6 +85,28 @@ def test_runner_writes_one_reproducible_config_per_run(tmp_path: Path) -> None:
     assert payload["method_params"]["budget"] == 17
     assert payload["method_params"]["seed"] == 3
     assert payload["generator_environment"]["sampling_seed"] == 3
+
+
+def test_traceaad_config_records_llm_metadata(tmp_path: Path) -> None:
+    spec = run.make_run_spec(
+        task="tsp_construct",
+        version="v9_18_q_atomic",
+        backend="server3",
+        repeat=2,
+        seed=7,
+        run_name="v9_18_metadata_rep2",
+        experiments_root=tmp_path,
+    )
+    run_dir, run_name, resumed = run.resolve_run_dir(spec)
+    run.write_run_config(spec, run_dir, run_name)
+    payload = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
+
+    assert not resumed
+    assert payload["run_name"] == "v9_18_metadata_rep2"
+    assert payload["backend"] == "server3"
+    assert payload["seed"] == 7
+    assert payload["llm"]["model"] == spec.model
+    assert payload["llm"]["max_tokens"] == 8192
 
 
 def test_v915_config_records_retry_policy(tmp_path: Path) -> None:
@@ -131,6 +164,39 @@ def test_v917_fixed_cycle_config_differs_only_in_scheduler_rule() -> None:
     }
     assert differing == {"development_continuation"}
     assert fixed_params["development_continuation"] == "fixed_cycle_after_full_sweep"
+
+
+def test_v918_initialization_checkpoint_is_allowed(tmp_path: Path) -> None:
+    source = run.make_run_spec(
+        task="tsp_construct",
+        version="v9_18_q_atomic",
+        budget=8,
+        experiments_root=tmp_path,
+    )
+    checkpoint = tmp_path / "initialization" / "latest.json"
+    checkpoint.parent.mkdir()
+    checkpoint.write_text("{}", encoding="utf-8")
+    fork = run.make_run_spec(
+        task="tsp_construct",
+        version="v9_18_q_opportunity",
+        budget=1000,
+        initialization_checkpoint=checkpoint,
+        experiments_root=tmp_path,
+    )
+    assert fork.initialization_checkpoint == checkpoint.resolve()
+    assert source.n_init == fork.n_init == 8
+
+
+def test_seed_paired_artifacts_accepts_checkpoint_under_checkpoints_dir(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    (source / "checkpoints").mkdir(parents=True)
+    (source / "checkpoints" / "latest.json").write_text("{}", encoding="utf-8")
+    (source / "evaluations.csv").write_text("header\n", encoding="utf-8")
+    (source / "mechanism_events.jsonl").write_text("{}\n", encoding="utf-8")
+    target = tmp_path / "target"
+    run._seed_paired_artifacts(source / "checkpoints" / "latest.json", target)
+    assert (target / "evaluations.csv").read_text(encoding="utf-8") == "header\n"
+    assert (target / "mechanism_events.jsonl").is_file()
 
 
 def test_resume_uses_version_specific_checkpoint_source(tmp_path: Path) -> None:

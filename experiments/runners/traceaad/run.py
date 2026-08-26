@@ -61,6 +61,19 @@ from llm4ad.method.traceaad_v9_17 import (
     RunArtifacts as V917RunArtifacts,
     TraceAADV917,
 )
+from llm4ad.method.traceaad_v9_18 import (
+    ESS_FRACTION as V918_ESS_FRACTION,
+    GLOBAL_FACTS_WINDOW as V918_GLOBAL_FACTS_WINDOW,
+    INITIAL_ROOT_COUNT as V918_INITIAL_ROOT_COUNT,
+    MAX_HISTORY_EVENTS as V918_MAX_HISTORY_EVENTS,
+    MIN_ESS_TARGET as V918_MIN_ESS_TARGET,
+    OPPORTUNITY_LAMBDA as V918_OPPORTUNITY_LAMBDA,
+    OPPORTUNITY_TAU as V918_OPPORTUNITY_TAU,
+    REFINE_PROBABILITY as V918_REFINE_PROBABILITY,
+    EXPLORE_PROBABILITY as V918_EXPLORE_PROBABILITY,
+    RunArtifacts as V918RunArtifacts,
+    TraceAADV918,
+)
 
 from .._common import (
     ALL_TASKS,
@@ -70,6 +83,7 @@ from .._common import (
     TaskName,
     build_llm_client,
     build_task,
+    llm_payload,
     resolve_backend,
     resolve_run_dir as resolve_run_dir_file,
     run_in_tmux_log,
@@ -83,6 +97,9 @@ VersionName = Literal[
     "v9_16",
     "v9_17",
     "v9_17_fixed_cycle",
+    "v9_18_q_atomic",
+    "v9_18_q_opportunity",
+    "v9_18_facts",
 ]
 
 VERSIONS: tuple[VersionName, ...] = (
@@ -92,10 +109,18 @@ VERSIONS: tuple[VersionName, ...] = (
     "v9_16",
     "v9_17",
     "v9_17_fixed_cycle",
+    "v9_18_q_atomic",
+    "v9_18_q_opportunity",
+    "v9_18_facts",
 )
 TRACEAAD_V915_VERSIONS = {"v9_15"}
 TRACEAAD_V916_VERSIONS = {"v9_16"}
 TRACEAAD_V917_VERSIONS = {"v9_17", "v9_17_fixed_cycle"}
+TRACEAAD_V918_VERSIONS = {
+    "v9_18_q_atomic",
+    "v9_18_q_opportunity",
+    "v9_18_facts",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,6 +196,8 @@ def make_run_spec(
             if version in TRACEAAD_V915_VERSIONS
             else V916_INITIAL_ROOT_COUNT
             if version in TRACEAAD_V916_VERSIONS
+            else V918_INITIAL_ROOT_COUNT
+            if version in TRACEAAD_V918_VERSIONS
             else V917_INITIAL_ROOT_COUNT
         )
         if n_init is None
@@ -188,6 +215,9 @@ def make_run_spec(
                 "v9_16",
                 "v9_17",
                 "v9_17_fixed_cycle",
+                "v9_18_q_atomic",
+                "v9_18_q_opportunity",
+                "v9_18_facts",
             }
             else 24576
             if context_token_limit is None
@@ -218,6 +248,8 @@ def make_run_spec(
         raise ValueError("TraceAAD V9.16 requires exactly eight initial roots")
     if spec.version in TRACEAAD_V917_VERSIONS and spec.n_init != V917_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.17 requires exactly eight initial roots")
+    if spec.version in TRACEAAD_V918_VERSIONS and spec.n_init != V918_INITIAL_ROOT_COUNT:
+        raise ValueError("TraceAAD V9.18 requires exactly eight initial roots")
     if spec.eval_workers is not None and spec.eval_workers <= 0:
         raise ValueError("eval_workers must be positive")
     if spec.llm_output_tokens <= 0:
@@ -228,12 +260,11 @@ def make_run_spec(
         raise ValueError("run_name cannot be combined with resume_from")
     if spec.resume_from is not None and spec.initialization_checkpoint is not None:
         raise ValueError("resume_from cannot be combined with initialization_checkpoint")
-    if (
-        spec.initialization_checkpoint is not None
-        and spec.version != "v9_17_fixed_cycle"
+    if spec.initialization_checkpoint is not None and spec.version not in (
+        {"v9_17_fixed_cycle"} | TRACEAAD_V918_VERSIONS
     ):
         raise ValueError(
-            "initialization_checkpoint is only valid for V9.17 FixedCycle"
+            "initialization_checkpoint is only valid for V9.17 FixedCycle or V9.18"
         )
     return spec
 
@@ -324,6 +355,29 @@ def build_method(
             adaptive_sweeps=spec.version == "v9_17",
             fork_from_initialization=fork_from_initialization,
         )
+    if spec.version in TRACEAAD_V918_VERSIONS:
+        allocation_mode, explore_context = _v918_modes(spec)
+        method_resume = resume_from
+        fork_from_initialization = False
+        if method_resume is None and spec.initialization_checkpoint is not None:
+            _seed_paired_artifacts(spec.initialization_checkpoint, run_dir)
+            method_resume = spec.initialization_checkpoint
+            fork_from_initialization = True
+        return TraceAADV918(
+            llm=llm,
+            evaluation=evaluation,
+            artifacts=V918RunArtifacts(run_dir=run_dir),
+            budget=spec.budget,
+            n_roots=spec.n_init,
+            max_tokens=spec.llm_output_tokens,
+            max_history=V918_MAX_HISTORY_EVENTS,
+            seed=spec.seed,
+            resume_from=method_resume,
+            checkpoint_dir=run_dir / "checkpoints",
+            allocation_mode=allocation_mode,
+            explore_context=explore_context,
+            fork_from_initialization=fork_from_initialization,
+        )
     raise ValueError(f"unsupported TraceAAD version: {spec.version}")
 
 
@@ -366,6 +420,8 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         expected_method_params = _v916_method_params(spec)
     elif spec.version in TRACEAAD_V917_VERSIONS:
         expected_method_params = _v917_method_params(spec)
+    elif spec.version in TRACEAAD_V918_VERSIONS:
+        expected_method_params = _v918_method_params(spec)
     else:
         expected_method_params = _v915_method_params(spec)
     expected_protocol = {
@@ -404,6 +460,8 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         method_params = _v915_method_params(spec)
     elif spec.version == "v9_16":
         method_params = _v916_method_params(spec)
+    elif spec.version in TRACEAAD_V918_VERSIONS:
+        method_params = _v918_method_params(spec)
     else:
         method_params = _v917_method_params(spec)
     payload = {
@@ -416,6 +474,23 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         "task_eval": task_kwargs,
         "method_params": method_params,
     }
+    # V9.18 artifacts need explicit service metadata for held-out provenance;
+    # retain the established config shape of earlier TraceAAD versions.
+    if spec.version in TRACEAAD_V918_VERSIONS:
+        payload.update(
+            {
+                "run_name": run_name,
+                "backend": spec.backend,
+                "seed": spec.seed,
+                "llm": llm_payload(
+                    base_url=spec.base_url,
+                    model=spec.model,
+                    no_proxy=spec.no_proxy,
+                    max_tokens=spec.llm_output_tokens,
+                    temperature=1.0,
+                ),
+            }
+        )
     payload["generator_environment"] = _versioned_generator_environment(spec)
     if spec.initialization_checkpoint is not None:
         metadata_path = spec.initialization_checkpoint.parent / "complete.json"
@@ -441,6 +516,7 @@ def _versioned_logical_model_name(spec: RunSpec) -> str:
         TRACEAAD_V915_VERSIONS
         | TRACEAAD_V916_VERSIONS
         | TRACEAAD_V917_VERSIONS
+        | TRACEAAD_V918_VERSIONS
     ):
         return "Qwen3.6-27B"
     return V97_LOGICAL_MODEL_NAME
@@ -554,6 +630,46 @@ def _v917_method_params(spec: RunSpec) -> dict[str, object]:
     return params
 
 
+def _v918_modes(spec: RunSpec) -> tuple[str, str]:
+    if spec.version == "v9_18_q_atomic":
+        return "q", "legacy"
+    if spec.version == "v9_18_q_opportunity":
+        return "opportunity", "legacy"
+    if spec.version == "v9_18_facts":
+        return "q", "facts"
+    raise ValueError(f"unsupported V9.18 mode: {spec.version}")
+
+
+def _v918_method_params(spec: RunSpec) -> dict[str, object]:
+    allocation_mode, explore_context = _v918_modes(spec)
+    return {
+        "budget": spec.budget,
+        "n_roots": spec.n_init,
+        "max_history": V918_MAX_HISTORY_EVENTS,
+        "maximize": True,
+        "max_tokens": spec.llm_output_tokens,
+        "seed": spec.seed,
+        "refine_probability": V918_REFINE_PROBABILITY,
+        "explore_probability": V918_EXPLORE_PROBABILITY,
+        "allocation_mode": allocation_mode,
+        "explore_context": explore_context,
+        "opportunity_lambda": V918_OPPORTUNITY_LAMBDA,
+        "opportunity_tau": V918_OPPORTUNITY_TAU,
+        "global_facts_window": V918_GLOBAL_FACTS_WINDOW,
+        "ess_fraction": V918_ESS_FRACTION,
+        "min_ess_target": V918_MIN_ESS_TARGET,
+        "parent_score": (
+            "quality_only"
+            if allocation_mode == "q"
+            else "q_plus_decaying_explore_entry_opportunity"
+        ),
+        "error_handling": True,
+        "error_retries": 2,
+        "retry_policy": "two_bounded_repairs",
+        "retry_budget": "initial_candidates",
+    }
+
+
 def _seed_paired_artifacts(initialization_checkpoint: Path, run_dir: Path) -> None:
     if not initialization_checkpoint.is_file():
         raise FileNotFoundError(
@@ -562,6 +678,10 @@ def _seed_paired_artifacts(initialization_checkpoint: Path, run_dir: Path) -> No
     bundle = initialization_checkpoint.parent
     required = ("evaluations.csv", "mechanism_events.jsonl")
     optional = ("best_program.py",)
+    if not all((bundle / name).is_file() for name in required):
+        parent_bundle = bundle.parent
+        if all((parent_bundle / name).is_file() for name in required):
+            bundle = parent_bundle
     run_dir.mkdir(parents=True, exist_ok=True)
     for name in (*required, *optional):
         source = bundle / name
@@ -613,6 +733,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-name")
     parser.add_argument("--resume-from", type=Path)
     parser.add_argument("--initialization-checkpoint", type=Path)
+    parser.add_argument("--experiments-root", type=Path, default=EXPERIMENTS_ROOT)
     return parser
 
 
@@ -634,6 +755,7 @@ def spec_from_args(args: argparse.Namespace) -> RunSpec:
         run_name=args.run_name,
         resume_from=args.resume_from,
         initialization_checkpoint=args.initialization_checkpoint,
+        experiments_root=args.experiments_root,
     )
 
 
