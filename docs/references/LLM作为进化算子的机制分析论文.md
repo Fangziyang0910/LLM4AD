@@ -43,9 +43,9 @@ Fitness Landscape 显示不同任务和模型形成不同的经验景观；Contr
 
 对 AAD 来说，prompt 不只是自然语言接口，而是实际算子定义的一部分。父代、历史、反馈、温度、输出约束和代码表示一起决定条件生成分布。
 
-### 4. 进化框架的作用是让不稳定单步能力可累积
+### 4. 进化机制与 LLM 生成共同搜索算法函数
 
-Understanding the Importance of Evolutionary Search 表明，直接多次采样与保留—修改—评价的持续循环并不等价。进化框架保存已有成果、筛除无效变化并把后续预算放到部分有效的区域，使偶尔成功的局部变化可以累积。
+Understanding the Importance of Evolutionary Search 表明，直接多次采样与保留—修改—评价的持续循环并不等价。进化机制保存已有函数、筛除无效变化并把后续预算放到部分有效的区域，与 LLM 生成一起构成对算法函数的搜索。
 
 这只能支持“需要持续搜索状态”，不能由此推出复杂种群、树、记忆或信用控制器各自有效。验证新增控制器时仍需固定 LLM、prompt、evaluator 和总预算，与简单 \((1+1)\)、随机父代或等概率基线比较。
 
@@ -63,7 +63,7 @@ SMCEvolve 把 proposal、acceptance 和 resampling 分开，TurboEvolve 把单�
 
 | 论文 | 邻近问题 | 对 AAD 可迁移的认识 | 不宜直接外推之处 |
 | --- | --- | --- | --- |
-| [Large Language Models as Evolutionary Optimizers](../../../papers/Large_Language_Models_as_Evolutionary_Optimizers/) | LLM 直接为组合优化解执行生成／变异 | 检验语言模型能否在无专门训练下承担 solution-level evolutionary operator | 搜索对象是单实例解，不是可复用算法程序 |
+| [Large Language Models as Evolutionary Optimizers](../../../papers/Large_Language_Models_as_Evolutionary_Optimizers/) | LLM 直接为组合优化解执行生成／变异 | 检验语言模型能否在无专门训练下承担 solution-level evolutionary operator | 搜索对象是单实例解，优化目标不是一类问题上的算法函数 |
 | [Large Language Models as Evolution Strategies](../../../papers/Large_Language_Models_as_Evolution_Strategies/) | Transformer 是否能在原理上实现 ES 式黑盒更新 | 说明序列模型能够表示基于历史候选和分数的更新规则 | 合成数值空间和理论构造不能证明真实代码搜索能力 |
 | [Exploring the True Potential: Black-box Optimization Capability of LLMs](../../../papers/Exploring_the_True_Potential_Black-box_Optimization_Capability_of_LLMs/) | LLM 在数值／黑盒优化中怎样利用反馈 | 主要价值可能在初始解先验与多样性，反馈利用能力并不稳定 | 数值点生成与语义代码修改的表示不同 |
 | [Revisiting OPRO](../../../papers/Revisiting_OPRO_Limitations_of_Small-Scale_LLMs_as_Optimizers/) | 小模型作为文本优化器的能力边界 | 优化效果对模型规模、初始提示和随机性敏感，必须与简单搜索基线比较 | 主要研究提示／数值优化，不直接评价算法程序变异 |

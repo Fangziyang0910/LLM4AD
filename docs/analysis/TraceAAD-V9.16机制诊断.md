@@ -19,7 +19,7 @@ V9.17 可以融合两者，但融合对象应是两种行为：**有界的全局
 
 ## 2. 五任务结果事实
 
-正式 held-out 每个单元格均为三次独立运行的均值。TSP、CVRP、OBP 和 VRPTW 越低越好，OP 越高越好。完整数值（搜索集 best 与全部 held-out 规模）见[实验结果](../experiments/实验结果.md)。
+正式 held-out 每个单元格均为三次独立运行的均值。TSP、CVRP、OBP 和 VRPTW 越低越好，OP 越高越好。完整数值（搜索集 best 与全部 held-out 规模）见[实验结果](../experiments/主实验/结果.md)。
 
 ### 2.1 V9.16 相对 V9.7、V9.14 与 V9.15
 

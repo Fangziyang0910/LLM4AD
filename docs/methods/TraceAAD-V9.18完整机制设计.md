@@ -34,35 +34,11 @@ V9.16 landing 状态。
 `Global-Facts-Lite Explore`。联合臂最后才运行，联合结果只支持整体系统
 结论。
 
-## 2. 研究认识的修订
+## 2. 本版本怎么用轨迹
 
-### 2.1 轨迹展示价值与在线机会分开
+来时路继续进入 Refine 提示，帮助当前节点改写。给哪个节点机会时，R0 只多做一件事：新出现的 Explore 节点，在形成之后多几次被重新看见的机会，次数随实际被选而减少。历史累计增益不进分数。不预支连续三步预算。退步本身不加分。
 
-固定锚点和 operator 的展示价值是反事实量：
-
-$$
-V_{show}(a,o)=E[q(x')|x_a,h_a,o]-E[q(x')|x_a,emptyset,o].
-$$
-
-普通搜索只观察一个条件，不能把这个量直接写入在线分数。History-on/off
-固定锚点探针只估计局部条件生成差异，不证明完整搜索收益。
-
-R0 在线使用的量不是 `V_show`，也不是 continuation value，而是一个短暂
-的 `opportunity prior`：新 Explore 入口在形成后多获得几次被重新看到的
-机会，机会随实际选择次数衰减。
-
-### 2.2 历史增益暂不进入 R0 分数
-
-`improve/plateau/regress` 是重要审计事实，但把它们加权为 `F` 再投入
-分配，仍然是历史信用代理，且没有 operator 条件化的未来预测证据。R0
-因此不使用 `F`。后续只有在固定锚点 transition 探针和离线 policy replay
-都显示预测关系后，才单独测试 `F`。
-
-### 2.3 landing 的保留部分
-
-landing 的合理认识是“新结构有时需要再次观察”，不是“命中后承诺连续
-三步”。R0 只保留一次选择后的短暂机会，不锁定后续 operator、child chain
-或固定预算。低质量回撤节点不因回撤幅度变大而获得额外奖励。
+`improve/plateau/regress` 记在档案里。是否把这些结果做成在线加分，留给以后单独试。
 
 ## 3. 状态和尺度
 
@@ -173,7 +149,7 @@ Return the best valid program by the true objective.
 
 ## 7. 实验识别顺序
 
-详细执行表见[TraceAAD V9.18-R0 实验协议](../experiments/TraceAAD-V9.18-R0实验协议.md)。
+详细执行表见[TraceAAD V9.18-R0 实验协议](../experiments/机制实验/2026-08-25-V9.18-R0机会评分/协议.md)。
 
 1. **实现与固定锚点探针**：验证 History-on/off 和 Global-Facts-Lite 的
    prompt 差异、有效率、单步 `Delta q`、修改幅度、prompt hash 和 token
@@ -186,8 +162,7 @@ Return the best valid program by the true objective.
 4. **联合版本**：只有评分和算子各自通过过程激活与质量门槛后，才运行
    `q+O-atomic + Global-Facts-Lite`。
 
-所有完整搜索使用 1000 primary slots、三次独立重复和完整同规模
-held-out。搜索 best、100/250/500/750/1000 best-at-budget、held-out、
+所有完整搜索使用 1000 primary slots、三次独立重复和测试集。搜索 best、100/250/500/750/1000 best-at-budget、测试集、
 有效率、timeout、repair、duplicate、prompt/response 成本分开报告。
 
 ## 8. 判定标准
@@ -213,11 +188,6 @@ held-out。搜索 best、100/250/500/750/1000 best-at-budget、held-out、
 
 这些机制不与 R0 同时扫描。
 
-## 10. 主张边界
+## 10. 本版本检验什么
 
-V9.18-R0 只验证：**质量主导的原子分配是否可以给新 Explore 入口一个
-短暂、可衰减且不承诺连续预算的再选择机会，以及极短真实全局事实是否
-能改善 Explore 的下一步提议。**
-
-它不声称已经量化轨迹展示价值、估计长期 continuation value、识别算法簇，
-或保证跨任务统一升级。
+质量主导的每次重选，能不能给新 Explore 节点几次还会被看见的机会，而不预支连续预算；以及极短的真实全局事实，会不会改变 Explore 的下一步改写。目前还没有办法真正区分算法簇。
