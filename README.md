@@ -1,6 +1,6 @@
 # LLM4AD — Active Algorithm Development Platform
 
-本仓库是 [LLM4AD](https://github.com/Optima-CityU/llm4ad) 的分支，作为我们课题组的 **active platform**，用于统一运行和对比各类 LLM 驱动的自动启发式设计方法。当前主线方法为 **TraceAAD**（V9-Core），对照方法包括 MCTS-AHD / PathWise / EoH / ReEvo 等，任务为组合优化（TSP / CVRP / OP / OBP）。
+本仓库是 [LLM4AD](https://github.com/Optima-CityU/llm4ad) 的分支，作为我们课题组的 **active platform**，用于统一运行和对比各类 LLM 驱动的自动启发式设计方法。当前主线方法为 **TraceAAD**（V9），对照方法包括 MCTS-AHD / PathWise / EoH / ReEvo 等，任务为组合优化（TSP / CVRP / OP / OBP）。
 
 > 本仓库的协作规则见仓库根目录 `AGENTS.md`。相关论文位于上级目录 `../papers/`，原始参考代码位于 `../reference_code/`，两者默认只读。
 
