@@ -44,9 +44,7 @@ PathWise / ShinkaEvolve / CALM），统一预算为 1000 次搜索评估。
 
 ## 当前实验矩阵
 
-当前覆盖统一见 `docs/experiments/覆盖.md`。定稿结果见
-`docs/experiments/<task>/结果汇总.md`，运行过程和研究记录见当周
-`docs/worklog/YYYY-Www.md`。
+定稿结果见 [`docs/experiments/主实验/结果.md`](docs/experiments/主实验/结果.md)，协议见 [`docs/experiments/主实验/配置.md`](docs/experiments/主实验/配置.md)。运行过程见当周 `docs/worklog/YYYY-Www.md`。
 
 ## 配置要点
 
