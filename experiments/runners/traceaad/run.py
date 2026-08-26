@@ -25,21 +25,6 @@ from llm4ad.method.traceaad_v9_14 import (
     RunArtifacts as V914RunArtifacts,
     TraceAADV914,
 )
-from llm4ad.method.traceaad_v9_15 import (
-    BASE_EXPLORE_PROBABILITY as V915_BASE_EXPLORE_PROBABILITY,
-    BONUS_CAP_SCALE as V915_BONUS_CAP_SCALE,
-    ESS_FRACTION as V915_ESS_FRACTION,
-    EXPLORE_PROBABILITY_MAX as V915_EXPLORE_PROBABILITY_MAX,
-    EXPLORE_PROBABILITY_MIN as V915_EXPLORE_PROBABILITY_MIN,
-    INITIAL_ROOT_COUNT as V915_INITIAL_ROOT_COUNT,
-    MAX_HISTORY_EVENTS as V915_MAX_HISTORY_EVENTS,
-    MIN_ESS_TARGET as V915_MIN_ESS_TARGET,
-    STAGNATION_GAIN as V915_STAGNATION_GAIN,
-    STAGNATION_WINDOW as V915_STAGNATION_WINDOW,
-    TRAJECTORY_WINDOW as V915_TRAJECTORY_WINDOW,
-    RunArtifacts as V915RunArtifacts,
-    TraceAADV915,
-)
 from llm4ad.method.traceaad_v9_16 import (
     ESS_FRACTION as V916_ESS_FRACTION,
     EXPLORE_PROBABILITY as V916_EXPLORE_PROBABILITY,
@@ -93,7 +78,6 @@ from .._common import (
 VersionName = Literal[
     "v9_7",
     "v9_14",
-    "v9_15",
     "v9_16",
     "v9_17",
     "v9_17_fixed_cycle",
@@ -105,7 +89,6 @@ VersionName = Literal[
 VERSIONS: tuple[VersionName, ...] = (
     "v9_7",
     "v9_14",
-    "v9_15",
     "v9_16",
     "v9_17",
     "v9_17_fixed_cycle",
@@ -113,7 +96,6 @@ VERSIONS: tuple[VersionName, ...] = (
     "v9_18_q_opportunity",
     "v9_18_facts",
 )
-TRACEAAD_V915_VERSIONS = {"v9_15"}
 TRACEAAD_V916_VERSIONS = {"v9_16"}
 TRACEAAD_V917_VERSIONS = {"v9_17", "v9_17_fixed_cycle"}
 TRACEAAD_V918_VERSIONS = {
@@ -192,8 +174,6 @@ def make_run_spec(
             if version == "v9_7"
             else V914_INITIAL_ROOT_COUNT
             if version == "v9_14"
-            else V915_INITIAL_ROOT_COUNT
-            if version in TRACEAAD_V915_VERSIONS
             else V916_INITIAL_ROOT_COUNT
             if version in TRACEAAD_V916_VERSIONS
             else V918_INITIAL_ROOT_COUNT
@@ -211,7 +191,6 @@ def make_run_spec(
             in {
                 "v9_7",
                 "v9_14",
-                "v9_15",
                 "v9_16",
                 "v9_17",
                 "v9_17_fixed_cycle",
@@ -242,8 +221,6 @@ def make_run_spec(
         raise ValueError("TraceAAD V9.7 requires exactly eight initial roots")
     if spec.version == "v9_14" and spec.n_init != V914_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.14 requires exactly eight initial roots")
-    if spec.version in TRACEAAD_V915_VERSIONS and spec.n_init != V915_INITIAL_ROOT_COUNT:
-        raise ValueError("TraceAAD V9.15 requires exactly eight initial roots")
     if spec.version in TRACEAAD_V916_VERSIONS and spec.n_init != V916_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.16 requires exactly eight initial roots")
     if spec.version in TRACEAAD_V917_VERSIONS and spec.n_init != V917_INITIAL_ROOT_COUNT:
@@ -304,19 +281,6 @@ def build_method(
             n_roots=spec.n_init,
             max_tokens=spec.llm_output_tokens,
             max_history=V914_MAX_HISTORY_EVENTS,
-            seed=spec.seed,
-            resume_from=resume_from,
-            checkpoint_dir=run_dir / "checkpoints",
-        )
-    if spec.version == "v9_15":
-        return TraceAADV915(
-            llm=llm,
-            evaluation=evaluation,
-            artifacts=V915RunArtifacts(run_dir=run_dir),
-            budget=spec.budget,
-            n_roots=spec.n_init,
-            max_tokens=spec.llm_output_tokens,
-            max_history=V915_MAX_HISTORY_EVENTS,
             seed=spec.seed,
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
@@ -423,7 +387,7 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
     elif spec.version in TRACEAAD_V918_VERSIONS:
         expected_method_params = _v918_method_params(spec)
     else:
-        expected_method_params = _v915_method_params(spec)
+        raise ValueError(f"unsupported TraceAAD version: {spec.version}")
     expected_protocol = {
         "task_eval": _task_eval_protocol(normalized_task_kwargs),
         "method_params": expected_method_params,
@@ -456,8 +420,6 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         method_params = _v97_method_params(spec)
     elif spec.version == "v9_14":
         method_params = _v914_method_params(spec)
-    elif spec.version == "v9_15":
-        method_params = _v915_method_params(spec)
     elif spec.version == "v9_16":
         method_params = _v916_method_params(spec)
     elif spec.version in TRACEAAD_V918_VERSIONS:
@@ -513,8 +475,7 @@ def _versioned_logical_model_name(spec: RunSpec) -> str:
     if spec.version == "v9_14":
         return "Qwen3.6-27B"
     if spec.version in (
-        TRACEAAD_V915_VERSIONS
-        | TRACEAAD_V916_VERSIONS
+        TRACEAAD_V916_VERSIONS
         | TRACEAAD_V917_VERSIONS
         | TRACEAAD_V918_VERSIONS
     ):
@@ -555,30 +516,6 @@ def _v914_method_params(spec: RunSpec) -> dict[str, object]:
         "seed": spec.seed,
         "refine_probability": V914_REFINE_PROBABILITY,
         "explore_probability": 1.0 - V914_REFINE_PROBABILITY,
-    }
-
-
-def _v915_method_params(spec: RunSpec) -> dict[str, object]:
-    return {
-        "budget": spec.budget,
-        "n_roots": spec.n_init,
-        "max_history": V915_MAX_HISTORY_EVENTS,
-        "maximize": True,
-        "max_tokens": spec.llm_output_tokens,
-        "seed": spec.seed,
-        "base_explore_probability": V915_BASE_EXPLORE_PROBABILITY,
-        "stagnation_window": V915_STAGNATION_WINDOW,
-        "stagnation_gain": V915_STAGNATION_GAIN,
-        "explore_probability_min": V915_EXPLORE_PROBABILITY_MIN,
-        "explore_probability_max": V915_EXPLORE_PROBABILITY_MAX,
-        "bonus_cap_scale": V915_BONUS_CAP_SCALE,
-        "trajectory_window": V915_TRAJECTORY_WINDOW,
-        "ess_fraction": V915_ESS_FRACTION,
-        "min_ess_target": V915_MIN_ESS_TARGET,
-        "error_handling": True,
-        "error_retries": 2,
-        "retry_policy": "two_bounded_repairs",
-        "retry_budget": "initial_candidates",
     }
 
 

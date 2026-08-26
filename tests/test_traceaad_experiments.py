@@ -8,7 +8,6 @@ import pytest
 from experiments.runners.traceaad import run
 from llm4ad.method.traceaad_v9_7 import TraceAADV97
 from llm4ad.method.traceaad_v9_14 import TraceAADV914
-from llm4ad.method.traceaad_v9_15 import TraceAADV915
 from llm4ad.method.traceaad_v9_16 import TraceAADV916
 from llm4ad.method.traceaad_v9_17 import TraceAADV917
 from llm4ad.method.traceaad_v9_18 import TraceAADV918
@@ -31,7 +30,6 @@ def test_unified_runner_builds_each_task_and_version(
     expected_type = {
         "v9_7": TraceAADV97,
         "v9_14": TraceAADV914,
-        "v9_15": TraceAADV915,
         "v9_16": TraceAADV916,
         "v9_17": TraceAADV917,
         "v9_17_fixed_cycle": TraceAADV917,
@@ -43,9 +41,6 @@ def test_unified_runner_builds_each_task_and_version(
     assert spec.experiment_root == tmp_path / task / f"traceaad_{version}"
 
     assert method._llm.max_tokens == 8192
-    if version == "v9_15":
-        assert method._error_handling is True
-        assert method._error_retries == 2
     assert spec.n_init == 8
     assert method._n_roots == 8
     if version in {"v9_17", "v9_17_fixed_cycle"}:
@@ -107,25 +102,6 @@ def test_traceaad_config_records_llm_metadata(tmp_path: Path) -> None:
     assert payload["seed"] == 7
     assert payload["llm"]["model"] == spec.model
     assert payload["llm"]["max_tokens"] == 8192
-
-
-def test_v915_config_records_retry_policy(tmp_path: Path) -> None:
-    spec = run.make_run_spec(
-        task="tsp_construct",
-        version="v9_15",
-        repeat=1,
-        experiments_root=tmp_path,
-    )
-    run_dir, run_name, resumed = run.resolve_run_dir(spec)
-    run.write_run_config(spec, run_dir, run_name)
-    payload = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
-
-    assert not resumed
-    assert payload["method"] == "traceaad_v9_15"
-    assert payload["method_params"]["error_handling"] is True
-    assert payload["method_params"]["error_retries"] == 2
-    assert payload["method_params"]["retry_policy"] == "two_bounded_repairs"
-    assert payload["method_params"]["retry_budget"] == "initial_candidates"
 
 
 def test_v917_config_records_the_fixed_hypothesis_protocol(tmp_path: Path) -> None:
