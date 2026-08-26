@@ -1,28 +1,24 @@
 # TraceAAD-V9.8机制诊断
 
-## TraceAAD V9.8 机制识别实验分析
+## TraceAAD V9.8 机制识别与提议核异质性实验分析
 
 ### 1. 核心判断
 
-1. **Refine 与 Explore 产生了可区分的单步 proposal behavior。** 在 code-only 和 parent-path 两种上下文下，Explore 的静态宏簇切换率与代码修改比例几乎都高于 Refine，但即时有向质量变化更低。V9.8 把两者定义为“发展当前方向”与“提出替代方向”具有行为依据，不只是算子重命名。
-2. **Parent path 对 Refine 的作用具有跨任务一致方向。** 在四个任务中，`parent_path - code_only` 的锚点级配对即时质量均值都为正，且正向锚点多于负向锚点。它同时使 Refine 的修改更集中、静态宏簇切换率下降。来时路作为当前方向 development context 得到支持。
-3. **Parent path 对 Explore 的作用没有同样稳定。** 四任务的条件配对均值都略为正，但 CVRP 为 7 正 / 7 负，OBP 为 7 正 / 9 负 / 2 平，且方差很大；有效率也没有统一方向。当前证据不支持把“来时路帮助 Refine”直接外推为“同样帮助 Explore”。
-4. **Explore child 存在可观测的短期延迟发展，但高度任务异质。** 五步 Refine 后，OBP 与 OP 的 parent recovery 明显增加，TSP 仅小幅增加，CVRP 基本没有越过原父代。短续段机会能够救回一部分 child，但不是普遍有效，也不等于长期潜力。
-5. **Hypothesis-level 局部重选没有稳定优于 child-chain 深挖。** H1/H3 时 CVRP、TSP 的配对均值有时偏向区域级重选，但 H5 时四任务的均值都略偏向 child-chain。当前局部锚点规则是可运行的 baseline，不是已识别的最优 development policy。
+V9.8 是首个通过大规模受控配对实验（Stage P：864 次单步生成 + 690 次多步续段探针）系统识别 **提议分布异质性（Proposal Heterogeneity）** 与 **来时路条件作用** 的版本：
 
-这些结果只达到“机制运行并改变行为”。边界宽限 $C$、历史发展项 $M$、hypothesis 聚合以及完整 $Q+U+C+M$ 是否改善有限预算搜索，仍必须由 Stage A 消融和完成的正式搜索回答。
+1. **Refine 与 Explore 构成了可区分的离散提议核转移。** 在 code-only 与 parent-path 两种上下文下，Explore 的静态宏簇切换率（37%–54% vs 2%–12%）与代码修改比例显著高于 Refine，但即时有向质量显著偏低（36%–87% 出生即退步）。这证实了两个算子分别承担“族内维持不变量精炼”与“跨族打破不变量探索”的物理分工。
+2. **父代来时路对 Refine 具有高度一致的正向流形引导。** 四任务中 `parent_path - code_only` 的锚点级配对即时质量均值全部显著为正（72 个锚点中 58 好、14 差），有效抑制了自回归模型的盲目重写；
+3. **父代来时路对 Explore 存在轨迹锚定效应（Trajectory Anchoring）。** Explore 在带有父代来时路时，提议分布受到原血脉演化逻辑的牵引，跨任务方差极大（CVRP 7正/7负，OBP 7正/9负/2平），未能形成统一正收益；
+4. **Explore Child 的延迟恢复依赖任务簇几何，盲目宽限导致算力稀释。** 5 步强制续段证实：OBP 与 OP 展现出明显的短程恢复能力（恢复率达 38%–61%），但 CVRP 几乎无法越过原父代（仅 1/15 恢复）。V9.8 引入的 Hypothesis 边界宽限 $C_R$ 因无法区分“真潜力”与“破坏性垃圾”，无条件为低质探索保留算力，导致主线深精炼被严重稀释（CVRP 三档同向退化 -2.2% 至 -4.4%）。
 
-### 2. 协议完成与数据完整性
+### 2. 实验协议与数据事实
 
-#### 2.1 P1/P2：History × Intent
+#### 2.1 P1/P2：History × Intent 受控配对设计
 
-- 锚点抽自 V9.7 批次 `20260814_150927` 的三重复事实层，四任务按有向质量分成 low / middle / high 三层，每层 6 个代码互异锚点；
-- $2\times2$ 配对设计（History：code-only / parent-path × Intent：Refine / Explore），同一 `anchor × replicate` block 的四个条件共享采样 seed，条件顺序按预注册旋转并在 task × 质量层内打散；
-- 72 个固定锚点，每个锚点三次重复、四个条件，共 864 个响应；
-- 216 个 `anchor × replicate` block 全部包含四条件，每条件恰好 216 条；
-- 864 个唯一 trial ID 与 864 个原始模型调用一一对应；
-- 746 个有效响应，118 个无效响应，850 次真实 evaluator 调用；
-- 主统计先在同一锚点内平均重复观测，再以源锚点为独立单位。
+- 抽自 V9.7 冻结事实层，四任务按有向质量分成 low / middle / high 三层，每层 6 个代码互异锚点；
+- $2\times2$ 配对设计（History：code-only / parent-path × Intent：Refine / Explore），同一 `anchor × replicate` block 共享采样 seed；
+- 72 个固定锚点，每个锚点 3 次独立重复、4 个条件，共 864 个原始调用；
+- 746 个有效响应，850 次真实 evaluator 调用；主统计先在同一锚点内平均重复观测，再以源锚点为独立单位。
 
 #### 2.2 P3：Explore child 强制续段
 
