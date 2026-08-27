@@ -61,5 +61,5 @@ V9.13 试图在 Explore 提示中注入全局已访问机制宏簇及其前沿�
 
 ## 分析工件
 
-- 盲评审计：[`audit_v913_proxy.py`](../../experiments/analysis/audit_v913_proxy.py) 与 [`traceaad_v913_proxy_audit/`](traceaad_v913_proxy_audit/)
-- 探针分析：[`analyze_v97_frontier_probe.py`](../../experiments/analysis/analyze_v97_frontier_probe.py)
+- 盲评审计：`audit_v913_proxy.py` 与 [`traceaad_v913_proxy_audit/`](traceaad_v913_proxy_audit/)
+- 探针分析：`analyze_v97_frontier_probe.py`

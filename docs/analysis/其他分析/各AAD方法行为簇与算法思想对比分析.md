@@ -6,7 +6,7 @@ BehaveSim v3 能说明不同 AAD 方法在固定 probe 上访问了不同的执�
 
 外部方法战役包含 5 个方法、5 个任务、3 次重复，共 75 个已完成 run；TraceAAD V9.16 作为同协议参照。非 CALM 方法在同任务内按共同成功画像数比较：TSP/VRPTW 为 128，OP/CVRP 为 32，OBP 为 126。CALM 工件只保存最终 archive，画像数随重复变化，时间行为指标为 `n/a`，不进入完整搜索候选的时间轴比较。
 
-行为距离和下面的质量突破都沿候选记录顺序计算；它们不是完整 1000 次评价曲线。搜索期 best 只来自训练集搜索工件，正式测试质量见[主实验结果](../experiments/主实验/结果.md)。
+行为距离和下面的质量突破都沿候选记录顺序计算；它们不是完整 1000 次评价曲线。搜索期 best 只来自训练集搜索工件，正式测试质量见主实验结果。
 
 ## TSP Construct
 
@@ -81,6 +81,6 @@ V9.16 的行为分布比 PathWise、ReEvo 更分散，抽样突破率也更高�
 
 ## 工件
 
-汇总文件为 `experiments/_logs/behavesim_v3/aggregate.json`，外部方法入口为[`run_all_baselines_behavesim.py`](../../experiments/analysis/run_all_baselines_behavesim.py)，协议见[BehaveSim 行为度量校正](../experiments/机制实验/2026-08-26-BehaveSim行为度量校正/协议.md)。
+汇总文件为 `experiments/_logs/behavesim_v3/aggregate.json`，外部方法入口为[`run_all_baselines_behavesim.py`](../../../experiments/analysis/run_all_baselines_behavesim.py)，协议见 BehaveSim 行为度量校正。
 
 `*` CALM 为 `final_archive_only`：其行为距离指标只描述最终 archive，时间行为列保持 `n/a`，不作为完整搜索时间轴的等价样本。

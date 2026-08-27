@@ -40,7 +40,7 @@ BehaveSim v3 可以比较不同版本访问到的执行行为分布，但不能�
 4. CVRP 各版本的抽样突破率都高于多数构造任务，精确重访逐步降低；同时面板相关性从 V9.14 的 0.400 到 V9.17 的 0.615，探针敏感性仍然明显。不能把一个版本的距离画像当作任务固有几何。
 5. VRPTW 中 V9.16、V9.17 的无突破精确重访低于 V9.14，最长抽样无突破段也较短；这与过程更少重复相容，但不区分“有效探索”与“无效发散”。
 
-版本搜索期 best 仅作为工件审计字段，不能替代测试集质量。正式训练集和 held-out 数字见[主实验结果](../experiments/主实验/结果.md)；本页不把搜索期 fitness 改写成方法性能结论。
+版本搜索期 best 仅作为工件审计字段，不能替代测试集质量。正式训练集和 held-out 数字见主实验结果；本页不把搜索期 fitness 改写成方法性能结论。
 
 ## 因果边界与后续实验
 
@@ -55,4 +55,4 @@ BehaveSim v3 可以比较不同版本访问到的执行行为分布，但不能�
 
 ## 工件
 
-汇总文件为 `experiments/_logs/behavesim_v3/aggregate.json`，版本入口为[`run_traceaad_versions_behavesim.py`](../../experiments/analysis/run_traceaad_versions_behavesim.py)，协议见[BehaveSim 行为度量校正](../experiments/机制实验/2026-08-26-BehaveSim行为度量校正/协议.md)。
+汇总文件为 `experiments/_logs/behavesim_v3/aggregate.json`，版本入口为[`run_traceaad_versions_behavesim.py`](../../../experiments/analysis/run_traceaad_versions_behavesim.py)，协议见 BehaveSim 行为度量校正。

@@ -19,7 +19,7 @@ V9.17 可以融合两者，但融合对象应是两种行为：**有界的全局
 
 ## 2. 五任务结果事实
 
-正式 held-out 每个单元格均为三次独立运行的均值。TSP、CVRP、OBP 和 VRPTW 越低越好，OP 越高越好。完整数值（搜索集 best 与全部 held-out 规模）见[实验结果](../experiments/主实验/结果.md)。
+正式 held-out 每个单元格均为三次独立运行的均值。TSP、CVRP、OBP 和 VRPTW 越低越好，OP 越高越好。完整数值（搜索集 best 与全部 held-out 规模）见实验结果。
 
 ### 2.1 V9.16 相对 V9.7、V9.14 与 V9.15
 
@@ -285,7 +285,7 @@ V9.7 固定了“早期承诺 + 长区域发展”，V9.16 固定了“增长型
 1. entry 完成统一三步成熟后，当前 frontier $Q$ 决定是否进入固定大小的 active portfolio；
 2. 只有已经进入 portfolio 的 entry，近期三步 block gain 才决定是否连续获得下一个 block。
 
-block gain 不进入跨 entry 排名，也不给竞争线以下的 entry 发放 runway。active portfolio 中全部方向都停止推进后，再从当前最好方向发起 Explore。完整状态、父节点分配、预算规则与伪代码见[V9.17 完整机制设计](../methods/TraceAAD-V9.17完整机制设计.md)。
+block gain 不进入跨 entry 排名，也不给竞争线以下的 entry 发放 runway。active portfolio 中全部方向都停止推进后，再从当前最好方向发起 Explore。完整状态、父节点分配、预算规则与伪代码见V9.17 完整机制设计。
 
 ### 8.3 删除的过分设计
 

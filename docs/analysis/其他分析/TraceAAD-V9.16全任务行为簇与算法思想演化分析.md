@@ -14,7 +14,7 @@ BehaveSim v3 可以为 TraceAAD 增加一个有用的过程观测：候选程序
 - TSP、VRPTW 每个 run 画像 128 个候选，OP、CVRP 画像 32 个候选，OBP 在共同成功集合上比较 126 个候选。候选按搜索顺序确定性抽样；另行画像搜索期 best，不把它混入多样性分布。
 - `panel rho` 是两个面板距离矩阵上三角元素的 Spearman 相关。它用于报告探针稳定性，不是“簇边界”或有效性阈值。
 
-实现、探针和抽样规则见[实验协议](../experiments/机制实验/2026-08-26-BehaveSim行为度量校正/协议.md)，原始 v3 工件见 `experiments/_logs/behavesim_v3/`。
+实现、探针和抽样规则见实验协议，原始 v3 工件见 `experiments/_logs/behavesim_v3/`。
 
 ## V9.16 过程结果
 
@@ -67,7 +67,7 @@ V9.16 每个 run 抽取最多 32 条构造式、16 条 ACO 的父子边，并在
 
 ## 结果索引
 
-- [版本行为距离比较](TraceAAD版本演化行为簇与算法思想对比分析.md)
-- [外部方法行为距离比较](各AAD方法行为簇与算法思想对比分析.md)
-- [BehaveSim 行为度量校正结果](../experiments/机制实验/2026-08-26-BehaveSim行为度量校正/结果.md)
-- [正式主实验结果](../experiments/主实验/结果.md)
+- 版本行为距离比较
+- 外部方法行为距离比较
+- BehaveSim 行为度量校正结果
+- 正式主实验结果

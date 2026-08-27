@@ -1,6 +1,6 @@
 # TraceAAD V9.10 实验结果与机制失效诊断
 
-过程诊断由 [`analyze_v910_failure.py`](../../experiments/analysis/analyze_v910_failure.py) 从终局 checkpoint 重放。
+过程诊断由 `analyze_v910_failure.py` 从终局 checkpoint 重放。
 
 ## 1. 核心判断
 
@@ -99,6 +99,6 @@ V9.7 的优势至少来自已被单步证据支持的 parent-path 生成条件�
 
 ## 6. 数据来源
 
-- held-out 数字来自[主实验](../experiments/主实验/结果.md)；比较协议来自[主实验配置](../experiments/主实验/配置.md)。
-- 过程诊断来自 V9.10 checkpoint 的真实 `forest`，由 [`analyze_v910_failure.py`](../../experiments/analysis/analyze_v910_failure.py) 重放；它支持激活和删失判断，不单独证明因果收益。
+- held-out 数字来自主实验；比较协议来自主实验配置。
+- 过程诊断来自 V9.10 checkpoint 的真实 `forest`，由 `analyze_v910_failure.py` 重放；它支持激活和删失判断，不单独证明因果收益。
 - 当前所有跨版本结果仍是描述性三重复均值与运行间变异，不构成显著性检验。

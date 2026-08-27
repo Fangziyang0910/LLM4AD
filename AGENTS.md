@@ -39,7 +39,7 @@ TraceAAD 的两个基础问题是：**给哪一个节点一次决策机会**，�
 
 | 目录 | 内容 |
 | --- | --- |
-| `docs/analysis/` | 该版本当时测到的过程事实、数字与观察；当前科学认识回写 `docs/knowledge/研究认识.md` |
+| `docs/analysis/` | 该版本当时测到的过程事实、数字与观察，分 `机制分析/` 与 `其他分析/` 两个子目录；当前科学认识回写 `docs/knowledge/研究认识.md` |
 | `docs/knowledge/研究认识.md` | 对自动算法设计这个任务的认识 |
 | `docs/knowledge/TraceAAD机制尝试.md` | 试过什么、当时看见了什么 |
 | `docs/methods/` | 有效版本的完整规范（V9、V9.5–V9.7）；V2–V9.4 压缩为《历史机制探索》一份 |

@@ -1,6 +1,6 @@
 # experiments 目录索引
 
-与 [docs/experiments](../docs/experiments/README.md) 的三分类对应。原始工件只留本地，Git 只跟踪 runners、analysis、plotting 与评估入口。
+与 docs/experiments 的三分类对应。原始工件只留本地，Git 只跟踪 runners、analysis、plotting 与评估入口。
 
 ## 主实验（规范根）
 

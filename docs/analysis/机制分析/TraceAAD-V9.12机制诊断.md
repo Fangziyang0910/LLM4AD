@@ -85,4 +85,4 @@ $$
 ## 分析工件
 
 - 诊断数据：[`traceaad_v912_progress/summary.json`](traceaad_v912_progress/summary.json)
-- 分析脚本：[`analyze_v912_progress.py`](../../experiments/analysis/analyze_v912_progress.py)
+- 分析脚本：`analyze_v912_progress.py`

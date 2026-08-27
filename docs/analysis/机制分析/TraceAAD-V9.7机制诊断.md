@@ -190,7 +190,7 @@ V9.7 不是跨任务统一的 sample-efficiency 方法。TSP/CVRP 更接近“�
 
 ### 6.4 单步收益向完整搜索的转化依任务画像
 
-[PP/CO 完整搜索消融](../experiments/机制实验/2026-08-21-父代来时路完整搜索/结果.md)（V9.7 协议、同 seed 配对，4 任务 × 3 seed × 1000 eval，批次 `ppab_20260820_131000`）补上了 6.1 单步证据与完整搜索之间缺的一层：来时路的净贡献不是跨任务常数。OP 的 search best 与同规模 OP50 测试均支持 PP；TSP 的 search best 与 TSP50 均偏 CO；CVRP 的 search best 偏 PP、CVRP50 偏 CO；OBP search best 相等，同规模四设置中 CO 占三个。
+PP/CO 完整搜索消融（V9.7 协议、同 seed 配对，4 任务 × 3 seed × 1000 eval，批次 `ppab_20260820_131000`）补上了 6.1 单步证据与完整搜索之间缺的一层：来时路的净贡献不是跨任务常数。OP 的 search best 与同规模 OP50 测试均支持 PP；TSP 的 search best 与 TSP50 均偏 CO；CVRP 的 search best 偏 PP、CVRP50 偏 CO；OBP search best 相等，同规模四设置中 CO 占三个。
 
 净贡献方向与“锁定区域是否低于可达上限”的任务画像对齐：
 
@@ -487,6 +487,6 @@ $$
 
 ## 分析工件
 
-- V9.7 搜索几何：[`analyze_v97_search_geometry.py`](../../experiments/analysis/analyze_v97_search_geometry.py) 与 [`summary.json`](traceaad_v97_search_geometry/summary.json)
-- V9.7 机制价值：[`analyze_v97_mechanism_value.py`](../../experiments/analysis/analyze_v97_mechanism_value.py) 与 [`traceaad_v97_mechanism_value/`](traceaad_v97_mechanism_value/)
-- V9.7 区域重访：[`analyze_v97_region_revisit.py`](../../experiments/analysis/analyze_v97_region_revisit.py) 与 [`summary.json`](traceaad_v97_region_revisit/summary.json)
+- V9.7 搜索几何：`analyze_v97_search_geometry.py` 与 [`summary.json`](traceaad_v97_search_geometry/summary.json)
+- V9.7 机制价值：`analyze_v97_mechanism_value.py` 与 [`traceaad_v97_mechanism_value/`](traceaad_v97_mechanism_value/)
+- V9.7 区域重访：`analyze_v97_region_revisit.py` 与 [`summary.json`](traceaad_v97_region_revisit/summary.json)
