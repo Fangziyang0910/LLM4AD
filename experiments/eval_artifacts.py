@@ -12,14 +12,20 @@ from pathlib import Path
 from typing import Any
 
 
-def load_run_summary(run_dir: Path) -> dict[str, Any]:
+def load_run_summary(
+    run_dir: Path,
+    *,
+    require_finished: bool = True,
+) -> dict[str, Any]:
     run_dir = Path(run_dir)
     for relative in ("logs/run_summary.json", "logs/summary.json"):
         path = run_dir / relative
         if not path.exists():
             continue
         summary = json.loads(path.read_text(encoding="utf-8"))
-        if summary.get("status") != "finished" or summary.get("search_aborted"):
+        if require_finished and (
+            summary.get("status") != "finished" or summary.get("search_aborted")
+        ):
             raise RuntimeError(f"run is not a completed search: {run_dir}")
         return summary
     raise RuntimeError(f"run is not finished: missing summary under {run_dir}/logs/")
@@ -118,8 +124,9 @@ def pick_best_sample(
     *,
     max_sample_order: int | None = None,
     sample_order: int | None = None,
+    allow_incomplete: bool = False,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    load_run_summary(run_dir)
+    load_run_summary(run_dir, require_finished=not allow_incomplete)
     records = load_scored_samples(run_dir, max_sample_order=max_sample_order)
     if not records:
         raise RuntimeError(f"no valid samples found under {run_dir}")

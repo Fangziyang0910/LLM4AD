@@ -1,4 +1,4 @@
-"""Evaluate the best program from finished search runs on held-out test sets.
+"""Evaluate the best program from search runs on held-out test sets.
 
 Unified entry for the five tasks. Task and method are derived from each
 run directory's `run_config.json`.
@@ -14,6 +14,10 @@ Per-task options:
 Batch mode evaluates every run dir on every unit and writes `results.json`
 under --output-dir. Single-run print mode (tsp_construct only) prints the
 train-sanity and per-unit scores without writing files.
+
+Searches must be finished by default. `--allow-incomplete` is an explicit
+diagnostic mode for interrupted or in-progress searches; the output records
+each search status and consumed slot count.
 """
 
 from __future__ import annotations
@@ -33,7 +37,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from experiments.eval_artifacts import pick_best_sample  # noqa: E402
+from experiments.eval_artifacts import load_run_summary, pick_best_sample  # noqa: E402
 from llm4ad.base.evaluate import SecureEvaluator  # noqa: E402
 from llm4ad.task.optimization.cvrp_aco import (  # noqa: E402
     CVRPACOEvaluation,
@@ -518,6 +522,7 @@ def _run_batch(
     timeout: int,
     workers: int,
     max_sample_order: int | None,
+    allow_incomplete: bool,
 ) -> None:
     methods = {_resolve_method(run_dir) for run_dir in run_dirs}
     if len(methods) != 1:
@@ -530,7 +535,11 @@ def _run_batch(
     model = "unknown"
     run_records: list[dict[str, Any]] = []
     for run_dir in run_dirs:
-        best, all_samples = pick_best_sample(run_dir, max_sample_order=max_sample_order)
+        best, all_samples = pick_best_sample(
+            run_dir,
+            max_sample_order=max_sample_order,
+            allow_incomplete=allow_incomplete,
+        )
         program = str(best["program"])
         sample_order = int(best["sample_order"])
         program_path = output_dir / f"{run_dir.name}_sample_{sample_order}_program.py"
@@ -557,6 +566,13 @@ def _run_batch(
             "program_path": _relative_to_root(program_path),
             "program": program,
         }
+        search_summary = load_run_summary(
+            run_dir,
+            require_finished=not allow_incomplete,
+        )
+        record["search_status"] = search_summary.get("status")
+        record["search_budget_slots"] = search_summary.get("budget_slots")
+        record["search_aborted"] = search_summary.get("search_aborted")
         if max_sample_order is not None:
             record["max_sample_order"] = max_sample_order
         if spec.get("train_sanity") is not None:
@@ -669,7 +685,15 @@ def _run_batch(
         "task": task,
         "method": method,
         "model": model,
-        "source": f"{len(run_records)} completed {method} {task} repeat(s)",
+        "source": (
+            (
+                f"{len(run_records)} {method} {task} repeat(s); "
+                "incomplete search runs explicitly allowed"
+            )
+            if allow_incomplete
+            else f"{len(run_records)} completed {method} {task} repeat(s)"
+        ),
+        "allow_incomplete_search_runs": allow_incomplete,
         "score_semantics": spec["score_semantics"],
         "run_records": [
             {k: v for k, v in row.items() if k != "program"} for row in run_records
@@ -722,8 +746,13 @@ def _print_single_run(
     timeout: int,
     workers: int,
     sample_order: int | None,
+    allow_incomplete: bool,
 ) -> None:
-    picked, samples = pick_best_sample(run_dir, sample_order=sample_order)
+    picked, samples = pick_best_sample(
+        run_dir,
+        sample_order=sample_order,
+        allow_incomplete=allow_incomplete,
+    )
     program = picked["program"]
     print(f"run_dir     : {run_dir}")
     print(
@@ -769,6 +798,14 @@ def main() -> None:
         default=None,
         help="only consider candidates up to this search evaluation (obp)",
     )
+    ap.add_argument(
+        "--allow-incomplete",
+        action="store_true",
+        help=(
+            "evaluate the best artifact currently present in interrupted or "
+            "in-progress searches and record that status in results.json"
+        ),
+    )
     ap.add_argument("--output-dir", type=Path, default=None)
     args = ap.parse_args()
 
@@ -810,6 +847,7 @@ def main() -> None:
             args.timeout,
             args.workers,
             args.max_sample_order,
+            args.allow_incomplete,
         )
         return
 
@@ -822,7 +860,14 @@ def main() -> None:
             "print mode accepts exactly one run_dir; use --output-dir for batch"
         )
     _print_single_run(
-        task, spec, run_dirs[0], units, args.timeout, args.workers, args.sample_order
+        task,
+        spec,
+        run_dirs[0],
+        units,
+        args.timeout,
+        args.workers,
+        args.sample_order,
+        args.allow_incomplete,
     )
 
 

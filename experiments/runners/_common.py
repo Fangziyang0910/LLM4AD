@@ -102,7 +102,7 @@ BACKENDS: dict[BackendName, BackendProfile] = {
 
 BACKEND_CAPACITY: dict[BackendName, int] = {
     "zhong": 0,  # 暂时不用
-    "server1": 9,
+    "server1": 6,
     "server3": 9,
     "server3b": 9,
     "local": 3,  # llama.cpp 32k × 3 slots; 正式调度仍只用 PRIMARY_BACKENDS

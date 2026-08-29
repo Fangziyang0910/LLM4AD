@@ -59,6 +59,39 @@ from llm4ad.method.traceaad_v9_18 import (
     RunArtifacts as V918RunArtifacts,
     TraceAADV918,
 )
+from llm4ad.method.traceaad_v9_19 import (
+    BEHAVESIM_PROTOCOL_ID as V919_BEHAVESIM_PROTOCOL_ID,
+    CROSSOVER_PROBABILITY as V919_CROSSOVER_PROBABILITY,
+    EXPLORE_MAX as V919_EXPLORE_MAX,
+    EXPLORE_MIN as V919_EXPLORE_MIN,
+    EXPLORE_NEUTRAL as V919_EXPLORE_NEUTRAL,
+    INITIAL_ROOT_COUNT as V919_INITIAL_ROOT_COUNT,
+    MAX_HISTORY_EVENTS as V919_MAX_HISTORY_EVENTS,
+    MAX_REPAIRS as V919_MAX_REPAIRS,
+    TRACKED_EVALUATIONS as V919_TRACKED_EVALUATIONS,
+    TRAJECTORY_WINDOW as V919_TRAJECTORY_WINDOW,
+    RunArtifacts as V919RunArtifacts,
+    TraceAADV919,
+    W_PROMISE as V919_W_PROMISE,
+    W_TRAJECTORY as V919_W_TRAJECTORY,
+    W_UNDERDEVELOPMENT as V919_W_UNDERDEVELOPMENT,
+)
+from llm4ad.method.traceaad_v9_20 import (
+    ACTION_TEMPERATURE as V920_ACTION_TEMPERATURE,
+    BEHAVESIM_PROTOCOL_ID as V920_BEHAVESIM_PROTOCOL_ID,
+    COVERAGE_MIX as V920_COVERAGE_MIX,
+    ESS_FRACTION as V920_ESS_FRACTION,
+    EXPLORE_MAX as V920_EXPLORE_MAX,
+    EXPLORE_MIN as V920_EXPLORE_MIN,
+    EXPLORE_NEUTRAL as V920_EXPLORE_NEUTRAL,
+    INITIAL_ROOT_COUNT as V920_INITIAL_ROOT_COUNT,
+    MAX_REPAIRS as V920_MAX_REPAIRS,
+    MAX_HISTORY_EVENTS as V920_MAX_HISTORY_EVENTS,
+    MIN_ESS_TARGET as V920_MIN_ESS_TARGET,
+    TRACKED_EVALUATIONS as V920_TRACKED_EVALUATIONS,
+    RunArtifacts as V920RunArtifacts,
+    TraceAADV920,
+)
 
 from .._common import (
     ALL_TASKS,
@@ -84,6 +117,8 @@ VersionName = Literal[
     "v9_18_q_atomic",
     "v9_18_q_opportunity",
     "v9_18_facts",
+    "v9_19",
+    "v9_20",
 ]
 
 VERSIONS: tuple[VersionName, ...] = (
@@ -95,6 +130,8 @@ VERSIONS: tuple[VersionName, ...] = (
     "v9_18_q_atomic",
     "v9_18_q_opportunity",
     "v9_18_facts",
+    "v9_19",
+    "v9_20",
 )
 TRACEAAD_V916_VERSIONS = {"v9_16"}
 TRACEAAD_V917_VERSIONS = {"v9_17", "v9_17_fixed_cycle"}
@@ -103,6 +140,8 @@ TRACEAAD_V918_VERSIONS = {
     "v9_18_q_opportunity",
     "v9_18_facts",
 }
+TRACEAAD_V919_VERSIONS = {"v9_19"}
+TRACEAAD_V920_VERSIONS = {"v9_20"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -178,6 +217,10 @@ def make_run_spec(
             if version in TRACEAAD_V916_VERSIONS
             else V918_INITIAL_ROOT_COUNT
             if version in TRACEAAD_V918_VERSIONS
+            else V919_INITIAL_ROOT_COUNT
+            if version in TRACEAAD_V919_VERSIONS
+            else V920_INITIAL_ROOT_COUNT
+            if version in TRACEAAD_V920_VERSIONS
             else V917_INITIAL_ROOT_COUNT
         )
         if n_init is None
@@ -197,6 +240,8 @@ def make_run_spec(
                 "v9_18_q_atomic",
                 "v9_18_q_opportunity",
                 "v9_18_facts",
+                "v9_19",
+                "v9_20",
             }
             else 24576
             if context_token_limit is None
@@ -227,6 +272,10 @@ def make_run_spec(
         raise ValueError("TraceAAD V9.17 requires exactly eight initial roots")
     if spec.version in TRACEAAD_V918_VERSIONS and spec.n_init != V918_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.18 requires exactly eight initial roots")
+    if spec.version in TRACEAAD_V919_VERSIONS and spec.n_init != V919_INITIAL_ROOT_COUNT:
+        raise ValueError("TraceAAD V9.19 requires exactly eight initial roots")
+    if spec.version in TRACEAAD_V920_VERSIONS and spec.n_init != V920_INITIAL_ROOT_COUNT:
+        raise ValueError("TraceAAD V9.20 requires exactly eight initial roots")
     if spec.eval_workers is not None and spec.eval_workers <= 0:
         raise ValueError("eval_workers must be positive")
     if spec.llm_output_tokens <= 0:
@@ -251,7 +300,13 @@ def build_method(
     run_dir: Path,
     resume_from: Path | None = None,
 ):
-    evaluation, _ = build_task(spec.task, spec.eval_workers)
+    evaluation, task_kwargs = build_task(spec.task, spec.eval_workers)
+    if spec.version in TRACEAAD_V919_VERSIONS:
+        # V9.19 measures behavior on the training instances themselves: the
+        # tracked evaluation returns the benchmark fitness plus trajectories.
+        evaluation = V919_TRACKED_EVALUATIONS[spec.task](**task_kwargs)
+    elif spec.version in TRACEAAD_V920_VERSIONS:
+        evaluation = V920_TRACKED_EVALUATIONS[spec.task](**task_kwargs)
     llm = build_llm_client(
         base_url=spec.base_url,
         model=spec.model,
@@ -342,6 +397,30 @@ def build_method(
             explore_context=explore_context,
             fork_from_initialization=fork_from_initialization,
         )
+    if spec.version in TRACEAAD_V919_VERSIONS:
+        return TraceAADV919(
+            llm=llm,
+            evaluation=evaluation,
+            artifacts=V919RunArtifacts(run_dir=run_dir),
+            budget=spec.budget,
+            n_roots=spec.n_init,
+            max_tokens=spec.llm_output_tokens,
+            seed=spec.seed,
+            resume_from=resume_from,
+            checkpoint_dir=run_dir / "checkpoints",
+        )
+    if spec.version in TRACEAAD_V920_VERSIONS:
+        return TraceAADV920(
+            llm=llm,
+            evaluation=evaluation,
+            artifacts=V920RunArtifacts(run_dir=run_dir),
+            budget=spec.budget,
+            n_roots=spec.n_init,
+            max_tokens=spec.llm_output_tokens,
+            seed=spec.seed,
+            resume_from=resume_from,
+            checkpoint_dir=run_dir / "checkpoints",
+        )
     raise ValueError(f"unsupported TraceAAD version: {spec.version}")
 
 
@@ -386,6 +465,10 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         expected_method_params = _v917_method_params(spec)
     elif spec.version in TRACEAAD_V918_VERSIONS:
         expected_method_params = _v918_method_params(spec)
+    elif spec.version in TRACEAAD_V919_VERSIONS:
+        expected_method_params = _v919_method_params(spec)
+    elif spec.version in TRACEAAD_V920_VERSIONS:
+        expected_method_params = _v920_method_params(spec)
     else:
         raise ValueError(f"unsupported TraceAAD version: {spec.version}")
     expected_protocol = {
@@ -424,6 +507,10 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         method_params = _v916_method_params(spec)
     elif spec.version in TRACEAAD_V918_VERSIONS:
         method_params = _v918_method_params(spec)
+    elif spec.version in TRACEAAD_V919_VERSIONS:
+        method_params = _v919_method_params(spec)
+    elif spec.version in TRACEAAD_V920_VERSIONS:
+        method_params = _v920_method_params(spec)
     else:
         method_params = _v917_method_params(spec)
     payload = {
@@ -438,7 +525,9 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     }
     # V9.18 artifacts need explicit service metadata for held-out provenance;
     # retain the established config shape of earlier TraceAAD versions.
-    if spec.version in TRACEAAD_V918_VERSIONS:
+    if spec.version in (
+        TRACEAAD_V918_VERSIONS | TRACEAAD_V919_VERSIONS | TRACEAAD_V920_VERSIONS
+    ):
         payload.update(
             {
                 "run_name": run_name,
@@ -478,6 +567,8 @@ def _versioned_logical_model_name(spec: RunSpec) -> str:
         TRACEAAD_V916_VERSIONS
         | TRACEAAD_V917_VERSIONS
         | TRACEAAD_V918_VERSIONS
+        | TRACEAAD_V919_VERSIONS
+        | TRACEAAD_V920_VERSIONS
     ):
         return "Qwen3.6-27B"
     return V97_LOGICAL_MODEL_NAME
@@ -604,6 +695,64 @@ def _v918_method_params(spec: RunSpec) -> dict[str, object]:
         "error_retries": 2,
         "retry_policy": "two_bounded_repairs",
         "retry_budget": "initial_candidates",
+    }
+
+
+def _v919_method_params(spec: RunSpec) -> dict[str, object]:
+    return {
+        "budget": spec.budget,
+        "n_roots": spec.n_init,
+        "max_history": V919_MAX_HISTORY_EVENTS,
+        "maximize": True,
+        "max_tokens": spec.llm_output_tokens,
+        "seed": spec.seed,
+        "mechanism": "behavior_grounded_formation_search",
+        "node_score_weights": {
+            "promise": V919_W_PROMISE,
+            "underdevelopment": V919_W_UNDERDEVELOPMENT,
+            "trajectory": V919_W_TRAJECTORY,
+        },
+        "trajectory_window": V919_TRAJECTORY_WINDOW,
+        "explore_probability": {
+            "neutral": V919_EXPLORE_NEUTRAL,
+            "min": V919_EXPLORE_MIN,
+            "max": V919_EXPLORE_MAX,
+        },
+        "actions": ["develop", "explore", "crossover"],
+        "crossover_probability": V919_CROSSOVER_PROBABILITY,
+        "behave_protocol": V919_BEHAVESIM_PROTOCOL_ID,
+        "error_handling": True,
+        "error_retries": V919_MAX_REPAIRS,
+        "retry_policy": "two_bounded_repairs",
+        "retry_budget": "initial_candidates",
+    }
+
+
+def _v920_method_params(spec: RunSpec) -> dict[str, object]:
+    return {
+        "budget": spec.budget,
+        "n_roots": spec.n_init,
+        "max_history": V920_MAX_HISTORY_EVENTS,
+        "maximize": True,
+        "max_tokens": spec.llm_output_tokens,
+        "seed": spec.seed,
+        "mechanism": "opportunity_allocation_plus_action_matched_assistance",
+        "allocation_policy": "quality_continuation_plus_behavior_coverage",
+        "coverage_mix": V920_COVERAGE_MIX,
+        "ess_fraction": V920_ESS_FRACTION,
+        "min_ess_target": V920_MIN_ESS_TARGET,
+        "actions": ["develop", "explore", "crossover"],
+        "action_temperature": V920_ACTION_TEMPERATURE,
+        "explore_probability": {
+            "neutral": V920_EXPLORE_NEUTRAL,
+            "min": V920_EXPLORE_MIN,
+            "max": V920_EXPLORE_MAX,
+        },
+        "behave_protocol": V920_BEHAVESIM_PROTOCOL_ID,
+        "error_handling": True,
+        "error_retries": V920_MAX_REPAIRS,
+        "retry_policy": "two_bounded_repairs",
+        "retry_budget": "primary_candidates",
     }
 
 

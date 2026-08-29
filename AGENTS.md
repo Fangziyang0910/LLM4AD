@@ -33,7 +33,7 @@ TraceAAD 的两个基础问题是：**给哪一个节点一次决策机会**，�
 - 正式比较统一 1000 次真实评价预算，评价口径全局统一；训练集上优化，测试集为不同规模的新实例。搜索结果、测试结果与过程证据分开报告。测试评估必须完成，timeout 或单个失败样本不能成为最终 `n/a`；全部重复与测试完成后才更新结果页。
 - 生成模型统一记 **Qwen3.6-27B**：zhong / server1 / server3 / server3b / local 是同一模型的不同服务源，不区分、不记录。
 - 实验入口在 `experiments/runners/`，工件按 `experiments/<task>/<method>/` 组织（主实验规范根，索引见 `experiments/README.md`）：历史版本与重跑批次归档在 `experiments/其他实验/`，机制实验战役结束后迁入 `experiments/机制实验/<日期-名称>/`；模型、预算和关键超参显式可追溯；原始工件只留本地，Git 只跟踪实验入口、评估绘图代码和 `docs/experiments/` 的凝练结果。
-- 并行容量 server3 9、server3b 9、server1 9；启动用 `tmux new-session` + `experiments.runners.<method>.run`，按空位均衡分配；长跑前先冒烟，长跑用可恢复的后台会话。Python 用本仓库的 uv 环境。
+- 并行容量 server3 9、server3b 9、server1 6；启动用 `tmux new-session` + `experiments.runners.<method>.run`，按空位均衡分配；长跑前先冒烟，长跑用可恢复的后台会话。Python 用本仓库的 uv 环境。
 
 ## 文档
 

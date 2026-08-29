@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V9.19 搜索观察</title>
+<style>
+:root{
+  --bg:#101218; --panel:#181c24; --ink:#e7ecf3; --mute:#8b93a3; --faint:#5c6574;
+  --line:#2a3140; --soft:#222834;
+  --dev:#5aa8e0; --exp:#d4a054; --imp:#4caf8a; --reg:#d07a4a; --inv:#c45c78;
+  --dup:#6b7380; --best:#f2f4f8; --knn:#3b4454; --form:#9aa4b5;
+  --run:#4caf8a; --stall:#c45c78; --fin:#8b93a3;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font:13.5px/1.5 ui-sans-serif,"Segoe UI","PingFang SC","Noto Sans CJK SC",sans-serif}
+header{position:sticky;top:0;z-index:8;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:10px 18px;background:rgba(16,18,24,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+header h1{margin:0;font-size:15px;font-weight:650;letter-spacing:.02em}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--run);box-shadow:0 0 0 4px rgba(76,175,138,.18)}
+.dot.err{background:var(--stall);box-shadow:0 0 0 4px rgba(196,92,120,.18)}
+#meta{margin-left:auto;display:flex;gap:14px;color:var(--mute);font-size:12px;flex-wrap:wrap}
+#meta b{color:var(--ink);font-weight:600}
+button,select{font:inherit}
+.back,.tab,.chip,select,.ghost{border:1px solid var(--line);background:var(--panel);color:var(--ink);
+  border-radius:8px;padding:5px 11px;cursor:pointer}
+.back{display:none}
+.back.on{display:inline-flex}
+.tab.on{background:var(--ink);color:#101218;border-color:var(--ink)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.ghost{color:var(--mute);padding:3px 8px;font-size:12px}
+.ghost.on{border-color:var(--dev);color:var(--dev)}
+main{max-width:1380px;margin:0 auto;padding:16px 18px 48px}
+.hint{color:var(--faint);text-align:center;padding:40px 0}
+.tasks{display:flex;flex-direction:column;gap:14px}
+.task{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.task h2{margin:0;padding:12px 14px 6px;font-size:13px;display:flex;gap:8px;align-items:center}
+.task h2 span{margin-left:auto;color:var(--faint);font-weight:500;font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:right;color:var(--faint);font-weight:500;padding:2px 10px 6px}
+th:first-child,td:first-child{text-align:left}
+td{padding:6px 10px;text-align:right;border-top:1px solid var(--soft);white-space:nowrap}
+tr.runrow{cursor:pointer}
+tr.runrow:hover td{background:#1f2530}
+.bar{width:92px;height:6px;background:#2a3140;border-radius:99px;display:inline-block;overflow:hidden;vertical-align:middle}
+.bar>i{display:block;height:100%;background:var(--dev)}
+.bar>i.done{background:#4a5160}
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:600}
+.pill.run{background:rgba(76,175,138,.15);color:var(--run)}
+.pill.fin{background:#262b35;color:var(--fin)}
+.pill.stall{background:rgba(196,92,120,.16);color:var(--stall)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;padding:6px 14px 10px;color:var(--mute);font-size:11.5px}
+.legend i{width:12px;height:3px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:middle}
+.chart{padding:0 8px 10px}
+svg text{fill:var(--faint);font-size:10.5px}
+.work{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px 14px}
+.panel h3{margin:0 0 8px;font-size:12.5px;font-weight:650}
+.strip{display:flex;gap:8px;overflow:auto;padding:4px 0 10px}
+.bestcard{min-width:150px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;background:#141821}
+.bestcard:hover,.bestcard.on{border-color:var(--dev)}
+.bestcard .k{color:var(--faint);font-size:11px}
+.bestcard .v{font-weight:700;font-size:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 8px}
+.inspect{position:sticky;top:58px}
+.kv{display:grid;grid-template-columns:88px 1fr;gap:4px 8px;font-size:12.5px}
+.kv .k{color:var(--mute)}
+.idea{background:#141821;border-radius:8px;padding:8px 10px;margin:8px 0;white-space:pre-wrap;color:#d5dbe6}
+pre{background:#0c0f14;border-radius:8px;padding:10px;overflow:auto;max-height:280px;font-size:11.5px;line-height:1.45;margin:8px 0 0}
+.path{display:flex;flex-direction:column;gap:8px}
+.step{border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer}
+.step.on{border-color:var(--dev)}
+.mono{font-variant-numeric:tabular-nums}
+.stage{min-height:320px;background:#12161d;border:1px solid var(--line);border-radius:12px;overflow:hidden;touch-action:none}
+.stage svg{display:block;width:100%;height:100%}
+.controls{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
+</style>
+</head>
+<body>
+<header>
+  <span class="dot" id="live"></span>
+  <button class="back" id="back">总览</button>
+  <h1 id="title">V9.19 搜索观察</h1>
+  <div class="tabs" id="tabs"></div>
+  <div id="meta">加载中…</div>
+</header>
+<main id="app"><div class="hint">读取 V9.19 运行工件…</div></main>
+<script>
+const REFRESH_MS = 15000;
+const TASK_ORDER = ["tsp_construct","cvrp_aco","op_aco","online_bin_packing","vrptw_construct"];
+const TABS = [
+  ["search","搜索过程"],
+  ["tree","形成树"],
+  ["land","行为景观"],
+  ["traj","形成轨迹"],
+  ["dec","决策"]
+];
+const ACTION_COLOR = {develop:"#5aa8e0", explore:"#d4a054", init:"#6b7380"};
+const OUT_COLOR = {improve:"#4caf8a", plateau:"#8b93a3", regress:"#d07a4a", invalid:"#c45c78", duplicate:"#6b7380", timeout:"#d07a4a", profiling_failed:"#c45c78"};
+const REP = ["#5aa8e0","#d4a054","#4caf8a"];
+const BEH_SHAPE = {"near-known":"circle","intermediate":"square","far-from-archive":"diamond"};
+
+let overview=null, run=null, nodeDetail=null, slotDetail=null;
+let route={task:null,name:null,tab:"search",node:null,slot:null};
+let pan={x:0,y:0,s:1};
+let landOpts={color:"score", knn:true, form:true};
+
+function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));}
+function fmt(v){return v==null?"–":String(+v.toPrecision(4));}
+function pct(n,d){return d? (100*n/d).toFixed(1)+"%":"–";}
+function pill(run){const c=run.finished?"fin":run.stalled?"stall":"run";const l=run.finished?"完成":run.stalled?"停滞":"运行中";return `<span class="pill ${c}">${l}</span>`;}
+function parseHash(){
+  const raw=(location.hash||"#/").replace(/^#\/?/,"");
+  const parts=raw.split("/").filter(Boolean);
+  if(parts.length<2){route={task:null,name:null,tab:"search",node:route.node,slot:route.slot};return;}
+  route.task=parts[0]; route.name=parts[1]; route.tab=TABS.some(t=>t[0]===parts[2])?parts[2]:"search";
+}
+function setHash(){
+  location.hash = route.name ? `#/${route.task}/${route.name}/${route.tab}` : "#/";
+}
+window.addEventListener("hashchange", ()=>{parseHash(); tick(false);});
+
+async function getJSON(url){
+  const ctrl=new AbortController();
+  const t=setTimeout(()=>ctrl.abort(), 20000);
+  try{
+    const res=await fetch(url,{signal:ctrl.signal});
+    if(!res.ok) throw new Error(res.status+" "+url);
+    return await res.json();
+  }finally{clearTimeout(t);}
+}
+
+async function tick(refreshRun=true){
+  parseHash();
+  try{
+    overview=await getJSON("/state");
+    document.getElementById("live").classList.remove("err");
+    if(route.name && refreshRun){
+      run=await getJSON(`/run/${route.task}/${route.name}`);
+      if(!route.node && run.best_id && route.tab==="traj") route.node=run.best_id;
+      if(route.node) nodeDetail=await getJSON(`/run/${route.task}/${route.name}/node/${route.node}`).catch(()=>null);
+      if(route.slot) slotDetail=await getJSON(`/run/${route.task}/${route.name}/slot/${route.slot}`).catch(()=>null);
+    }
+    if(!route.name){run=null; nodeDetail=null; slotDetail=null;}
+    render();
+  }catch(e){
+    document.getElementById("live").classList.add("err");
+    document.getElementById("meta").textContent = e.name==="AbortError" ? "拉取超时" : ("连接失败: "+e.message);
+  }
+}
+
+function render(){
+  const back=document.getElementById("back");
+  const tabs=document.getElementById("tabs");
+  const title=document.getElementById("title");
+  back.classList.toggle("on", !!route.name);
+  if(!overview){return;}
+  const runs=overview.runs||[];
+  const active=runs.filter(r=>!r.finished&&!r.stalled).length;
+  document.getElementById("meta").innerHTML =
+    `<span>更新 <b>${new Date().toLocaleTimeString()}</b></span>`+
+    `<span>运行中 <b>${active}</b> / ${runs.length}</span>`+
+    `<span>15 秒刷新</span>`;
+  if(!route.name){
+    title.textContent="V9.19 搜索观察";
+    tabs.innerHTML="";
+    document.getElementById("app").innerHTML=renderOverview(runs);
+    return;
+  }
+  const info=runs.find(r=>r.name===route.name)||run||{label:route.task,rep:"?"};
+  title.textContent=`${info.label||route.task} · rep${info.rep??""}`;
+  tabs.innerHTML=TABS.map(([id,label])=>`<button class="tab ${route.tab===id?"on":""}" data-tab="${id}">${label}</button>`).join("");
+  tabs.querySelectorAll(".tab").forEach(btn=>btn.onclick=()=>{route.tab=btn.dataset.tab; setHash(); render();});
+  document.getElementById("app").innerHTML=renderWorkspace();
+  bindWorkspace();
+}
+document.getElementById("back").onclick=()=>{route={task:null,name:null,tab:"search",node:null,slot:null}; setHash(); render();};
+
+function renderOverview(runs){
+  if(!runs.length) return `<div class="hint">还没有 V9.19 运行工件</div>`;
+  const by=new Map();
+  for(const r of runs){ if(!by.has(r.task)) by.set(r.task,[]); by.get(r.task).push(r); }
+  let html="";
+  for(const task of TASK_ORDER){
+    const group=(by.get(task)||[]).sort((a,b)=>a.rep-b.rep);
+    if(!group.length) continue;
+    const fin=group.filter(r=>r.finished).length;
+    const unit=group[0].unit;
+    html+=`<section class="task"><h2>${esc(group[0].label)}<span>${fin}/${group.length} 完成 · ${esc(unit)}</span></h2>
+      <table><tr><th>运行</th><th>状态</th><th></th><th>评价</th><th>best</th><th>Improve</th><th>D/E</th><th>后端</th></tr>`;
+    for(const r of group){
+      const pctw=Math.min(100,100*r.n_evals/r.budget);
+      html+=`<tr class="runrow" data-task="${r.task}" data-name="${esc(r.name)}">
+        <td>rep${r.rep}</td><td>${pill(r)}</td>
+        <td><span class="bar"><i class="${r.finished?"done":""}" style="width:${pctw}%"></i></span></td>
+        <td class="mono">${r.n_evals}/${r.budget}</td>
+        <td><b>${fmt(r.best)}</b></td>
+        <td>${pct(r.n_improve,r.n_evals)}</td>
+        <td>${(r.ops||[0,0]).join("/")}</td>
+        <td>${esc(r.backend||"–")}</td></tr>`;
+    }
+    html+=`</table><div class="legend">${group.map(r=>`<span><i style="background:${REP[(r.rep-1)%3]}"></i>rep${r.rep} · best ${fmt(r.best)}</span>`).join("")}</div>
+      <div class="chart">${overlayChart(group)}</div></section>`;
+  }
+  return `<div class="tasks">${html}</div>`;
+}
+
+function overlayChart(runs){
+  const w=1160,h=220,pL=58,pR=16,pT=10,pB=24,iw=w-pL-pR,ih=h-pT-pB;
+  const budget=runs[0].budget||1000;
+  const ys=runs.flatMap(r=>(r.curve||[]).map(p=>p[1]).filter(v=>v!=null));
+  if(!ys.length) return `<div class="hint">尚无有效评价</div>`;
+  let lo=Math.min(...ys), hi=Math.max(...ys); const pad=Math.max((hi-lo)*0.08,.01); lo-=pad; hi+=pad;
+  const sx=x=>pL+Math.min(x,budget)/budget*iw;
+  const sy=v=>pT+(1-(v-lo)/(hi-lo))*ih;
+  let g="";
+  for(const t of [0,250,500,750,1000]) g+=`<text x="${sx(t)}" y="${h-6}" text-anchor="middle">${t}</text>`;
+  for(const r of runs){
+    const c=r.curve||[]; if(!c.length) continue;
+    const color=REP[(r.rep-1)%3];
+    let d="",started=false;
+    for(const [n,v] of c){ if(v==null) continue; const x=sx(n).toFixed(1), y=sy(v).toFixed(1); d+=(started?"L":"M")+x+","+y; started=true; }
+    g+=`<path d="${d}" fill="none" stroke="${color}" stroke-width="1.8"/>`;
+    for(let i=1;i<c.length;i++){
+      if(c[i][1]===c[i-1][1]) continue;
+      g+=`<circle cx="${sx(c[i][0]).toFixed(1)}" cy="${sy(c[i][1]).toFixed(1)}" r="3.1" fill="#101218" stroke="${color}" stroke-width="1.6"><title>rep${r.rep} 突破 · slot ${c[i][0]} · ${fmt(c[i][1])}</title></circle>`;
+    }
+  }
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%">${g}</svg>`;
+}
+
+function renderWorkspace(){
+  if(!run) return `<div class="hint">载入 ${esc(route.name)} …</div>`;
+  const body = route.tab==="tree" ? treeView()
+    : route.tab==="land" ? landView()
+    : route.tab==="traj" ? trajView()
+    : route.tab==="dec" ? decView()
+    : searchView();
+  return `<div class="work"><div>${body}</div><aside class="panel inspect">${inspector()}</aside></div>`;
+}
+
+function searchView(){
+  const hist=run.best_history||[];
+  const slots=run.slots||[];
+  return `<div class="panel">
+    <h3>Best 改进历程 · ${hist.length} 次</h3>
+    <div class="strip">${hist.map(h=>`<div class="bestcard ${route.node===h.child_id?"on":""}" data-node="${h.child_id||""}" data-slot="${h.slot}">
+      <div class="k">slot ${h.slot} · ${esc(h.action||"init")}</div>
+      <div class="v">${fmt(h.score)}</div>
+      <div class="k">${esc((h.idea||"").slice(0,42))}</div>
+    </div>`).join("")||"<div class='hint'>尚无改进</div>"}</div>
+    <div class="chart">${searchScatter()}</div>
+    <div class="legend"><span><i style="background:${ACTION_COLOR.develop}"></i>Develop</span><span><i style="background:${ACTION_COLOR.explore}"></i>Explore</span><span><i style="background:#f2f4f8"></i>best</span></div>
+    <div class="chart">${stackChart(slots.map(s=>s.outcome), OUT_COLOR, "结果")}</div>
+    <div class="chart">${stackChart(slots.filter(s=>s.action).map(s=>s.action), ACTION_COLOR, "动作")}</div>
+    <div class="chart">${tpChart()}</div>
+    <div class="chart">${putChart()}</div>
+  </div>`;
+}
+
+function searchScatter(){
+  const slots=run.slots||[], w=1040,h=260,pL=54,pR=12,pT=12,pB=24,iw=w-pL-pR,ih=h-pT-pB,budget=run.budget||1000;
+  const pts=slots.filter(s=>s.score!=null);
+  if(!pts.length) return `<div class="hint">尚无有效评价</div>`;
+  let lo=Math.min(...pts.map(p=>p.score)), hi=Math.max(...pts.map(p=>p.score));
+  const pad=Math.max((hi-lo)*.08,.01); lo-=pad; hi+=pad;
+  const sx=x=>pL+Math.min(x,budget)/budget*iw, sy=v=>pT+(1-(v-lo)/(hi-lo))*ih;
+  let g="";
+  for(const t of [0,250,500,750,1000]) g+=`<text x="${sx(t)}" y="${h-6}" text-anchor="middle">${t}</text>`;
+  for(const s of pts){
+    const color=ACTION_COLOR[s.action||"init"];
+    g+=`<circle class="hit" data-slot="${s.slot}" data-node="${s.child_id||""}" cx="${sx(s.slot).toFixed(1)}" cy="${sy(s.score).toFixed(1)}" r="3.3" fill="${color}" opacity=".85"><title>slot ${s.slot} · ${esc(s.action||"init")} · ${fmt(s.score)} · ${esc(s.outcome)}</title></circle>`;
+  }
+  const curve=run.curve||[];
+  let d="",started=false;
+  for(const [n,v] of curve){ d+=(started?"L":"M")+sx(n).toFixed(1)+","+sy(v).toFixed(1); started=true; }
+  g+=`<path d="${d}" fill="none" stroke="#f2f4f8" stroke-width="1.6"/>`;
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%">${g}</svg>`;
+}
+
+function stackChart(labels, colors, title){
+  if(!labels.length) return "";
+  const keys=[...new Set(labels.filter(Boolean))];
+  const w=1040,h=120,pL=54,pR=12,pT=14,pB=18,iw=w-pL-pR,ih=h-pT-pB,win=Math.min(25,labels.length);
+  const pts=[];
+  for(let i=0;i<labels.length;i++){
+    const lo=Math.max(0,i-win+1); const counts={};
+    for(let j=lo;j<=i;j++) counts[labels[j]]=(counts[labels[j]]||0)+1;
+    const tot=Object.values(counts).reduce((a,b)=>a+b,0);
+    pts.push(keys.map(k=>(counts[k]||0)/tot));
+  }
+  const xs=pts.map((_,i)=>pL+i/Math.max(1,pts.length-1)*iw);
+  let g=`<text x="${pL}" y="11">${esc(title)} · 窗口 ${win}</text>`;
+  for(let k=0;k<keys.length;k++){
+    const yTop=pts.map(p=>p.slice(0,k+1).reduce((a,b)=>a+b,0));
+    const yBot=k===0?pts.map(()=>0):pts.map(p=>p.slice(0,k).reduce((a,b)=>a+b,0));
+    let d=`M${xs[0].toFixed(1)},${(pT+ih).toFixed(1)}`;
+    d+=pts.map((_,i)=>`L${xs[i].toFixed(1)},${(pT+(1-yBot[i])*ih).toFixed(1)}`).join("");
+    for(let i=pts.length-1;i>=0;i--) d+=`L${xs[i].toFixed(1)},${(pT+(1-yTop[i])*ih).toFixed(1)}`;
+    d+=`Z`;
+    g+=`<path d="${d}" fill="${colors[keys[k]]||"#6b7380"}" opacity=".88"><title>${keys[k]}</title></path>`;
+  }
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%">${g}</svg>`;
+}
+
+function tpChart(){
+  const sel=run.selected||[]; if(!sel.length) return "";
+  const w=1040,h=140,pL=54,pR=12,pT=14,pB=18,iw=w-pL-pR,ih=h-pT-pB,budget=run.budget||1000;
+  const sx=x=>pL+Math.min(x,budget)/budget*iw, sy=v=>pT+(1-v)*ih;
+  let g=`<text x="${pL}" y="11">T 与 p_E</text>`;
+  for(const [key,color,dash] of [["T","#9ad0f5",""],["p_explore","#d4a054","5 3"]]){
+    let d="",started=false;
+    for(const s of sel){ const v=s[key]; if(v==null) continue; d+=(started?"L":"M")+sx(s.slot).toFixed(1)+","+sy(v).toFixed(1); started=true; }
+    if(started) g+=`<path d="${d}" fill="none" stroke="${color}" stroke-width="1.5" stroke-dasharray="${dash}"/>`;
+  }
+  for(const s of sel){ if(s.action!=="explore"||s.p_explore==null) continue;
+    g+=`<circle cx="${sx(s.slot).toFixed(1)}" cy="${sy(s.p_explore).toFixed(1)}" r="2.3" fill="#d4a054"/>`; }
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%">${g}</svg>`;
+}
+
+function putChart(){
+  const sel=run.selected||[]; if(!sel.length) return "";
+  const w=1040,h=140,pL=54,pR=12,pT=14,pB=18,iw=w-pL-pR,ih=h-pT-pB;
+  const xs=sel.map((_,i)=>pL+i/Math.max(1,sel.length-1)*iw);
+  const layers=[["P",0.75,"#5aa8e0"],["U",0.10,"#d4a054"],["T",0.15,"#4caf8a"]];
+  let acc=sel.map(()=>0), g=`<text x="${pL}" y="11">被选父节点 0.75P+0.10U+0.15T</text>`;
+  for(const [key,wts,color] of layers){
+    const next=sel.map((s,i)=>acc[i]+wts*(s[key]||0));
+    let d=`M${xs[0].toFixed(1)},${(pT+ih).toFixed(1)}`;
+    d+=acc.map((v,i)=>`L${xs[i].toFixed(1)},${(pT+(1-v)*ih).toFixed(1)}`).join("");
+    for(let i=xs.length-1;i>=0;i--) d+=`L${xs[i].toFixed(1)},${(pT+(1-next[i])*ih).toFixed(1)}`;
+    d+="Z";
+    g+=`<path d="${d}" fill="${color}" opacity=".9"><title>${key}</title></path>`;
+    acc=next;
+  }
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%">${g}</svg>`;
+}
+
+function treeView(){
+  const nodes=run.layout||[];
+  if(!nodes.length) return `<div class="panel"><div class="hint">尚无形成树</div></div>`;
+  const byId=Object.fromEntries((run.nodes||[]).map(n=>[n.id,n]));
+  const xs=nodes.map(n=>n.x), ys=nodes.map(n=>n.y);
+  const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
+  const w=1040,h=520,p=36,iw=w-2*p,ih=h-2*p;
+  const sx=x=>p+((x-minX)/Math.max(1e-6,maxX-minX||1))*iw;
+  const sy=y=>p+((y-minY)/Math.max(1e-6,maxY-minY||1))*ih;
+  let g="";
+  for(const e of run.edges||[]){
+    const a=nodes.find(n=>n.id===e.source), b=nodes.find(n=>n.id===e.target);
+    if(!a||!b) continue;
+    g+=`<path d="M${sx(a.x).toFixed(1)},${sy(a.y).toFixed(1)} L${sx(b.x).toFixed(1)},${sy(b.y).toFixed(1)}" stroke="${ACTION_COLOR[e.action||"init"]}" stroke-width="1.2" fill="none" opacity=".75"/>`;
+  }
+  for(const loc of nodes){
+    const n=byId[loc.id]||{};
+    const color=ACTION_COLOR[n.action||"init"];
+    const r=route.node===n.id?7:4.6;
+    g+=`<circle class="hit" data-node="${n.id}" data-slot="${n.created_slot||""}" cx="${sx(loc.x).toFixed(1)}" cy="${sy(loc.y).toFixed(1)}" r="${r}" fill="${color}" stroke="${route.node===n.id?"#fff":"none"}" stroke-width="1.4"><title>#${n.id} · ${esc(n.action||"root")} · ${fmt(scoreOf(n))} · T=${fmt(n.t_response)}</title></circle>`;
+  }
+  return `<div class="panel"><div class="row"><h3 style="margin:0">形成树</h3>
+    <span class="legend" style="padding:0"><span><i style="background:${ACTION_COLOR.develop}"></i>Develop</span>
+    <span><i style="background:${ACTION_COLOR.explore}"></i>Explore</span>
+    <span><i style="background:${ACTION_COLOR.init}"></i>root</span></span>
+    <button class="ghost" data-reset="tree">复位</button></div>
+    <div class="stage" id="stage-tree" style="height:520px"><svg viewBox="0 0 ${w} ${h}" id="svg-tree"><g id="g-tree">${g}</g></svg></div></div>`;
+}
+
+function landView(){
+  const L=run.landscape; if(!L) return `<div class="panel"><div class="hint">还没有 BehaveSim 距离矩阵</div></div>`;
+  const byId=Object.fromEntries((run.nodes||[]).map(n=>[n.id,n]));
+  const xy=L.xy, ids=L.ids;
+  const xs=xy.map(p=>p[0]), ys=xy.map(p=>p[1]);
+  const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
+  const w=1040,h=520,p=28,iw=w-2*p,ih=h-2*p;
+  const sx=x=>p+((x-minX)/Math.max(1e-6,maxX-minX))*iw;
+  const sy=y=>p+(1-(y-minY)/Math.max(1e-6,maxY-minY))*ih;
+  const colorBy=landOpts.color;
+  const showK=landOpts.knn;
+  const showF=landOpts.form;
+  let g="";
+  if(showK) for(const [a,b] of L.knn||[]){
+    const i=ids.indexOf(a), j=ids.indexOf(b); if(i<0||j<0) continue;
+    g+=`<line x1="${sx(xy[i][0]).toFixed(1)}" y1="${sy(xy[i][1]).toFixed(1)}" x2="${sx(xy[j][0]).toFixed(1)}" y2="${sy(xy[j][1]).toFixed(1)}" stroke="#3b4454" stroke-width=".7" opacity=".55"/>`;
+  }
+  if(showF) for(const e of run.edges||[]){
+    const i=ids.indexOf(e.source), j=ids.indexOf(e.target); if(i<0||j<0) continue;
+    g+=`<line x1="${sx(xy[i][0]).toFixed(1)}" y1="${sy(xy[i][1]).toFixed(1)}" x2="${sx(xy[j][0]).toFixed(1)}" y2="${sy(xy[j][1]).toFixed(1)}" stroke="#9aa4b5" stroke-width="1.1"/>`;
+  }
+  const values=ids.map(id=>{
+    const n=byId[id]||{};
+    if(colorBy==="T") return n.t_response;
+    if(colorBy==="novelty") return n.novelty;
+    if(colorBy==="slot") return n.created_slot;
+    return scoreOf(n);
+  });
+  const known=values.filter(v=>v!=null);
+  const vlo=Math.min(...known), vhi=Math.max(...known);
+  for(let i=0;i<ids.length;i++){
+    const n=byId[ids[i]]||{}; const v=values[i];
+    const t=v==null||vhi===vlo? .5 : (v-vlo)/(vhi-vlo);
+    const col=v==null?"#6b7380":lerpColor(t);
+    const r=3.4+Math.sqrt(n.opportunities||0);
+    const shape=BEH_SHAPE[n.behavior]||"circle";
+    const x=sx(xy[i][0]).toFixed(1), y=sy(xy[i][1]).toFixed(1);
+    const mark = shape==="square"
+      ? `<rect class="hit" data-node="${ids[i]}" x="${x-r}" y="${y-r}" width="${2*r}" height="${2*r}" fill="${col}" stroke="${route.node===ids[i]?"#fff":"none"}"/>`
+      : shape==="diamond"
+      ? `<polygon class="hit" data-node="${ids[i]}" points="${x},${y-r} ${+x+r},${y} ${x},${+y+r} ${x-r},${y}" fill="${col}" stroke="${route.node===ids[i]?"#fff":"none"}"/>`
+      : `<circle class="hit" data-node="${ids[i]}" cx="${x}" cy="${y}" r="${r}" fill="${col}" stroke="${route.node===ids[i]?"#fff":"none"}" stroke-width="1.3"/>`;
+    g+=`<g>${mark}<title>#${ids[i]} · ${fmt(scoreOf(n))} · ${esc(n.behavior||"")} · c_t ${n.opportunities||0}</title></g>`;
+  }
+  return `<div class="panel"><div class="controls">
+    <h3 style="margin:0 8px 0 0">行为景观 · MDS</h3>
+    <select id="color-by">
+      <option value="score"${colorBy==="score"?" selected":""}>着色：质量</option>
+      <option value="T"${colorBy==="T"?" selected":""}>着色：T</option>
+      <option value="novelty"${colorBy==="novelty"?" selected":""}>着色：ν</option>
+      <option value="slot"${colorBy==="slot"?" selected":""}>着色：创建槽</option>
+    </select>
+    <button class="ghost ${showK?"on":""}" id="tog-knn">kNN</button>
+    <button class="ghost ${showF?"on":""}" id="tog-form">形成边</button>
+    <button class="ghost" data-reset="land">复位</button>
+    <span class="legend" style="padding:0"><span>○ near-known</span><span>□ intermediate</span><span>◇ far-from-archive</span><span>大小 = c_t</span></span>
+  </div>
+  <div class="stage" id="stage-land" style="height:520px"><svg viewBox="0 0 ${w} ${h}" id="svg-land"><g id="g-land">${g}</g></svg></div></div>`;
+}
+
+function trajView(){
+  const id=route.node || run.best_id;
+  if(!id) return `<div class="panel"><div class="hint">在树或景观中点一个节点，查看它的形成来时路</div></div>`;
+  const steps=(nodeDetail&&nodeDetail.id===id?nodeDetail.path:null);
+  if(!steps) return `<div class="panel"><div class="hint">载入节点 #${id} 的形成轨迹…</div></div>`;
+  return `<div class="panel"><h3>节点 #${id} 的行为落地形成轨迹</h3>
+    <div class="path">${steps.map((s,i)=>`<div class="step ${s.id===id?"on":""}" data-node="${s.id}" data-slot="${s.created_slot||""}">
+      <div class="k">${i===0?"根":"形成边 "+i} · #${s.id} · ${esc(s.action||"init")} · slot ${s.created_slot??"–"}</div>
+      <div><b>${fmt(s.score)}</b> · T ${fmt(s.t_response)} · ν ${fmt(s.novelty)} · ${esc(s.behavior||"")}</div>
+      <div class="idea">${esc(s.idea||"（无 Idea）")}</div>
+    </div>`).join("")}</div></div>`;
+}
+
+function decView(){
+  const sel=run.selected||[];
+  let rows=sel.map(s=>{
+    const slot=(run.slots||[]).find(r=>r.slot===s.slot)||{};
+    return `<tr class="runrow" data-slot="${s.slot}" data-node="${slot.child_id||""}">
+      <td>${s.slot}</td><td>#${s.parent_id}</td><td>${esc(s.action)}</td>
+      <td>${esc(s.outcome||"")}</td><td>${fmt(s.S)}</td><td>${fmt(s.P)}</td><td>${fmt(s.U)}</td>
+      <td>${fmt(s.T)}</td><td>${fmt(s.p_explore)}</td><td>${slot.child_id?("#"+slot.child_id):"–"}</td></tr>`;
+  }).join("");
+  return `<div class="panel"><h3>普通决策</h3>
+    <table><tr><th>slot</th><th>parent</th><th>动作</th><th>结果</th><th>S</th><th>P</th><th>U</th><th>T</th><th>p_E</th><th>child</th></tr>${rows||""}</table></div>`;
+}
+
+function inspector(){
+  if(slotDetail&&slotDetail.row){
+    const r=slotDetail.row, a=slotDetail.action||{}, d=slotDetail.decision||{};
+    const rank=(slotDetail.ranking||[]).slice(0,12);
+    const maxS=Math.max(...rank.map(x=>x.S||0), .001);
+    return `<h3>Slot ${r.slot}</h3>
+      <div class="kv"><div class="k">动作</div><div>${esc(r.action||r.mode)}</div>
+      <div class="k">结果</div><div>${esc(r.outcome)}</div>
+      <div class="k">parent</div><div>#${r.parent_id}</div>
+      <div class="k">child</div><div>${r.child_id?("#"+r.child_id):"未入树"}</div>
+      <div class="k">${run.unit}</div><div>${fmt(r.score)}</div>
+      <div class="k">T / p_E</div><div>${fmt(r.t_response)} / ${fmt(r.p_explore)}</div>
+      <div class="k">β / ESS</div><div>${fmt(r.beta)} / ${fmt(r.ess)}</div>
+      <div class="k">attempt</div><div>${r.attempt}${r.error?(" · "+esc(r.error_type||r.error)):""}</div></div>
+      ${d.llm_output?`<div class="idea">${esc(d.llm_output.idea||"")}</div>`:""}
+      <h3 style="margin-top:12px">父节点竞争（按 S）</h3>
+      ${rank.map(x=>`<div style="display:flex;gap:6px;align-items:center;margin:3px 0;font-size:12px">
+        <span style="width:42px">#${x.id}${x.id===r.parent_id?" ←":""}</span>
+        <span class="bar" style="width:120px"><i style="width:${100*(x.S||0)/maxS}%;background:${x.id===r.parent_id?"#5aa8e0":"#6b7380"}"></i></span>
+        <span>S ${fmt(x.S)} · P ${fmt(x.P)} · U ${fmt(x.U)} · T ${fmt(x.T)}</span></div>`).join("")}`;
+  }
+  if(nodeDetail){
+    const n=nodeDetail;
+    return `<h3>节点 #${n.id}</h3>
+      <div class="kv"><div class="k">动作</div><div>${esc(n.action||"root")}</div>
+      <div class="k">parent</div><div>${n.parent_id?("#"+n.parent_id):"虚拟根"}</div>
+      <div class="k">${run.unit}</div><div>${fmt(n.score)}</div>
+      <div class="k">T</div><div>${fmt(n.t_response)}</div>
+      <div class="k">ν / 标签</div><div>${fmt(n.novelty)} · ${esc(n.behavior||"")}</div>
+      <div class="k">c_t</div><div>${n.opportunities}</div>
+      <div class="k">slot</div><div>${n.created_slot}</div></div>
+      <div class="idea">${esc(n.idea||"（无 Idea）")}</div>
+      <pre>${esc(n.code||"")}</pre>`;
+  }
+  const n=run.n_nodes, e=run.n_evals;
+  return `<h3>${esc(run.label)}</h3>
+    <div class="kv"><div class="k">运行</div><div>${esc(run.name)}</div>
+    <div class="k">进度</div><div>${e}/${run.budget}</div>
+    <div class="k">节点</div><div>${n}</div>
+    <div class="k">best</div><div>${fmt(run.best)} · #${run.best_id??"–"}</div>
+    <div class="k">后端</div><div>${esc(run.backend||"–")} · seed ${run.seed??"–"}</div></div>
+    <p style="color:var(--mute);font-size:12.5px;margin:12px 0 0">点 best 卡片、散点、树或景观中的节点，查看 Idea、代码、形成来时路和当时的 P/U/T 竞争。</p>`;
+}
+
+function scoreOf(n){
+  if(n.fitness==null) return null;
+  return run.minimize? -n.fitness : n.fitness;
+}
+function lerpColor(t){
+  const a=[42,74,107], b=[232,196,104];
+  const c=a.map((v,i)=>Math.round(v+(b[i]-v)*t));
+  return `rgb(${c.join(",")})`;
+}
+
+function bindWorkspace(){
+  document.querySelectorAll(".runrow,.bestcard,.hit,.step").forEach(el=>{
+    el.addEventListener("click", ev=>{
+      ev.stopPropagation();
+      const node=el.dataset.node? +el.dataset.node : null;
+      const slot=el.dataset.slot? +el.dataset.slot : null;
+      if(node) selectNode(node);
+      if(slot) selectSlot(slot);
+    });
+  });
+  document.querySelectorAll(".runrow[data-task]").forEach(el=>{
+    el.onclick=()=>{ route.task=el.dataset.task; route.name=el.dataset.name; route.tab="search"; setHash(); tick(); };
+  });
+  const color=document.getElementById("color-by");
+  if(color){ color.onchange=()=>{landOpts.color=color.value; render();}; }
+  const knn=document.getElementById("tog-knn"); if(knn){ knn.onclick=()=>{landOpts.knn=!landOpts.knn; render();}; }
+  const form=document.getElementById("tog-form"); if(form){ form.onclick=()=>{landOpts.form=!landOpts.form; render();}; }
+  document.querySelectorAll("[data-reset]").forEach(btn=>btn.onclick=()=>{pan={x:0,y:0,s:1}; applyPan(btn.dataset.reset);});
+  attachPan("tree"); attachPan("land");
+}
+
+function attachPan(kind){
+  const svg=document.getElementById("svg-"+kind); const g=document.getElementById("g-"+kind);
+  if(!svg||!g) return;
+  applyPan(kind);
+  let drag=null;
+  svg.addEventListener("pointerdown", e=>{ drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y}; svg.setPointerCapture(e.pointerId); });
+  svg.addEventListener("pointermove", e=>{ if(!drag) return; pan.x=drag.px+(e.clientX-drag.x); pan.y=drag.py+(e.clientY-drag.y); applyPan(kind); });
+  svg.addEventListener("pointerup", ()=>drag=null);
+  svg.addEventListener("wheel", e=>{
+    e.preventDefault();
+    const next=Math.min(6, Math.max(.25, pan.s*(e.deltaY<0?1.12:0.9)));
+    pan.s=next; applyPan(kind);
+  }, {passive:false});
+}
+function applyPan(kind){
+  const g=document.getElementById("g-"+kind); if(!g) return;
+  g.setAttribute("transform", `translate(${pan.x},${pan.y}) scale(${pan.s})`);
+}
+
+async function selectNode(id){
+  if(!id||!route.name) return;
+  route.node=id;
+  nodeDetail=await getJSON(`/run/${route.task}/${route.name}/node/${id}`);
+  if(route.tab==="search") {/* keep */}
+  render();
+}
+async function selectSlot(slot){
+  if(!slot||!route.name) return;
+  route.slot=slot;
+  slotDetail=await getJSON(`/run/${route.task}/${route.name}/slot/${slot}`);
+  render();
+}
+
+document.getElementById("app").addEventListener("click", e=>{
+  const row=e.target.closest(".runrow[data-task]");
+  if(row){ route.task=row.dataset.task; route.name=row.dataset.name; route.tab="search"; route.node=null; route.slot=null; setHash(); tick(); }
+});
+
+tick();
+setInterval(()=>tick(true), REFRESH_MS);
+</script>
+</body>
+</html>

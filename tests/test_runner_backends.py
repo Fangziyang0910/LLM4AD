@@ -6,6 +6,11 @@ from types import SimpleNamespace
 from experiments.runners import _common
 
 
+def test_server1_capacity_matches_current_service_limit() -> None:
+    assert _common.BACKEND_CAPACITY["server1"] == 6
+    assert _common.BACKEND_CAPACITY["server3b"] == 9
+
+
 def test_select_backend_balances_to_the_side_with_more_free_slots() -> None:
     remaining = {"server3": 1, "server3b": 3, "zhong": 9, "local": 2}
 
