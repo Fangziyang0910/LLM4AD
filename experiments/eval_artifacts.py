@@ -79,7 +79,10 @@ def load_scored_samples(
             score = summary.get("best_score")
             sample_order = summary.get(
                 "best_response_order",
-                summary.get("best_sample_order", summary.get("best_algorithm_id")),
+                summary.get(
+                    "best_sample_order",
+                    summary.get("best_algorithm_id", summary.get("best_node_id")),
+                ),
             )
             if isinstance(score, (int, float)) and isinstance(sample_order, int):
                 if max_sample_order is None or sample_order <= max_sample_order:
