@@ -1,12 +1,12 @@
-"""Live observer for official TraceAAD V9.19 runs.
+"""Live observer for official TraceAAD V10 runs.
 
-Reads the V9.19 artifacts already written by the search loop
+Reads the V10 artifacts already written by the search loop
 (``evaluations.csv``, ``mechanism_events.jsonl``, ``decisions.jsonl``,
-``checkpoints/latest.json``, ``checkpoints/view.json``,
-``checkpoints/behave.npz``, ``best_history.jsonl``) and serves an
+``threads.jsonl``, ``global_memory.jsonl``, ``best_history.jsonl``,
+``checkpoints/latest.json``, ``checkpoints/view.json``) and serves an
 interactive page: batch overview, best-improvement history, formation
-tree, BehaveSim landscape, formation trajectory, and per-slot P/U/T
-competition.
+tree, per-slot opportunity allocation with the critic competitive set,
+and thread payoff statistics ``G_h``.
 
     uv run python -m experiments.plotting.monitor [--port 8765]
 """
@@ -21,11 +21,11 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from experiments.plotting import v919_view as view
+from experiments.plotting import v10_view as view
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXPERIMENTS_ROOT = REPO_ROOT / "experiments"
-PAGE = (Path(__file__).with_name("v919_page.html")).read_text(encoding="utf-8")
+PAGE = (Path(__file__).with_name("v10_page.html")).read_text(encoding="utf-8")
 POLL_INTERVAL_S = 10.0
 RUN_PATH = re.compile(r"^/run/([^/]+)/([^/]+)(?:/(node|slot)/([^/]+))?$")
 
@@ -73,13 +73,14 @@ def make_handler(cache: dict) -> type[BaseHTTPRequestHandler]:
 
 
 def _cached_run(cache: dict, root: Path, task: str, name: str) -> dict:
-    run_dir = root / task / "traceaad_v9_19" / name
+    run_dir = root / task / "traceaad_v10" / name
     stamp = (
         _mtime(run_dir / "evaluations.csv"),
         _mtime(run_dir / "checkpoints" / "latest.json"),
         _mtime(run_dir / "checkpoints" / "view.json"),
-        _mtime(run_dir / "checkpoints" / "behave.npz"),
         _mtime(run_dir / "mechanism_events.jsonl"),
+        _mtime(run_dir / "decisions.jsonl"),
+        _mtime(run_dir / "threads.jsonl"),
         _mtime(run_dir / "best_history.jsonl"),
     )
     bucket: dict = cache.setdefault("runs", {})
@@ -120,12 +121,12 @@ def main() -> None:
                 print("poll failed:", exc, flush=True)
             time.sleep(max(1.0, POLL_INTERVAL_S - (time.time() - started)))
 
-    print("scanning V9.19 runs…", flush=True)
+    print("scanning V10 runs…", flush=True)
     store()
     threading.Thread(target=poll_forever, daemon=True).start()
     server = ThreadingHTTPServer((args.host, args.port), make_handler(cache))
     n_runs = len((cache["overview"] or {}).get("runs") or [])
-    print(f"serving http://{args.host}:{args.port}  {n_runs} V9.19 runs", flush=True)
+    print(f"serving http://{args.host}:{args.port}  {n_runs} V10 runs", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

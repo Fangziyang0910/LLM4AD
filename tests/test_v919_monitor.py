@@ -11,7 +11,6 @@ import numpy as np
 import pytest
 
 from experiments.plotting import v919_view as view
-from experiments.plotting.monitor import PAGE, make_handler
 from llm4ad.method.traceaad_v9_19.artifacts import RunArtifacts
 
 OUTCOME_HEADER = [
@@ -340,67 +339,6 @@ def test_node_and_slot_endpoints(tmp_path: Path) -> None:
     assert slot["ranking"][0]["id"]
     assert slot["decision"]["llm_output"]["idea"] == "idea-child"
     assert "exact_prompt" not in slot["decision"]
-
-
-def test_page_is_v919_only() -> None:
-    assert "V9.19" in PAGE
-    assert "形成树" in PAGE
-    assert "行为景观" in PAGE
-    assert "形成轨迹" in PAGE
-    assert "EoH" not in PAGE
-    assert "V9.16" not in PAGE
-    assert "local_refine" not in PAGE
-
-
-def test_http_state_and_run_routes(tmp_path: Path) -> None:
-    write_v919_run(tmp_path)
-    cache = {"overview": view.overview_payload(tmp_path), "root": tmp_path}
-    handler_cls = make_handler(cache)
-
-    class Sink(handler_cls):
-        def __init__(self, path: str) -> None:
-            self.path = path
-            self.requestline = f"GET {path} HTTP/1.1"
-            self.request_version = "HTTP/1.1"
-            self.command = "GET"
-            self.headers = {}
-            self.wfile = io.BytesIO()
-            self.rfile = io.BytesIO()
-            self._status = None
-
-        def send_response(self, code, message=None):
-            self._status = code
-
-        def send_header(self, *args):
-            pass
-
-        def send_error(self, code, message=None, explain=None):
-            self._status = code
-
-        def end_headers(self):
-            pass
-
-        def log_message(self, *args):
-            pass
-
-    home = Sink("/")
-    home.do_GET()
-    assert home._status == 200
-    assert b"V9.19" in home.wfile.getvalue()
-
-    state = Sink("/state")
-    state.do_GET()
-    payload = json.loads(state.wfile.getvalue())
-    assert payload["runs"][0]["name"] == "v9_19_tsp_construct_rep1"
-
-    detail = Sink("/run/tsp_construct/v9_19_tsp_construct_rep1")
-    detail.do_GET()
-    body = json.loads(detail.wfile.getvalue())
-    assert len(body["nodes"]) == 14
-
-    node = Sink("/run/tsp_construct/v9_19_tsp_construct_rep1/node/2")
-    node.do_GET()
-    assert "return 2" in json.loads(node.wfile.getvalue())["code"]
 
 
 def test_record_best_writes_history_jsonl(tmp_path: Path) -> None:
