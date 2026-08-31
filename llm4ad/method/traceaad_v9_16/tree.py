@@ -16,11 +16,6 @@ class Tree:
         self._algorithms = {
             VIRTUAL_ROOT_ID: Algorithm(VIRTUAL_ROOT_ID, None, None, None)
         }
-        self._best_quality: float | None = None
-
-    @property
-    def virtual_root_id(self) -> int:
-        return VIRTUAL_ROOT_ID
 
     def algorithms(self) -> tuple[Algorithm, ...]:
         return tuple(self._algorithms.values())
@@ -59,9 +54,6 @@ class Tree:
             entry_id=entry_id,
         )
         self._algorithms[algorithm.id] = algorithm
-        quality = self.quality(algorithm)
-        if self._best_quality is None or quality > self._best_quality:
-            self._best_quality = quality
         return algorithm
 
     def root_algorithms(self) -> tuple[Algorithm, ...]:
@@ -79,16 +71,9 @@ class Tree:
             current = self.get_algorithm(current).parent_id
         return tuple(reversed(path))
 
-    def depth(self, algorithm_id: int) -> int:
-        """Number of edges from the virtual root; roots have depth one."""
-        return len(self.ancestor_ids(algorithm_id)) - 1
-
     def best(self) -> Algorithm | None:
         algorithms = self.valid_algorithms()
         return max(algorithms, key=self.quality) if algorithms else None
-
-    def best_quality(self) -> float | None:
-        return self._best_quality
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -102,10 +87,6 @@ class Tree:
         tree._algorithms = {
             item["id"]: Algorithm(**item) for item in payload["algorithms"]
         }
-        for algorithm in tree.valid_algorithms():
-            quality = tree.quality(algorithm)
-            if tree._best_quality is None or quality > tree._best_quality:
-                tree._best_quality = quality
         return tree
 
 

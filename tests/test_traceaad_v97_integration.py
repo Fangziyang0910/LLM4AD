@@ -174,7 +174,7 @@ def test_v97_route_scores_sum_generations_and_take_route_best_q() -> None:
     forest.get_anchor(route_a[2]).n = 2
     forest.get_anchor(route_b[0]).n = 1
 
-    scores = {item.route_id: item for item in score_routes(forest, 1.0)}
+    scores = {item.id: item for item in score_routes(forest, 1.0)}
     a = scores[route_a[0]]
     b = scores[route_b[0]]
 
@@ -215,7 +215,7 @@ def test_v97_anchor_argmax_is_restricted_to_the_selected_route() -> None:
     assert choice.route_id == route_b[0]
     assert choice.anchor_id == route_b[0]
     assert all(
-        forest.get_anchor(item.anchor_id).root_id == route_b[0] for item in choice.anchors
+        forest.get_anchor(item.id).root_id == route_b[0] for item in choice.anchors
     )
 
 

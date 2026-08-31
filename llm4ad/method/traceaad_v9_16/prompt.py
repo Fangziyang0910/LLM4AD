@@ -42,6 +42,10 @@ def fitness_direction_hint(maximize: bool) -> str:
     )
 
 
+def _task_intro(task_description: str, maximize: bool) -> list[str]:
+    return ["[Task]", task_description.strip(), fitness_direction_hint(maximize), ""]
+
+
 def build_root_prompt(
     *,
     task_description: str,
@@ -53,10 +57,7 @@ def build_root_prompt(
     target.body = ""
     return "\n".join(
         [
-            "[Task]",
-            task_description.strip(),
-            fitness_direction_hint(maximize),
-            "",
+            *_task_intro(task_description, maximize),
             "[Target Function]",
             str(target).rstrip(),
             "Keep the function name, arguments, return type, and contract unchanged.",
@@ -83,10 +84,7 @@ def build_generation_prompt(
 ) -> str:
     return "\n".join(
         [
-            "[Task]",
-            task_description.strip(),
-            fitness_direction_hint(maximize),
-            "",
+            *_task_intro(task_description, maximize),
             "[Current Algorithm]",
             f"Fitness: {format_fitness(fitness)}",
             "```python",
@@ -147,10 +145,7 @@ def build_repair_prompt(
     )
     return "\n".join(
         [
-            "[Task]",
-            task_description.strip(),
-            fitness_direction_hint(maximize),
-            "",
+            *_task_intro(task_description, maximize),
             parent_block,
             "",
             "[Failed Candidate]",
@@ -239,17 +234,13 @@ def format_failure_feedback(
     error_type: str | None,
     error: str,
     traceback: str | None = None,
-    preflight_error: str | None = None,
 ) -> str:
     """Compose the full failure report for the repair prompt.
 
     Keeps the complete exception message, adds the type name, and keeps only
     traceback frames from the generated code instead of evaluator internals.
     """
-    head = error if not error_type else f"{error_type}: {error}"
-    if preflight_error is not None:
-        head = f"{head}\nPreflight: {preflight_error}"
-    parts = [head]
+    parts = [error if not error_type else f"{error_type}: {error}"]
     if error_type == "TimeoutError":
         parts.append(_TIMEOUT_GUIDANCE)
     frames = _candidate_frames(traceback)

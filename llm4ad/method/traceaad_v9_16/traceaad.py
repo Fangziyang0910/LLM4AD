@@ -108,10 +108,6 @@ class TraceAADV916:
     def best(self) -> Algorithm | None:
         return self._tree.best()
 
-    @property
-    def landing_slots_remaining(self) -> int:
-        return max(0, self._landing_budget - self._landing_slots_used)
-
     def run(self) -> None:
         status = "error"
         stop_reason: str | None = None
@@ -129,14 +125,13 @@ class TraceAADV916:
                 if self._active_landing is not None:
                     self._run_landing_step()
                     continue
-                decision = decide(
+                self._decision = decision = decide(
                     self._tree,
                     seed=self._seed,
                     n_eval=self._n_eval,
                     decision_index=self._n_ordinary_decisions,
                 )
                 self._n_ordinary_decisions += 1
-                self._decision = decision
                 parent = decision.parent
                 self._generate(
                     self._prompt(parent, decision.intent),
@@ -275,7 +270,7 @@ class TraceAADV916:
             child = self._process_pending()
             if child is not None or self._last_failure is None:
                 return child
-            if not self._can_repair(attempt):
+            if attempt > self._error_retries:
                 return None
             failure = self._last_failure
             parent_code = None
@@ -388,7 +383,6 @@ class TraceAADV916:
         self._record_evaluation(pending, None, None, status=status, error=diagnostic,
                                 error_type=error_type)
         save_checkpoint(self)
-        return None
 
     def _mark_landing_step(self, pending: Pending) -> None:
         if (
@@ -432,7 +426,7 @@ class TraceAADV916:
         )
 
     def _maybe_start_landing(self, child: Algorithm) -> None:
-        if self.landing_slots_remaining < LANDING_HORIZON:
+        if self._landing_budget - self._landing_slots_used < LANDING_HORIZON:
             return
         assert child.entry_id is not None
         if child.entry_id in self._entry_tickets:
@@ -488,9 +482,6 @@ class TraceAADV916:
             self._n_eval += 1
             if self._pending is not None and self._pending.mode == "landing":
                 self._landing_slots_used += 1
-
-    def _can_repair(self, attempt: int) -> bool:
-        return attempt <= self._error_retries
 
     def _summary_counts(self) -> dict[str, int]:
         return {

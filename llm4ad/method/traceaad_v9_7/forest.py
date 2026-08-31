@@ -9,14 +9,12 @@ from .schema import Anchor, Attempt, Outcome, Program
 from .source import code_hash
 
 
+def _ranking_key(program: Program) -> tuple[float, int, int]:
+    return (program.q, -program.length, -program.order)
+
+
 def is_better(candidate: Program, incumbent: Program | None) -> bool:
-    if incumbent is None:
-        return True
-    return (candidate.q, -candidate.length, -candidate.order) > (
-        incumbent.q,
-        -incumbent.length,
-        -incumbent.order,
-    )
+    return incumbent is None or _ranking_key(candidate) > _ranking_key(incumbent)
 
 
 class Forest:
@@ -42,11 +40,7 @@ class Forest:
         return tuple(self._attempts.values())
 
     def best(self) -> Program | None:
-        best = None
-        for program in self._programs.values():
-            if is_better(program, best):
-                best = program
-        return best
+        return max(self._programs.values(), key=_ranking_key, default=None)
 
     def get_program(self, program_id: int) -> Program:
         return self._programs[program_id]

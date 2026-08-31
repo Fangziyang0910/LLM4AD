@@ -41,6 +41,10 @@ def fitness_direction_hint(maximize: bool) -> str:
     )
 
 
+def _task_intro(task_description: str, maximize: bool) -> list[str]:
+    return ["[Task]", task_description.strip(), fitness_direction_hint(maximize), ""]
+
+
 def build_root_prompt(
     *, task_description: str, template_function: Function, maximize: bool
 ) -> str:
@@ -48,10 +52,7 @@ def build_root_prompt(
     target.body = ""
     return "\n".join(
         [
-            "[Task]",
-            task_description.strip(),
-            fitness_direction_hint(maximize),
-            "",
+            *_task_intro(task_description, maximize),
             "[Target Function]",
             str(target).rstrip(),
             "Keep the function name, arguments, return type, and contract unchanged.",
@@ -76,10 +77,7 @@ def build_generation_prompt(
 ) -> str:
     return "\n".join(
         [
-            "[Task]",
-            task_description.strip(),
-            fitness_direction_hint(maximize),
-            "",
+            *_task_intro(task_description, maximize),
             "[Current Algorithm]",
             f"Fitness: {format_fitness(fitness)}",
             "```python",

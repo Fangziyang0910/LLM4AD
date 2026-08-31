@@ -269,60 +269,45 @@ class TraceAADV97:
             )
             diff, added, removed = code_diff(parent.code, code)
         existing = self._forest.program_for_code(code)
-        if existing is not None:
-            return self._finalize(
-                idea=idea,
-                code=code,
-                diff=diff,
-                added=added,
-                removed=removed,
-                existing=existing,
-                fitness=None,
-                error=None,
+        fitness = None
+        error = None
+        status = "ok"
+        if existing is None:
+            outcome, _elapsed = self._evaluator.evaluate_program_record_time_with_details(
+                code
             )
-
-        outcome, _elapsed = self._evaluator.evaluate_program_record_time_with_details(
-            code
-        )
-        self._n_eval += 1
-        if outcome.failure_kind == "prepare_error":
-            raise RuntimeError(
-                one_line(
+            self._n_eval += 1
+            if outcome.failure_kind == "prepare_error":
+                raise RuntimeError(
+                    one_line(
+                        outcome.error
+                        or "evaluator preparation failed without an error message",
+                        ERROR_MAX_CHARS,
+                    )
+                )
+            score = getattr(outcome.result, "fitness", outcome.result)
+            try:
+                fitness = float(score)
+            except (TypeError, ValueError, OverflowError):
+                fitness = math.nan
+            if not math.isfinite(fitness):
+                fitness = None
+                error = one_line(
                     outcome.error
-                    or "evaluator preparation failed without an error message",
+                    or f"evaluator returned non-finite or non-numeric fitness: {score!r}",
                     ERROR_MAX_CHARS,
                 )
-            )
-        score = getattr(outcome.result, "fitness", outcome.result)
-        try:
-            parsed_fitness = float(score)
-        except (TypeError, ValueError, OverflowError):
-            parsed_fitness = math.nan
-        if math.isfinite(parsed_fitness):
-            return self._finalize(
-                idea=idea,
-                code=code,
-                diff=diff,
-                added=added,
-                removed=removed,
-                existing=None,
-                fitness=parsed_fitness,
-                error=None,
-            )
+                status = outcome.failure_kind or "invalid_result"
         return self._finalize(
             idea=idea,
             code=code,
             diff=diff,
             added=added,
             removed=removed,
-            existing=None,
-            fitness=None,
-            error=one_line(
-                outcome.error
-                or f"evaluator returned non-finite or non-numeric fitness: {score!r}",
-                ERROR_MAX_CHARS,
-            ),
-            status=outcome.failure_kind or "invalid_result",
+            existing=existing,
+            fitness=fitness,
+            error=error,
+            status=status,
         )
 
     def _finalize(
@@ -362,7 +347,16 @@ class TraceAADV97:
             error=error,
         )
         dq = None if parent is None or program is None else program.q - parent.q
-        outcome = _outcome(parent is not None, invalid=kind == "invalid", dq=dq)
+        if parent is None:
+            outcome = None
+        elif dq is None:
+            outcome = Outcome.INVALID
+        elif dq > 0:
+            outcome = Outcome.IMPROVE
+        elif dq < 0:
+            outcome = Outcome.REGRESS
+        else:
+            outcome = Outcome.PLATEAU
         attempt = Attempt(
             id=pending.id,
             anchor_id=pending.anchor_id,
@@ -472,19 +466,6 @@ class TraceAADV97:
 
     def _has_budget(self) -> bool:
         return self._n_eval < self._budget
-
-
-def _outcome(has_anchor: bool, *, invalid: bool, dq: float | None) -> Outcome | None:
-    if not has_anchor:
-        return None
-    if invalid:
-        return Outcome.INVALID
-    assert dq is not None
-    if dq > 0:
-        return Outcome.IMPROVE
-    if dq < 0:
-        return Outcome.REGRESS
-    return Outcome.PLATEAU
 
 
 __all__ = [
