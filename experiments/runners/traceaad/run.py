@@ -111,11 +111,26 @@ from llm4ad.method.traceaad_v9_22 import (
     TraceAADV922,
     RunArtifacts as V922RunArtifacts,
 )
+from llm4ad.method.traceaad_v10 import (
+    COMPETITIVE_SET_SIZE as V10_COMPETITIVE_SET_SIZE,
+    FORMATION_WINDOW as V10_FORMATION_WINDOW,
+    G_HORIZONS as V10_G_HORIZONS,
+    INITIAL_ROOT_COUNT as V10_INITIAL_ROOT_COUNT,
+    MAX_REPAIRS as V10_MAX_REPAIRS,
+    REFERENCE_COUNT as V10_REFERENCE_COUNT,
+    RESTART_CARDS as V10_RESTART_CARDS,
+    SCREEN_SIZE as V10_SCREEN_SIZE,
+    TraceAADV10,
+    RunArtifacts as V10RunArtifacts,
+)
 
 from .._common import (
     ALL_TASKS,
     BACKENDS,
     EXPERIMENTS_ROOT,
+    SAMPLING_TEMPERATURE,
+    SAMPLING_TOP_K,
+    SAMPLING_TOP_P,
     TASKS as TASKS,
     TaskName,
     build_llm_client,
@@ -140,6 +155,7 @@ VersionName = Literal[
     "v9_20",
     "v9_21",
     "v9_22",
+    "v10",
 ]
 
 VERSIONS: tuple[VersionName, ...] = (
@@ -155,6 +171,7 @@ VERSIONS: tuple[VersionName, ...] = (
     "v9_20",
     "v9_21",
     "v9_22",
+    "v10",
 )
 TRACEAAD_V916_VERSIONS = {"v9_16"}
 TRACEAAD_V917_VERSIONS = {"v9_17", "v9_17_fixed_cycle"}
@@ -167,6 +184,7 @@ TRACEAAD_V919_VERSIONS = {"v9_19"}
 TRACEAAD_V920_VERSIONS = {"v9_20"}
 TRACEAAD_V921_VERSIONS = {"v9_21"}
 TRACEAAD_V922_VERSIONS = {"v9_22"}
+TRACEAAD_V10_VERSIONS = {"v10"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -250,6 +268,8 @@ def make_run_spec(
             if version in TRACEAAD_V921_VERSIONS
             else V922_INITIAL_ROOT_COUNT
             if version in TRACEAAD_V922_VERSIONS
+            else V10_INITIAL_ROOT_COUNT
+            if version in TRACEAAD_V10_VERSIONS
             else V917_INITIAL_ROOT_COUNT
         )
         if n_init is None
@@ -273,6 +293,7 @@ def make_run_spec(
                 "v9_20",
                 "v9_21",
                 "v9_22",
+                "v10",
             }
             else 24576
             if context_token_limit is None
@@ -311,6 +332,8 @@ def make_run_spec(
         raise ValueError("TraceAAD V9.21 requires exactly eight initial roots")
     if spec.version in TRACEAAD_V922_VERSIONS and spec.n_init != V922_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.22 requires exactly eight initial roots")
+    if spec.version in TRACEAAD_V10_VERSIONS and spec.n_init != V10_INITIAL_ROOT_COUNT:
+        raise ValueError("TraceAAD V10 requires exactly eight initial roots")
     if spec.eval_workers is not None and spec.eval_workers <= 0:
         raise ValueError("eval_workers must be positive")
     if spec.llm_output_tokens <= 0:
@@ -482,6 +505,20 @@ def build_method(
             checkpoint_dir=run_dir / "checkpoints",
             task_key=spec.task,
         )
+    if spec.version in TRACEAAD_V10_VERSIONS:
+        return TraceAADV10(
+            llm=llm,
+            evaluation=evaluation,
+            artifacts=V10RunArtifacts(run_dir=run_dir),
+            budget=spec.budget,
+            n_roots=spec.n_init,
+            max_tokens=spec.llm_output_tokens,
+            seed=spec.seed,
+            resume_from=resume_from,
+            checkpoint_dir=run_dir / "checkpoints",
+            task_key=spec.task,
+            context_token_limit=spec.context_token_limit,
+        )
     raise ValueError(f"unsupported TraceAAD version: {spec.version}")
 
 
@@ -534,6 +571,8 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         expected_method_params = _v921_method_params(spec)
     elif spec.version in TRACEAAD_V922_VERSIONS:
         expected_method_params = _v922_method_params(spec)
+    elif spec.version in TRACEAAD_V10_VERSIONS:
+        expected_method_params = _v10_method_params(spec)
     else:
         raise ValueError(f"unsupported TraceAAD version: {spec.version}")
     expected_protocol = {
@@ -580,6 +619,8 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         method_params = _v921_method_params(spec)
     elif spec.version in TRACEAAD_V922_VERSIONS:
         method_params = _v922_method_params(spec)
+    elif spec.version in TRACEAAD_V10_VERSIONS:
+        method_params = _v10_method_params(spec)
     else:
         method_params = _v917_method_params(spec)
     payload = {
@@ -595,7 +636,12 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     # V9.18 artifacts need explicit service metadata for held-out provenance;
     # retain the established config shape of earlier TraceAAD versions.
     if spec.version in (
-        TRACEAAD_V918_VERSIONS | TRACEAAD_V919_VERSIONS | TRACEAAD_V920_VERSIONS | TRACEAAD_V921_VERSIONS | TRACEAAD_V922_VERSIONS
+        TRACEAAD_V918_VERSIONS
+        | TRACEAAD_V919_VERSIONS
+        | TRACEAAD_V920_VERSIONS
+        | TRACEAAD_V921_VERSIONS
+        | TRACEAAD_V922_VERSIONS
+        | TRACEAAD_V10_VERSIONS
     ):
         payload.update(
             {
@@ -640,6 +686,7 @@ def _versioned_logical_model_name(spec: RunSpec) -> str:
         | TRACEAAD_V920_VERSIONS
         | TRACEAAD_V921_VERSIONS
         | TRACEAAD_V922_VERSIONS
+        | TRACEAAD_V10_VERSIONS
     ):
         return "Qwen3.6-27B"
     return V97_LOGICAL_MODEL_NAME
@@ -648,7 +695,9 @@ def _versioned_logical_model_name(spec: RunSpec) -> str:
 def _versioned_generator_environment(spec: RunSpec) -> dict[str, object]:
     return {
         "logical_model_name": _versioned_logical_model_name(spec),
-        "temperature": 1.0,
+        "temperature": SAMPLING_TEMPERATURE,
+        "top_p": SAMPLING_TOP_P,
+        "top_k": SAMPLING_TOP_K,
         "max_new_tokens": spec.llm_output_tokens,
         "sampling_seed": spec.seed,
         "max_total_context": spec.context_token_limit,
@@ -871,6 +920,36 @@ def _v922_method_params(spec: RunSpec) -> dict[str, object]:
         "online_behavesim": False,
         "error_handling": True,
         "error_retries": V922_MAX_REPAIRS,
+        "retry_policy": "two_bounded_repairs",
+        "retry_budget": "primary_candidates",
+    }
+
+
+def _v10_method_params(spec: RunSpec) -> dict[str, object]:
+    return {
+        "budget": spec.budget,
+        "n_roots": spec.n_init,
+        "maximize": True,
+        "max_tokens": spec.llm_output_tokens,
+        "seed": spec.seed,
+        "mechanism": "trajectory_aware_joint_design_opportunity_allocation",
+        "allocation": "critic_competitive_set_plus_lexicographic_coverage",
+        "operators": ["develop", "pivot", "transfer", "restart", "semantic_repair"],
+        "K_s": V10_SCREEN_SIZE,
+        "K_d": V10_REFERENCE_COUNT,
+        "K_c": V10_COMPETITIVE_SET_SIZE,
+        "H_tau": V10_FORMATION_WINDOW,
+        "H_G": list(V10_G_HORIZONS),
+        "N_card": V10_RESTART_CARDS,
+        "critic_calls": "once_per_primary_slot_after_initialization",
+        "generation_context": {
+            "default": ["task", "current_algorithm", "formation_path", "operator_instruction"],
+            "transfer": ["+reference_code", "+reference_formation_path"],
+            "semantic_repair": ["+semantic_mismatch"],
+            "restart": ["verified_improvement_cards_only"],
+        },
+        "error_handling": True,
+        "error_retries": V10_MAX_REPAIRS,
         "retry_policy": "two_bounded_repairs",
         "retry_budget": "primary_candidates",
     }
