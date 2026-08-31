@@ -1,0 +1,1931 @@
+{
+  "budget": 500,
+  "groups": [
+    {
+      "task": "cvrp_aco",
+      "method": "calm",
+      "label": "CALM",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/cvrp_aco/calm/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/cvrp_aco/calm/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 9.38853962522897,
+          "sample_std": 0.07506372256484288,
+          "sample_orders": [
+            107,
+            43,
+            84
+          ]
+        },
+        "test_100": {
+          "mean": 16.05272009907573,
+          "sample_std": 0.2439585194704896,
+          "sample_orders": [
+            107,
+            43,
+            84
+          ]
+        },
+        "test_200": {
+          "mean": 28.952189663875156,
+          "sample_std": 0.8024048743815982,
+          "sample_orders": [
+            107,
+            43,
+            84
+          ]
+        }
+      }
+    },
+    {
+      "task": "cvrp_aco",
+      "method": "eoh",
+      "label": "EoH",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/cvrp_aco/eoh/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/cvrp_aco/eoh/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 9.376291898996028,
+          "sample_std": 0.08955493673924343,
+          "sample_orders": [
+            159,
+            493,
+            427
+          ]
+        },
+        "test_100": {
+          "mean": 15.97457584256694,
+          "sample_std": 0.3871595625426601,
+          "sample_orders": [
+            159,
+            493,
+            427
+          ]
+        },
+        "test_200": {
+          "mean": 28.55034193316585,
+          "sample_std": 0.7950950434208687,
+          "sample_orders": [
+            159,
+            493,
+            427
+          ]
+        }
+      }
+    },
+    {
+      "task": "cvrp_aco",
+      "method": "mcts_ahd",
+      "label": "MCTS-AHD",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/cvrp_aco/mcts_ahd/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/cvrp_aco/mcts_ahd/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 9.168984621951937,
+          "sample_std": 0.11545714283778703,
+          "sample_orders": [
+            493,
+            336,
+            486
+          ]
+        },
+        "test_100": {
+          "mean": 15.394365574348145,
+          "sample_std": 0.2328958004689389,
+          "sample_orders": [
+            493,
+            336,
+            486
+          ]
+        },
+        "test_200": {
+          "mean": 27.5905214921937,
+          "sample_std": 0.2594888149930745,
+          "sample_orders": [
+            493,
+            336,
+            486
+          ]
+        }
+      }
+    },
+    {
+      "task": "cvrp_aco",
+      "method": "pathwise",
+      "label": "PathWise",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/cvrp_aco/pathwise/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/cvrp_aco/pathwise/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 9.638369355900844,
+          "sample_std": 0.22807536435757525,
+          "sample_orders": [
+            271,
+            204,
+            346
+          ]
+        },
+        "test_100": {
+          "mean": 16.276853169488486,
+          "sample_std": 0.33471750106751763,
+          "sample_orders": [
+            271,
+            204,
+            346
+          ]
+        },
+        "test_200": {
+          "mean": 28.951950453569424,
+          "sample_std": 0.5471189453916975,
+          "sample_orders": [
+            271,
+            204,
+            346
+          ]
+        }
+      }
+    },
+    {
+      "task": "cvrp_aco",
+      "method": "reevo",
+      "label": "ReEvo",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/cvrp_aco/reevo/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/cvrp_aco/reevo/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 9.51247326873279,
+          "sample_std": 0.12008429600767424,
+          "sample_orders": [
+            195,
+            342,
+            56
+          ]
+        },
+        "test_100": {
+          "mean": 16.074980341876994,
+          "sample_std": 0.21698649157602387,
+          "sample_orders": [
+            195,
+            342,
+            56
+          ]
+        },
+        "test_200": {
+          "mean": 28.500738239237155,
+          "sample_std": 0.6599063733797889,
+          "sample_orders": [
+            195,
+            342,
+            56
+          ]
+        }
+      }
+    },
+    {
+      "task": "cvrp_aco",
+      "method": "traceaad_v9_16",
+      "label": "TraceAAD V9.16",
+      "output_dir": "experiments/cvrp_aco/traceaad_v9_16/eval_best_budget500_20260830",
+      "source_eval": "experiments/cvrp_aco/traceaad_v9_16/eval_best_20260823_v916_complete/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 9.315875455934725,
+          "sample_std": 0.12998068627962575,
+          "sample_orders": [
+            417,
+            458,
+            465
+          ]
+        },
+        "test_100": {
+          "mean": 15.887015836573765,
+          "sample_std": 0.14949470439875917,
+          "sample_orders": [
+            417,
+            458,
+            465
+          ]
+        },
+        "test_200": {
+          "mean": 28.5356746616937,
+          "sample_std": 0.4512089401870894,
+          "sample_orders": [
+            417,
+            458,
+            465
+          ]
+        }
+      }
+    },
+    {
+      "task": "cvrp_aco",
+      "method": "traceaad_v9_17",
+      "label": "TraceAAD V9.17",
+      "output_dir": "experiments/cvrp_aco/traceaad_v9_17/eval_best_budget500_20260830",
+      "source_eval": "experiments/cvrp_aco/traceaad_v9_17/eval_best_20260824_v917_adaptive_complete/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 9.25329932153664,
+          "sample_std": 0.19826171114184035,
+          "sample_orders": [
+            322,
+            411,
+            462
+          ]
+        },
+        "test_100": {
+          "mean": 15.751694426875625,
+          "sample_std": 0.3711626995389714,
+          "sample_orders": [
+            322,
+            411,
+            462
+          ]
+        },
+        "test_200": {
+          "mean": 28.289051066538406,
+          "sample_std": 0.5826941511516295,
+          "sample_orders": [
+            322,
+            411,
+            462
+          ]
+        }
+      }
+    },
+    {
+      "task": "cvrp_aco",
+      "method": "traceaad_v9_19",
+      "label": "TraceAAD V9.19",
+      "output_dir": "experiments/cvrp_aco/traceaad_v9_19/eval_best_budget500_20260830",
+      "source_eval": "experiments/cvrp_aco/traceaad_v9_19/eval_best_v919_fixed_cvrp_aco_incremental/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 9.144440180985136,
+          "sample_std": 0.09524173021120261,
+          "sample_orders": [
+            403,
+            417,
+            440
+          ]
+        },
+        "test_100": {
+          "mean": 15.61564044197039,
+          "sample_std": 0.2319804359345907,
+          "sample_orders": [
+            403,
+            417,
+            440
+          ]
+        },
+        "test_200": {
+          "mean": 28.179358793298075,
+          "sample_std": 0.5173810573481333,
+          "sample_orders": [
+            403,
+            417,
+            440
+          ]
+        }
+      }
+    },
+    {
+      "task": "cvrp_aco",
+      "method": "traceaad_v9_20",
+      "label": "TraceAAD V9.20",
+      "output_dir": "experiments/cvrp_aco/traceaad_v9_20/eval_best_budget500_20260830",
+      "source_eval": "experiments/cvrp_aco/traceaad_v9_20/eval_best_v920_cvrp_aco_incremental/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 9.234299804496805,
+          "sample_std": 0.039665756431037535,
+          "sample_orders": [
+            438,
+            498,
+            454
+          ]
+        },
+        "test_100": {
+          "mean": 15.919509896020196,
+          "sample_std": 0.20092068333536028,
+          "sample_orders": [
+            438,
+            498,
+            454
+          ]
+        },
+        "test_200": {
+          "mean": 28.53173620704135,
+          "sample_std": 0.6257787451189428,
+          "sample_orders": [
+            438,
+            498,
+            454
+          ]
+        }
+      }
+    },
+    {
+      "task": "online_bin_packing",
+      "method": "calm",
+      "label": "CALM",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/online_bin_packing/calm/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/online_bin_packing/calm/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "1k_100": {
+          "mean": 414.3333333333333,
+          "sample_std": 0.8082903768654958,
+          "sample_orders": [
+            197,
+            72,
+            57
+          ]
+        },
+        "5k_100": {
+          "mean": 2018.3333333333333,
+          "sample_std": 0.8082903768653973,
+          "sample_orders": [
+            197,
+            72,
+            57
+          ]
+        },
+        "10k_100": {
+          "mean": 4025.7999999999997,
+          "sample_std": 0.9165151389912771,
+          "sample_orders": [
+            197,
+            72,
+            57
+          ]
+        },
+        "1k_500": {
+          "mean": 81.2,
+          "sample_std": 0.20000000000000284,
+          "sample_orders": [
+            197,
+            72,
+            57
+          ]
+        },
+        "5k_500": {
+          "mean": 403.0,
+          "sample_std": 0.6928203230275444,
+          "sample_orders": [
+            197,
+            72,
+            57
+          ]
+        },
+        "10k_500": {
+          "mean": 805.2000000000002,
+          "sample_std": 1.7320508075688772,
+          "sample_orders": [
+            197,
+            72,
+            57
+          ]
+        }
+      }
+    },
+    {
+      "task": "online_bin_packing",
+      "method": "eoh",
+      "label": "EoH",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/online_bin_packing/eoh/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/online_bin_packing/eoh/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "1k_100": {
+          "mean": 412.5333333333333,
+          "sample_std": 1.8036999011291412,
+          "sample_orders": [
+            323,
+            384,
+            455
+          ]
+        },
+        "5k_100": {
+          "mean": 2031.0666666666666,
+          "sample_std": 11.218437205481548,
+          "sample_orders": [
+            323,
+            384,
+            455
+          ]
+        },
+        "10k_100": {
+          "mean": 4055.133333333333,
+          "sample_std": 25.406560832457096,
+          "sample_orders": [
+            323,
+            384,
+            455
+          ]
+        },
+        "1k_500": {
+          "mean": 83.60000000000001,
+          "sample_std": 2.0297783130184435,
+          "sample_orders": [
+            323,
+            384,
+            455
+          ]
+        },
+        "5k_500": {
+          "mean": 405.06666666666666,
+          "sample_std": 2.3180451534285127,
+          "sample_orders": [
+            323,
+            384,
+            455
+          ]
+        },
+        "10k_500": {
+          "mean": 805.6,
+          "sample_std": 2.029778313018446,
+          "sample_orders": [
+            323,
+            384,
+            455
+          ]
+        }
+      }
+    },
+    {
+      "task": "online_bin_packing",
+      "method": "mcts_ahd",
+      "label": "MCTS-AHD",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/online_bin_packing/mcts_ahd/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/online_bin_packing/mcts_ahd/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "1k_100": {
+          "mean": 413.3333333333333,
+          "sample_std": 2.013289182738869,
+          "sample_orders": [
+            246,
+            249,
+            224
+          ]
+        },
+        "5k_100": {
+          "mean": 2023.9333333333334,
+          "sample_std": 3.910669166949973,
+          "sample_orders": [
+            246,
+            249,
+            224
+          ]
+        },
+        "10k_100": {
+          "mean": 4038.4,
+          "sample_std": 9.526804291051642,
+          "sample_orders": [
+            246,
+            249,
+            224
+          ]
+        },
+        "1k_500": {
+          "mean": 81.0,
+          "sample_std": 0.20000000000000284,
+          "sample_orders": [
+            246,
+            249,
+            224
+          ]
+        },
+        "5k_500": {
+          "mean": 402.4666666666667,
+          "sample_std": 0.8082903768654629,
+          "sample_orders": [
+            246,
+            249,
+            224
+          ]
+        },
+        "10k_500": {
+          "mean": 803.5333333333334,
+          "sample_std": 0.5773502691896257,
+          "sample_orders": [
+            246,
+            249,
+            224
+          ]
+        }
+      }
+    },
+    {
+      "task": "online_bin_packing",
+      "method": "pathwise",
+      "label": "PathWise",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/online_bin_packing/pathwise/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/online_bin_packing/pathwise/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "1k_100": {
+          "mean": 417.8,
+          "sample_std": 3.815756805667795,
+          "sample_orders": [
+            1,
+            385,
+            157
+          ]
+        },
+        "5k_100": {
+          "mean": 2062.933333333333,
+          "sample_std": 30.946620709430128,
+          "sample_orders": [
+            1,
+            385,
+            157
+          ]
+        },
+        "10k_100": {
+          "mean": 4115.066666666667,
+          "sample_std": 58.36106007718961,
+          "sample_orders": [
+            1,
+            385,
+            157
+          ]
+        },
+        "1k_500": {
+          "mean": 80.8,
+          "sample_std": 0.0,
+          "sample_orders": [
+            1,
+            385,
+            157
+          ]
+        },
+        "5k_500": {
+          "mean": 403.1333333333334,
+          "sample_std": 0.11547005383791858,
+          "sample_orders": [
+            1,
+            385,
+            157
+          ]
+        },
+        "10k_500": {
+          "mean": 805.7999999999998,
+          "sample_std": 0.0,
+          "sample_orders": [
+            1,
+            385,
+            157
+          ]
+        }
+      }
+    },
+    {
+      "task": "online_bin_packing",
+      "method": "reevo",
+      "label": "ReEvo",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/online_bin_packing/reevo/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/online_bin_packing/reevo/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "1k_100": {
+          "mean": 419.8,
+          "sample_std": 0.0,
+          "sample_orders": [
+            1,
+            1,
+            1
+          ]
+        },
+        "5k_100": {
+          "mean": 2089.6,
+          "sample_std": 0.0,
+          "sample_orders": [
+            1,
+            1,
+            1
+          ]
+        },
+        "10k_100": {
+          "mean": 4166.8,
+          "sample_std": 0.0,
+          "sample_orders": [
+            1,
+            1,
+            1
+          ]
+        },
+        "1k_500": {
+          "mean": 80.8,
+          "sample_std": 0.0,
+          "sample_orders": [
+            1,
+            1,
+            1
+          ]
+        },
+        "5k_500": {
+          "mean": 403.2,
+          "sample_std": 0.0,
+          "sample_orders": [
+            1,
+            1,
+            1
+          ]
+        },
+        "10k_500": {
+          "mean": 805.7999999999998,
+          "sample_std": 0.0,
+          "sample_orders": [
+            1,
+            1,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "task": "online_bin_packing",
+      "method": "traceaad_v9_16",
+      "label": "TraceAAD V9.16",
+      "output_dir": "experiments/online_bin_packing/traceaad_v9_16/eval_best_budget500_20260830",
+      "source_eval": "experiments/online_bin_packing/traceaad_v9_16/eval_best_20260823_v916_complete/results.json",
+      "scales": {
+        "1k_100": {
+          "mean": 421.59999999999997,
+          "sample_std": 7.302054505411477,
+          "sample_orders": [
+            398,
+            252,
+            466
+          ]
+        },
+        "5k_100": {
+          "mean": 2030.2,
+          "sample_std": 7.794870107962038,
+          "sample_orders": [
+            398,
+            252,
+            466
+          ]
+        },
+        "10k_100": {
+          "mean": 4047.6666666666665,
+          "sample_std": 14.686501739125317,
+          "sample_orders": [
+            398,
+            252,
+            466
+          ]
+        },
+        "1k_500": {
+          "mean": 80.8,
+          "sample_std": 0.0,
+          "sample_orders": [
+            398,
+            252,
+            466
+          ]
+        },
+        "5k_500": {
+          "mean": 402.6666666666667,
+          "sample_std": 0.757187779440026,
+          "sample_orders": [
+            398,
+            252,
+            466
+          ]
+        },
+        "10k_500": {
+          "mean": 804.6666666666666,
+          "sample_std": 1.5275252316519468,
+          "sample_orders": [
+            398,
+            252,
+            466
+          ]
+        }
+      }
+    },
+    {
+      "task": "online_bin_packing",
+      "method": "traceaad_v9_17",
+      "label": "TraceAAD V9.17",
+      "output_dir": "experiments/online_bin_packing/traceaad_v9_17/eval_best_budget500_20260830",
+      "source_eval": "experiments/online_bin_packing/traceaad_v9_17/eval_best_20260824_v917_adaptive_complete/results.json",
+      "scales": {
+        "1k_100": {
+          "mean": 413.8,
+          "sample_std": 3.9949968710876376,
+          "sample_orders": [
+            269,
+            458,
+            339
+          ]
+        },
+        "5k_100": {
+          "mean": 2027.6000000000001,
+          "sample_std": 2.800000000000068,
+          "sample_orders": [
+            269,
+            458,
+            339
+          ]
+        },
+        "10k_100": {
+          "mean": 4045.2666666666664,
+          "sample_std": 8.700191568772157,
+          "sample_orders": [
+            269,
+            458,
+            339
+          ]
+        },
+        "1k_500": {
+          "mean": 80.86666666666666,
+          "sample_std": 0.1154700538379268,
+          "sample_orders": [
+            269,
+            458,
+            339
+          ]
+        },
+        "5k_500": {
+          "mean": 403.2,
+          "sample_std": 0.19999999999998863,
+          "sample_orders": [
+            269,
+            458,
+            339
+          ]
+        },
+        "10k_500": {
+          "mean": 805.6666666666666,
+          "sample_std": 0.11547005383788576,
+          "sample_orders": [
+            269,
+            458,
+            339
+          ]
+        }
+      }
+    },
+    {
+      "task": "online_bin_packing",
+      "method": "traceaad_v9_19",
+      "label": "TraceAAD V9.19",
+      "output_dir": "experiments/online_bin_packing/traceaad_v9_19/eval_best_budget500_20260830",
+      "source_eval": "experiments/online_bin_packing/traceaad_v9_19/eval_best_v919_fixed_online_bin_packing_incremental/results.json",
+      "scales": {
+        "1k_100": {
+          "mean": 417.8,
+          "sample_std": 2.0,
+          "sample_orders": [
+            437,
+            413,
+            340
+          ]
+        },
+        "5k_100": {
+          "mean": 2029.6000000000001,
+          "sample_std": 11.38595626199215,
+          "sample_orders": [
+            437,
+            413,
+            340
+          ]
+        },
+        "10k_100": {
+          "mean": 4043.0,
+          "sample_std": 19.31942028115764,
+          "sample_orders": [
+            437,
+            413,
+            340
+          ]
+        },
+        "1k_500": {
+          "mean": 80.86666666666666,
+          "sample_std": 0.1154700538379268,
+          "sample_orders": [
+            437,
+            413,
+            340
+          ]
+        },
+        "5k_500": {
+          "mean": 403.2,
+          "sample_std": 0.19999999999998863,
+          "sample_orders": [
+            437,
+            413,
+            340
+          ]
+        },
+        "10k_500": {
+          "mean": 806.0,
+          "sample_std": 0.39999999999997726,
+          "sample_orders": [
+            437,
+            413,
+            340
+          ]
+        }
+      }
+    },
+    {
+      "task": "online_bin_packing",
+      "method": "traceaad_v9_20",
+      "label": "TraceAAD V9.20",
+      "output_dir": "experiments/online_bin_packing/traceaad_v9_20/eval_best_budget500_20260830",
+      "source_eval": "experiments/online_bin_packing/traceaad_v9_20/eval_best_v920_online_bin_packing_incremental/results.json",
+      "scales": {
+        "1k_100": {
+          "mean": 413.8,
+          "sample_std": 5.5677643628300215,
+          "sample_orders": [
+            1,
+            410,
+            440
+          ]
+        },
+        "5k_100": {
+          "mean": 2044.0666666666666,
+          "sample_std": 39.570864702876165,
+          "sample_orders": [
+            1,
+            410,
+            440
+          ]
+        },
+        "10k_100": {
+          "mean": 4080.3333333333335,
+          "sample_std": 75.0056886731489,
+          "sample_orders": [
+            1,
+            410,
+            440
+          ]
+        },
+        "1k_500": {
+          "mean": 80.8,
+          "sample_std": 0.0,
+          "sample_orders": [
+            1,
+            410,
+            440
+          ]
+        },
+        "5k_500": {
+          "mean": 403.0,
+          "sample_std": 0.19999999999998863,
+          "sample_orders": [
+            1,
+            410,
+            440
+          ]
+        },
+        "10k_500": {
+          "mean": 805.5333333333333,
+          "sample_std": 0.46188021535167434,
+          "sample_orders": [
+            1,
+            410,
+            440
+          ]
+        }
+      }
+    },
+    {
+      "task": "online_bin_packing",
+      "method": "traceaad_v9_21",
+      "label": "TraceAAD V9.21",
+      "output_dir": "experiments/online_bin_packing/traceaad_v9_21/eval_best_budget500_20260830",
+      "source_eval": "experiments/online_bin_packing/traceaad_v9_21/eval_best_v921_online_bin_packing_incremental/results.json",
+      "scales": {
+        "1k_100": {
+          "mean": 412.6666666666667,
+          "sample_std": 2.802379940931174,
+          "sample_orders": [
+            483,
+            361,
+            452
+          ]
+        },
+        "5k_100": {
+          "mean": 2028.6000000000001,
+          "sample_std": 9.526804291051578,
+          "sample_orders": [
+            483,
+            361,
+            452
+          ]
+        },
+        "10k_100": {
+          "mean": 4047.7333333333336,
+          "sample_std": 22.533826424585317,
+          "sample_orders": [
+            483,
+            361,
+            452
+          ]
+        },
+        "1k_500": {
+          "mean": 81.46666666666667,
+          "sample_std": 0.832666399786457,
+          "sample_orders": [
+            483,
+            361,
+            452
+          ]
+        },
+        "5k_500": {
+          "mean": 403.1333333333334,
+          "sample_std": 1.7925772879664967,
+          "sample_orders": [
+            483,
+            361,
+            452
+          ]
+        },
+        "10k_500": {
+          "mean": 804.9333333333334,
+          "sample_std": 2.1571586249817867,
+          "sample_orders": [
+            483,
+            361,
+            452
+          ]
+        }
+      }
+    },
+    {
+      "task": "op_aco",
+      "method": "calm",
+      "label": "CALM",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/op_aco/calm/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/op_aco/calm/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 15.082863005050505,
+          "sample_std": 0.06440350046694526,
+          "sample_orders": [
+            90,
+            80,
+            91
+          ]
+        },
+        "test_100": {
+          "mean": 30.403591645622896,
+          "sample_std": 0.3236045137590333,
+          "sample_orders": [
+            90,
+            80,
+            91
+          ]
+        },
+        "test_200": {
+          "mean": 53.92088541666667,
+          "sample_std": 2.220541158249889,
+          "sample_orders": [
+            90,
+            80,
+            91
+          ]
+        }
+      }
+    },
+    {
+      "task": "op_aco",
+      "method": "eoh",
+      "label": "EoH",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/op_aco/eoh/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/op_aco/eoh/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 15.199731165824915,
+          "sample_std": 0.02682765064854134,
+          "sample_orders": [
+            227,
+            268,
+            415
+          ]
+        },
+        "test_100": {
+          "mean": 30.805323021885524,
+          "sample_std": 0.19929889836247147,
+          "sample_orders": [
+            227,
+            268,
+            415
+          ]
+        },
+        "test_200": {
+          "mean": 55.43479166666666,
+          "sample_std": 0.9479925893931219,
+          "sample_orders": [
+            227,
+            268,
+            415
+          ]
+        }
+      }
+    },
+    {
+      "task": "op_aco",
+      "method": "mcts_ahd",
+      "label": "MCTS-AHD",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/op_aco/mcts_ahd/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/op_aco/mcts_ahd/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 15.196613005050507,
+          "sample_std": 0.04383149032682774,
+          "sample_orders": [
+            455,
+            329,
+            499
+          ]
+        },
+        "test_100": {
+          "mean": 30.732158564814814,
+          "sample_std": 0.14710978895679258,
+          "sample_orders": [
+            455,
+            329,
+            499
+          ]
+        },
+        "test_200": {
+          "mean": 55.50994791666667,
+          "sample_std": 0.40113332285953657,
+          "sample_orders": [
+            455,
+            329,
+            499
+          ]
+        }
+      }
+    },
+    {
+      "task": "op_aco",
+      "method": "pathwise",
+      "label": "PathWise",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/op_aco/pathwise/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/op_aco/pathwise/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 14.793150778619529,
+          "sample_std": 0.19930554130959907,
+          "sample_orders": [
+            405,
+            419,
+            418
+          ]
+        },
+        "test_100": {
+          "mean": 29.314194023569026,
+          "sample_std": 1.063342118607537,
+          "sample_orders": [
+            405,
+            419,
+            418
+          ]
+        },
+        "test_200": {
+          "mean": 51.29791666666667,
+          "sample_std": 3.800339733262823,
+          "sample_orders": [
+            405,
+            419,
+            418
+          ]
+        }
+      }
+    },
+    {
+      "task": "op_aco",
+      "method": "reevo",
+      "label": "ReEvo",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/op_aco/reevo/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/op_aco/reevo/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 14.337554187710438,
+          "sample_std": 0.6566421886343606,
+          "sample_orders": [
+            34,
+            160,
+            141
+          ]
+        },
+        "test_100": {
+          "mean": 27.647825126262628,
+          "sample_std": 2.740495691757842,
+          "sample_orders": [
+            34,
+            160,
+            141
+          ]
+        },
+        "test_200": {
+          "mean": 45.66395833333333,
+          "sample_std": 7.432379548651182,
+          "sample_orders": [
+            34,
+            160,
+            141
+          ]
+        }
+      }
+    },
+    {
+      "task": "op_aco",
+      "method": "traceaad_v9_16",
+      "label": "TraceAAD V9.16",
+      "output_dir": "experiments/op_aco/traceaad_v9_16/eval_best_budget500_20260830",
+      "source_eval": "experiments/op_aco/traceaad_v9_16/eval_best_20260823_v916_complete/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 15.109725378787878,
+          "sample_std": 0.022656793899089988,
+          "sample_orders": [
+            478,
+            317,
+            244
+          ]
+        },
+        "test_100": {
+          "mean": 30.357662037037034,
+          "sample_std": 0.060631301490848395,
+          "sample_orders": [
+            478,
+            317,
+            244
+          ]
+        },
+        "test_200": {
+          "mean": 54.269375000000004,
+          "sample_std": 0.0836607500190507,
+          "sample_orders": [
+            478,
+            317,
+            244
+          ]
+        }
+      }
+    },
+    {
+      "task": "op_aco",
+      "method": "traceaad_v9_17",
+      "label": "TraceAAD V9.17",
+      "output_dir": "experiments/op_aco/traceaad_v9_17/eval_best_budget500_20260830",
+      "source_eval": "experiments/op_aco/traceaad_v9_17/eval_best_20260824_v917_adaptive_complete/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 14.991513573232323,
+          "sample_std": 0.3554673727760683,
+          "sample_orders": [
+            412,
+            433,
+            302
+          ]
+        },
+        "test_100": {
+          "mean": 30.051217908249157,
+          "sample_std": 1.1566562592341842,
+          "sample_orders": [
+            412,
+            433,
+            302
+          ]
+        },
+        "test_200": {
+          "mean": 53.55375,
+          "sample_std": 2.77856132769421,
+          "sample_orders": [
+            412,
+            433,
+            302
+          ]
+        }
+      }
+    },
+    {
+      "task": "op_aco",
+      "method": "traceaad_v9_19",
+      "label": "TraceAAD V9.19",
+      "output_dir": "experiments/op_aco/traceaad_v9_19/eval_best_budget500_20260830",
+      "source_eval": "experiments/op_aco/traceaad_v9_19/eval_best_v919_fixed_op_aco_incremental/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 14.973410143097643,
+          "sample_std": 0.32504183169901335,
+          "sample_orders": [
+            271,
+            500,
+            443
+          ]
+        },
+        "test_100": {
+          "mean": 30.085179398148146,
+          "sample_std": 0.5810722831020186,
+          "sample_orders": [
+            271,
+            500,
+            443
+          ]
+        },
+        "test_200": {
+          "mean": 53.14578125,
+          "sample_std": 1.4768004355251225,
+          "sample_orders": [
+            271,
+            500,
+            443
+          ]
+        }
+      }
+    },
+    {
+      "task": "op_aco",
+      "method": "traceaad_v9_20",
+      "label": "TraceAAD V9.20",
+      "output_dir": "experiments/op_aco/traceaad_v9_20/eval_best_budget500_20260830",
+      "source_eval": "experiments/op_aco/traceaad_v9_20/eval_best_v920_op_aco_incremental/results.json",
+      "scales": {
+        "test_50": {
+          "mean": 15.029826388888887,
+          "sample_std": 0.1888219908720289,
+          "sample_orders": [
+            318,
+            380,
+            358
+          ]
+        },
+        "test_100": {
+          "mean": 30.12771412037037,
+          "sample_std": 0.4872223727612641,
+          "sample_orders": [
+            318,
+            380,
+            358
+          ]
+        },
+        "test_200": {
+          "mean": 53.800052083333334,
+          "sample_std": 1.1168492312768277,
+          "sample_orders": [
+            318,
+            380,
+            358
+          ]
+        }
+      }
+    },
+    {
+      "task": "tsp_construct",
+      "method": "calm",
+      "label": "CALM",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/tsp_construct/calm/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/tsp_construct/calm/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "tsp50": {
+          "mean": 6.241349904041013,
+          "sample_std": 0.0781859898633887,
+          "sample_orders": [
+            47,
+            59,
+            28
+          ]
+        },
+        "tsp100": {
+          "mean": 8.653760075514985,
+          "sample_std": 0.07479871176806883,
+          "sample_orders": [
+            47,
+            59,
+            28
+          ]
+        },
+        "tsp200": {
+          "mean": 12.073823003835054,
+          "sample_std": 0.1289388706735657,
+          "sample_orders": [
+            47,
+            59,
+            28
+          ]
+        }
+      }
+    },
+    {
+      "task": "tsp_construct",
+      "method": "eoh",
+      "label": "EoH",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/tsp_construct/eoh/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/tsp_construct/eoh/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "tsp50": {
+          "mean": 6.440783348453446,
+          "sample_std": 0.08207948315450905,
+          "sample_orders": [
+            477,
+            187,
+            463
+          ]
+        },
+        "tsp100": {
+          "mean": 8.793594784884716,
+          "sample_std": 0.06980789445211018,
+          "sample_orders": [
+            477,
+            187,
+            463
+          ]
+        },
+        "tsp200": {
+          "mean": 12.474017948242237,
+          "sample_std": 0.015000828125702992,
+          "sample_orders": [
+            477,
+            187,
+            463
+          ]
+        }
+      }
+    },
+    {
+      "task": "tsp_construct",
+      "method": "mcts_ahd",
+      "label": "MCTS-AHD",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/tsp_construct/mcts_ahd/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/tsp_construct/mcts_ahd/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "tsp50": {
+          "mean": 6.37433331328286,
+          "sample_std": 0.10520857995357423,
+          "sample_orders": [
+            98,
+            468,
+            310
+          ]
+        },
+        "tsp100": {
+          "mean": 8.964292805683646,
+          "sample_std": 0.4379397352019256,
+          "sample_orders": [
+            98,
+            468,
+            310
+          ]
+        },
+        "tsp200": {
+          "mean": 12.632936718402979,
+          "sample_std": 0.4923960755117448,
+          "sample_orders": [
+            98,
+            468,
+            310
+          ]
+        }
+      }
+    },
+    {
+      "task": "tsp_construct",
+      "method": "pathwise",
+      "label": "PathWise",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/tsp_construct/pathwise/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/tsp_construct/pathwise/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "tsp50": {
+          "mean": 6.58384783850036,
+          "sample_std": 0.13948703525396905,
+          "sample_orders": [
+            363,
+            27,
+            484
+          ]
+        },
+        "tsp100": {
+          "mean": 9.157236890897005,
+          "sample_std": 0.1663703701218912,
+          "sample_orders": [
+            363,
+            27,
+            484
+          ]
+        },
+        "tsp200": {
+          "mean": 12.648714096302747,
+          "sample_std": 0.25281488586472656,
+          "sample_orders": [
+            363,
+            27,
+            484
+          ]
+        }
+      }
+    },
+    {
+      "task": "tsp_construct",
+      "method": "reevo",
+      "label": "ReEvo",
+      "output_dir": "experiments/其他实验/基线重跑-20260824/tsp_construct/reevo/eval_best_budget500_20260830",
+      "source_eval": "experiments/其他实验/基线重跑-20260824/tsp_construct/reevo/eval_best_20260825_rerun/results.json",
+      "scales": {
+        "tsp50": {
+          "mean": 6.290080291956181,
+          "sample_std": 0.09042535194201759,
+          "sample_orders": [
+            369,
+            177,
+            344
+          ]
+        },
+        "tsp100": {
+          "mean": 8.898980410749653,
+          "sample_std": 0.1926178913497512,
+          "sample_orders": [
+            369,
+            177,
+            344
+          ]
+        },
+        "tsp200": {
+          "mean": 12.401657405884217,
+          "sample_std": 0.44511684295057447,
+          "sample_orders": [
+            369,
+            177,
+            344
+          ]
+        }
+      }
+    },
+    {
+      "task": "tsp_construct",
+      "method": "traceaad_v9_16",
+      "label": "TraceAAD V9.16",
+      "output_dir": "experiments/tsp_construct/traceaad_v9_16/eval_best_budget500_20260830",
+      "source_eval": "experiments/tsp_construct/traceaad_v9_16/eval_best_20260823_v916_complete/results.json",
+      "scales": {
+        "tsp50": {
+          "mean": 5.9706151003379055,
+          "sample_std": 0.027774487102792084,
+          "sample_orders": [
+            458,
+            297,
+            495
+          ]
+        },
+        "tsp100": {
+          "mean": 8.498523114352436,
+          "sample_std": 0.029475904819572647,
+          "sample_orders": [
+            458,
+            297,
+            495
+          ]
+        },
+        "tsp200": {
+          "mean": 12.455993482136142,
+          "sample_std": 0.031691137862844186,
+          "sample_orders": [
+            458,
+            297,
+            495
+          ]
+        }
+      }
+    },
+    {
+      "task": "tsp_construct",
+      "method": "traceaad_v9_17",
+      "label": "TraceAAD V9.17",
+      "output_dir": "experiments/tsp_construct/traceaad_v9_17/eval_best_budget500_20260830",
+      "source_eval": "experiments/tsp_construct/traceaad_v9_17/eval_best_20260824_v917_adaptive_complete/results.json",
+      "scales": {
+        "tsp50": {
+          "mean": 6.05533566823533,
+          "sample_std": 0.1501756108343655,
+          "sample_orders": [
+            389,
+            369,
+            479
+          ]
+        },
+        "tsp100": {
+          "mean": 8.474633720073562,
+          "sample_std": 0.236664540742369,
+          "sample_orders": [
+            389,
+            369,
+            479
+          ]
+        },
+        "tsp200": {
+          "mean": 11.933747030142365,
+          "sample_std": 0.3719405714975725,
+          "sample_orders": [
+            389,
+            369,
+            479
+          ]
+        }
+      }
+    },
+    {
+      "task": "tsp_construct",
+      "method": "traceaad_v9_19",
+      "label": "TraceAAD V9.19",
+      "output_dir": "experiments/tsp_construct/traceaad_v9_19/eval_best_budget500_20260830",
+      "source_eval": "experiments/tsp_construct/traceaad_v9_19/eval_best_v919_fixed_tsp_construct_incremental/results.json",
+      "scales": {
+        "tsp50": {
+          "mean": 6.0443966709658,
+          "sample_std": 0.14603229634036405,
+          "sample_orders": [
+            385,
+            322,
+            490
+          ]
+        },
+        "tsp100": {
+          "mean": 8.439126406597914,
+          "sample_std": 0.31161327379269815,
+          "sample_orders": [
+            385,
+            322,
+            490
+          ]
+        },
+        "tsp200": {
+          "mean": 11.991001825666663,
+          "sample_std": 0.4933359748693929,
+          "sample_orders": [
+            385,
+            322,
+            490
+          ]
+        }
+      }
+    },
+    {
+      "task": "tsp_construct",
+      "method": "traceaad_v9_20",
+      "label": "TraceAAD V9.20",
+      "output_dir": "experiments/tsp_construct/traceaad_v9_20/eval_best_budget500_20260830",
+      "source_eval": "experiments/tsp_construct/traceaad_v9_20/eval_best_v920_tsp_construct_incremental/results.json",
+      "scales": {
+        "tsp50": {
+          "mean": 5.902978095185098,
+          "sample_std": 0.16228829237085218,
+          "sample_orders": [
+            374,
+            412,
+            279
+          ]
+        },
+        "tsp100": {
+          "mean": 8.380491949352296,
+          "sample_std": 0.3082105567002049,
+          "sample_orders": [
+            374,
+            412,
+            279
+          ]
+        },
+        "tsp200": {
+          "mean": 11.783880957906788,
+          "sample_std": 0.479477288727231,
+          "sample_orders": [
+            374,
+            412,
+            279
+          ]
+        }
+      }
+    },
+    {
+      "task": "vrptw_construct",
+      "method": "calm",
+      "label": "CALM",
+      "output_dir": "experiments/vrptw_construct/calm/eval_best_budget500_20260830",
+      "source_eval": "experiments/vrptw_construct/calm/eval_best_20260824_vrptw_multiscale/results.json",
+      "scales": {
+        "vrptw50": {
+          "mean": 21.019179463942496,
+          "sample_std": 0.16366052994429722,
+          "sample_orders": [
+            467,
+            353,
+            499
+          ]
+        },
+        "vrptw100": {
+          "mean": 34.67740056375297,
+          "sample_std": 0.47971237259017263,
+          "sample_orders": [
+            467,
+            353,
+            499
+          ]
+        },
+        "vrptw200": {
+          "mean": 58.42399154866222,
+          "sample_std": 0.49907294543233566,
+          "sample_orders": [
+            467,
+            353,
+            499
+          ]
+        }
+      }
+    },
+    {
+      "task": "vrptw_construct",
+      "method": "eoh",
+      "label": "EoH",
+      "output_dir": "experiments/vrptw_construct/eoh/eval_best_budget500_20260830",
+      "source_eval": "experiments/vrptw_construct/eoh/eval_best_20260824_vrptw_multiscale/results.json",
+      "scales": {
+        "vrptw50": {
+          "mean": 20.127817412121846,
+          "sample_std": 0.9489550147721886,
+          "sample_orders": [
+            421,
+            489,
+            440
+          ]
+        },
+        "vrptw100": {
+          "mean": 33.3001201299802,
+          "sample_std": 0.9067896563486989,
+          "sample_orders": [
+            421,
+            489,
+            440
+          ]
+        },
+        "vrptw200": {
+          "mean": 55.859200966833946,
+          "sample_std": 0.8813570728421076,
+          "sample_orders": [
+            421,
+            489,
+            440
+          ]
+        }
+      }
+    },
+    {
+      "task": "vrptw_construct",
+      "method": "mcts_ahd",
+      "label": "MCTS-AHD",
+      "output_dir": "experiments/vrptw_construct/mcts_ahd/eval_best_budget500_20260830",
+      "source_eval": "experiments/vrptw_construct/mcts_ahd/eval_best_20260824_vrptw_multiscale/results.json",
+      "scales": {
+        "vrptw50": {
+          "mean": 20.814927933165947,
+          "sample_std": 0.12731370497204283,
+          "sample_orders": [
+            125,
+            412,
+            436
+          ]
+        },
+        "vrptw100": {
+          "mean": 34.75129065199569,
+          "sample_std": 0.3847559844951647,
+          "sample_orders": [
+            125,
+            412,
+            436
+          ]
+        },
+        "vrptw200": {
+          "mean": 59.12672393616659,
+          "sample_std": 2.283395918111868,
+          "sample_orders": [
+            125,
+            412,
+            436
+          ]
+        }
+      }
+    },
+    {
+      "task": "vrptw_construct",
+      "method": "pathwise",
+      "label": "PathWise",
+      "output_dir": "experiments/vrptw_construct/pathwise/eval_best_budget500_20260830",
+      "source_eval": "experiments/vrptw_construct/pathwise/eval_best_20260824_vrptw_multiscale/results.json",
+      "scales": {
+        "vrptw50": {
+          "mean": 21.17007264855855,
+          "sample_std": 0.33200370257588385,
+          "sample_orders": [
+            414,
+            477,
+            473
+          ]
+        },
+        "vrptw100": {
+          "mean": 35.03015436525569,
+          "sample_std": 0.38251924905247586,
+          "sample_orders": [
+            414,
+            477,
+            473
+          ]
+        },
+        "vrptw200": {
+          "mean": 58.93310893849881,
+          "sample_std": 1.1387628717730363,
+          "sample_orders": [
+            414,
+            477,
+            473
+          ]
+        }
+      }
+    },
+    {
+      "task": "vrptw_construct",
+      "method": "reevo",
+      "label": "ReEvo",
+      "output_dir": "experiments/vrptw_construct/reevo/eval_best_budget500_20260830",
+      "source_eval": "experiments/vrptw_construct/reevo/eval_best_20260824_vrptw_multiscale/results.json",
+      "scales": {
+        "vrptw50": {
+          "mean": 20.900307513202037,
+          "sample_std": 0.061461194242039476,
+          "sample_orders": [
+            351,
+            245,
+            117
+          ]
+        },
+        "vrptw100": {
+          "mean": 34.81008404112278,
+          "sample_std": 0.07143387113706348,
+          "sample_orders": [
+            351,
+            245,
+            117
+          ]
+        },
+        "vrptw200": {
+          "mean": 57.52047155044027,
+          "sample_std": 0.6553040757972547,
+          "sample_orders": [
+            351,
+            245,
+            117
+          ]
+        }
+      }
+    },
+    {
+      "task": "vrptw_construct",
+      "method": "traceaad_v9_16",
+      "label": "TraceAAD V9.16",
+      "output_dir": "experiments/vrptw_construct/traceaad_v9_16/eval_best_budget500_20260830",
+      "source_eval": "experiments/vrptw_construct/traceaad_v9_16/eval_best_v916_vrptw_construct_complete/results.json",
+      "scales": {
+        "vrptw50": {
+          "mean": 19.268107058362407,
+          "sample_std": 0.7678325113594995,
+          "sample_orders": [
+            231,
+            468,
+            490
+          ]
+        },
+        "vrptw100": {
+          "mean": 32.45100556134272,
+          "sample_std": 1.0141725827847374,
+          "sample_orders": [
+            231,
+            468,
+            490
+          ]
+        },
+        "vrptw200": {
+          "mean": 54.008821323315,
+          "sample_std": 2.664317552580042,
+          "sample_orders": [
+            231,
+            468,
+            490
+          ]
+        }
+      }
+    },
+    {
+      "task": "vrptw_construct",
+      "method": "traceaad_v9_17",
+      "label": "TraceAAD V9.17",
+      "output_dir": "experiments/vrptw_construct/traceaad_v9_17/eval_best_budget500_20260830",
+      "source_eval": "experiments/vrptw_construct/traceaad_v9_17/eval_best_20260824_v917_adaptive_complete/results.json",
+      "scales": {
+        "vrptw50": {
+          "mean": 19.637697263321726,
+          "sample_std": 0.8415412587761616,
+          "sample_orders": [
+            300,
+            340,
+            311
+          ]
+        },
+        "vrptw100": {
+          "mean": 32.77249057779304,
+          "sample_std": 1.08495460117031,
+          "sample_orders": [
+            300,
+            340,
+            311
+          ]
+        },
+        "vrptw200": {
+          "mean": 54.27499765330425,
+          "sample_std": 2.2507429676670077,
+          "sample_orders": [
+            300,
+            340,
+            311
+          ]
+        }
+      }
+    },
+    {
+      "task": "vrptw_construct",
+      "method": "traceaad_v9_19",
+      "label": "TraceAAD V9.19",
+      "output_dir": "experiments/vrptw_construct/traceaad_v9_19/eval_best_budget500_20260830",
+      "source_eval": "experiments/vrptw_construct/traceaad_v9_19/eval_best_v919_fixed_vrptw_construct_incremental/results.json",
+      "scales": {
+        "vrptw50": {
+          "mean": 19.257365208143607,
+          "sample_std": 0.2602605112122614,
+          "sample_orders": [
+            339,
+            403,
+            468
+          ]
+        },
+        "vrptw100": {
+          "mean": 32.22256840120969,
+          "sample_std": 0.23367731891784085,
+          "sample_orders": [
+            339,
+            403,
+            468
+          ]
+        },
+        "vrptw200": {
+          "mean": 53.56853638008658,
+          "sample_std": 0.9271595470891971,
+          "sample_orders": [
+            339,
+            403,
+            468
+          ]
+        }
+      }
+    },
+    {
+      "task": "vrptw_construct",
+      "method": "traceaad_v9_20",
+      "label": "TraceAAD V9.20",
+      "output_dir": "experiments/vrptw_construct/traceaad_v9_20/eval_best_budget500_20260830",
+      "source_eval": "experiments/vrptw_construct/traceaad_v9_20/eval_best_v920_vrptw_construct_incremental/results.json",
+      "scales": {
+        "vrptw50": {
+          "mean": 18.975025507115962,
+          "sample_std": 0.33836087497365575,
+          "sample_orders": [
+            269,
+            293,
+            499
+          ]
+        },
+        "vrptw100": {
+          "mean": 32.183612280001206,
+          "sample_std": 0.32850929185150995,
+          "sample_orders": [
+            269,
+            293,
+            499
+          ]
+        },
+        "vrptw200": {
+          "mean": 53.06278417642563,
+          "sample_std": 1.1710624274144075,
+          "sample_orders": [
+            269,
+            293,
+            499
+          ]
+        }
+      }
+    }
+  ]
+}
