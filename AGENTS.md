@@ -31,7 +31,7 @@ TraceAAD 的两个基础问题是：**给哪一个节点一次决策机会**，�
 ## 实验口径
 
 - 正式比较统一 1000 次真实评价预算，评价口径全局统一；训练集上优化，测试集为不同规模的新实例。搜索结果、测试结果与过程证据分开报告。测试评估必须完成，timeout 或单个失败样本不能成为最终 `n/a`；全部重复与测试完成后才更新结果页。
-- 生成模型统一记 **Qwen3.6-27B**：zhong / server1 / server3 / server3b / local 是同一模型的不同服务源，不区分、不记录。
+- 生成模型统一 **Qwen3.8-27B**（2026-08-31 起生效），采样统一官方 thinking 配方：temperature 1.0、top_p 0.95、top_k 20，由客户端显式下发、各端一致（`experiments/runners/_common.py` 的 `SAMPLING_*` 常量）。server3 / server3b / server1(:8080) 跑 vLLM AWQ-INT4（MTP 投机 3 token），本地 llama.cpp 跑 Q4_K_XL GGUF（draft-mtp 3）；zhong 仍是 Qwen3.6-27B 源，不用于正式实验。
 - 实验入口在 `experiments/runners/`，工件按 `experiments/<task>/<method>/` 组织（主实验规范根，索引见 `experiments/README.md`）：历史版本与重跑批次归档在 `experiments/其他实验/`，机制实验战役结束后迁入 `experiments/机制实验/<日期-名称>/`；模型、预算和关键超参显式可追溯；原始工件只留本地，Git 只跟踪实验入口、评估绘图代码和 `docs/experiments/` 的凝练结果。
 - 并行容量 server3 9、server3b 9、server1 6；启动用 `tmux new-session` + `experiments.runners.<method>.run`，按空位均衡分配；长跑前先冒烟，长跑用可恢复的后台会话。Python 用本仓库的 uv 环境。
 
@@ -42,7 +42,7 @@ TraceAAD 的两个基础问题是：**给哪一个节点一次决策机会**，�
 | `docs/analysis/` | 该版本当时测到的过程事实、数字与观察，分 `机制分析/` 与 `其他分析/` 两个子目录；当前科学认识回写 `docs/knowledge/研究认识.md` |
 | `docs/knowledge/研究认识.md` | 对自动算法设计这个任务的认识 |
 | `docs/knowledge/TraceAAD机制尝试.md` | 试过什么、当时看见了什么 |
-| `docs/methods/` | 有效版本的完整规范（V9、V9.5–V9.7）；V2–V9.4 压缩为《历史机制探索》一份 |
+| `docs/methods/` | 当前主线规范为 [V10](docs/methods/TraceAAD-V10完整机制设计.md)；V9、V9.5–V9.7 仍在；V2–V9.4 压缩为《历史机制探索》一份 |
 | `docs/experiments/` | [主实验](docs/experiments/主实验/结果.md)为日常入口；机制实验按 `日期-名称` 分文件夹；其余在其他实验 |
 | `docs/reports/` | 组会研究报告与科研周报，按日期或周次命名 |
 | `docs/references/` | 论文与原始实现调研 |

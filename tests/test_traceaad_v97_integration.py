@@ -358,7 +358,7 @@ def test_v97_run_config_records_logical_generator_without_service_source(
     assert payload["method"] == "traceaad_v9_7"
     assert payload["method_params"] == run._v97_method_params(spec)
     assert payload["method_params"]["refine_probability"] == 0.7
-    assert payload["generator_environment"]["logical_model_name"] == "Qwen3.6-27B"
+    assert payload["generator_environment"]["logical_model_name"] == "Qwen3.8-27B"
     assert payload["generator_environment"]["max_total_context"] == 32768
     assert payload["generator_environment"]["max_new_tokens"] == 8192
     assert "backend" not in payload

@@ -75,22 +75,22 @@ class BackendProfile:
 BACKENDS: dict[BackendName, BackendProfile] = {
     "local": BackendProfile(
         base_url="http://127.0.0.1:8001/v1",
-        model="Qwen3.6-27B",
+        model="Qwen3.8-27B",
         no_proxy="127.0.0.1,localhost,::1",
     ),
     "server1": BackendProfile(
         base_url="http://222.201.145.8:8080/v1",
-        model="qwen3.6-27b-awq",
+        model="qwen3.8-27b-awq",
         no_proxy="222.201.145.8,localhost,127.0.0.1,::1",
     ),
     "server3": BackendProfile(
         base_url="http://222.201.145.6:8000/v1",
-        model="/home/fzy/models/qwen3.6-27b-awq-int4",
+        model="qwen3.8-27b-awq",
         no_proxy="222.201.145.6,localhost,127.0.0.1,::1",
     ),
     "server3b": BackendProfile(
         base_url="http://222.201.145.6:8001/v1",
-        model="/home/fzy/models/qwen3.6-27b-awq-int4",
+        model="qwen3.8-27b-awq",
         no_proxy="222.201.145.6,localhost,127.0.0.1,::1",
     ),
     "zhong": BackendProfile(
@@ -116,6 +116,12 @@ BACKEND_MARKERS: dict[BackendName, tuple[str, ...]] = {
     "server3b": ("222.201.145.6:8001",),
     "local": ("127.0.0.1:8001",),
 }
+
+# Qwen3.8-27B official thinking-mode sampling, sent identically by every
+# backend so served-side defaults never differ across sources.
+SAMPLING_TEMPERATURE = 1.0
+SAMPLING_TOP_P = 0.95
+SAMPLING_TOP_K = 20
 
 LLM_TIMEOUT_SECONDS = 600
 # Local ACO parallelism only; seeded scores do not depend on this count.
@@ -159,10 +165,12 @@ def build_llm_client(
     model: str,
     no_proxy: str,
     max_tokens: int,
-    temperature: float = 1.0,
-    top_p: float | None = None,
+    temperature: float = SAMPLING_TEMPERATURE,
+    top_p: float | None = SAMPLING_TOP_P,
+    top_k: int | None = SAMPLING_TOP_K,
 ) -> OpenAIAPI:
     set_no_proxy(no_proxy)
+    extra_body = None if top_k is None else {"top_k": top_k}
     return OpenAIAPI(
         base_url=base_url,
         api_key=resolve_llm_api_key(base_url=base_url),
@@ -171,6 +179,7 @@ def build_llm_client(
         max_tokens=max_tokens,
         temperature=temperature,
         top_p=top_p,
+        extra_body=extra_body,
         enable_thinking=False,
     )
 
@@ -213,8 +222,9 @@ def llm_payload(
     model: str,
     no_proxy: str,
     max_tokens: int,
-    temperature: float,
-    top_p: float | None = None,
+    temperature: float = SAMPLING_TEMPERATURE,
+    top_p: float | None = SAMPLING_TOP_P,
+    top_k: int | None = SAMPLING_TOP_K,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "base_url": base_url,
@@ -228,6 +238,8 @@ def llm_payload(
     }
     if top_p is not None:
         payload["top_p"] = top_p
+    if top_k is not None:
+        payload["top_k"] = top_k
     return payload
 
 
