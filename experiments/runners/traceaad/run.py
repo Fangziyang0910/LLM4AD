@@ -92,6 +92,25 @@ from llm4ad.method.traceaad_v9_20 import (
     RunArtifacts as V920RunArtifacts,
     TraceAADV920,
 )
+from llm4ad.method.traceaad_v9_21 import (
+    BATCH_SIZE as V921_BATCH_SIZE,
+    INITIAL_ROOT_COUNT as V921_INITIAL_ROOT_COUNT,
+    MAX_HISTORY_EVENTS as V921_MAX_HISTORY_EVENTS,
+    MAX_REPAIRS as V921_MAX_REPAIRS,
+    REALIZATIONS_PER_IDEA as V921_REALIZATIONS_PER_IDEA,
+    TraceAADV921,
+    RunArtifacts as V921RunArtifacts,
+)
+from llm4ad.method.traceaad_v9_22 import (
+    BATCH_SIZE as V922_BATCH_SIZE,
+    IDEAS_PER_BATCH as V922_IDEAS_PER_BATCH,
+    INITIAL_ROOT_COUNT as V922_INITIAL_ROOT_COUNT,
+    MAX_HISTORY_EVENTS as V922_MAX_HISTORY_EVENTS,
+    MAX_REPAIRS as V922_MAX_REPAIRS,
+    REALIZATIONS_PER_IDEA as V922_REALIZATIONS_PER_IDEA,
+    TraceAADV922,
+    RunArtifacts as V922RunArtifacts,
+)
 
 from .._common import (
     ALL_TASKS,
@@ -119,6 +138,8 @@ VersionName = Literal[
     "v9_18_facts",
     "v9_19",
     "v9_20",
+    "v9_21",
+    "v9_22",
 ]
 
 VERSIONS: tuple[VersionName, ...] = (
@@ -132,6 +153,8 @@ VERSIONS: tuple[VersionName, ...] = (
     "v9_18_facts",
     "v9_19",
     "v9_20",
+    "v9_21",
+    "v9_22",
 )
 TRACEAAD_V916_VERSIONS = {"v9_16"}
 TRACEAAD_V917_VERSIONS = {"v9_17", "v9_17_fixed_cycle"}
@@ -142,6 +165,8 @@ TRACEAAD_V918_VERSIONS = {
 }
 TRACEAAD_V919_VERSIONS = {"v9_19"}
 TRACEAAD_V920_VERSIONS = {"v9_20"}
+TRACEAAD_V921_VERSIONS = {"v9_21"}
+TRACEAAD_V922_VERSIONS = {"v9_22"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -221,6 +246,10 @@ def make_run_spec(
             if version in TRACEAAD_V919_VERSIONS
             else V920_INITIAL_ROOT_COUNT
             if version in TRACEAAD_V920_VERSIONS
+            else V921_INITIAL_ROOT_COUNT
+            if version in TRACEAAD_V921_VERSIONS
+            else V922_INITIAL_ROOT_COUNT
+            if version in TRACEAAD_V922_VERSIONS
             else V917_INITIAL_ROOT_COUNT
         )
         if n_init is None
@@ -242,6 +271,8 @@ def make_run_spec(
                 "v9_18_facts",
                 "v9_19",
                 "v9_20",
+                "v9_21",
+                "v9_22",
             }
             else 24576
             if context_token_limit is None
@@ -276,6 +307,10 @@ def make_run_spec(
         raise ValueError("TraceAAD V9.19 requires exactly eight initial roots")
     if spec.version in TRACEAAD_V920_VERSIONS and spec.n_init != V920_INITIAL_ROOT_COUNT:
         raise ValueError("TraceAAD V9.20 requires exactly eight initial roots")
+    if spec.version in TRACEAAD_V921_VERSIONS and spec.n_init != V921_INITIAL_ROOT_COUNT:
+        raise ValueError("TraceAAD V9.21 requires exactly eight initial roots")
+    if spec.version in TRACEAAD_V922_VERSIONS and spec.n_init != V922_INITIAL_ROOT_COUNT:
+        raise ValueError("TraceAAD V9.22 requires exactly eight initial roots")
     if spec.eval_workers is not None and spec.eval_workers <= 0:
         raise ValueError("eval_workers must be positive")
     if spec.llm_output_tokens <= 0:
@@ -421,6 +456,32 @@ def build_method(
             resume_from=resume_from,
             checkpoint_dir=run_dir / "checkpoints",
         )
+    if spec.version in TRACEAAD_V921_VERSIONS:
+        return TraceAADV921(
+            llm=llm,
+            evaluation=evaluation,
+            artifacts=V921RunArtifacts(run_dir=run_dir),
+            budget=spec.budget,
+            n_roots=spec.n_init,
+            max_tokens=spec.llm_output_tokens,
+            seed=spec.seed,
+            resume_from=resume_from,
+            checkpoint_dir=run_dir / "checkpoints",
+            task_key=spec.task,
+        )
+    if spec.version in TRACEAAD_V922_VERSIONS:
+        return TraceAADV922(
+            llm=llm,
+            evaluation=evaluation,
+            artifacts=V922RunArtifacts(run_dir=run_dir),
+            budget=spec.budget,
+            n_roots=spec.n_init,
+            max_tokens=spec.llm_output_tokens,
+            seed=spec.seed,
+            resume_from=resume_from,
+            checkpoint_dir=run_dir / "checkpoints",
+            task_key=spec.task,
+        )
     raise ValueError(f"unsupported TraceAAD version: {spec.version}")
 
 
@@ -469,6 +530,10 @@ def _validate_resume_config(spec: RunSpec, run_dir: Path) -> None:
         expected_method_params = _v919_method_params(spec)
     elif spec.version in TRACEAAD_V920_VERSIONS:
         expected_method_params = _v920_method_params(spec)
+    elif spec.version in TRACEAAD_V921_VERSIONS:
+        expected_method_params = _v921_method_params(spec)
+    elif spec.version in TRACEAAD_V922_VERSIONS:
+        expected_method_params = _v922_method_params(spec)
     else:
         raise ValueError(f"unsupported TraceAAD version: {spec.version}")
     expected_protocol = {
@@ -511,6 +576,10 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
         method_params = _v919_method_params(spec)
     elif spec.version in TRACEAAD_V920_VERSIONS:
         method_params = _v920_method_params(spec)
+    elif spec.version in TRACEAAD_V921_VERSIONS:
+        method_params = _v921_method_params(spec)
+    elif spec.version in TRACEAAD_V922_VERSIONS:
+        method_params = _v922_method_params(spec)
     else:
         method_params = _v917_method_params(spec)
     payload = {
@@ -526,7 +595,7 @@ def write_run_config(spec: RunSpec, run_dir: Path, run_name: str) -> None:
     # V9.18 artifacts need explicit service metadata for held-out provenance;
     # retain the established config shape of earlier TraceAAD versions.
     if spec.version in (
-        TRACEAAD_V918_VERSIONS | TRACEAAD_V919_VERSIONS | TRACEAAD_V920_VERSIONS
+        TRACEAAD_V918_VERSIONS | TRACEAAD_V919_VERSIONS | TRACEAAD_V920_VERSIONS | TRACEAAD_V921_VERSIONS | TRACEAAD_V922_VERSIONS
     ):
         payload.update(
             {
@@ -569,6 +638,8 @@ def _versioned_logical_model_name(spec: RunSpec) -> str:
         | TRACEAAD_V918_VERSIONS
         | TRACEAAD_V919_VERSIONS
         | TRACEAAD_V920_VERSIONS
+        | TRACEAAD_V921_VERSIONS
+        | TRACEAAD_V922_VERSIONS
     ):
         return "Qwen3.6-27B"
     return V97_LOGICAL_MODEL_NAME
@@ -751,6 +822,55 @@ def _v920_method_params(spec: RunSpec) -> dict[str, object]:
         "behave_protocol": V920_BEHAVESIM_PROTOCOL_ID,
         "error_handling": True,
         "error_retries": V920_MAX_REPAIRS,
+        "retry_policy": "two_bounded_repairs",
+        "retry_budget": "primary_candidates",
+    }
+
+
+def _v921_method_params(spec: RunSpec) -> dict[str, object]:
+    return {
+        "budget": spec.budget,
+        "n_roots": spec.n_init,
+        "max_history": V921_MAX_HISTORY_EVENTS,
+        "maximize": True,
+        "max_tokens": spec.llm_output_tokens,
+        "seed": spec.seed,
+        "mechanism": "idea_hypothesis_paired_realization",
+        "allocation": "one_step_hypothesis_ucb",
+        "proposals_per_batch": ["continue", "branch"],
+        "ideas_per_batch": 2,
+        "realizations_per_idea": V921_REALIZATIONS_PER_IDEA,
+        "primary_slots_per_batch": V921_BATCH_SIZE,
+        "public_memory": "one_strict_improvement_card",
+        "online_behavesim": False,
+        "error_handling": True,
+        "error_retries": V921_MAX_REPAIRS,
+        "retry_policy": "two_bounded_repairs",
+        "retry_budget": "primary_candidates",
+    }
+
+
+def _v922_method_params(spec: RunSpec) -> dict[str, object]:
+    return {
+        "budget": spec.budget,
+        "n_roots": spec.n_init,
+        "max_history": V922_MAX_HISTORY_EVENTS,
+        "maximize": True,
+        "max_tokens": spec.llm_output_tokens,
+        "seed": spec.seed,
+        "mechanism": "rank_calibrated_dual_baseline_hypothesis_search",
+        "allocation": "hypothesis_ucb_plus_action_ucb",
+        "proposals": ["continue", "branch"],
+        "ideas_per_batch": V922_IDEAS_PER_BATCH,
+        "realizations_per_idea": V922_REALIZATIONS_PER_IDEA,
+        "primary_slots_per_batch": V922_BATCH_SIZE,
+        "quality_calibration": "dynamic_midrank_over_current_scaffolds",
+        "response_baselines": ["working", "scaffold"],
+        "branch_context": "scaffold_only",
+        "public_memory": "one_strict_improvement_card",
+        "online_behavesim": False,
+        "error_handling": True,
+        "error_retries": V922_MAX_REPAIRS,
         "retry_policy": "two_bounded_repairs",
         "retry_budget": "primary_candidates",
     }

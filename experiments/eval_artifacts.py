@@ -52,6 +52,12 @@ def load_scored_samples(
                 continue
             records.extend(_filter_scored(data, max_sample_order=max_sample_order))
 
+    best_history_path = run_dir / "best_history.jsonl"
+    if not records and best_history_path.exists():
+        records.extend(
+            _load_best_history(best_history_path, max_sample_order=max_sample_order)
+        )
+
     candidates_path = run_dir / "artifacts" / "candidates.jsonl"
     if not records and candidates_path.exists():
         with candidates_path.open(encoding="utf-8") as handle:
@@ -95,6 +101,42 @@ def load_scored_samples(
                     )
 
     return records
+
+
+def _load_best_history(
+    path: Path,
+    *,
+    max_sample_order: int | None,
+) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    with path.open(encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            record = json.loads(line)
+            score = record.get("fitness", record.get("score"))
+            if not isinstance(score, (int, float)):
+                continue
+            program = record.get("program")
+            if not isinstance(program, str):
+                continue
+            sample_order = record.get(
+                "eval_count",
+                record.get("slot", record.get("sample_order", record.get("order"))),
+            )
+            if not isinstance(sample_order, int):
+                continue
+            if max_sample_order is not None and sample_order > max_sample_order:
+                continue
+            out.append(
+                {
+                    "program": program,
+                    "score": float(score),
+                    "sample_order": sample_order,
+                }
+            )
+    return out
 
 
 def _filter_scored(

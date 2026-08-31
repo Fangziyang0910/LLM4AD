@@ -11,12 +11,11 @@ V9.14、V9.15、V9.17 FixedCycle）的工件在 `其他实验/历史版本/<task
 50/100/200 三个 held-out 规模单列一段（8 方法同场，仅基线与
 V9.14/V9.16/V9.17 跑过该任务）。
 
-CVRP 的 MCTS-AHD 官方结果可通过 `--cvrp-mcts batch1|batch2` 切换：
-batch1 用 20260711/12 批次（test_50/100 取 eval_20260712_all3，test_200 取
-eval_best_20260804_test200）；batch2 用 20260812 批次 eval_best_20260812_cvrp_local。
+CVRP 的 MCTS-AHD 与四任务其余对照一样读 `20260824_rerun` 批
+`eval_best_20260825_rerun`；原批工件见 docs/experiments/其他实验/基线原批次结果.md。
 
 用法：
-    uv run python experiments/analysis/recompute_rankings.py [--cvrp-mcts batch1|batch2]
+    uv run python experiments/analysis/recompute_rankings.py [--markdown]
 """
 
 from __future__ import annotations
@@ -28,6 +27,12 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
+
+BASELINE_METHOD_DIRS = frozenset({"eoh", "reevo", "mcts_ahd", "pathwise", "calm"})
+BASELINE_RERUN_TASKS = frozenset(
+    {"tsp_construct", "cvrp_aco", "op_aco", "online_bin_packing"}
+)
+BASELINE_RERUN_EVAL = "eval_best_20260825_rerun"
 
 # 任务 -> (规模键, 方向, 容器键, 数据文件按方法)
 TASKS = [
@@ -45,11 +50,11 @@ TASKS = [
 # 每任务每方法的工件目录（CVRP 列表按优先级排列，先到先得，全部读取并合并）
 ARTIFACTS: dict[str, dict[str, list[str]]] = {
     "tsp_construct": {
-        "MCTS-AHD": ["mcts_ahd/eval_best_qwen36_27b_20260710"],
-        "PathWise": ["pathwise/eval_best_20260730"],
-        "EoH": ["eoh/eval_best_eoh_paper_20260730"],
-        "ReEvo": ["reevo/eval_best_20260730"],
-        "CALM": ["calm/eval_best_20260807_183000"],
+        "MCTS-AHD": ["mcts_ahd/eval_best_20260825_rerun"],
+        "PathWise": ["pathwise/eval_best_20260825_rerun"],
+        "EoH": ["eoh/eval_best_20260825_rerun"],
+        "ReEvo": ["reevo/eval_best_20260825_rerun"],
+        "CALM": ["calm/eval_best_20260825_rerun"],
         "V4": ["traceaad_v4/eval_best_20260723_181743"],
         "V5": ["traceaad_v5/eval_best_20260728_151736"],
         "V6": ["traceaad_v6/eval_best_20260802_170400"],
@@ -72,17 +77,11 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         ],
     },
     "cvrp_aco": {
-        "MCTS-AHD": [
-            "mcts_ahd/eval_20260712_all3",
-            "mcts_ahd/eval_best_20260804_test200",
-        ],
-        "PathWise": [
-            "pathwise/eval_best_20260730",
-            "pathwise/eval_best_20260804_test200",
-        ],
-        "EoH": ["eoh/eval_best_eoh_paper_20260730", "eoh/eval_best_20260804_test200"],
-        "ReEvo": ["reevo/eval_best_20260730", "reevo/eval_best_20260804_test200"],
-        "CALM": ["calm/eval_best_20260807_183000", "calm/eval_best_20260804_test200"],
+        "MCTS-AHD": ["mcts_ahd/eval_best_20260825_rerun"],
+        "PathWise": ["pathwise/eval_best_20260825_rerun"],
+        "EoH": ["eoh/eval_best_20260825_rerun"],
+        "ReEvo": ["reevo/eval_best_20260825_rerun"],
+        "CALM": ["calm/eval_best_20260825_rerun"],
         "V4": [
             "traceaad_v4/eval_best_20260723_204526",
             "traceaad_v4/eval_best_20260804_test200",
@@ -123,11 +122,11 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         ],
     },
     "op_aco": {
-        "MCTS-AHD": ["mcts_ahd/eval_best_20260725_104402"],
-        "PathWise": ["pathwise/eval_best_20260730"],
-        "EoH": ["eoh/eval_best_eoh_paper_20260730"],
-        "ReEvo": ["reevo/eval_best_20260730"],
-        "CALM": ["calm/eval_best_20260807_183000"],
+        "MCTS-AHD": ["mcts_ahd/eval_best_20260825_rerun"],
+        "PathWise": ["pathwise/eval_best_20260825_rerun"],
+        "EoH": ["eoh/eval_best_20260825_rerun"],
+        "ReEvo": ["reevo/eval_best_20260825_rerun"],
+        "CALM": ["calm/eval_best_20260825_rerun"],
         "V4": ["traceaad_v4/eval_best_20260723_204526"],
         "V5": ["traceaad_v5/eval_best_20260728_151736"],
         "V6": ["traceaad_v6/eval_best_20260802_170400"],
@@ -150,11 +149,11 @@ ARTIFACTS: dict[str, dict[str, list[str]]] = {
         ],
     },
     "online_bin_packing": {
-        "MCTS-AHD": ["mcts_ahd/eval_best_20260726_111852"],
-        "PathWise": ["pathwise/eval_best_20260730"],
-        "EoH": ["eoh/eval_best_eoh_paper_20260730"],
-        "ReEvo": ["reevo/eval_best_20260730"],
-        "CALM": ["calm/eval_best_20260807_183000"],
+        "MCTS-AHD": ["mcts_ahd/eval_best_20260825_rerun"],
+        "PathWise": ["pathwise/eval_best_20260825_rerun"],
+        "EoH": ["eoh/eval_best_20260825_rerun"],
+        "ReEvo": ["reevo/eval_best_20260825_rerun"],
+        "CALM": ["calm/eval_best_20260825_rerun"],
         "V4": ["traceaad_v4/eval_best_20260729_230434"],
         "V5": ["traceaad_v5/eval_best_20260728_151736"],
         "V6": ["traceaad_v6/eval_best_20260802_170400"],
@@ -191,8 +190,6 @@ VRPTW_ARTIFACTS: dict[str, str] = {
 }
 VRPTW_SCALES = ("vrptw50", "vrptw100", "vrptw200")
 
-MCTS_CVRP_BATCH2 = "mcts_ahd/eval_best_20260812_cvrp_local"
-
 # 已归档到 experiments/其他实验/历史版本/<task>/ 下的方法
 HISTORY_METHODS = {
     "traceaad_v9_7",
@@ -204,8 +201,22 @@ HISTORY_METHODS = {
 
 def artifact_dir(task: str, rel: str) -> Path:
     """rel 形如 "<method>/<eval_dir>"；历史版本方法在 其他实验/历史版本/ 下。"""
-    if rel.split("/", 1)[0] in HISTORY_METHODS:
+    method_dir = rel.split("/", 1)[0]
+    if method_dir in HISTORY_METHODS:
         return REPO / "experiments" / "其他实验" / "历史版本" / task / rel
+    if (
+        method_dir in BASELINE_METHOD_DIRS
+        and task in BASELINE_RERUN_TASKS
+        and rel.endswith(BASELINE_RERUN_EVAL)
+    ):
+        return (
+            REPO
+            / "experiments"
+            / "其他实验"
+            / "基线重跑-20260824"
+            / task
+            / rel
+        )
     return REPO / "experiments" / task / rel
 
 
@@ -237,14 +248,8 @@ ALL_METHODS = TRACEAAD_ALL + BASELINES
 
 def load_means(task: str, method: str, cvrp_mcts: str) -> dict[str, float]:
     """返回 {scale_key: 3 次运行 eval_objective 均值}。"""
-    if task == "cvrp_aco" and method == "MCTS-AHD":
-        artifacts = (
-            [MCTS_CVRP_BATCH2]
-            if cvrp_mcts == "batch2"
-            else ARTIFACTS["cvrp_aco"]["MCTS-AHD"]
-        )
-    else:
-        artifacts = ARTIFACTS[task][method]
+    del cvrp_mcts
+    artifacts = ARTIFACTS[task][method]
 
     container_key = next(t[3] for t in TASKS if t[0] == task)
     values: dict[str, list[float]] = {}
