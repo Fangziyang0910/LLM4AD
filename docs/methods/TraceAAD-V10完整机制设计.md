@@ -2,22 +2,35 @@
 
 V10 实现 Trajectory-aware Joint Design Opportunity Allocation。科学主张见[0831 研究认识](../knowledge/0831%20研究认识.md)。本文给出可复现的机制定义。树结构、形成路径、有界执行修复与评价口径沿用既有 TraceAAD 平台。
 
+V10 是逐 evaluator-slot 重规划的 controller。不变量为
+
+$$
+a_t\in\Omega(\mathcal{H}_t),
+\qquad
+\text{one primary evaluation per decision},
+\qquad
+\mathcal{H}_{t+1}\text{ immediately re-enters allocation}.
+
+$$
+
 ## 1. 总览与搜索协议
 
-在评价预算 $B$ 下，时刻 $t$ 的历史为 $\mathcal{H}_t$，剩余预算 $b=B-t$。每一步选择一次设计实验
+在评价预算 $B$ 下，时刻 $t$ 的历史 $\mathcal{H}_t$ 是用于分配的全局搜索状态，剩余预算 $b=B-t$。每一步选择一次设计决策
 
 $$
 a=(s,o,r).
+
 $$
 
-$s$ 是起点状态，Restart 时为空。$o$ 是改进方式。$r$ 是参照状态，仅 Transfer 非空。
+$s$ 是作为起点的已评价程序节点，Restart 时为空。$o$ 是设计干预。$r$ 是参照状态，仅 Transfer 非空。
 
-分配分两阶段。估价构造竞争集合 $\mathcal{C}_t$，把探索限制在当前证据下仍可能有价值的机会上；覆盖只在 $\mathcal{C}_t$ 内部消解不确定性。每一次正式评价之后重新构造机会集合。初始化生成 $N_{\mathrm{root}}=8$ 个有效根，各建一条线程。搜索循环为
+分配分两阶段。估价构造竞争集合 $\mathcal{C}_t$，排除当前证据下缺乏投资理由的设计决策；覆盖在 $\mathcal{C}_t$ 内部按暴露次数抑制对同类 state–action 区域的反复消费。每一次正式评价之后立即重新进入分配。初始化生成 $N_{\mathrm{root}}=8$ 个有效根，各建一条线程。搜索循环为
 
 $$
 \mathcal{H}_t\rightarrow S_t\rightarrow\Omega_t\rightarrow
 \text{valuation}\rightarrow\text{allocation}\rightarrow
 \text{realization}\rightarrow E\rightarrow\mathcal{H}_{t+1}.
+
 $$
 
 ```text
@@ -35,15 +48,16 @@ for each primary slot:
 return argmax_P q_train(P)
 ```
 
-## 2. 设计状态与线程统计
+## 2. 节点描述与线程统计
 
-有效程序节点
+$s$ 是已评价程序节点的局部描述；$\mathcal{H}_t$ 才是用于分配的全局搜索状态。
 
 $$
 s=(P,q,\tau,A,\Gamma)
+
 $$
 
-对应三类信息：已实现设计 $(P,q)$，局部证据 $(\tau,A)$，方向级延迟证据 $\Gamma$。$P$ 与 $q$ 给出当前代码和已兑现的训练质量，并附带档案 mid-rank、创建时刻、父节点与所属线程。$q$ 不解释为潜力。
+四类字段分别提供当前实现 $(P,q)$、形成证据 $\tau$、局部干预证据 $A$，以及线程级延迟证据 $\Gamma$。$P$ 与 $q$ 给出当前代码和已兑现的训练质量，并附带档案 mid-rank、创建时刻、父节点与所属线程。$q$ 不解释为潜力。
 
 ### 2.1 形成路径与尝试账本
 
@@ -53,37 +67,43 @@ $$
 
 ### 2.2 实验线程
 
-实验线程 $\Gamma$ 记录一条方向的声明与预算消耗。打开类动作仅在得到有效子代时新建线程，并写下当时的 `origin_idea`。延续类动作的有效子代加入起点所属线程，并继承 `origin_idea`。失败的打开不建线程。初始化根线程的 `origin_action` 为 init，不进入打开类动作的 $G_2$、$G_4$ 与恢复统计。线程无显式关闭：暂时没有节点再被选中则休眠，历史节点再次成为起点则重新活跃。
+实验线程 $\Gamma$ 是按形成谱系记账的单位，记录声明与预算消耗。打开类动作仅在得到有效子代时新建线程，并写下当时的 `origin_idea`。延续类动作的有效子代加入起点所属线程，并继承 `origin_idea`。失败的打开不建线程。初始化根线程的 `origin_action` 为 init，不进入打开类动作的 $G_2$、$G_4$ 与恢复统计。线程无显式关闭：暂时没有节点再被选中则休眠，历史节点再次成为起点则重新活跃。
 
 Pivot 与 Transfer 的参照质量 $q_{\mathrm{origin}}$ 为起点当时的 $q$。Restart 的 $q_{\mathrm{origin}}$ 为创建时刻的全局最好质量。线程预算与有效质量序列分开：凡正式评价的起点属于该线程，或该次评价正是创建本线程的打开动作，无论成败，`opportunities_used` 加一；无有效子代时最好质量保持不变。于是 $h$ 是该线程消耗的正式评价次数，
 
 $$
 B_h(\Gamma)=\max\{\,q(P):P\text{ valid in }\Gamma\text{ after }h\text{ primary slots}\,\},
+
 $$
 
 $$
 G_h(\Gamma)=B_h(\Gamma)-q_{\mathrm{origin}},\qquad h\in\{1,2,4\}.
+
 $$
 
-$G_h$ 只描述一个新方向在消耗若干评价机会后是否最终兑现，不直接参与分配公式。仅当 `opportunities_used >= h` 时该线程进入 $G_h$ 的统计，缺失不补零。
+$G_h$ 只描述一条线程在消耗若干评价机会后是否最终兑现，不直接参与分配公式。仅当 `opportunities_used >= h` 时该线程进入 $G_h$ 的统计，缺失不补零。
 
 五个算子都向估价器提供尝试次数、有效率、一步改善率与一步质量变化。仅 Pivot、Transfer、Restart 额外提供 $P(G_2>0)$、$P(G_4>0)$ 与恢复所需次数。这些量是观察事实。
 
 ## 3. 设计机会空间
 
+五个动作按下一步设计与已评价程序的关系划分：
+
 $$
 \mathcal{O}=\{\mathrm{Develop},\ \mathrm{Pivot},\ \mathrm{Transfer},\ \mathrm{Restart},\ \mathrm{SemanticRepair}\}.
+
 $$
 
-Develop 与 SemanticRepair 是 continuation；Pivot、Transfer 与 Restart 是 direction opening。
+Develop 与 SemanticRepair 保持对当前核心假设的接受；Pivot、Transfer 与 Restart 改变这一关系，并在得到有效子代时新建线程。
 
-| 动作 | 转移语义 |
-| --- | --- |
-| Develop | 保留当前核心算法思想并继续兑现；参数、局部结构与内部组织可由模型自行决定 |
-| SemanticRepair | 在程序可执行的前提下，修正思想与实现之间的不一致 |
-| Pivot | 仍从当前程序出发，撤回对核心机制的信任，允许替换主要决策逻辑 |
-| Transfer | 指定参照 $s_j$，把其中已由评价支持的机制迁入 $s_i$ |
-| Restart | 不绑定父代，重新提出假设 |
+
+| 动作           | 转移语义                                                                 |
+| ---------------- | -------------------------------------------------------------------------- |
+| Develop        | 保留当前核心算法思想并继续兑现；参数、局部结构与内部组织可由模型自行决定 |
+| SemanticRepair | 在程序可执行的前提下，修正思想与实现之间的不一致                         |
+| Pivot          | 仍从当前程序出发，撤回对核心机制的信任，允许替换主要决策逻辑             |
+| Transfer       | 指定参照$s_j$，把其中已由评价支持的机制迁入 $s_i$                        |
+| Restart        | 不绑定父代，重新提出假设                                                 |
 
 Develop 与 Pivot 的差别不是代码修改幅度，而是是否继续接受当前核心设计假设。Pivot 是从当前 scaffold 换方向；Restart 是取消当前 scaffold 作为设计起点。语法、运行时、接口与超时实现问题在进入正式评价前至多修复两次，计入 repair 调用，不计入五类设计动作。再次选中档案中的祖先，即回到该状态继续。
 
@@ -95,12 +115,14 @@ Develop 与 Pivot 的差别不是代码修改幅度，而是是否继续接受�
 
 $$
 Q_t(s)=\frac{\#\{s':q(s')<q(s)\}+\frac12\bigl(\#\{s':q(s')=q(s)\}-1\bigr)}{N-1}.
+
 $$
 
 $n_t(s)$ 为该节点作为起点被分配的次数，含失败尝试。筛选指数为
 
 $$
 R_t(s)=Q_t(s)+\frac{1}{\sqrt{1+n_t(s)}}.
+
 $$
 
 两项均在 $[0,1]$。该指数仅承担候选压缩作用，不被解释为节点价值或未来潜力。取 $R_t$ 最高的 8 个有效节点；若全局最好不在其中，替换指数最低者。筛选只决定 Critic 看见哪些状态。
@@ -117,7 +139,7 @@ $$
 
 估价依据即时收益、后续开发可能、信息价值、兑现延迟与剩余预算。信息价值指：一次评价若能消解将实质改变后续分配的不确定性，即使即时收益不确定，仍可进入竞争集合。当前质量或一步退步单独都不足以决定入选。
 
-输出为至多 $K_c=4$ 个机会的竞争集合 $\mathcal{C}_t$，表示当前证据下仍可能成为最佳预算用途的集合，按 `rank` 排序。引用必须能对应到真实的路径或账本条目。SemanticRepair 进入 $\mathcal{C}_t$ 时，字段 `semantic_mismatch` 必须给出具体不一致。解析失败则重试一次；仍失败则取短名单中质量最高的 $K_c$ 个 Develop，并记录 `critic_invalid`。
+输出为至多 $K_c=4$ 个机会的竞争集合 $\mathcal{C}_t$，表示当前证据下仍具有决策竞争力的候选，按 `rank` 排序。引用必须能对应到真实的路径或账本条目。SemanticRepair 进入 $\mathcal{C}_t$ 时，字段 `semantic_mismatch` 必须给出具体不一致。解析失败则重试一次；仍失败则取短名单中质量最高的 $K_c$ 个 Develop，并记录 `critic_invalid`。
 
 ```json
 {
@@ -139,10 +161,11 @@ $$
 
 ## 5. 覆盖分配与条件化实现
 
-价值判断已经收在 $\mathcal{C}_t$ 内。分配只在该集合上施加探索压力。覆盖粒度为 $(s,o)$，
+价值判断已经收在 $\mathcal{C}_t$ 内。覆盖只在该集合上抑制对已反复试验的 state–action 区域的集中。覆盖粒度为 $(s,o)$，
 
 $$
 C(a)=\bigl(n(s,o),\;n(\Gamma(s),o),\;n_G(o)\bigr).
+
 $$
 
 Transfer 使用 $n(s,\mathrm{Transfer})$。Restart 的线程覆盖为零。选取 $C(a)$ 字典序最小者；全同则取更小的 `rank`；再同则用运行种子派生的随机数。剩余预算由估价器直接阅读观察事实。
@@ -167,10 +190,12 @@ Transfer 使用 $n(s,\mathrm{Transfer})$。Restart 的线程覆盖为零。选�
 
 $$
 K_s=8,\quad K_d=2,\quad K_c=4,\quad H_\tau=8,
+
 $$
 
 $$
 H_G=\{1,2,4\},\quad N_{\mathrm{root}}=8,\quad N_{\mathrm{card}}=3.
+
 $$
 
 估价每槽一次；执行修复至多两次。$K_d$、$N_{\mathrm{card}}$、$H_G$、$N_{\mathrm{root}}$ 视为协议常数。以后若考察敏感性，优先看 $K_s$、$K_c$ 与 $H_\tau$。
