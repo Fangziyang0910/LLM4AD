@@ -192,7 +192,7 @@ def test_v97_loader_preserves_reused_program_events(tmp_path: Path) -> None:
 
 def test_calm_loader_marks_final_archive_only() -> None:
     run_dir = Path(
-        "experiments/其他实验/基线重跑-20260824/tsp_construct/calm/"
+        "experiments/tsp_construct/calm/"
         "20260824_rerun_tsp_calm_rep1"
     )
     candidates, metadata = profiler.load_run_algorithms(run_dir)

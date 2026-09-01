@@ -50,26 +50,26 @@ DISPLAY = {
 
 EVAL_ARTIFACTS: list[tuple[str, Path]] = [
     # baselines (20260824 rerun, four tasks)
-    ("tsp_construct", REPO / "experiments/其他实验/基线重跑-20260824/tsp_construct/eoh/eval_best_20260825_rerun/results.json"),
-    ("tsp_construct", REPO / "experiments/其他实验/基线重跑-20260824/tsp_construct/reevo/eval_best_20260825_rerun/results.json"),
-    ("tsp_construct", REPO / "experiments/其他实验/基线重跑-20260824/tsp_construct/mcts_ahd/eval_best_20260825_rerun/results.json"),
-    ("tsp_construct", REPO / "experiments/其他实验/基线重跑-20260824/tsp_construct/pathwise/eval_best_20260825_rerun/results.json"),
-    ("tsp_construct", REPO / "experiments/其他实验/基线重跑-20260824/tsp_construct/calm/eval_best_20260825_rerun/results.json"),
-    ("cvrp_aco", REPO / "experiments/其他实验/基线重跑-20260824/cvrp_aco/eoh/eval_best_20260825_rerun/results.json"),
-    ("cvrp_aco", REPO / "experiments/其他实验/基线重跑-20260824/cvrp_aco/reevo/eval_best_20260825_rerun/results.json"),
-    ("cvrp_aco", REPO / "experiments/其他实验/基线重跑-20260824/cvrp_aco/mcts_ahd/eval_best_20260825_rerun/results.json"),
-    ("cvrp_aco", REPO / "experiments/其他实验/基线重跑-20260824/cvrp_aco/pathwise/eval_best_20260825_rerun/results.json"),
-    ("cvrp_aco", REPO / "experiments/其他实验/基线重跑-20260824/cvrp_aco/calm/eval_best_20260825_rerun/results.json"),
-    ("op_aco", REPO / "experiments/其他实验/基线重跑-20260824/op_aco/eoh/eval_best_20260825_rerun/results.json"),
-    ("op_aco", REPO / "experiments/其他实验/基线重跑-20260824/op_aco/reevo/eval_best_20260825_rerun/results.json"),
-    ("op_aco", REPO / "experiments/其他实验/基线重跑-20260824/op_aco/mcts_ahd/eval_best_20260825_rerun/results.json"),
-    ("op_aco", REPO / "experiments/其他实验/基线重跑-20260824/op_aco/pathwise/eval_best_20260825_rerun/results.json"),
-    ("op_aco", REPO / "experiments/其他实验/基线重跑-20260824/op_aco/calm/eval_best_20260825_rerun/results.json"),
-    ("online_bin_packing", REPO / "experiments/其他实验/基线重跑-20260824/online_bin_packing/eoh/eval_best_20260825_rerun/results.json"),
-    ("online_bin_packing", REPO / "experiments/其他实验/基线重跑-20260824/online_bin_packing/reevo/eval_best_20260825_rerun/results.json"),
-    ("online_bin_packing", REPO / "experiments/其他实验/基线重跑-20260824/online_bin_packing/mcts_ahd/eval_best_20260825_rerun/results.json"),
-    ("online_bin_packing", REPO / "experiments/其他实验/基线重跑-20260824/online_bin_packing/pathwise/eval_best_20260825_rerun/results.json"),
-    ("online_bin_packing", REPO / "experiments/其他实验/基线重跑-20260824/online_bin_packing/calm/eval_best_20260825_rerun/results.json"),
+    ("tsp_construct", REPO / "experiments/tsp_construct/eoh/eval_best_20260825_rerun/results.json"),
+    ("tsp_construct", REPO / "experiments/tsp_construct/reevo/eval_best_20260825_rerun/results.json"),
+    ("tsp_construct", REPO / "experiments/tsp_construct/mcts_ahd/eval_best_20260825_rerun/results.json"),
+    ("tsp_construct", REPO / "experiments/tsp_construct/pathwise/eval_best_20260825_rerun/results.json"),
+    ("tsp_construct", REPO / "experiments/tsp_construct/calm/eval_best_20260825_rerun/results.json"),
+    ("cvrp_aco", REPO / "experiments/cvrp_aco/eoh/eval_best_20260825_rerun/results.json"),
+    ("cvrp_aco", REPO / "experiments/cvrp_aco/reevo/eval_best_20260825_rerun/results.json"),
+    ("cvrp_aco", REPO / "experiments/cvrp_aco/mcts_ahd/eval_best_20260825_rerun/results.json"),
+    ("cvrp_aco", REPO / "experiments/cvrp_aco/pathwise/eval_best_20260825_rerun/results.json"),
+    ("cvrp_aco", REPO / "experiments/cvrp_aco/calm/eval_best_20260825_rerun/results.json"),
+    ("op_aco", REPO / "experiments/op_aco/eoh/eval_best_20260825_rerun/results.json"),
+    ("op_aco", REPO / "experiments/op_aco/reevo/eval_best_20260825_rerun/results.json"),
+    ("op_aco", REPO / "experiments/op_aco/mcts_ahd/eval_best_20260825_rerun/results.json"),
+    ("op_aco", REPO / "experiments/op_aco/pathwise/eval_best_20260825_rerun/results.json"),
+    ("op_aco", REPO / "experiments/op_aco/calm/eval_best_20260825_rerun/results.json"),
+    ("online_bin_packing", REPO / "experiments/online_bin_packing/eoh/eval_best_20260825_rerun/results.json"),
+    ("online_bin_packing", REPO / "experiments/online_bin_packing/reevo/eval_best_20260825_rerun/results.json"),
+    ("online_bin_packing", REPO / "experiments/online_bin_packing/mcts_ahd/eval_best_20260825_rerun/results.json"),
+    ("online_bin_packing", REPO / "experiments/online_bin_packing/pathwise/eval_best_20260825_rerun/results.json"),
+    ("online_bin_packing", REPO / "experiments/online_bin_packing/calm/eval_best_20260825_rerun/results.json"),
     # TraceAAD main-table versions
     ("tsp_construct", REPO / "experiments/tsp_construct/traceaad_v9_16/eval_best_20260823_v916_complete/results.json"),
     ("cvrp_aco", REPO / "experiments/cvrp_aco/traceaad_v9_16/eval_best_20260823_v916_complete/results.json"),
@@ -131,7 +131,7 @@ def _resolve_run_dir(run_dir_value: str, source_eval: Path) -> Path:
     method = Path(run_dir_value).parent.name
     task = Path(run_dir_value).parent.parent.name
     candidates = [
-        REPO / "experiments" / "其他实验" / "基线重跑-20260824" / task / method / run_name,
+        REPO / "experiments" / task / method / run_name,
         source_eval.parent.parent / run_name,
     ]
     for candidate in candidates:
@@ -219,7 +219,6 @@ def _sync_roots(groups: list[EvalGroup]) -> list[Path]:
         REPO / "experiments/evaluate_best.py",
         REPO / "experiments/eval_artifacts.py",
         REPO / "llm4ad",
-        REPO / "experiments/其他实验/基线重跑-20260824",
     }
     for group in groups:
         roots.add(group.run_dirs[0].parent)

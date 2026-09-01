@@ -1124,21 +1124,22 @@ def test_v10_critic_prompt_fits_its_character_budget() -> None:
 
 
 def test_v10_launcher_builds_explicit_versioned_plan(tmp_path: Path) -> None:
-    from experiments.runners.traceaad.launch_v10 import build_plan, command_for
+    from experiments.runners.traceaad_v10.launch import build_plan, command_for
 
     plan = build_plan(experiments_root=tmp_path, batch="batch_v10", repeats=1)
     assert len(plan) == 5
     assert plan[0].run_dir == tmp_path / "tsp_construct" / "traceaad_v10" / "batch_v10_tsp_rep1"
     command = command_for(plan[0], "local")
-    assert command[command.index("--version") + 1] == "v10"
+    assert command[2] == "experiments.runners.traceaad_v10.run"
     assert command[command.index("--n-init") + 1] == "8"
     assert command[command.index("--budget") + 1] == "1000"
 
 
 def test_v10_runner_spec_and_method_params() -> None:
-    from experiments.runners.traceaad.run import _v10_method_params, make_run_spec
+    from experiments.runners.traceaad_v10.run import _method_params as _v10_method_params
+    from experiments.runners.traceaad_v10.run import make_run_spec
 
-    spec = make_run_spec(task="tsp_construct", version="v10", budget=1000)
+    spec = make_run_spec(task="tsp_construct", budget=1000)
     assert spec.method_name == "traceaad_v10"
     assert spec.n_init == 8
     assert spec.context_token_limit == 32768
@@ -1147,4 +1148,4 @@ def test_v10_runner_spec_and_method_params() -> None:
     assert params["operators"] == ["develop", "pivot", "transfer", "restart", "semantic_repair"]
     assert params["K_s"] == 8 and params["K_c"] == 4 and params["H_G"] == [1, 2, 4]
     with pytest.raises(ValueError):
-        make_run_spec(task="tsp_construct", version="v10", budget=1000, n_init=4)
+        make_run_spec(task="tsp_construct", budget=1000, n_init=4)

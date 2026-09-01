@@ -101,7 +101,7 @@ def run_dirs(task: str, short: str, name: str) -> list[Path]:
         m = DIRNAME[name]
         pattern = f"{m}/20260822_142500_vrptw_{m}_rep*"
     else:
-        base = ROOT / "experiments" / "其他实验" / "基线重跑-20260824" / task
+        base = ROOT / "experiments" / task
         m = DIRNAME[name]
         pattern = f"{m}/20260824_rerun_{short}_{m}_rep*"
     dirs = sorted(p for p in base.glob(pattern) if p.is_dir())

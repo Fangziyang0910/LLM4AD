@@ -145,8 +145,6 @@ def analyze_pairs(adaptive_batch: str, fixed_batch: str) -> dict[str, Any]:
             )
             fixed = (
                 EXPERIMENTS_ROOT
-                / "其他实验"
-                / "历史版本"
                 / task
                 / "traceaad_v9_17_fixed_cycle"
                 / f"v9_17_fixed_cycle_{fixed_batch}_{task}_rep{repeat}"

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from experiments.runners.traceaad.launch_v917 import build_plan, launch_pending
+from experiments.runners.traceaad_v9_17.launch import build_plan, launch_pending
 
 
 def test_v917_plan_has_fifteen_unique_runs_and_requested_backend_split() -> None:
@@ -18,13 +18,13 @@ def test_v917_launch_pending_respects_backend_limits(monkeypatch) -> None:
     plan = build_plan(batch="test_v917_limits")
     launched: list[str] = []
     monkeypatch.setattr(
-        "experiments.runners.traceaad.launch_v917._done", lambda item: False
+        "experiments.runners.traceaad_v9_17.launch._done", lambda item: False
     )
     monkeypatch.setattr(
-        "experiments.runners.traceaad.launch_v917._running", lambda item: False
+        "experiments.runners.traceaad_v9_17.launch._running", lambda item: False
     )
     monkeypatch.setattr(
-        "experiments.runners.traceaad.launch_v917.launch",
+        "experiments.runners.traceaad_v9_17.launch.launch",
         lambda item, dry_run=False: launched.append(item.backend),
     )
     count = launch_pending(

@@ -13,8 +13,6 @@ from .behavesim_profiler import DEFAULT_SAMPLE_SIZE, TASKS
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXPERIMENTS = REPO_ROOT / "experiments"
-HISTORICAL = EXPERIMENTS / "其他实验" / "历史版本"
-BASELINE_RERUN = EXPERIMENTS / "其他实验" / "基线重跑-20260824"
 DEFAULT_OUTPUT_ROOT = EXPERIMENTS / "_logs" / "behavesim_v3"
 BASELINE_METHODS = ("eoh", "reevo", "mcts_ahd", "pathwise", "calm")
 
@@ -152,8 +150,8 @@ def traceaad_version_targets(tasks: Sequence[str] = TASKS) -> list[ProfileTarget
     targets = []
     for task in tasks:
         version_dirs = {
-            "traceaad_v9_7": HISTORICAL / task / "traceaad_v9_7",
-            "traceaad_v9_14": HISTORICAL / task / "traceaad_v9_14",
+            "traceaad_v9_7": EXPERIMENTS / task / "traceaad_v9_7",
+            "traceaad_v9_14": EXPERIMENTS / task / "traceaad_v9_14",
             "traceaad_v9_17": EXPERIMENTS / task / "traceaad_v9_17",
         }
         for label, base_dir in version_dirs.items():
@@ -178,12 +176,7 @@ def baseline_targets(tasks: Sequence[str] = TASKS) -> list[ProfileTarget]:
     targets = []
     for task in tasks:
         for method in BASELINE_METHODS:
-            base_dir = (
-                EXPERIMENTS / task / method
-                if task == "vrptw_construct"
-                else BASELINE_RERUN / task / method
-            )
-            runs = _discover_three(base_dir)
+            runs = _discover_three(EXPERIMENTS / task / method)
             targets.extend(
                 ProfileTarget(
                     campaign="external_methods",

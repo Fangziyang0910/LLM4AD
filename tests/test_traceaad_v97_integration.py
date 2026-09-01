@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from experiments.runners.traceaad import run
+from experiments.runners.traceaad_v9_7 import run
 from llm4ad.method.traceaad_v9_7 import TraceAADV97
 from llm4ad.method.traceaad_v9_7.forest import Forest
 from llm4ad.method.traceaad_v9_7.history import parent_path, render_path
@@ -315,7 +315,6 @@ def test_v97_forest_checkpoint_roundtrip_preserves_intent() -> None:
 def test_v97_runner_builds_complete_frozen_method(tmp_path: Path) -> None:
     spec = run.make_run_spec(
         task="tsp_construct",
-        version="v9_7",
         budget=1000,
         experiments_root=tmp_path,
     )
@@ -326,7 +325,7 @@ def test_v97_runner_builds_complete_frozen_method(tmp_path: Path) -> None:
     assert spec.n_init == 8
     assert spec.context_token_limit == 32768
     assert spec.llm_output_tokens == 8192
-    params = run._v97_method_params(spec)
+    params = run._method_params(spec)
     assert params["refine_probability"] == 0.7
     assert params["explore_probability"] == pytest.approx(0.3)
     assert "context_limit" not in params
@@ -343,7 +342,6 @@ def test_v97_run_config_records_logical_generator_without_service_source(
 ) -> None:
     spec = run.make_run_spec(
         task="online_bin_packing",
-        version="v9_7",
         backend="server3",
         budget=1000,
         repeat=2,
@@ -356,7 +354,7 @@ def test_v97_run_config_records_logical_generator_without_service_source(
 
     assert not resumed
     assert payload["method"] == "traceaad_v9_7"
-    assert payload["method_params"] == run._v97_method_params(spec)
+    assert payload["method_params"] == run._method_params(spec)
     assert payload["method_params"]["refine_probability"] == 0.7
     assert payload["generator_environment"]["logical_model_name"] == "Qwen3.8-27B"
     assert payload["generator_environment"]["max_total_context"] == 32768
@@ -370,7 +368,6 @@ def test_v97_run_config_records_logical_generator_without_service_source(
 def test_v97_resume_accepts_only_matching_protocol(tmp_path: Path) -> None:
     original = run.make_run_spec(
         task="tsp_construct",
-        version="v9_7",
         budget=1000,
         run_name="matching_v97",
         experiments_root=tmp_path,
@@ -379,7 +376,6 @@ def test_v97_resume_accepts_only_matching_protocol(tmp_path: Path) -> None:
     run.write_run_config(original, run_dir, run_name)
     resumed_spec = run.make_run_spec(
         task="tsp_construct",
-        version="v9_7",
         budget=1000,
         resume_from=run_dir,
         experiments_root=tmp_path,
@@ -395,7 +391,6 @@ def test_v97_official_runner_fixes_root_count_to_eight(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="exactly eight"):
         run.make_run_spec(
             task="tsp_construct",
-            version="v9_7",
             n_init=10,
             experiments_root=tmp_path,
         )

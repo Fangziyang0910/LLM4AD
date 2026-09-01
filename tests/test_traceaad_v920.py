@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
-from experiments.runners.traceaad import run as runner
+from experiments.runners.traceaad_v9_20 import run as runner
 from llm4ad.method.traceaad_v9_20 import RunArtifacts, TraceAADV920
 from llm4ad.method.traceaad_v9_20.schema import Action, Algorithm
 from llm4ad.method.traceaad_v9_20.schema import Pending
@@ -176,7 +176,7 @@ def test_duplicate_still_consumes_primary_evaluator_slot(tmp_path: Path) -> None
 
 
 def test_runner_builds_v920_without_running() -> None:
-    spec = runner.make_run_spec(task="tsp_construct", version="v9_20", backend="local")
+    spec = runner.make_run_spec(task="tsp_construct", backend="local")
     assert spec.method_name == "traceaad_v9_20"
     assert spec.n_init == 8
-    assert runner._v920_method_params(spec)["actions"] == ["develop", "explore", "crossover"]
+    assert runner._method_params(spec)["actions"] == ["develop", "explore", "crossover"]

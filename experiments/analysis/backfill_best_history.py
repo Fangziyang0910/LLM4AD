@@ -159,8 +159,6 @@ def main() -> None:
             "runners",
             "_logs",
             "generation_probe",
-            "其他实验",
-            "机制实验",
         }:
             continue
         for method_dir in sorted(task_dir.iterdir()):

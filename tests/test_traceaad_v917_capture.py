@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from experiments.runners.traceaad.capture_v917_initializations import is_fork_boundary
+from experiments.runners.traceaad_v9_17_fixed_cycle.capture_initializations import (
+    is_fork_boundary,
+)
 
 
 def test_v917_initialization_capture_requires_exact_first_development_state() -> None:

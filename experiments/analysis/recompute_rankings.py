@@ -1,8 +1,9 @@
 """从正式测试工件重算跨规模平均名次（代表性同场 / 单版本上场）。
 
 数据源为各任务目录下 `eval_best_*` 的 `results.json`（逐 run 的 eval_objective），
-与 `docs/experiments/主实验/结果.md` 记录的口径一致；历史版本方法（V9.7、
-V9.14、V9.15、V9.17 FixedCycle）的工件在 `其他实验/历史版本/<task>/` 下。
+与 `docs/experiments/主实验/结果.md` 记录的口径一致；全部方法（含历史版本
+V9.7、V9.14、V9.15、V9.17 FixedCycle 与基线重跑批）的工件都在规范根
+`experiments/<task>/<method>/` 下。
 规模共 15 个（TSP/CVRP/OP 各 3 + OBP 6），每规模在参与方法内排名，并列取平均名次。
 
 整体同场放入代表性 TraceAAD 与 5 个外部对照。单版本上场为 1 个 TraceAAD
@@ -12,7 +13,7 @@ V9.14、V9.15、V9.17 FixedCycle）的工件在 `其他实验/历史版本/<task
 V9.14/V9.16/V9.17 跑过该任务）。
 
 CVRP 的 MCTS-AHD 与四任务其余对照一样读 `20260824_rerun` 批
-`eval_best_20260825_rerun`；原批工件见 docs/experiments/其他实验/基线原批次结果.md。
+`eval_best_20260825_rerun`；原批最终结果见 docs/experiments/其他实验/基线原批次结果.md。
 
 用法：
     uv run python experiments/analysis/recompute_rankings.py [--markdown]
@@ -29,10 +30,6 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 
 BASELINE_METHOD_DIRS = frozenset({"eoh", "reevo", "mcts_ahd", "pathwise", "calm"})
-BASELINE_RERUN_TASKS = frozenset(
-    {"tsp_construct", "cvrp_aco", "op_aco", "online_bin_packing"}
-)
-BASELINE_RERUN_EVAL = "eval_best_20260825_rerun"
 
 # 任务 -> (规模键, 方向, 容器键, 数据文件按方法)
 TASKS = [
@@ -190,33 +187,8 @@ VRPTW_ARTIFACTS: dict[str, str] = {
 }
 VRPTW_SCALES = ("vrptw50", "vrptw100", "vrptw200")
 
-# 已归档到 experiments/其他实验/历史版本/<task>/ 下的方法
-HISTORY_METHODS = {
-    "traceaad_v9_7",
-    "traceaad_v9_14",
-    "traceaad_v9_15",
-    "traceaad_v9_17_fixed_cycle",
-}
-
-
 def artifact_dir(task: str, rel: str) -> Path:
-    """rel 形如 "<method>/<eval_dir>"；历史版本方法在 其他实验/历史版本/ 下。"""
-    method_dir = rel.split("/", 1)[0]
-    if method_dir in HISTORY_METHODS:
-        return REPO / "experiments" / "其他实验" / "历史版本" / task / rel
-    if (
-        method_dir in BASELINE_METHOD_DIRS
-        and task in BASELINE_RERUN_TASKS
-        and rel.endswith(BASELINE_RERUN_EVAL)
-    ):
-        return (
-            REPO
-            / "experiments"
-            / "其他实验"
-            / "基线重跑-20260824"
-            / task
-            / rel
-        )
+    """rel 形如 "<method>/<eval_dir>"，一律位于规范根 experiments/<task>/ 下。"""
     return REPO / "experiments" / task / rel
 
 

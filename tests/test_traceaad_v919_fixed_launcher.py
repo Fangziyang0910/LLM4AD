@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from experiments.runners.traceaad import launch_v919_fixed as launcher
+from experiments.runners.traceaad_v9_19 import launch_fixed as launcher
 
 
 def test_fixed_plan_uses_distinct_batch_name(tmp_path: Path) -> None:

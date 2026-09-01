@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from experiments.runners.traceaad.launch_v919 import (
+from experiments.runners.traceaad_v9_19.launch import (
     BUDGET,
     INITIAL_ROOTS,
     VERSION,
@@ -36,7 +36,7 @@ def test_v919_scheduler_launches_fresh_run_with_frozen_budget(tmp_path: Path) ->
 
     command = command_for(item, "server3")
 
-    assert "--version" in command and VERSION in command
+    assert "experiments.runners.traceaad_v9_19.run" in command
     assert "--budget" in command and str(BUDGET) in command
     assert "--n-init" in command and str(INITIAL_ROOTS) in command
     assert "--seed" in command and "0" in command
