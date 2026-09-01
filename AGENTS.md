@@ -8,7 +8,7 @@
 
 自动算法设计用大语言模型提出并改写算法函数，再与进化机制结合，在有限评价预算下优化该函数，使其能够求解一类问题。
 
-TraceAAD 的两个基础问题是：**给哪一个节点一次决策机会**，以及**怎样帮它做出更好的决策**。创新是把改进轨迹融入这两件事：轨迹参与评分与预算分配，轨迹辅助下一步决策。
+TraceAAD 的两个基础问题是：**给哪一个节点下一个扩展机会**，以及**怎样帮它做出更好的决策**。V10.1 按当前真实质量概率性选择父节点，再在同一冻结快照上固定执行 Refine、Pivot 和 Fuse。轨迹是辅助生成的历史证据。机制见 `docs/methods/TraceAAD-V10.1完整机制设计.md`，经验见 `docs/knowledge/预算分配经验.md`。
 
 生成的本质是提供合适、有价值的上下文与提示，辅助当前节点改写，避免冗余信息干扰。算子与探索、利用结合：一些算子鼓励有效探索，一些算子鼓励有效利用。
 
@@ -16,7 +16,7 @@ TraceAAD 的两个基础问题是：**给哪一个节点一次决策机会**，�
 
 泛化主张：不同问题有各自的优势算法思想；LLM 对各思想的生成偏好不同，各思想的可改进程度也不同。要做的是让 LLM 更好生成对应 task 的优势思想并持续开发。目前还没有办法真正区分不同算法簇。[待验证]
 
-讨论顺序：优势思想与可改进性 → 给哪个节点机会 → 怎样辅助决策。描述运行行为时注明版本。规范见 `docs/methods/`。
+讨论顺序：优势思想与可改进性 → 给哪个节点扩展机会 → 怎样辅助决策。描述运行行为时注明版本。规范见 `docs/methods/`。
 
 ## 证据标准
 
@@ -32,7 +32,7 @@ TraceAAD 的两个基础问题是：**给哪一个节点一次决策机会**，�
 
 - 正式比较统一 1000 次真实评价预算，评价口径全局统一；训练集上优化，测试集为不同规模的新实例。搜索结果、测试结果与过程证据分开报告。测试评估必须完成，timeout 或单个失败样本不能成为最终 `n/a`；全部重复与测试完成后才更新结果页。
 - 生成模型统一 **Qwen3.8-27B**（2026-08-31 起生效），采样统一官方 thinking 配方：temperature 1.0、top_p 0.95、top_k 20，由客户端显式下发、各端一致（`experiments/runners/_common.py` 的 `SAMPLING_*` 常量）。server3 / server3b / server1(:8080) 跑 vLLM AWQ-INT4（MTP 投机 3 token），本地 llama.cpp 跑 Q4_K_XL GGUF（draft-mtp 3）；zhong 仍是 Qwen3.6-27B 源，不用于正式实验。
-- 实验入口在 `experiments/runners/`，工件按 `experiments/<task>/<method>/` 组织（主实验规范根，索引见 `experiments/README.md`）：历史版本与重跑批次归档在 `experiments/其他实验/`，机制实验战役结束后迁入 `experiments/机制实验/<日期-名称>/`；模型、预算和关键超参显式可追溯；原始工件只留本地，Git 只跟踪实验入口、评估绘图代码和 `docs/experiments/` 的凝练结果。
+- 实验入口在 `experiments/runners/`，每个实验一个独立包（`runners/<experiment>/run.py`，批次发射器为包内 `launch.py`），不设囊括多实验的大入口；工件按 `experiments/<task>/<method>/<run>` 平铺在规范根，全部批次（含历史版本与基线重跑）都在规范根，批次以 run 名前缀区分，索引见 `experiments/README.md`；模型、预算和关键超参显式可追溯；原始工件只留本地，Git 只跟踪实验入口、评估绘图代码和 `docs/experiments/` 的凝练结果。
 - 并行容量 server3 9、server3b 9、server1 6；启动用 `tmux new-session` + `experiments.runners.<method>.run`，按空位均衡分配；长跑前先冒烟，长跑用可恢复的后台会话。Python 用本仓库的 uv 环境。
 
 ## 文档
@@ -42,7 +42,8 @@ TraceAAD 的两个基础问题是：**给哪一个节点一次决策机会**，�
 | `docs/analysis/` | 该版本当时测到的过程事实、数字与观察，分 `机制分析/` 与 `其他分析/` 两个子目录；当前科学认识回写 `docs/knowledge/研究认识.md` |
 | `docs/knowledge/研究认识.md` | 对自动算法设计这个任务的认识 |
 | `docs/knowledge/TraceAAD机制尝试.md` | 试过什么、当时看见了什么 |
-| `docs/methods/` | 当前主线规范为 [V10](docs/methods/TraceAAD-V10完整机制设计.md)；V9、V9.5–V9.7 仍在；V2–V9.4 压缩为《历史机制探索》一份 |
+| `docs/knowledge/预算分配经验.md` | 预算分配的价值对象漂移与硬经验 |
+| `docs/methods/` | 当前主线规范为 [V10.1](docs/methods/TraceAAD-V10.1完整机制设计.md)；V9、V9.5–V9.7 仍在；V2–V9.4 压缩为《历史机制探索》一份 |
 | `docs/experiments/` | [主实验](docs/experiments/主实验/结果.md)为日常入口；机制实验按 `日期-名称` 分文件夹；其余在其他实验 |
 | `docs/reports/` | 组会研究报告与科研周报，按日期或周次命名 |
 | `docs/references/` | 论文与原始实现调研 |
