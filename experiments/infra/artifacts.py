@@ -101,7 +101,7 @@ def load_scored_samples(
                     )
 
     # V10.x runs keep the search-selected best node directly in
-    # logs/run_summary.json (tree node id + fitness + code + origin operator),
+    # logs/run_summary.json (tree node id + fitness + code + operator),
     # without any legacy sample stream.
     if not records:
         summary_path = run_dir / "logs" / "run_summary.json"
@@ -110,7 +110,9 @@ def load_scored_samples(
             best = summary.get("best")
             if isinstance(best, dict) and isinstance(best.get("code"), str):
                 score = best.get("fitness")
-                sample_order = best.get("node_id")
+                sample_order = best.get("evaluation_id")
+                if not isinstance(sample_order, int):
+                    sample_order = best.get("node_id")
                 if isinstance(score, (int, float)) and isinstance(sample_order, int):
                     if max_sample_order is None or sample_order <= max_sample_order:
                         records.append(
@@ -118,7 +120,9 @@ def load_scored_samples(
                                 "program": best["code"],
                                 "score": float(score),
                                 "sample_order": sample_order,
-                                "operator": best.get("origin_operator"),
+                                "operator": best.get(
+                                    "operator", best.get("origin_operator")
+                                ),
                             }
                         )
 

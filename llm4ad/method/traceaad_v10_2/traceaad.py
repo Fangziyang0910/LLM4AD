@@ -1,7 +1,8 @@
-"""TraceAAD V10.1 search engine.
+"""TraceAAD V10.2 search engine.
 
-Mechanism: docs/methods/TraceAAD-V10.1完整机制设计.md — fitness-biased
-probabilistic parent allocation, multi-operator expansion,
+Mechanism: docs/methods/TraceAAD-V10.2完整机制设计.md — fitness-only
+ESS-Boltzmann parent probabilities corrected by inverse-sqrt selection counts,
+uniform single-operator expansion,
 trajectory-conditioned generation.
 """
 
@@ -113,7 +114,7 @@ class _Attempt:
             return "eval_failed"
         return "ok"
 
-class TraceAADV101:
+class TraceAADV102:
     def __init__(
         self,
         *,
@@ -168,7 +169,8 @@ class TraceAADV101:
 
         self.tree = SearchTree()
         self.rng = random.Random(seed)
-        self.batch_counter = 0
+        self.parent_selection_counts: dict[int, int] = {}
+        self.step_counter = 0
         self.budget_used = 0
         self.started_at = datetime.now().isoformat(timespec="seconds")
         self._invalid_streak = 0
@@ -222,18 +224,28 @@ class TraceAADV101:
     # ------------------------------------------------------------------
 
     def select_parent(self) -> tuple[Node, float, float, float, float]:
-        """Sample one parent from the ESS-calibrated Boltzmann distribution."""
+        """Sample from fitness probability corrected by prior parent selections."""
         nodes = self.tree.all_nodes()
         fitnesses = [n.fitness for n in nodes]
         beta, ess_target, ess_actual = calibrate_beta(
             fitnesses, self.ess_fraction, self.ess_minimum
         )
         f_max = max(fitnesses)
-        weights = [math.exp(beta * (f - f_max)) for f in fitnesses]
-        total = sum(weights)
-        probs = [w / total for w in weights]
+        quality_weights = [math.exp(beta * (f - f_max)) for f in fitnesses]
+        quality_total = sum(quality_weights)
+        quality_probs = [w / quality_total for w in quality_weights]
+        corrected_weights = [
+            p / math.sqrt(self.parent_selection_counts.get(node.id, 0) + 1)
+            for node, p in zip(nodes, quality_probs)
+        ]
+        corrected_total = sum(corrected_weights)
+        probs = [w / corrected_total for w in corrected_weights]
         index = self.rng.choices(range(len(nodes)), weights=probs)[0]
-        return nodes[index], probs[index], beta, ess_target, ess_actual
+        parent = nodes[index]
+        self.parent_selection_counts[parent.id] = (
+            self.parent_selection_counts.get(parent.id, 0) + 1
+        )
+        return parent, probs[index], beta, ess_target, ess_actual
 
     def select_donor(self, parent: Node) -> Node | None:
         """Uniform pick from the top-5 cross-lineage nodes by fitness."""
@@ -275,6 +287,7 @@ class TraceAADV101:
             "started_at": self.started_at,
             "nodes": self.tree.to_state(),
             "rng_state": list(self.rng.getstate()),
+            "parent_selection_counts": self.parent_selection_counts,
             "step_counter": self.step_counter,
             "batch_counter": self.step_counter,
             "budget_used": self.budget_used,
@@ -292,6 +305,10 @@ class TraceAADV101:
             self.tree.add_raw(Node(**entry))
         rng_state = state["rng_state"]
         self.rng.setstate((rng_state[0], tuple(rng_state[1]), rng_state[2]))
+        self.parent_selection_counts = {
+            int(node_id): count
+            for node_id, count in state["parent_selection_counts"].items()
+        }
         self.step_counter = state.get("step_counter", state.get("batch_counter", 0))
         self.started_at = state["started_at"]
         self.budget_used = state["budget_used"]
@@ -300,7 +317,7 @@ class TraceAADV101:
         best = self.tree.best() if self.tree.nodes else None
         payload = {
             "status": status,
-            "method": "v101",
+            "method": "v102",
             "started_at": self.started_at,
             "finished_at": datetime.now().isoformat(timespec="seconds"),
             "budget": self.budget,
@@ -400,47 +417,36 @@ class TraceAADV101:
             self._save_state()
 
     def _expand_parent(self) -> None:
-        """Pick one parent node and expand it with Refine, Pivot, and Fuse."""
-        remaining = self.budget - self.budget_used
-        parent, parent_prob, beta, ess_target, ess_actual = self.select_parent()
+        """Pick one parent and expand it with one uniformly sampled operator."""
+        parent, _, _, _, _ = self.select_parent()
         ancestors = self.tree.ancestors(parent.id)[: self.traj_gens + 1]
         donor = self.select_donor(parent)
         operators = ["Refine", "Pivot", "Fuse"] if donor is not None else ["Refine", "Pivot"]
-        if remaining < len(operators):
-            operators = self.rng.sample(operators, remaining)
+        operator = self.rng.choice(operators)
+        attempt = self._generate(
+            operator, parent, ancestors, donor if operator == "Fuse" else None
+        )
 
-        # generate candidates
-        attempts = [
-            self._generate(
-                operator, parent, ancestors, donor if operator == "Fuse" else None
-            )
-            for operator in operators
-        ]
+        if attempt.program is not None:
+            self._evaluate(attempt)
 
-        # evaluate each candidate
-        for attempt in attempts:
-            if attempt.program is not None:
-                self._evaluate(attempt)
-
-        # add valid children into the tree and log attempts
         self.step_counter += 1
-        for attempt in attempts:
-            if attempt.program is not None and attempt.fitness is not None:
-                node = self.tree.add(
-                    code=attempt.code,
-                    idea=attempt.idea,
-                    fitness=attempt.fitness,
-                    evaluation_id=attempt.evaluation_id,
-                    parent_id=parent.id,
-                    operator=attempt.operator,
-                    donor_id=donor.id if attempt.operator == "Fuse" else None,
-                )
-                attempt.node_id = node.id
-            self._log_attempt(
-                attempt,
+        if attempt.program is not None and attempt.fitness is not None:
+            node = self.tree.add(
+                code=attempt.code,
+                idea=attempt.idea,
+                fitness=attempt.fitness,
+                evaluation_id=attempt.evaluation_id,
                 parent_id=parent.id,
-                donor_id=donor.id if attempt.operator == "Fuse" else None,
+                operator=attempt.operator,
+                donor_id=donor.id if operator == "Fuse" else None,
             )
+            attempt.node_id = node.id
+        self._log_attempt(
+            attempt,
+            parent_id=parent.id,
+            donor_id=donor.id if operator == "Fuse" else None,
+        )
 
         self._save_state()
 

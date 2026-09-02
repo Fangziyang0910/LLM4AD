@@ -1,4 +1,4 @@
-"""Prompt assembly for TraceAAD V10.1 (design doc sections 2.2 and 5)."""
+"""Prompt assembly for TraceAAD V10.2 (design doc sections 2.2 and 5)."""
 
 from __future__ import annotations
 

@@ -1,13 +1,13 @@
-# TraceAAD V10.1 完整机制设计
+# TraceAAD V10.2 完整机制设计
 
-TraceAAD V10.1 由基于 fitness 的父节点分配、多算子扩展和轨迹辅助生成组成。机制在有限真实评价预算下优化目标算法。树结构、执行修复与评价口径沿用既有 TraceAAD 平台。
+TraceAAD V10.2 由 fitness-only ESS-Boltzmann 概率与父节点选择次数共同决定的父节点分配、等概率单算子扩展和轨迹辅助生成组成。机制在有限真实评价预算下优化目标算法。树结构、执行修复与评价口径沿用既有 TraceAAD 平台。
 
 ## 1. 搜索流程
 
 每一轮扩展执行以下三个步骤：
 
-1. **父节点选择**：根据树中所有有效节点的当前真实 fitness，通过 ESS 校准的 Boltzmann 分布抽样选出一个父节点 $n_t$。
-2. **多算子生成与评价**：在选中的父节点上，分别使用 Refine、Pivot 和 Fuse（有可用 donor 时）三个算子各生成一个子代，并依次调用评估器评价。
+1. **父节点选择**：先根据全树有效节点的当前真实 fitness 构造 ESS 校准的 Boltzmann 概率 $p_q(n)$，再除以 $\sqrt{c(n)+1}$ 并重新归一化，抽样选出一个父节点 $n_t$。
+2. **单算子生成与评价**：根据选中父节点是否存在可用 donor，确定当轮可用算子集合，从中等概率抽取 Refine、Pivot 或 Fuse 中的一个算子，生成一个子代并调用评估器评价。
 3. **更新搜索树**：将成功生成且有效评价的子代加入搜索树，随后进入下一轮父节点选择，直到 1000 次评价预算耗尽。
 
 ## 2. 搜索树与轨迹
@@ -71,12 +71,12 @@ Fitness: 0.739 (Degraded)
 
 搜索以 $N_0 = 8$ 个独立生成的有效根节点初始化。每个根节点仅根据 Task Contract 生成并评价，消耗 1 次评测预算。若预算耗尽仍不足 8 个有效根节点，则报错中止。
 
-### 3.2 ESS 校准的 Boltzmann 选择
+### 3.2 父节点选择
 
-全树所有有效节点构成候选集 $\mathcal A_t$。父节点选择概率为：
+全树所有有效节点构成候选集 $\mathcal A_t$。首先只根据 fitness 构造 ESS 校准的 Boltzmann 概率：
 
 $$
-p_t(n) = \frac{\exp\left(\beta_t (f(n) - f_{\max})\right)}{\sum_{m\in\mathcal A_t}\exp\left(\beta_t (f(m) - f_{\max})\right)}
+p_q(n) = \frac{\exp\left(\beta_t (f(n) - f_{\max})\right)}{\sum_{m\in\mathcal A_t}\exp\left(\beta_t (f(m) - f_{\max})\right)}
 $$
 
 其中减去当前最大值 $f_{\max} = \max_{m\in\mathcal A_t} f(m)$ 以保证数值稳定性。
@@ -84,7 +84,7 @@ $$
 逆温度 $\beta_t \ge 0$ 不设跨任务固定常数，而是根据目标有效样本量（Effective Sample Size, ESS）动态自适应求解：
 
 $$
-\operatorname{ESS}(p_t) = \frac{1}{\sum_{n\in\mathcal A_t} p_t(n)^2}
+\operatorname{ESS}(p_q) = \frac{1}{\sum_{n\in\mathcal A_t} p_q(n)^2}
 $$
 
 $$
@@ -97,11 +97,19 @@ $$
 k_{\max} = \left|\left\{n\in\mathcal A_t: f(n) = f_{\max}\right\}\right|, \qquad E_t^* = \max(E_t, k_{\max})
 $$
 
-当 $E_t^* < N$ 时，数值求解 $\beta_t \ge 0$ 使实际 $\operatorname{ESS}(p_t)$ 尽可能逼近目标 $E_t^*$；当 $E_t^* = N$ 时取 $\beta_t = 0$（即均匀随机抽样）。该机制自适应不同任务的数值跨度，自动将竞争聚焦在排名前 10% 的高分节点上，同时为全树其余节点保留非零抽样机会。
+当 $E_t^* < N$ 时，数值求解 $\beta_t \ge 0$ 使实际 $\operatorname{ESS}(p_q)$ 尽可能逼近目标 $E_t^*$；当 $E_t^* = N$ 时取 $\beta_t = 0$。
+
+令 $c_t(n)$ 为节点 $n$ 在本轮抽样前累计被选为父节点的次数，初始值为 0。最终父节点选择概率为：
+
+$$
+p_t(n) = \frac{p_q(n) / \sqrt{c_t(n)+1}}{\sum_{m\in\mathcal A_t} p_q(m) / \sqrt{c_t(m)+1}}
+$$
+
+按 $p_t$ 抽样得到父节点后，将该节点的选择次数加 1。ESS 只校准 fitness-only 分布 $p_q$；$p_t$ 是加入选择次数修正后的实际抽样分布。
 
 ### 3.3 三个扩展算子
 
-选定父节点后，分别使用三个算子组织生成：
+选定父节点后，只选择一个当轮可用的算子组织生成：
 
 - **Refine（深化）**：保持当前算法的核心思想不变，在其基础上寻求更好的实现、调整参数公式或修正局部缺陷。在树上形成纵向深挖。
 - **Pivot（转向）**：保留当前代码作为初始脚手架，但放弃其核心假设，引入实质不同的设计机制或决策原则。在树上开辟全新分支。
@@ -127,16 +135,27 @@ $$
 D_5(n) = \operatorname{TopK}_{5}(D(n), f)
 $$
 
-从 $D_5(n)$ 中均匀随机选取一个节点作为 donor。若 $D_5(n)$ 为空，则本轮不执行 Fuse。
+若 $D_5(n)$ 非空，则 Fuse 是当轮可用算子；当 Fuse 被选中时，从 $D_5(n)$ 中均匀随机选取一个节点作为 donor。若 $D_5(n)$ 为空，则当轮可用算子不包含 Fuse。
 
-### 3.5 扩展与预算消耗
+### 3.5 等概率单算子扩展
 
-每轮依次对可用算子生成子代并送入评估器：
-- 存在可用 donor 时：执行 Refine、Pivot、Fuse，消耗 3 次预算；
-- 无可用 donor 时：执行 Refine、Pivot，消耗 2 次预算；
-- 当剩余预算不足以完整执行时，从可用算子中均匀随机抽取，消耗完最后剩余预算。
+选定父节点 $n$ 后，根据 donor 是否可用构造当轮算子集合：
 
-各算子生成的子代码依次评价，有效程序加入搜索树。
+$$
+\mathcal O(n) =
+\begin{cases}
+\{\mathrm{Refine},\mathrm{Pivot},\mathrm{Fuse}\}, & D_5(n) \ne \varnothing,\\
+\{\mathrm{Refine},\mathrm{Pivot}\}, & D_5(n) = \varnothing.
+\end{cases}
+$$
+
+从 $\mathcal O(n)$ 中均匀随机选择一个算子：
+
+$$
+o_t \sim \operatorname{Uniform}(\mathcal O(n)).
+$$
+
+存在可用 donor 时，Refine、Pivot 和 Fuse 的选择概率均为 $1/3$；不存在可用 donor 时，Refine 和 Pivot 的选择概率均为 $1/2$。被选中的算子生成一个子代并送入评估器，每轮消耗 1 次评测预算。有效程序加入搜索树，随后重新选择父节点。
 
 ## 4. 提示词与生成上下文
 
@@ -178,6 +197,7 @@ Instruction:
 ### 4.2 统一生成契约
 
 所有算子遵循统一契约：
+
 1. **严格执行指定算子**：Refine 必须保持核心原则，Pivot 必须引入新机制，Fuse 必须融合两方优势。
 2. **凝练的 Idea 说明**：用一句话说明本次改动的实际算法机制，不写空泛套话或推理流水账。
 3. **完整可执行代码**：只输出完整 Python 函数实现，保持函数签名、输入输出契约一致。
@@ -186,6 +206,7 @@ Instruction:
 ### 4.3 算子指令文本
 
 #### Refine
+
 ```text
 Continue developing the current algorithmic direction. Preserve the core design
 principle of the current algorithm. Use the historical trajectory as evidence to
@@ -196,6 +217,7 @@ the core algorithmic principle with a different one.
 ```
 
 #### Pivot
+
 ```text
 Develop a materially different algorithmic direction from the current node.
 Treat the current code as a usable starting scaffold, but do not assume that its
@@ -207,6 +229,7 @@ adjustment, or superficial restructuring.
 ```
 
 #### Fuse
+
 ```text
 Create a coherent algorithm by combining complementary mechanisms from the
 current algorithm and the provided reference algorithm. Treat the current
@@ -221,6 +244,7 @@ algorithm with the reference algorithm.
 ### 4.4 上下文截断规则
 
 代码实现中严格遵守信息完整性：
+
 - Task Contract、当前代码、算子指令以及 Fuse donor 代码始终完整保留，严禁代码截断。
 - 当 Prompt 总字符数超出上限时，从最老的祖先节点开始逐代丢弃历史轨迹。
 - 若完全移除轨迹后 Prompt 仍超出限制，则抛出异常中止运行。
@@ -232,17 +256,20 @@ algorithm with the reference algorithm.
 | 评测预算 $B$ | 1000 | 总真实评估次数 |
 | 初始根节点数 $N_0$ | 8 | 搜索起点候选数 |
 | 父节点分数 | fitness $f(n)$ | 真实评估指标 |
+| 父节点选择修正 | $1 / \sqrt{c(n)+1}$ | 降低已被反复选择节点的后续概率 |
 | 目标 ESS 比例 $\rho$ | 0.10 | 竞争主要集中于前 10% 节点 |
 | 最小目标 ESS $K_{\min}$ | 2 | 最少保证 2 个有效竞争者 |
 | 扩展算子集 | Refine, Pivot, Fuse | 纵向深挖、横向开辟与分支重组 |
+| 单轮算子选择 | 当轮可用算子等概率抽样 | 每轮只执行一个算子 |
+| 单轮子代数 | 1 | 每轮只生成并评价一个子代 |
 | Donor 候选池大小 | 5 | 排除直系后的 Top-5 fitness 节点 |
 | 轨迹最大代数 | 8 | 最多保留 8 代历史祖先 |
 
-运行过程在 `events.jsonl` 中记录每次生成与评估的轻量事实（时间、步数、算子、父节点、donor、状态、fitness、新节点 ID），并在 `tree_state.json` 中保存搜索树状态以支持断点续跑。
+运行过程在 `events.jsonl` 中记录每次生成与评估的轻量事实（时间、步数、算子、父节点、donor、状态、fitness、新节点 ID），并在 `tree_state.json` 中保存搜索树和各节点的父代入选次数以支持断点续跑。
 
 ## 6. 核心消融与诊断
 
 1. **算子有效性识别（Stage P）**：验证 Refine、Pivot 和 Fuse 是否能按指令产生可区分的设计行为与代码改动模式。
 2. **轨迹消融（Ablation A）**：对比「有轨迹」与「无轨迹」对后续算法改进质量的净收益。
-3. **算子全覆盖消融（Ablation B）**：对比「三算子全覆盖」与「单算子随机抽样」在有限预算下的搜索效率差异。
+3. **单算子扩展消融（Ablation B）**：对比「单算子等概率抽样」与「三算子全覆盖」在相同评价预算下的搜索效率差异。
 4. **过程诊断**：监控 Pivot 生成子代的重访率与后续突破情况，确保多样性探索能真正转化为全局优势。

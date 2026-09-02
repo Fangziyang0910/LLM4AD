@@ -18,5 +18,5 @@
 - `traceaad_v9_19`（原批 + `fixed_20260829` 修订批）、`traceaad_v9_20`：行为度量时代的机制版本。
 - `traceaad_v9_21`：思想假设双重实现搜索，首批 `v9_21_core_20260830`，入口 `experiments/traceaad_v9_21/launch.py`。
 - `traceaad_v10`：design opportunity 分配，批次 `v10_20260831_q38`（2026-09-01 主动停止、checkpoint 完整可恢复），入口 `experiments/traceaad_v10/launch.py`。
-- `traceaad_v10_1`：V10.1 质量概率选父 + Refine/Pivot/Fuse 冻结批次（机制见 [V10.1 完整机制设计](../docs/methods/TraceAAD-V10.1完整机制设计.md)），正式批次 `20260902_*`（5 任务 × 3 重复、1000 预算），入口 `experiments/traceaad_v10_1/launch.py`；过程工件为各 run 的 `events.jsonl` / `batches.jsonl` / `slots.jsonl` / `tree_state.json`。
+- `traceaad_v10_1`：V10.1 质量概率选父 + Refine/Pivot/Fuse 三算子扩展（机制见 [V10.1 完整机制设计](../docs/methods/TraceAAD-V10.1完整机制设计.md)），正式批次 `20260902_*`（5 任务 × 3 重复、1000 预算），入口 `experiments/traceaad_v10_1/launch.py`；过程工件为各 run 的 `events.jsonl` / `tree_state.json`。
 - 历史版本 `traceaad_v9_7` / `traceaad_v9_14` / `traceaad_v9_15`：主表历史对照，数字见[历史版本](../docs/experiments/其他实验/历史版本.md)；V9.7 的过程分析读各 run 的 `artifacts/candidates.jsonl`（`traceaad_v9_7/analyze.py`）。

@@ -1,4 +1,4 @@
-"""Search tree for TraceAAD V10.1 (design doc section 2)."""
+"""Search tree for TraceAAD V10.2 (design doc section 2)."""
 
 from __future__ import annotations
 
