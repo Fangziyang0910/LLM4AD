@@ -571,8 +571,8 @@ def analyze_run(run_dir: Path, *, heldout_root: Path | None = None) -> dict[str,
 def discover_runs(experiments_root: Path) -> list[Path]:
     """Discover only A-stage V9.18 run directories, excluding bootstrap runs."""
 
-    roots = sorted(experiments_root.glob("*/traceaad_v9_18_q_atomic"))
-    roots += sorted(experiments_root.glob("*/traceaad_v9_18_q_opportunity"))
+    roots = sorted(experiments_root.glob("traceaad_v9_18_q_atomic/results/*"))
+    roots += sorted(experiments_root.glob("traceaad_v9_18_q_opportunity/results/*"))
     runs: list[Path] = []
     for root in roots:
         for path in sorted(root.glob("v9_18_A*_rep*")):

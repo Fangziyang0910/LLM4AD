@@ -11,7 +11,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
-from experiments.runners._common import EXPERIMENTS_ROOT, TASKS
+from experiments.infra.base import EXPERIMENTS_ROOT, TASKS
 
 BUDGETS = (100, 250, 500, 750, 1000)
 
@@ -139,14 +139,16 @@ def analyze_pairs(adaptive_batch: str, fixed_batch: str) -> dict[str, Any]:
         for task in TASKS:
             adaptive = (
                 EXPERIMENTS_ROOT
-                / task
                 / "traceaad_v9_17"
+                / "results"
+                / task
                 / f"v9_17_{adaptive_batch}_{task}_rep{repeat}"
             )
             fixed = (
                 EXPERIMENTS_ROOT
-                / task
                 / "traceaad_v9_17_fixed_cycle"
+                / "results"
+                / task
                 / f"v9_17_fixed_cycle_{fixed_batch}_{task}_rep{repeat}"
             )
             adaptive_metrics = analyze_run(adaptive) if adaptive.is_dir() else None

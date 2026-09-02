@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from experiments.analysis.analyze_v97_allocation import (
+from experiments.traceaad_v9_7.analyze import (
     aggregate_runs,
     analyze_anchor_event,
     analyze_route_event,
