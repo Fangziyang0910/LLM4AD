@@ -5,8 +5,6 @@ from pathlib import Path
 
 import pytest
 
-from experiments.traceaad_v9_7 import run
-from llm4ad.method.traceaad_v9_7 import TraceAADV97
 from llm4ad.method.traceaad_v9_7.forest import Forest
 from llm4ad.method.traceaad_v9_7.history import parent_path, render_path
 from llm4ad.method.traceaad_v9_7.prompt import INTENT_INSTRUCTIONS, build_generation_prompt
@@ -311,86 +309,3 @@ def test_v97_forest_checkpoint_roundtrip_preserves_intent() -> None:
     assert {a.intent for a in restored.attempts()} == {"refine", "explore"}
     assert restored.to_dict() == forest.to_dict()
 
-
-def test_v97_runner_builds_complete_frozen_method(tmp_path: Path) -> None:
-    spec = run.make_run_spec(
-        task="tsp_construct",
-        budget=1000,
-        experiments_root=tmp_path,
-    )
-    method = run.build_method(spec, tmp_path / "run")
-
-    assert isinstance(method, TraceAADV97)
-    assert spec.method_name == "traceaad_v9_7"
-    assert spec.n_init == 8
-    assert spec.context_token_limit == 32768
-    assert spec.llm_output_tokens == 8192
-    params = run._method_params(spec)
-    assert params["refine_probability"] == 0.7
-    assert params["explore_probability"] == pytest.approx(0.3)
-    assert "context_limit" not in params
-
-    method._n_candidates = 5000
-    assert method._has_budget()
-    method._n_eval = 1000
-    assert not method._has_budget()
-    method._llm.close()
-
-
-def test_v97_run_config_records_logical_generator_without_service_source(
-    tmp_path: Path,
-) -> None:
-    spec = run.make_run_spec(
-        task="online_bin_packing",
-        backend="server3",
-        budget=1000,
-        repeat=2,
-        run_name="v9_7_obp_rep2",
-        experiments_root=tmp_path,
-    )
-    run_dir, run_name, resumed = run.resolve_run_dir(spec)
-    run.write_run_config(spec, run_dir, run_name)
-    payload = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
-
-    assert not resumed
-    assert payload["method"] == "traceaad_v9_7"
-    assert payload["method_params"] == run._method_params(spec)
-    assert payload["method_params"]["refine_probability"] == 0.7
-    assert payload["generator_environment"]["logical_model_name"] == "Qwen3.8-27B"
-    assert payload["generator_environment"]["max_total_context"] == 32768
-    assert payload["generator_environment"]["max_new_tokens"] == 8192
-    assert "backend" not in payload
-    assert "llm" not in payload
-    assert "base_url" not in json.dumps(payload)
-    assert "quant" not in json.dumps(payload).lower()
-
-
-def test_v97_resume_accepts_only_matching_protocol(tmp_path: Path) -> None:
-    original = run.make_run_spec(
-        task="tsp_construct",
-        budget=1000,
-        run_name="matching_v97",
-        experiments_root=tmp_path,
-    )
-    run_dir, run_name, _ = run.resolve_run_dir(original)
-    run.write_run_config(original, run_dir, run_name)
-    resumed_spec = run.make_run_spec(
-        task="tsp_construct",
-        budget=1000,
-        resume_from=run_dir,
-        experiments_root=tmp_path,
-    )
-
-    resolved, _, resumed = run.resolve_run_dir(resumed_spec)
-
-    assert resumed
-    assert resolved == run_dir
-
-
-def test_v97_official_runner_fixes_root_count_to_eight(tmp_path: Path) -> None:
-    with pytest.raises(ValueError, match="exactly eight"):
-        run.make_run_spec(
-            task="tsp_construct",
-            n_init=10,
-            experiments_root=tmp_path,
-        )

@@ -75,3 +75,16 @@ def test_backend_usage_deduplicates_forked_evaluator_cmdlines(monkeypatch) -> No
     )
 
     assert _common.count_backend_usage()["server3"] == 2
+
+
+def test_aco_tasks_default_to_four_local_eval_workers() -> None:
+    from experiments.infra.base import DEFAULT_ACO_EVAL_WORKERS, build_task
+
+    assert DEFAULT_ACO_EVAL_WORKERS == 4
+    cvrp, cvrp_kwargs = build_task("cvrp_aco", None)
+    op, op_kwargs = build_task("op_aco", None)
+    assert cvrp.n_workers == 4
+    assert op.n_workers == 4
+    assert cvrp_kwargs["n_workers"] == 4
+    assert op_kwargs["n_workers"] == 4
+
