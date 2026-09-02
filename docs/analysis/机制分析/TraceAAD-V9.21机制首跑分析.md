@@ -12,7 +12,7 @@ V9.21 同时暴露出三个需要优先修正的本版本问题：质量归一�
 
 分析对象是 [TraceAAD V9.21 完整机制设计](../../methods/TraceAAD-V9.21完整机制设计.md) 及其首批 `v9_21_core_20260830` 的搜索工件。首跑使用 Qwen3.6-27B、每路 1,000 个 primary evaluator slots、8 个 root、每个普通 batch 2 个 Idea（`continue` 与 `branch`），每个 Idea 独立生成 2 份实现。在线控制器关闭 BehaveSim、Idea embedding、per-instance objective 和预定义语义算子，以便先观察假设、实现和评价之间的基本链条。
 
-所有数字均为本地工件在上述时间点的快照。partial checkpoint、正在运行的 tmux 会话和 repair 调用只用于过程记录，不构成正式终局结果。primary budget 只计真实候选槽位，repair evaluator calls 单独记录。
+所有数字均为本地工件在上述时间点的快照。中间过程记录不构成正式终局结果；primary budget 只计真实候选槽位，repair evaluator calls 单独记录。
 
 已完成运行的当前 best 如下：
 

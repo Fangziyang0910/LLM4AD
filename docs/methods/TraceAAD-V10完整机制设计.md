@@ -1,6 +1,6 @@
 # TraceAAD V10 完整机制设计
 
-V10 实现 Trajectory-aware Joint Design Opportunity Allocation。科学主张见[0831 研究认识](../knowledge/0831%20研究认识.md)。本文给出可复现的机制定义。树结构、形成路径、有界执行修复与评价口径沿用既有 TraceAAD 平台。
+V10 实现 Trajectory-aware Joint Design Opportunity Allocation。当前科学认识见[研究认识](../knowledge/研究认识.md)。本文给出可复现的机制定义。树结构、形成路径、有界执行修复与评价口径沿用既有 TraceAAD 平台。
 
 V10 是逐 evaluator-slot 重规划的 controller。不变量为
 
@@ -105,7 +105,7 @@ Develop 与 SemanticRepair 保持对当前核心假设的接受；Pivot、Transf
 | Transfer       | 指定参照$s_j$，把其中已由评价支持的机制迁入 $s_i$                        |
 | Restart        | 不绑定父代，重新提出假设                                                 |
 
-Develop 与 Pivot 的差别不是代码修改幅度，而是是否继续接受当前核心设计假设。Pivot 是从当前 scaffold 换方向；Restart 是取消当前 scaffold 作为设计起点。语法、运行时、接口与超时实现问题在进入正式评价前至多修复两次，计入 repair 调用，不计入五类设计动作。再次选中档案中的祖先，即回到该状态继续。
+Develop 与 Pivot 的语义边界在于是否延续当前核心设计假设：Develop 保留既有假设并深化实现，Pivot 从当前脚手架出发探索新机制，Restart 则独立生成全新假设。语法、运行时、接口与超时实现问题在进入正式评价前至多修复两次，计入 repair 调用，不计入五类设计动作。再次选中档案中的祖先，即回到该状态继续。
 
 ## 4. 候选构造与机会估价
 

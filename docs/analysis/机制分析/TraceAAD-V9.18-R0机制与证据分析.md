@@ -2,10 +2,7 @@
 
 ## 核心判断
 
-V9.18-R0 把 V9.16 的 landing 思想收缩为一个原子决策问题：轨迹产生的新
-Explore 入口可以获得短暂的再选择机会，但每个 primary slot 仍只选择一个
-锚点、生成一个候选并进行一次真实评价。机会项影响的是下一次锚点路由，不是
-连续三次预算，也不是长期 continuation value。
+V9.18-R0 将 landing 机制收缩为原子决策：轨迹产生的新 Explore 入口获得短暂的再选择机会，每个 primary slot 独立选择一个锚点、生成一个候选并进行一次真实评价。机会项作用于单步锚点路由。
 
 生成与分配保持两个接口：Refine 使用父代的形成路径，Explore 使用固定的
 探索提示；`q-atomic` 与 `q+O-atomic` 只改变锚点评分。Global-Facts-Lite
@@ -47,23 +44,9 @@ $$
 覆盖混写。ESS 是概率形状的目标，不是覆盖保证；质量跨度很大时 beta 可能
 数值上极端，报告实际熵和 top-k 更可靠。
 
-## 自动执行闭环
+## 判定标准
 
-`experiments/runners/traceaad/launch_v918.py` 是 A 阶段唯一调度入口。它按
-以下规则运行：
-
-- 已完成运行跳过，活动 tmux 会话保持不动；带 V9.18 checkpoint 的目录只做
-  `--resume-from`，没有 checkpoint 的已有目录直接报错，避免覆盖工件。
-- 通过 `_common.free_slots()` 读取 server3、server3b、server1 和 local 的
-  实际空位，动态补位，不改变任务、重复和 bootstrap 配对关系。
-- `--watch` 直到 30 路都达到 `status=finished` 与 `budget_slots=1000`；
-  搜索未完成时不启动 held-out。
-- 搜索完成后按任务×臂自动运行十组 held-out；结果目录保留每次运行的程序和
-  配置，重复执行会检查 `run_records`，不会把 partial 结果当作完成。
-- 最后调用 `analyze_v918_process.py`，输出 JSON 汇总和 Markdown 过程审计；
-  incomplete 运行保留过程记录，但不进入完整运行聚合。
-
-该闭环解决的是执行和证据边界问题，不会把实验结果预先写成机制成功。最终
-判定仍遵循 V9.18-R0 协议：过程改变但质量不变记为 `ran_no_improvement`，
-有效率、覆盖或质量出现系统性损失记为 `ran_harmful`，只有任务族的三重复
-held-out 达到门槛才写 `conditional_work`。
+根据三状态判定协议对机制进行评估：
+- **运行但无改善**（`ran_no_improvement`）：过程特征改变但最终搜索与泛化质量无统计改善；
+- **运行后有害**（`ran_harmful`）：有效率、入口覆盖或解质量出现系统性退化；
+- **条件有效**（`conditional_work`）：在统一协议下，任务族的三重复 held-out 展现一致收益。

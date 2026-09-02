@@ -57,7 +57,7 @@ $$
 \operatorname{donor\_id}(c)=\operatorname{id}(r).
 $$
 
-$r$ 只是本次生成的参考元数据，不进入 genealogy。
+$r$ 记录为生成参考元数据，谱系仅记录 target 单父指针。
 
 节点身份由形成路径和可执行程序共同确定。Canonical code 定义为解析器提取出的完整可执行函数代码，统一换行符并去除首尾空白；V10.1 不做 AST 改写或语义等价归并。随后按其 SHA-256 hash 判断代码相同：
 
@@ -85,16 +85,15 @@ Attempt ledger 用于预算核算和实验分析，不形成第二种搜索节�
 
 ### 2.2 轨迹
 
-轨迹不是独立存储的数据结构，而是从当前节点沿父指针向上动态回溯得到的历史上下文。它是历史信息中用于刻画节点来时路的关键组成部分。
+轨迹从当前节点沿父指针向上动态回溯生成，用于刻画节点的演化路径。
 
-对当前节点，最多向上追溯 8 代祖先。轨迹：
+对当前节点，最多向上追溯 8 代祖先。轨迹规范：
 
-- 只包含父代/祖先信息
-- 不包含当前节点的子代、兄弟节点或其他分支
-- 每一代主要展示该节点形成时的 Idea 和 Fitness 结果
-- 提升/下降根据相邻代 fitness 动态计算，不额外存储 `outcome` 或 `change` 字段
-- 祖先 code 默认不进入轨迹上下文
-- Fuse 节点的 donor 路径不进入该节点的轨迹
+- 仅包含父代与祖先节点
+- 每一代展示该节点形成时的 Idea 和 Fitness 结果
+- 提升/下降根据相邻代 fitness 动态计算
+- 祖先节点仅提供 Idea 与 Fitness，代码上下文仅保留当前算法
+- 谱系与轨迹仅沿 target 父代回溯
 
 $$
 \tau(n)=\operatorname{TraceBack}(n.\mathrm{parent},H)
@@ -122,7 +121,7 @@ $$
 \operatorname{Compare}(\mathrm{fitness}_i,\mathrm{fitness}_{i-1})
 $$
 
-$\mathrm{trend}_i$ 不是节点字段。$\operatorname{Compare}$ 沿用 evaluator 本身的相等/容差判定，内部按优化方向统一成 normalized improvement。结果为 Improved、Degraded 或 Unchanged。已经到 root、没有可比较的父节点时，只写 Fitness 数值，不加 trend。
+$\mathrm{trend}_i$ 由 $\operatorname{Compare}$ 沿用 evaluator 本身的相等/容差判定动态计算，内部按优化方向统一为 normalized improvement，取值为 Improved、Degraded 或 Unchanged。根节点仅展示 Fitness 数值。
 
 推荐表示：
 
@@ -418,7 +417,7 @@ $$
 \end{cases}
 $$
 
-包含三个算子的扩展批次是标准父节点分配单元。每次父节点选择通常预先购买三个相互独立的 sibling 实验，因此 V10.1 的重新决策粒度是一个完整扩展批次，而不是一次评价。它用批次内的配对算子覆盖交换逐评价重新选择父节点的 option value。
+包含三个算子的扩展批次是标准父节点分配单元。每次父节点选择预先分配三个相互独立的 sibling 实验，重新决策粒度为完整扩展批次，以批次内的配对算子覆盖交换逐评价重新选择父节点的 option value。
 
 对每个 $o\in\mathcal O_t(n_t)$，基于同一冻结快照独立生成一个候选并进行一次正式评价：
 
@@ -707,7 +706,7 @@ $$
 
 ### 7.4 预注册过程风险
 
-以下风险只通过日志诊断，不进入在线 score：
+以下风险通过日志独立诊断，在线父节点分数严格基于当前真实质量：
 
 1. **新方向缺少成熟机会。** 记录 Pivot child 的 birth drop、再次成为父节点的比例、首次重访等待时间，以及重访后 Refine 是否形成突破。非零抽样概率不等于有限预算中的有效暴露。
 2. **固定算子覆盖与任务不匹配。** 分任务报告三算子的有效率、即时改善率和后续贡献；$1{:}1{:}1$ 只表示中性覆盖。

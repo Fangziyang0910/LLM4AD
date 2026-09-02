@@ -1,13 +1,6 @@
 # TraceAAD V9.18-R0：原子预算、边界机会评分与全局事实算子
 
-V9.18-R0 是 V9.16 的可证伪微调版本。它只回答两个窄问题：轨迹形成的
-新入口是否值得获得一次短暂的再次选择机会，以及极短的全局事实是否能
-改善 Explore 的结构性提议。每个 primary slot 只做一次锚点选择、一次
-operator 选择、一次生成和一次真实评价。
-
-R0 不把历史 realized gain 写成未来价值，不给退步节点额外奖励，不提供
-完整参考程序，不引入独立 reflection call，也不把 Diagnosis 当作搜索
-动作。所有更强的想法保留为后续单因素实验，不进入第一批正式长跑。
+V9.18-R0 是 V9.16 的微调版本，验证两个问题：轨迹形成的新入口是否值得获得一次短暂的再次选择机会，以及极短的全局事实是否能改善 Explore 的结构性提议。每个 primary slot 执行一次锚点选择、一次算子选择、一次生成和一次真实评价。
 
 ## 1. 版本边界
 
@@ -93,7 +86,7 @@ $$
 ESS_t=max(0.1|A_t|,2).
 $$
 
-ESS 只控制概率形状，不是算法簇覆盖保证。每个 slot 记录选择前的完整
+ESS 控制概率采样形状。每个 slot 记录选择前的完整
 分数快照、`q`、`O`、`n_after`、`sigma_q`、beta、ESS、实际选择锚点和
 请求 seed。
 
@@ -103,30 +96,25 @@ ESS 只控制概率形状，不是算法簇覆盖保证。每个 slot 记录选�
 
 算子单因素保持任务、当前代码、父代来时路、输出契约、temperature、
 max output tokens 和 repair 完全固定，只增加一个有界事实板。事实板在
-每个 slot 的选择前由当前已结算工件确定，不包含当前 pending 候选。
+Explore 提示的 System/Instruction 之后、任务背景之前插入，标明为只读
+参考。
 
-第一版最多三条事实：
+事实板只包含：
 
-1. 当前全局 best 的真实 fitness；
-2. 距离最近一次全局 best 刷新的 primary slot 数；
-3. 最近固定窗口的 valid、invalid、duplicate 比例。
+1. 根节点的当前最高质量、当前最低质量和有效根数量；
+2. 历史所有正式评价中有效提议的比例与重复提议的比例；
+3. 历史所有正式评价中各算子的响应总数；
+4. 最近 10 次 Explore 提议中被评估为有效的比例。
 
-事实板不含完整参考程序、代表锚点 Idea、人工机制簇标签、selection
+事实板不包含具体代码、函数名、AST 统计、祖先 Idea 文本、区域
 concentration、coverage、未验证规则或 held-out 结果。失败比例按真实失败
 类型保存，生成视图只使用固定摘要。
 
 ### 5.2 输出契约
 
 R0 仍使用 V9.16 的 `Idea + Code` 契约。解析器额外容忍并记录模型偶尔
-输出的 `Diagnosis`，但 prompt 不要求它，缺少 Diagnosis 不使代码失效，
-也不能据此宣称诊断算子已经激活。Diagnosis、事实板快照 hash、prompt
-hash、上下文字符数和省略标记进入审计日志。
-
-### 5.3 暂缓参考程序
-
-完整参考程序单独作为后续因素，不进入 R0。V9.13 已显示参考代码可能带来
-迁移和复制污染；在没有固定选择规则、AST/行为相似度和有效率停测线之前，
-不能把它当作“全局反思”证据。
+输出的 `Diagnosis`，但 prompt 不要求它，缺少 Diagnosis 不使代码失效。
+Diagnosis、事实板快照 hash、prompt hash、上下文字符数和省略标记进入审计日志。
 
 ## 6. 原子运行协议
 
@@ -143,9 +131,6 @@ While primary slots remain:
     write the pre-decision and post-result audit records
 Return the best valid program by the true objective.
 ````
-
-没有 landing、maturation、sweep、block gain、active/reserve hypothesis、
-独立锚点后验或动态 operator 比例。
 
 ## 7. 实验识别顺序
 

@@ -7,7 +7,7 @@ TraceAAD V9.22 把一次改写机会仍然定义为一个待检验的算法思�
 root-MAD，工作实现和稳定脚手架分别结算响应，`continue` 与 `branch` 的预算由
 动作 UCB 决定。
 
-搜索对象不是一份脱离形成过程的代码。每个假设同时保留一份可以返回的
+每个假设同时保留一份可以返回的
 `stable scaffold`、一份正在兑现该假设的 `working implementation`，以及所有
 实现尝试的 evaluator 证据。
 
@@ -22,9 +22,6 @@ $$
 \rightarrow
 \text{next opportunity}
 $$
-
-BehaveSim、Idea embedding、per-instance objective 和预定义语义算子不进入在线
-控制器。它们需要各自的匹配实验。
 
 ## 2. 任务对象
 
@@ -298,13 +295,3 @@ V9.22 的设计预测包括：
 - `1 realization` 与 `2 realizations`：保持 Idea、parent 和总 primary budget
   口径一致；
 - `private-only` 与一张真实 public card：保持 branch prompt 和 donor 规则一致。
-
-完整搜索必须完成三次重复和 held-out 评估后，才报告 best-at-budget、跨任务均值
-或泛化结论。联合版本结果只能评价整套 V9.22 搜索行为。
-
-## 12. 证据边界
-
-V9.22 规范确认的是状态、上下文、分配公式、错误边界和 checkpoint 协议。单元或
-toy 测试可以确认实现遵守这些规则；它们不证明真实任务上的搜索质量。Idea 文本
-不是算法簇真值，形成 path 不是语义标签，单步 response 也不是长期思想潜力的
-估计。正式性能主张必须来自完整 primary budget、全部重复和 held-out 工件。

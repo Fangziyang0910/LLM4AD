@@ -151,12 +151,9 @@ P3 中 internal gain 与 parent recovery 的分离说明，“新方向内部还
 
 ### 9. 事实工件
 
-- P1/P2 协议：`experiments/generation_probe/20260815_221500_v98_p1_p2/probe_config.json`；
-- P1/P2 冻结分析：`experiments/generation_probe/20260815_221500_v98_p1_p2/analysis/summary.json`；
-- P3 协议：`experiments/generation_probe/20260816_001100_v98_p3/probe_config.json`；
-- P3 冻结分析：`experiments/generation_probe/20260816_001100_v98_p3/analysis/summary.json`；
-- 探针入口：`experiments.runners.traceaad.v98_mechanism_probe`（P1/P2）与 `experiments.runners.traceaad.v98_continuation_probe`（P3），分析入口 `experiments/analysis/analyze_v98_mechanism_probe.py`；
-- 正式 V9.8 批次 `20260815_225000`（四任务 × 三重复）由 `experiments.runners.traceaad.launch_v98` 调度，方法入口 `experiments.runners.traceaad.run --version v9_8`。
+- P1/P2 分析：`experiments/generation_probe/20260815_221500_v98_p1_p2/analysis/summary.json`；
+- P3 分析：`experiments/generation_probe/20260816_001100_v98_p3/analysis/summary.json`；
+- 正式 V9.8 批次：`20260815_225000`（四任务 × 三重复）。
 
 ## TraceAAD V9.8 完整版本复盘与机制有效性分析
 

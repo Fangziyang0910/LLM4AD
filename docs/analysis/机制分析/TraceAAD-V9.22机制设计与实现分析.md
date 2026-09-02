@@ -84,7 +84,6 @@ remaining 计数。恢复时继续结算同一个 response，不因崩溃重复�
 - `ProgramNode`、`Hypothesis`、`Realization`、`Attempt`、`Pending` 显式保存双基准
   字段、动作统计和冻结质量参考；
 - runner 支持 `v9_22`，run config 写入机制参数、模型环境和预算；
-- launcher 只提供启动/恢复计划，不会在本次实现中自动启动正式实验；
 - artifacts 写入 evaluation CSV、decision/event/hypothesis JSONL、checkpoint、
   view 和 summary。
 

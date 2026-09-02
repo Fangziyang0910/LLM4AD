@@ -355,7 +355,7 @@ V9.17 的关键预期为：
 2. active hypothesis 的正 block gain，应提高其下一 block 再次推进的概率；
 3. 不同任务和运行应形成不同的 Development 长度、Discovery 间隔和 Explore/Refine 实际比例；
 4. 深发展任务应出现少量长成功序列，入口稀缺任务应出现较短 Development 与更多 Discovery；
-5. 新假设成熟、质量竞争和成功续投的联合机制，应改善固定预算下的最差任务表现。[待验证]
+5. 新假设成熟、质量竞争和成功续投的联合机制，应改善固定预算下的最差任务表现。
 
 若第 1 条不成立，operator-defined hypothesis 不是有效投资单位；若第 2 条不成立，block response 不能承担连续发展调度；若前两条成立但最终结果没有改善，固定 $K$、$H$ 或 Discovery 来源仍与任务搜索几何不匹配。
 
