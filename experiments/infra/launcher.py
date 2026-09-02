@@ -39,7 +39,8 @@ def build_rotated_plan(
     repeats: int = 3,
     batch: str | None = None,
     session_prefix: str = "batch",
-    extra_args: tuple[str, ...] = ()
+    extra_args: tuple[str, ...] = (),
+    backend_map: dict[tuple[str, int], BackendName] | None = None,
 ) -> list[LaunchItem]:
     """Build a standard multi-task multi-repeat plan with rotated backend assignments."""
     batch_name = batch or datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -49,7 +50,10 @@ def build_rotated_plan(
         for repeat in range(1, repeats + 1):
             short = TASK_SHORT[task]
             run_name = f"{batch_name}_{short}_{method}_rep{repeat}"
-            backend = backend_rotation[index % len(backend_rotation)]
+            if backend_map and (task, repeat) in backend_map:
+                backend = backend_map[(task, repeat)]
+            else:
+                backend = backend_rotation[index % len(backend_rotation)]
             plan.append(
                 LaunchItem(
                     task=task,
@@ -225,6 +229,7 @@ def launch_batch(
     max_attempts: int = DEFAULT_MAX_ATTEMPTS,
     default_watch_interval: int = 120,
     parser: argparse.ArgumentParser | None = None,
+    backend_map: dict[tuple[str, int], BackendName] | None = None,
 ) -> None:
     """Standard entry point for launching and watching a batch experiment."""
     if parser is None:
@@ -242,6 +247,7 @@ def launch_batch(
         repeats=args.repeats,
         batch=args.batch,
         session_prefix=args.session_prefix,
+        backend_map=backend_map,
     )
     print(
         f"plan: {len(plan)} runs, rotation={backend_rotation} -> "
@@ -270,3 +276,4 @@ def launch_batch(
             max_attempts=max_attempts,
             method_label=method,
         )
+
