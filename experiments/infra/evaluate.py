@@ -3,7 +3,7 @@
 Unified entry for the five tasks. Task and method are derived from each
 run directory's `run_config.json`.
 
-    uv run python experiments/evaluate_best.py <run_dir> [...] --output-dir DIR
+    uv run python -m experiments.infra.evaluate <run_dir> [...] --output-dir DIR
 
 Per-task options:
     tsp_construct       --units 50,100,200  --timeout 1000  --workers 16
@@ -33,11 +33,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from experiments.eval_artifacts import load_run_summary, pick_best_sample  # noqa: E402
 from llm4ad.base.evaluate import SecureEvaluator  # noqa: E402
 from llm4ad.task.optimization.cvrp_aco import (  # noqa: E402
     CVRPACOEvaluation,
