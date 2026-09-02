@@ -106,3 +106,4 @@ def test_launcher_status_and_session_naming(tmp_path: Path):
 
     assert live_session_name("v101_tsp_r1", 1) == "v101_tsp_r1"
     assert live_session_name("v101_tsp_r1", 2) == "v101_tsp_r1_r2"
+

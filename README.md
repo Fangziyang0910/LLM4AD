@@ -27,22 +27,17 @@ LLM4AD/
 每个实验一个独立入口包，运行目录与工件布局见各实验 runner：
 
 ```bash
-uv run python -m experiments.runners.traceaad_v9_16.run \
 uv run python -m experiments.traceaad_v10_1.run \
   --task tsp_construct --backend local
 ```
 
 批次发射器为各包内的 `launch.py`（自动建立独立 tmux 会话与 run 名称，如
-`experiments.runners.traceaad_v9_16.launch`）。每次运行在对应
 `experiments.traceaad_v10_1.launch`）。每次运行在对应
 `experiments/<task>/<method>/<run_name>/` 下保存 `run_config.json`、
 `tmux_run.log` 和 `logs/`，不需要手写配置或批次脚本。这些原始工件只保存在
-实验机器本地，不进入 Git。其它方法入口见 `experiments/runners/`（EoH / ReEvo /
-PathWise / ShinkaEvolve / CALM），统一预算为 1000 次搜索评估。
 实验机器本地，不进入 Git。对照基线入口见 `experiments/`（EoH / ReEvo /
 PathWise / ShinkaEvo / CALM），统一预算为 1000 次搜索评估。
 
-完整参数见 `python -m experiments.runners.traceaad_v9_16.run --help`。
 完整参数见 `python -m experiments.traceaad_v10_1.run --help`。
 
 ## 当前实验矩阵

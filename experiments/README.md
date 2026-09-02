@@ -13,8 +13,6 @@
 
 ## 机制实验批次
 
-- `traceaad_v9_18_q_atomic` / `traceaad_v9_18_q_opportunity`：V9.18-R0 机会评分 A 阶段两臂，共享 `q_atomic` 下 `v9_18_bootstrap_*` 八根根池；过程审计 `traceaad_v9_18_q_atomic/analyze.py`。
-- `traceaad_v9_17_fixed_cycle`：V9.17 自适应调度配对消融，过程分析 `traceaad_v9_17/analyze.py` 以 `traceaad_v9_17` 的 20260823_adaptive 批为对照臂。
 - `traceaad_v9_18`：V9.18-R0 机会评分实验工件；过程审计 `traceaad_v9_18/analyze.py`。
 - `traceaad_v9_17`：V9.17 竞争质量门控实验工件；过程分析 `traceaad_v9_17/analyze.py`。
 - `traceaad_v9_19`（原批 + `fixed_20260829` 修订批）、`traceaad_v9_20`：行为度量时代的机制版本。
