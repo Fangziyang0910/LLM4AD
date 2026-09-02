@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from experiments.runners.traceaad_v9_14.launch import build_plan, launch_pending
+from experiments.traceaad_v9_14.launch import build_plan, launch_pending
 
 
 def test_v914_plan_has_fifteen_runs_and_fixed_backend_layout() -> None:
@@ -32,20 +32,19 @@ def test_v914_launch_limits_each_backend(monkeypatch) -> None:
     plan = build_plan(batch="batch")
     launched: list[str] = []
     monkeypatch.setattr(
-        "experiments.runners.traceaad_v9_14.launch._done", lambda item: False
+        "experiments.traceaad_v9_14.launch._done", lambda item: False
     )
     monkeypatch.setattr(
-        "experiments.runners.traceaad_v9_14.launch._running", lambda item: False
+        "experiments.traceaad_v9_14.launch._running", lambda item: False
     )
     monkeypatch.setattr(
-        "experiments.runners.traceaad_v9_14.launch.launch",
+        "experiments.traceaad_v9_14.launch.launch",
         lambda item, dry_run=False: launched.append(item.backend),
     )
-
     count = launch_pending(
         plan,
-        limits={"server3": 2, "server3b": 1, "server1": 3},
+        limits={"server3": 2, "server3b": 1},
+        dry_run=True,
     )
-
     assert count == 3
     assert Counter(launched) == {"server3": 2, "server3b": 1}

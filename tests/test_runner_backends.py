@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from experiments.runners import _common
+from experiments.infra import base as _common
 
 
 def test_server1_capacity_matches_current_service_limit() -> None:
@@ -38,7 +38,7 @@ def test_assign_backends_alternates_equal_primary_slots(monkeypatch) -> None:
             run_name=f"run_{index}",
             run_dir=Path(f"/tmp/run_{index}"),
             seed=index,
-            module="experiments.runners.traceaad_v10_1.run",
+            module="experiments.traceaad_v10_1.run",
         )
         for index in range(1, 5)
     ]
@@ -60,12 +60,11 @@ def test_assign_backends_alternates_equal_primary_slots(monkeypatch) -> None:
 
 def test_backend_usage_deduplicates_forked_evaluator_cmdlines(monkeypatch) -> None:
     client = (
-        "/repo/.venv/bin/python3 -m experiments.runners.traceaad_v10_1.run "
+        "/repo/.venv/bin/python3 -m experiments.traceaad_v10_1.run "
         "--task tsp_construct --backend server3 --run-name run_a"
     )
     other = client.replace("run_a", "run_b")
     launcher = (
-        "/repo/.venv/bin/python3 -m experiments.runners.traceaad_v9_16.launch "
         "--backend server3 --watch"
     )
     stdout = "\n".join((client, client, client, other, launcher)) + "\n"

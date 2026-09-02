@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from experiments.runners._common import ALL_TASKS
+from experiments.infra.base import ALL_TASKS
 from llm4ad.method.traceaad_v9_7 import TraceAADV97
 from llm4ad.method.traceaad_v9_14 import TraceAADV914
 from llm4ad.method.traceaad_v9_16 import TraceAADV916
 
 RUN_MODULES = {
-    version: importlib.import_module(f"experiments.runners.traceaad_{version}.run")
+    version: importlib.import_module(f"experiments.traceaad_{version}.run")
     for version in (
         "v9_7",
         "v9_14",
@@ -138,7 +138,7 @@ def test_resume_rejects_changed_experiment_configuration(tmp_path: Path) -> None
 
 
 def test_aco_tasks_default_to_four_local_eval_workers() -> None:
-    from experiments.runners._common import DEFAULT_ACO_EVAL_WORKERS, build_task
+    from experiments.infra.base import DEFAULT_ACO_EVAL_WORKERS, build_task
 
     assert DEFAULT_ACO_EVAL_WORKERS == 4
     cvrp, cvrp_kwargs = build_task("cvrp_aco", None)

@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from experiments.runners import _common
-from experiments.runners.reevo import launch, run
+from experiments.infra import base as _common
+from experiments.reevo import launch, run
 from llm4ad.method.reevo import ReEvo
 
 

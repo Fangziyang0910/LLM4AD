@@ -2,8 +2,8 @@ import json
 
 import numpy as np
 
-from experiments.eval_artifacts import pick_best_sample
-from experiments.evaluate_best import _obp_task_kwargs_for_scale
+from experiments.infra.artifacts import pick_best_sample
+from experiments.infra.evaluate import _obp_task_kwargs_for_scale
 from llm4ad.task.optimization.generated_data_config import (
     get_generated_task_kwargs,
 )

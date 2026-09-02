@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from experiments.runners.traceaad_v9_7 import run
+from experiments.traceaad_v9_7 import run
 from llm4ad.method.traceaad_v9_7 import TraceAADV97
 from llm4ad.method.traceaad_v9_7.forest import Forest
 from llm4ad.method.traceaad_v9_7.history import parent_path, render_path

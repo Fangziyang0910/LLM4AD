@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from experiments.runners import _common
-from experiments.runners.eoh import launch, run
+from experiments.infra import base as _common
+from experiments.eoh import launch, run
 from llm4ad.method.eoh import EoH
 
 

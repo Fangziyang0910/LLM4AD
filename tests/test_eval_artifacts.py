@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from experiments.eval_artifacts import pick_best_sample
+from experiments.infra.artifacts import pick_best_sample
 
 
 def test_pick_best_sample_requires_finished_by_default(tmp_path):
