@@ -15,6 +15,8 @@
 
 - `traceaad_v9_18_q_atomic` / `traceaad_v9_18_q_opportunity`：V9.18-R0 机会评分 A 阶段两臂，共享 `q_atomic` 下 `v9_18_bootstrap_*` 八根根池；过程审计 `traceaad_v9_18_q_atomic/analyze.py`。
 - `traceaad_v9_17_fixed_cycle`：V9.17 自适应调度配对消融，过程分析 `traceaad_v9_17/analyze.py` 以 `traceaad_v9_17` 的 20260823_adaptive 批为对照臂。
+- `traceaad_v9_18`：V9.18-R0 机会评分实验工件；过程审计 `traceaad_v9_18/analyze.py`。
+- `traceaad_v9_17`：V9.17 竞争质量门控实验工件；过程分析 `traceaad_v9_17/analyze.py`。
 - `traceaad_v9_19`（原批 + `fixed_20260829` 修订批）、`traceaad_v9_20`：行为度量时代的机制版本。
 - `traceaad_v9_21`：思想假设双重实现搜索，首批 `v9_21_core_20260830`，入口 `experiments/traceaad_v9_21/launch.py`。
 - `traceaad_v10`：design opportunity 分配，批次 `v10_20260831_q38`（2026-09-01 主动停止、checkpoint 完整可恢复），入口 `experiments/traceaad_v10/launch.py`。
