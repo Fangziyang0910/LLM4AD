@@ -1,6 +1,9 @@
-"""Prompt assembly for TraceAAD V10.2 (design doc sections 2.2 and 5)."""
+"""Prompt assembly for TraceAAD V10.2 (design doc section 4)."""
 
 from __future__ import annotations
+
+import io
+import tokenize
 
 from .schema import Node
 
@@ -10,29 +13,50 @@ OPERATOR_INSTRUCTIONS: dict[str, str] = {
         "principle of the current algorithm. Use the historical trajectory as evidence to\n"
         "understand how this direction has developed and what has already been tried,\n"
         "then make a coherent improvement that better realizes or strengthens the current\n"
-        "idea. The implementation may change substantially if needed, but do not replace\n"
-        "the core algorithmic principle with a different one."
+        "idea. Simplification and removal of auxiliary mechanisms are valid improvements\n"
+        "when they better realize the same core design principle. The implementation may\n"
+        "change substantially if needed, but do not replace the core algorithmic principle\n"
+        "with a different one."
     ),
     "Pivot": (
         "Develop a materially different algorithmic direction from the current node.\n"
         "Treat the current code as a usable starting scaffold, but do not assume that its\n"
         "core design principle should be preserved. Use the historical trajectory as\n"
-        "evidence to understand which directions have already been explored, then\n"
-        "introduce a different primary algorithmic mechanism. The change must be\n"
-        "different at the mechanism level, not merely parameter tuning, coefficient\n"
+        "evidence to understand how this lineage has developed and avoid reverting to\n"
+        "mechanisms already used along this lineage, then introduce a different primary\n"
+        "algorithmic mechanism. Reuse only implementation components that remain useful\n"
+        "for the new mechanism. Discard legacy mechanisms that are not necessary for the\n"
+        "new direction. The change must be different at the mechanism level, not merely\n"
+        "parameter tuning, coefficient\n"
         "adjustment, or superficial restructuring."
     ),
     "Fuse": (
-        "Create a coherent algorithm by combining complementary mechanisms from the\n"
-        "current algorithm and the provided reference algorithm. Treat the current\n"
-        "algorithm as the target design and the reference algorithm as an external source\n"
-        "of design knowledge. Preserve a substantive mechanism from the current\n"
-        "algorithm and incorporate a compatible mechanism from the reference algorithm.\n"
-        "Integrate them according to their algorithmic roles rather than mechanically\n"
-        "copying code, averaging formulas, concatenating logic, or replacing the current\n"
-        "algorithm with the reference algorithm."
+        "Create a coherent algorithm by selectively combining complementary mechanisms\n"
+        "from the current algorithm and the reference algorithm. Identify the substantive\n"
+        "mechanism worth retaining from the current algorithm and one compatible mechanism\n"
+        "worth transferring from the reference algorithm. Integrate them according to\n"
+        "their algorithmic roles. The retained target and transferred donor mechanisms\n"
+        "must interact substantively in the resulting decision process. Do not preserve\n"
+        "all mechanisms from either algorithm. When the reference mechanism overlaps with,\n"
+        "supersedes, or makes an existing component unnecessary, replace or remove that\n"
+        "component rather than stacking both. Preserve computationally expensive components\n"
+        "when they play a distinct and useful algorithmic role. Avoid mechanical code\n"
+        "copying, concatenating multiple heuristics, or accumulating several signals that\n"
+        "express essentially the same information."
     ),
 }
+
+IMPLEMENTATION_PRINCIPLE = (
+    "# Implementation Principle\n\n"
+    "Prioritize algorithm quality. Complex computation is acceptable when it serves a "
+    "distinct and useful algorithmic role. Do not remove effective mechanisms merely to "
+    "shorten the implementation. At the same time, avoid redundant accumulation: when "
+    "introducing a new mechanism, replace, simplify, or remove existing components that "
+    "provide overlapping functionality or are superseded by the new design.\n\n"
+    "Express the algorithm through executable code rather than explanatory comments. "
+    "Avoid verbose comments and do not preserve comments from previous implementations "
+    "unless they are essential for correctness."
+)
 
 INIT_INSTRUCTION = (
     "Design a novel algorithm for this task from scratch. Propose one clear design\n"
@@ -41,11 +65,15 @@ INIT_INSTRUCTION = (
 
 OUTPUT_CONTRACT = (
     "Respond with exactly two parts and nothing else:\n"
-    "Idea: <one sentence stating the actual algorithmic mechanism you introduce,\n"
+    "Latest Design Idea: <one sentence stating the actual algorithmic mechanism you introduce,\n"
     "modify, or combine>\n"
     "```python\n"
     "<the complete function implementation>\n"
-    "```"
+    "```\n"
+    "Keep the implementation concise. Do not include explanatory comments, reasoning notes,\n"
+    "design discussion, or commented-out alternatives. Use comments only when strictly\n"
+    "necessary to clarify non-obvious implementation constraints.\n"
+    "Do not narrate your reasoning inside the code."
 )
 
 
@@ -70,6 +98,32 @@ def _trend(fitness: float, parent_fitness: float) -> str:
     return "Unchanged"
 
 
+def strip_comments_for_prompt(code: str) -> str:
+    """Return a comment-free prompt view without changing stored code."""
+    tokens = []
+    stream = io.StringIO(code)
+    try:
+        for token in tokenize.generate_tokens(stream.readline):
+            if token.type == tokenize.COMMENT:
+                continue
+            tokens.append(token)
+        result = tokenize.untokenize(tokens)
+    except (tokenize.TokenError, IndentationError):
+        return code
+
+    lines = result.splitlines()
+    cleaned = []
+    blank = False
+    for line in lines:
+        if line.strip():
+            cleaned.append(line.rstrip())
+            blank = False
+        elif not blank:
+            cleaned.append("")
+            blank = True
+    return "\n".join(cleaned).strip()
+
+
 def render_trajectory(ancestors: list[Node], display: int) -> str:
     """Render up to ``display`` generations, oldest displayed first.
 
@@ -87,7 +141,7 @@ def render_trajectory(ancestors: list[Node], display: int) -> str:
     ):
         entry = (
             f"\nStep {step}\n"
-            f"Idea: {node.idea}\n"
+            f"Latest Design Idea: {node.idea}\n"
             f"Fitness: {node.fitness}"
         )
         parent_position = ancestor_idx + 1
@@ -100,18 +154,18 @@ def render_trajectory(ancestors: list[Node], display: int) -> str:
 def _render_current(current: Node) -> str:
     return (
         "# Current Algorithm\n"
-        f"Idea: {current.idea}\n"
+        f"Latest Design Idea: {current.idea}\n"
         f"Fitness: {current.fitness}\n\n"
-        f"```python\n{current.code}\n```"
+        f"```python\n{strip_comments_for_prompt(current.code)}\n```"
     )
 
 
 def _render_reference(donor: Node) -> str:
     return (
         "# Reference Algorithm\n"
-        f"Idea: {donor.idea}\n"
+        f"Latest Design Idea: {donor.idea}\n"
         f"Fitness: {donor.fitness}\n\n"
-        f"```python\n{donor.code}\n```"
+        f"```python\n{strip_comments_for_prompt(donor.code)}\n```"
     )
 
 
@@ -131,7 +185,7 @@ def _assemble(
     operator: str,
     donor: Node | None,
 ) -> str:
-    parts = [task_contract]
+    parts = [task_contract, IMPLEMENTATION_PRINCIPLE]
     if current is not None:
         parts.append(_render_current(current))
     trajectory = render_trajectory(ancestors, display)

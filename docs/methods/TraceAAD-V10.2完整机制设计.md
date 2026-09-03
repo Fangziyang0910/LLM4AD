@@ -31,6 +31,10 @@ $$
 
 有效评估的程序直接加入搜索树。搜索状态保存在 `tree_state.json` 中支持断点恢复，搜索结束在 `run_summary.json` 中记录最优结果。
 
+每次有效生成与评价结果都建立一个新的独立节点，即使其代码与已有节点完全相同。
+
+节点保存、评价与最终输出始终使用模型生成的原始完整代码。构建 Prompt 时另行生成仅移除 `#` 注释的代码视图，不回写节点。
+
 Fuse 的 donor 不是父代。子节点的父节点始终是 target，donor 仅作为参考节点记录在 `donor_id` 中，后续轨迹仅沿 target 父指针向上回溯。
 
 ### 2.2 轨迹回溯
@@ -51,15 +55,15 @@ Fuse 的 donor 不是父代。子节点的父节点始终是 target，donor 仅�
 # Historical Design Trajectory
 
 Step 1
-Idea: <idea>
+Latest Design Idea: <idea>
 Fitness: 0.731 (Improved)
 
 Step 2
-Idea: <idea>
+Latest Design Idea: <idea>
 Fitness: 0.746 (Improved)
 
 Step 3
-Idea: <idea>
+Latest Design Idea: <idea>
 Fitness: 0.739 (Degraded)
 ```
 
@@ -105,7 +109,7 @@ $$
 p_t(n) = \frac{p_q(n) / \sqrt{c_t(n)+1}}{\sum_{m\in\mathcal A_t} p_q(m) / \sqrt{c_t(m)+1}}
 $$
 
-按 $p_t$ 抽样得到父节点后，将该节点的选择次数加 1。ESS 只校准 fitness-only 分布 $p_q$；$p_t$ 是加入选择次数修正后的实际抽样分布。
+按 $p_t$ 抽样得到父节点后，将该节点的选择次数加 1。$c_t(n)$ 表示节点累计获得过多少次生成机会：父节点一经选中就计数，无论本次输出能否成功解析，也无论是否调用 evaluator。Evaluator 预算只统计实际送入 evaluator 的候选。ESS 只校准 fitness-only 分布 $p_q$；$p_t$ 是加入生成机会次数修正后的实际抽样分布。
 
 ### 3.3 三个扩展算子
 
@@ -155,7 +159,7 @@ $$
 o_t \sim \operatorname{Uniform}(\mathcal O(n)).
 $$
 
-存在可用 donor 时，Refine、Pivot 和 Fuse 的选择概率均为 $1/3$；不存在可用 donor 时，Refine 和 Pivot 的选择概率均为 $1/2$。被选中的算子生成一个子代并送入评估器，每轮消耗 1 次评测预算。有效程序加入搜索树，随后重新选择父节点。
+存在可用 donor 时，Refine、Pivot 和 Fuse 的选择概率均为 $1/3$；不存在可用 donor 时，Refine 和 Pivot 的选择概率均为 $1/2$。被选中的算子获得一次生成机会；输出成功解析后送入评估器并消耗 1 次评测预算，解析失败不消耗评测预算。有效程序加入搜索树，随后重新选择父节点。
 
 ## 4. 提示词与生成上下文
 
@@ -168,23 +172,35 @@ $$
 <任务描述与输入输出接口约定>
 Objective: maximize the fitness (higher is better)
 
+# Implementation Principle
+
+Prioritize algorithm quality. Complex computation is acceptable when it serves a
+distinct and useful algorithmic role. Do not remove effective mechanisms merely
+to shorten the implementation. At the same time, avoid redundant accumulation:
+when introducing a new mechanism, replace, simplify, or remove existing components
+that provide overlapping functionality or are superseded by the new design.
+
+Express the algorithm through executable code rather than explanatory comments.
+Avoid verbose comments and do not preserve comments from previous implementations
+unless they are essential for correctness.
+
 # Current Algorithm
-Idea: <当前父节点 idea>
+Latest Design Idea: <当前父节点 idea>
 Fitness: <当前父节点 fitness>
 
 ```python
-<当前父节点完整代码>
+<当前父节点移除 # 注释后的完整可执行代码视图>
 ```
 
 # Historical Design Trajectory
 <当前父节点的祖先轨迹，最多 8 代>
 
 # Reference Algorithm (仅 Fuse 提供)
-Idea: <donor idea>
+Latest Design Idea: <donor idea>
 Fitness: <donor fitness>
 
 ```python
-<donor 完整代码>
+<donor 移除 # 注释后的完整可执行代码视图>
 ```
 
 # Improvement Operator
@@ -199,9 +215,22 @@ Instruction:
 所有算子遵循统一契约：
 
 1. **严格执行指定算子**：Refine 必须保持核心原则，Pivot 必须引入新机制，Fuse 必须融合两方优势。
-2. **凝练的 Idea 说明**：用一句话说明本次改动的实际算法机制，不写空泛套话或推理流水账。
-3. **完整可执行代码**：只输出完整 Python 函数实现，保持函数签名、输入输出契约一致。
-4. **只输出 Idea + Code**：不夹带额外的思维分析或闲聊。
+2. **选择性修改**：按本次设计需要选择、替换、删除或增加机制，不默认累积已有组件。
+3. **凝练的 Latest Design Idea 说明**：用一句话说明本次改动的实际算法机制，不写空泛套话或推理流水账。
+4. **完整可执行代码**：只输出完整 Python 函数实现，保持函数签名、输入输出契约一致。
+5. **只输出 Latest Design Idea + Code**：不夹带额外的思维分析或闲聊。
+6. **注释克制**：不在代码中叙述推理、设计讨论或备选方案，仅在非显然的实现约束需要澄清时保留必要注释。
+
+输出契约附加以下指令：
+
+```text
+Keep the implementation concise. Do not include explanatory comments, reasoning notes,
+design discussion, or commented-out alternatives. Use comments only when strictly
+necessary to clarify non-obvious implementation constraints.
+Do not narrate your reasoning inside the code.
+```
+
+Current 与 Fuse donor 的 Prompt 代码由 Python `tokenize` 生成：仅过滤 `tokenize.COMMENT`，保留字符串字面量和 docstring，并将连续空行压缩为一个空行。过滤结果只用于 Prompt；`Node.code`、evaluator 输入、checkpoint 与最终输出均保留原始代码。
 
 ### 4.3 算子指令文本
 
@@ -212,8 +241,10 @@ Continue developing the current algorithmic direction. Preserve the core design
 principle of the current algorithm. Use the historical trajectory as evidence to
 understand how this direction has developed and what has already been tried,
 then make a coherent improvement that better realizes or strengthens the current
-idea. The implementation may change substantially if needed, but do not replace
-the core algorithmic principle with a different one.
+idea. Simplification and removal of auxiliary mechanisms are valid improvements
+when they better realize the same core design principle. The implementation may
+change substantially if needed, but do not replace the core algorithmic principle
+with a different one.
 ```
 
 #### Pivot
@@ -222,30 +253,37 @@ the core algorithmic principle with a different one.
 Develop a materially different algorithmic direction from the current node.
 Treat the current code as a usable starting scaffold, but do not assume that its
 core design principle should be preserved. Use the historical trajectory as
-evidence to understand which directions have already been explored, then
-introduce a different primary algorithmic mechanism. The change must be
-different at the mechanism level, not merely parameter tuning, coefficient
+evidence to understand how this lineage has developed and avoid reverting to
+mechanisms already used along this lineage, then introduce a different primary
+algorithmic mechanism. Reuse only implementation components that remain useful
+for the new mechanism. Discard legacy mechanisms that are not necessary for the
+new direction. The change must be different at the mechanism level, not merely
+parameter tuning, coefficient
 adjustment, or superficial restructuring.
 ```
 
 #### Fuse
 
 ```text
-Create a coherent algorithm by combining complementary mechanisms from the
-current algorithm and the provided reference algorithm. Treat the current
-algorithm as the target design and the reference algorithm as an external source
-of design knowledge. Preserve a substantive mechanism from the current
-algorithm and incorporate a compatible mechanism from the reference algorithm.
-Integrate them according to their algorithmic roles rather than mechanically
-copying code, averaging formulas, concatenating logic, or replacing the current
-algorithm with the reference algorithm.
+Create a coherent algorithm by selectively combining complementary mechanisms
+from the current algorithm and the reference algorithm. Identify the substantive
+mechanism worth retaining from the current algorithm and one compatible mechanism
+worth transferring from the reference algorithm. Integrate them according to
+their algorithmic roles. The retained target and transferred donor mechanisms
+must interact substantively in the resulting decision process. Do not preserve
+all mechanisms from either algorithm. When the reference mechanism overlaps with,
+supersedes, or makes an existing component unnecessary, replace or remove that
+component rather than stacking both. Preserve computationally expensive components
+when they play a distinct and useful algorithmic role. Avoid mechanical code
+copying, concatenating multiple heuristics, or accumulating several signals that
+express essentially the same information.
 ```
 
 ### 4.4 上下文截断规则
 
 代码实现中严格遵守信息完整性：
 
-- Task Contract、当前代码、算子指令以及 Fuse donor 代码始终完整保留，严禁代码截断。
+- Task Contract、当前代码的无注释视图、算子指令以及 Fuse donor 代码的无注释视图始终完整保留，严禁代码截断。
 - 当 Prompt 总字符数超出上限时，从最老的祖先节点开始逐代丢弃历史轨迹。
 - 若完全移除轨迹后 Prompt 仍超出限制，则抛出异常中止运行。
 
@@ -257,6 +295,7 @@ algorithm with the reference algorithm.
 | 初始根节点数 $N_0$ | 8 | 搜索起点候选数 |
 | 父节点分数 | fitness $f(n)$ | 真实评估指标 |
 | 父节点选择修正 | $1 / \sqrt{c(n)+1}$ | 降低已被反复选择节点的后续概率 |
+| 父节点访问计数 $c(n)$ | 已分配的生成机会数 | 父节点入选即加 1，与 evaluator 调用次数分开统计 |
 | 目标 ESS 比例 $\rho$ | 0.10 | 竞争主要集中于前 10% 节点 |
 | 最小目标 ESS $K_{\min}$ | 2 | 最少保证 2 个有效竞争者 |
 | 扩展算子集 | Refine, Pivot, Fuse | 纵向深挖、横向开辟与分支重组 |
@@ -266,6 +305,8 @@ algorithm with the reference algorithm.
 | 轨迹最大代数 | 8 | 最多保留 8 代历史祖先 |
 
 运行过程在 `events.jsonl` 中记录每次生成与评估的轻量事实（时间、步数、算子、父节点、donor、状态、fitness、新节点 ID），并在 `tree_state.json` 中保存搜索树和各节点的父代入选次数以支持断点续跑。
+
+Fitness 是唯一质量目标。代码长度与运行时间不进入 fitness；任务执行时限与 Prompt 上下文上限仅作为候选和搜索能否继续执行的可行性约束。
 
 ## 6. 核心消融与诊断
 

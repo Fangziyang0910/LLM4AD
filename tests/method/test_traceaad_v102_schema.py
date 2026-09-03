@@ -7,6 +7,116 @@ from llm4ad.method.traceaad_v10_2.schema import SearchTree
 from llm4ad.method.traceaad_v10_2.traceaad import TraceAADV102
 
 
+def test_equal_code_results_remain_independent_nodes() -> None:
+    tree = SearchTree()
+
+    first = tree.add(
+        code="same", idea="first", fitness=1.0, evaluation_id=1,
+        parent_id=None, operator="Init",
+    )
+    second = tree.add(
+        code="same", idea="second", fitness=1.0, evaluation_id=2,
+        parent_id=None, operator="Init",
+    )
+
+    assert first.id != second.id
+    assert len(tree.nodes) == 2
+
+
+def test_latest_design_idea_is_the_output_label() -> None:
+    from llm4ad.method.traceaad_v10_2.prompts import OUTPUT_CONTRACT
+    from llm4ad.method.traceaad_v10_2.traceaad import IDEA_RE
+
+    match = IDEA_RE.search("Latest Design Idea: strengthen the mechanism")
+
+    assert "Latest Design Idea:" in OUTPUT_CONTRACT
+    assert match is not None
+    assert match.group(1) == "strengthen the mechanism"
+    assert IDEA_RE.search("Idea: old label") is None
+
+
+def test_shared_prompt_principle_preserves_useful_complexity() -> None:
+    from llm4ad.method.traceaad_v10_2.prompts import (
+        IMPLEMENTATION_PRINCIPLE,
+        OPERATOR_INSTRUCTIONS,
+        build_prompt,
+        build_task_contract,
+    )
+
+    contract = build_task_contract("Solve the task.", "def heuristic(x):\n    pass")
+    prompt = build_prompt(
+        task_contract=contract,
+        current=None,
+        ancestors=[],
+        operator="Init",
+        donor=None,
+        max_prompt_chars=100_000,
+        max_gens=8,
+    )
+
+    assert IMPLEMENTATION_PRINCIPLE in prompt
+    assert "Prioritize algorithm quality" in prompt
+    assert "Complex computation is acceptable" in prompt
+    assert "Do not remove effective mechanisms merely to shorten" in prompt
+    assert "Express the algorithm through executable code" in prompt
+    assert "Do not narrate your reasoning inside the code" in prompt
+    assert "heuristic component, not a full solver" not in contract
+    assert "Prefer the simplest coherent algorithm" not in prompt
+    assert "Simplification and removal" in OPERATOR_INSTRUCTIONS["Refine"]
+    assert "Discard legacy mechanisms" in OPERATOR_INSTRUCTIONS["Pivot"]
+    assert "selectively combining" in OPERATOR_INSTRUCTIONS["Fuse"]
+    fuse_instruction = " ".join(OPERATOR_INSTRUCTIONS["Fuse"].split())
+    assert "replace or remove that component rather than stacking both" in (
+        fuse_instruction
+    )
+    assert "Preserve computationally expensive components" in fuse_instruction
+    assert "no more complicated than necessary" not in fuse_instruction
+
+
+def test_prompt_view_strips_comments_but_preserves_strings_and_docstrings() -> None:
+    from llm4ad.method.traceaad_v10_2.prompts import build_prompt
+    from llm4ad.method.traceaad_v10_2.schema import Node
+
+    current_code = '''def f():
+    """Keep this # docstring."""
+    value = "# keep string"
+    # CURRENT_SENTINEL
+    return value  # CURRENT_TRAILING
+'''
+    donor_code = '''def f():
+    # DONOR_SENTINEL
+    return "# donor string"
+'''
+    current = Node(id=0, code=current_code, idea="current", fitness=1.0)
+    donor = Node(id=1, code=donor_code, idea="donor", fitness=0.9)
+
+    prompt = build_prompt(
+        task_contract="# Task Contract",
+        current=current,
+        ancestors=[],
+        operator="Fuse",
+        donor=donor,
+        max_prompt_chars=100_000,
+        max_gens=8,
+    )
+
+    assert "CURRENT_SENTINEL" not in prompt
+    assert "CURRENT_TRAILING" not in prompt
+    assert "DONOR_SENTINEL" not in prompt
+    assert '"# keep string"' in prompt
+    assert '"""Keep this # docstring."""' in prompt
+    assert '"# donor string"' in prompt
+    assert current.code == current_code
+    assert donor.code == donor_code
+
+
+def test_prompt_comment_filter_falls_back_on_tokenize_error() -> None:
+    from llm4ad.method.traceaad_v10_2.prompts import strip_comments_for_prompt
+
+    malformed = "value = '''unterminated"
+    assert strip_comments_for_prompt(malformed) == malformed
+
+
 def test_resume_loads_tree_and_budget_from_checkpoint(tmp_path) -> None:
     state_path = tmp_path / "tree_state.json"
     state_path.write_text(
@@ -76,9 +186,9 @@ def test_render_trajectory_step_indexing_and_trends():
     assert "Step 2" in text
     assert "Generation" not in text
     # Step 1 is grandparent (1.5 vs great 1.0 -> Improved)
-    assert "Step 1\nIdea: i1\nFitness: 1.5 (Improved)" in text
+    assert "Step 1\nLatest Design Idea: i1\nFitness: 1.5 (Improved)" in text
     # Step 2 is parent (1.2 vs grand 1.5 -> Degraded)
-    assert "Step 2\nIdea: i2\nFitness: 1.2 (Degraded)" in text
+    assert "Step 2\nLatest Design Idea: i2\nFitness: 1.2 (Degraded)" in text
 
 
 def test_calibrate_beta_and_parent_selection():
@@ -91,6 +201,18 @@ def test_calibrate_beta_and_parent_selection():
     # Check that higher fitness gets higher probability
     weights = [math.exp(beta * f) for f in fitnesses]
     assert weights[-1] > weights[0]
+
+
+def test_calibrate_beta_uses_explicit_best_tie_lower_bound() -> None:
+    from llm4ad.method.traceaad_v10_2.traceaad import calibrate_beta
+
+    beta, target, actual = calibrate_beta(
+        [2.0, 2.0, 2.0, 1.0, 0.0], ess_fraction=0.1, ess_minimum=2
+    )
+
+    assert beta > 0.0
+    assert target == 3
+    assert math.isclose(actual, 3.0, abs_tol=1e-9)
 
 
 def test_parent_selection_corrects_quality_probability_by_selection_count() -> None:

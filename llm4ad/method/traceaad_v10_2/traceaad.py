@@ -27,7 +27,7 @@ from .schema import INIT, Node, SearchTree, normalize_code
 
 THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 FENCE_RE = re.compile(r"```(?:python)?[ \t]*\r?\n(.*?)```", re.DOTALL)
-IDEA_RE = re.compile(r"^[ \t]*Idea:[ \t]*(\S.*?)\s*$", re.MULTILINE)
+IDEA_RE = re.compile(r"^[ \t]*Latest Design Idea:[ \t]*(\S.*?)\s*$", re.MULTILINE)
 CHARS_PER_TOKEN = 3.5
 MAX_CONSECUTIVE_INVALID = 50
 
@@ -63,18 +63,18 @@ def calibrate_beta(
     """
     n = len(fitnesses)
     target = min(n, max(ess_fraction * n, ess_minimum))
+    f_max = max(fitnesses)
+    k_max = sum(f == f_max for f in fitnesses)
+    target = max(target, k_max)
     if n <= 1 or _ess(0.0, fitnesses) <= target:
         return 0.0, target, _ess(0.0, fitnesses)
-    if max(fitnesses) == min(fitnesses):
-        # every beta gives the uniform distribution; the target is unreachable
-        return 0.0, target, float(n)
     beta_hi = 1.0
     for _ in range(60):
         ess_hi = _ess(beta_hi, fitnesses)
         if ess_hi <= target:
             break
         if _ess(beta_hi * 10.0, fitnesses) == ess_hi:
-            # ESS saturated at k_max above the target; closest achievable
+            # ESS saturated at k_max; return the closest achievable value
             return beta_hi, target, ess_hi
         beta_hi *= 10.0
     else:

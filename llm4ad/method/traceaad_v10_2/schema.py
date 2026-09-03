@@ -9,7 +9,7 @@ OPERATORS = ("Refine", "Pivot", "Fuse")
 
 
 def normalize_code(text: str) -> str:
-    """Unified newlines, strip leading/trailing whitespace (dedup key)."""
+    """Normalize newlines and surrounding whitespace for storage."""
     return "\n".join(text.replace("\r\n", "\n").replace("\r", "\n").splitlines()).strip()
 
 
@@ -85,7 +85,7 @@ class SearchTree:
         return node
 
     def add_raw(self, node: Node) -> None:
-        """Restore a serialized node without dedup checks."""
+        """Restore a serialized node."""
         self.nodes[node.id] = node
         if node.parent_id is None:
             self.roots.append(node.id)
