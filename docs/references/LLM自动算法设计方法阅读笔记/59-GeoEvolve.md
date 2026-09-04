@@ -28,7 +28,3 @@ GeoEvolve 以内层 OpenEvolve 生成/变异代码，外层 controller 评估并
 ## 5. 对 LLM4AD / TraceAAD 可学习之处
 
 - 可学习点：检索应由当前路线的失败证据触发。最小验证：static-RAG、state-conditioned RAG、no-RAG，并审计检索块是否落实到代码 diff。
-
-## 6. 证据边界
-
-只覆盖两个 geospatial tasks；knowledge base 141 文档、关键词人工选定（附录 A.3 自认故意只建小规模库验证有效性）。与 OpenEvolve 基线的迭代预算不对称（100 vs 10）使 headline 优势不能直接归因于知识机制；论文也以 LLM 辅助分析算法差异，定性机制解释不能替代代码组件消融。

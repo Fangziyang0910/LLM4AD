@@ -30,7 +30,3 @@
 
 - 可学习点：每条历史应区分程序、改动、证据和适用条件。前提：检索单位有 provenance。风险：把低质量摘要当知识。最小验证：固定提示长度，比较有 provenance 的轨迹摘要与随机历史。
 - 可学习点：记忆更新应有淘汰条件。前提：能重新验证其价值。风险：上下文膨胀、确认偏差。最小验证：记录每条被检索记忆后的真实增益分布。
-
-## 6. 证据边界
-
-Table `tab:budget` 给出与 LHH 比较的 evolving-stage 预算；四张端到端比较表为 `tab:traditionalmain`、`tab:CAF`、`tab:CombinedTable`、`tab:BBOBTable`。`tab:ablation` 未报告随机种子置信区间或逐项 token/调用控制，因此不能把完整 BEAM 的优势拆成双层控制、记忆内容或代码复杂度的因果效应；Fig. `fig:codeLength` 还显示其生成程序更长、更复杂，是重要混杂。

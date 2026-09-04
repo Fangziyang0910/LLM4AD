@@ -29,7 +29,3 @@ MEMOIR 让每个树分支对应一种算法设计。branch-local memory 保留�
 ## 5. 对 LLM4AD / TraceAAD 可学习之处
 
 - 这是与 TraceAAD 最直接的对照：保留完整可重放 lineage，再在路线终止时生成可验证的跨路线知识。最小验证应比较 local-only、global-only、flat、hierarchical 四组，并固定上下文 token。
-
-## 6. 证据边界
-
-每题独立运行，尚未证明跨问题迁移；global entry 是 LLM 摘要，可能失真。branch budget 分配规则是启发式而非学习得到；更强 critic/reflect 模型也影响记忆质量。

@@ -35,7 +35,3 @@ verbal 层把进化历史转成 LLM 可消费的改动语言，并刻意缩小�
 - 可学习点：把“轨迹如何构造下一步 prompt”（verbal）与“是否训练模型参数”（numerical）作为两项独立研究变量。成立前提：各自 token、LLM query、evaluator 预算可对齐。主要风险：把参数学习收益误记为历史利用。最小验证：先固定模型权重，仅比较轨迹提示；再在同一 triples 和预算下测试在线更新。
 - 可学习点：记录局部改动、父代、response、合法性和相对分数，建立可审计 credit 链。成立前提：能判定重复/可行并重放 evaluator。主要风险：全局 reward 错配给长代码的每个 token。最小验证：统计 injection/replacement 后相对父代的改进、退化、重复与不可行比例。
 - 可学习点：把简化和重启作为控制复杂度/停滞的最小动作。成立前提：停滞由固定 evaluator 的 best-so-far 定义。主要风险：重启消耗探索预算，或简化删去关键机制。最小验证：固定总 queries，报告代码长度、unique lineage、突破次数和测试分数。
-
-## 6. 证据边界
-
-任务为 OBP、step-by-step TSP、ACO-CVRP、ACO-OP；主实验以 2,000 LLM queries（OBP 外各任务；基线约 1,000 heuristic evaluations）对齐，且比较的模型不同：API verbal-only 用 GPT-4o-mini，GRPO 版本为 INT4 Qwen2.5-7B（§`sec:experiment`）。OBP/TSP 用与 MCTS-AHD 相同数据；TSP 每尺度 1,000 测试实例，CVRP/OP 每尺度 64 随机实例。`tab:ablation` 只在 OBP、OP 三次平均，未报告置信区间，也不检验 operator×GRPO、collapse×GRPO 的交互。因此，论文支持“该共进化配方在这些设置有效”，不支持把任一 operator、任一 reward 项或在线训练外推为普遍最优。

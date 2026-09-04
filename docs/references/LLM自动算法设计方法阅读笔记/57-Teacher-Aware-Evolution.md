@@ -29,7 +29,3 @@ teacher 把稀疏终点奖励分解为局部行动偏好，而任务 evaluator �
 ## 5. 对 LLM4AD / TraceAAD 可学习之处
 
 - 可学习点：用强 solver/learned policy 诊断候选，而不把它当最终答案。最小验证：teacher agreement 是否预测后续真实增益，并保留 objective-only final selection。
-
-## 6. 证据边界
-
-每个任务需独立训练且接口可对齐的教师，也增加 analyzer 调用；因此不是免费训练信号。教师参数不由 AAD 过程更新，不能归为“训练 LLM 设计器”。

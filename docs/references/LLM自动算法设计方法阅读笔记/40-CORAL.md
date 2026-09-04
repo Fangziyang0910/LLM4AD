@@ -29,7 +29,3 @@ CORAL 把检索、提出、评估、更新四阶段的决定权由固定外循�
 
 - 可学习点：持久知识以“工件＋评价＋适用范围”写入，不只存自然语言结论。前提：读取可回链。风险：共享记忆污染。最小验证：单 agent 固定预算下比较有/无可审计知识积累。
 - 可学习点：多轨迹协作先与 best-of-n 独立重复做公平比较。前提：总模型调用、并行和 evaluator 预算匹配。风险：把更多计算误认为协同。最小验证：复刻论文的 4 对 4 设计于一个任务。
-
-## 6. 证据边界
-
-消融仅在三个 stress-test、Claude Code + Opus 4.6 下进行（另有开源栈泛化：MiniMax M2.5 + OpenCode；4-agent 相对 1-agent 的收益随任务变化：Kernel Eng. −18.3% cycles、Polyominoes +5.0%）；开放式 evaluator 的任务定义和隐藏 grader 会影响可复现性。论文未以该表证明 heartbeat，亦未证明自主检索/评估/更新三个决策分别带来收益（论文自己把 inspection 的隔离留给 future work）。

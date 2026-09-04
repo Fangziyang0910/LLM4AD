@@ -28,7 +28,3 @@ AutoSND 分三阶段：Stage I 从简单启发式广搜并记录质量、运行�
 ## 5. 对 LLM4AD / TraceAAD 可学习之处
 
 - 可学习点：把路线历史编译为带适用范围的结构政策，并保留来源候选。最小验证：policy-on/off 与无来源摘要对照，检查每条规则是否能被回放证据支持。
-
-## 6. 证据边界
-
-任务只覆盖 network dismantling，且论文标注 KDD 2027 稿件；Stage II 有 10 次 induction calls，额外预算需要计入。搜索期使用 proxy graphs 和 relaxed normalization，最终才做 strict full-permutation 检查。

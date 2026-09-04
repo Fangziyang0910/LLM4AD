@@ -28,7 +28,3 @@
 
 - 可学习点：记录轨迹节点适用的实例特征与失败条件。前提：特征和训练/测试拆分明确。风险：记录变成事后标签。最小验证：固定候选池，比较特征条件选择与随机选择。
 - 可学习点：把“搜索到的程序”和“何时采用”分开。前提：选择器不访问测试结果。风险：每实例搜索掩盖在线成本。最小验证：报告生成、选择、求解三段成本。
-
-## 6. 证据边界
-
-设置在 Table `tab:setting`；intra/inter subclass 的任务划分和 candidate 数在 Tables `tab:intra_main`、`tab:inter_main`。`tab:inv_analysis` 明确把单实例 EoH 与 InstSpecHH 的在线时间分开，Fig. `fig:time_analysis` 再估算离线＋在线总成本。论文的敏感性（`fig:scal`、`fig:ns_analysis`、`fig:topk`）不是随机种子置信区间，不能据此声称稳定泛化。

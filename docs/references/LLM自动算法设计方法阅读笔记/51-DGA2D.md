@@ -30,7 +30,3 @@ zero-order 混合了不同前驱造成偏差，full-path 又把样本切得太�
 ## 5. 对 LLM4AD / TraceAAD 可学习之处
 
 - 可学习点：比较 node、edge、短 path、full lineage 四种信用粒度。最小验证：固定候选和预算，报告各信用 cell 的样本数、方差及 held-out 选择质量。
-
-## 6. 证据边界
-
-Table 3 消融只覆盖四个代表任务；first-order 不是理论上无条件最优。完整系统同时学习 policy 并修改图与实现池，终端信用仍可能错误归因到 pipeline 内无关操作。预算口径：每域 500 次 LLM calls、每实例 90 秒、10 次独立种子、τ=0.7、双 backbone（DeepSeek-V4-Flash / GPT-5.6 Sol），平均 normalized gap 分别降 9.67 / 10.96 个百分点；论文自认局限：生成算法的计算成本、对初始算子池敏感、跨模块不一致。

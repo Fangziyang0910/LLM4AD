@@ -29,7 +29,3 @@ EvoTune 将 evaluator 驱动的进化搜索与 RL 微调结合：进化搜索是
 
 - 可学习点：区分“轨迹内推理/检索改进”和“把经验写进模型参数”。前提：后者有严格 held-out 评估。风险：高训练成本和灾难性遗忘。最小验证：固定模型权重，仅比较搜索历史利用；再单独测试微调模型的 pass@k 和 OOD。
 - 可学习点：保存产生训练信号的程序 lineage。前提：reward、代码与过滤规则可重放。风险：survivorship bias。最小验证：报告入池、过滤、训练三阶段的数量和质量分布。
-
-## 6. 证据边界
-
-主比较为 Llama3.2-1B、Phi3.5-mini、Granite3.1-2B，bin packing/TSP/flatpack，10 random seeds；每个预算为 9.6k、16k、22.4k sampled programs，报告 validation、validation-perturbed 与同分布 test（§`sec:results`、Table `table:best_50`）。FunSearch 基线即同构去 RL 对照（共享搜索环、仅去 RL-Update），因此 RL 的贡献可以被归因；尚缺的是 RL 内部配方（forward/reverse KL、数据覆盖、采样退火）与数据库/prompt 构造的进一步分解——forward vs reverse KL 的对照存在（BP + Llama-1B，forward 的 top-50 与唯一解计数均更高），DPO vs ReSt-EM 的对照存在（DPO 一致更优）。训练算力成本论文自认未入账。

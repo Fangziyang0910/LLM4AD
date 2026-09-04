@@ -29,7 +29,3 @@ RL 可以把 evaluator 的延迟奖励分配给“何时探索、何时修复、
 
 - 可学习点：把控制器动作、观察和结果记录为显式轨迹。前提：每一步 evaluator 成本可计。风险：长轨迹掩盖预算扩张。最小验证：固定调用/eval 数，比较一个预定义控制器与 agent。
 - 可学习点：训练与搜索分层报告。前提：有 frozen policy 对照。风险：把模型参数变化误说成历史利用。最小验证：同一 policy 在未见任务上的零更新评估。
-
-## 6. 证据边界
-
-§Experimental Setup 与 Appendix `appendix:rl-training`、`app:data_split_protocol` 给出训练/数据边界；训练动态为 500 steps（§Training Curves）。总体设计曲线由五次独立 design runs 对齐；工具消融只覆盖 CVRP-Constructive、TSP-ACO 与 DeepSeek-V4-Flash。没有固定同一 policy 后仅关闭 RL 的匹配实验，不能将总体优势归因给“RL 本身”；也没有逐工具或逐动作消融。

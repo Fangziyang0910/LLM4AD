@@ -30,7 +30,3 @@ niche 的核心不是“代码看起来不同”，而是把有限 LLM 查询分
 ## 5. 对 LLM4AD / TraceAAD 可学习之处
 
 - 可学习点：按路线/行为构造 niche，再测每个 niche 的独立突破贡献。最小验证：random、code、thought、behavior 四种 partition，共享初始化与预算。
-
-## 6. 证据边界
-
-主实验多用 GPT-4o-mini、K=4、500 samples；特征/聚类本身仍是代理。操作符消融很完整，但多个 operator 的调用与 prompt 长度差异使“机制收益”和额外推理成本仍需联合报告。

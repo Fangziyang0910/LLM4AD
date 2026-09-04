@@ -29,7 +29,3 @@
 ## 5. 对 LLM4AD / TraceAAD 可学习之处
 
 - 可学习点：以路线边际贡献而非单节点即时增益调度预算。最小验证：同模型也可先比较 call-level、trajectory-level、population-level 三种分配。
-
-## 6. 证据边界
-
-training-free；结论依赖 Qwen-3.5-Flash/Plus 的价格与能力组合。Relay Gain 混合质量和 embedding 多样性，尚不能分别归因；论文提交时间很新，外部复核有限。

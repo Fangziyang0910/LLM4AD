@@ -8,7 +8,7 @@
 
 核心集合包含 **12 个研究方向、13 篇论文**。其中 ELM 与 *Evolving Code with a Large Language Model* 引用谱系相连但角色不同：前者提供算子机制的受控证据，后者是同期的算子代数形式化（演示实验为简化符号回归，不含 ELM 的 diff 模型与 Sodaracer）。
 
-| 机制问题 | 论文 | 主要分析对象 | 最值得保留的结论 | 证据边界 |
+| 机制问题 | 论文 | 主要分析对象 | 最值得保留的结论 | 局限与条件说明 |
 | --- | --- | --- | --- | --- |
 | LLM 变异为何可能优于随机程序变异 | [Evolution through Large Models](../../../papers/Evolution_through_Large_Models/)；[Evolving Code with a Large Language Model](../../../papers/Evolving_Code_with_A_Large_Language_Model/) | 代码 diff（ELM）、GP+LLM 算子代数与成本/错误 profile（Evolving Code） | 代码模型从人类修改分布获得结构化变异先验，能协调多处相关修改；diff 保留父代的大部分可运行结构；Evolving Code 补充：选择/替换算子 LLM 化最贵最易错，变异/初始化最稳健 | 受控证据（4-Parity、Sodaracer、MAP-Elites）全部属于 ELM；Evolving Code 的演示为受限符号回归。已有[逐篇笔记](LLM自动算法设计方法阅读笔记/01-ELM.md)与[形式化笔记](LLM自动算法设计方法阅读笔记/03-Evolving-Code.md) |
 | 多父代提示是否形成真正的交叉 | [Language Model Crossover](../../../papers/Language_Model_Crossover_Variation_through_Few_Shot_Prompting/) | 父代特征继承、父代顺序、模型规模、文本／代码等多种 genotype | few-shot 父代上下文可以产生可测的特征继承和语义组合，说明 LLM 交叉不是简单字符串拼接 | 跨表示演示较广，但不能推出它普遍优于领域专用 crossover；见[逐篇笔记](LLM自动算法设计方法阅读笔记/02-Language-Model-Crossover.md) |

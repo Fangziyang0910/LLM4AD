@@ -28,7 +28,3 @@ GAE 用 relational GNN 把 AST 解析成 typed computation graph 并在线回归
 ## 5. 对 LLM4AD / TraceAAD 可学习之处
 
 - 可学习点：把“父代结构—编辑类型—子代结果”作为 controller 训练样本。前提：先用 component-off 消融证明额外训练真正有益。
-
-## 6. 证据边界
-
-核心实验是单一 Nonlinear Oscillators 数据集、GAE 3 runs；基线预算与模型并非全部一致。KL 项按正文仅监控而不贡献梯度，这与常规 GRPO 描述不同，复现时不能按名称臆测。

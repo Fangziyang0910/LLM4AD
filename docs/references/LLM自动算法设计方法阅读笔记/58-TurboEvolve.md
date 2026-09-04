@@ -29,7 +29,3 @@ TurboEvolve 让一次 LLM 调用通过 Verbalized Sampling 产生 K 个带自报
 ## 5. 对 LLM4AD / TraceAAD 可学习之处
 
 - 可学习点：按路线停滞调 offspring 数，并报告 evaluated programs、tokens、价格三种预算。最小验证必须补 adaptive-vs-fixed K 及 VS-on/off。
-
-## 6. 证据边界
-
-成本结论依赖供应商定价与批量输出；自报 sampling weights 不用于选择，不能视为校准概率。warm-start 要求外部高质量 pool，和 cold-start 方法并非同一问题。

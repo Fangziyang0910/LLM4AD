@@ -30,7 +30,3 @@ RL 把“写出正确搜索循环和约束保护”从实例内采样转成模�
 
 - 可学习点：把可执行性、可行性、质量分层报告。前提：三层 evaluator 语义固定。风险：仅优化格式/通过率。最小验证：给每层单独计数并测试 quality conditional on feasible。
 - 可学习点：若主张可复用算法，必须固定代码跨 held-out 实例跑。前提：预先确定选择规则不手挑。风险：每实例重新生成掩盖泛化。最小验证：采用 Appendix 的固定代码协议。
-
-## 6. 证据边界
-
-GRPO 配置为 14B、group 64、90 steps、360 prompts/23,040 episodes（Table `tab:grpo_hyperparams`）；SDS 训练集 10,000 实例。关键数字：Hero 97.8% pass / 5.0±1.3% gap vs Base Best-of-64 85.6% / 28.7±2.3%，比累积 Best-of-64 摊销执行成本低 91×；Frozen Hero 97.87%/4.34%；base 代码审计显示 21.9% 为 SA-like、其中 28.8% 带 global-best bug。SDS 主结果三 seed，JSSP 也是 101/202/303 三 seed，但奖励/solver contract 有域适配；时间列排除 LLM inference，不能读为端到端训练成本比较。论文自认局限：SDS 为自建基准、结论 SDS-specific。
