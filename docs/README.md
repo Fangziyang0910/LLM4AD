@@ -9,7 +9,7 @@
 | 查技能来源与安装状态 | [技能安装分类](skills.md) |
 | 理解研究问题 | [研究认识](knowledge/研究认识.md) |
 | 推敲生成与搜索机制 | [生成上下文经验](knowledge/生成上下文经验.md)、[预算分配经验](knowledge/预算分配经验.md)、[机制尝试](knowledge/TraceAAD机制尝试.md) |
-| 继续近期方法开发 | [V10.5 机制设计](methods/TraceAAD-V10.5完整机制设计.md)、[实现与运行](../experiments/traceaad_v10_5/README.md) |
+| 继续近期方法开发 | [V10.6 机制设计](methods/TraceAAD-V10.6完整机制设计.md)、[实现与运行](../experiments/traceaad_v10_6/README.md)；前版见[V10.5 机制设计](methods/TraceAAD-V10.5完整机制设计.md) |
 | 运行实验、确认配置 | [实验导航](../experiments/README.md) |
 | 阅读已有比较 | [V9 系列主实验结果](experiments/主实验/结果.md)、[机制实验](experiments/机制实验/) |
 | 查提示词 | [版本提示词索引](prompts/README.md) |
