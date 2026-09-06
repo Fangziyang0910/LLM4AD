@@ -1,0 +1,5134 @@
+{
+  "captured_at": "2026-09-05T16:20:18.174704+08:00",
+  "method": "State files are read once per run; live runs may advance while reading. Only 20260904b is used for V10.4.",
+  "runs": {
+    "v10.1": {
+      "tsp_construct": [
+        {
+          "path": "experiments/traceaad_v10_1/results/tsp_construct/20260902_tsp_v101_rep1",
+          "state_sha256": "9da58ab6b60b1d2ede9e882ebf786030b68367ef0392a853fc66f9339791b8d3",
+          "budget_used": 1000,
+          "n_nodes": 969,
+          "best": -6.092804711417006,
+          "best_id": 968,
+          "root_best": -6.820211505568105,
+          "idea_chars": {
+            "n": 969,
+            "mean": 356.78534571723424,
+            "std": 59.713445818144095,
+            "median": 353
+          },
+          "code_chars": {
+            "n": 969,
+            "mean": 4908.731682146543,
+            "std": 1685.678289502404,
+            "median": 4781
+          },
+          "ast_unique_count": 954
+        },
+        {
+          "path": "experiments/traceaad_v10_1/results/tsp_construct/20260902_tsp_v101_rep2",
+          "state_sha256": "991fc04c3eafba2e2cefd21052ec85b01ec8a0b3eba4b895863250a6aa9b4416",
+          "budget_used": 1000,
+          "n_nodes": 858,
+          "best": -5.8935808968651635,
+          "best_id": 843,
+          "root_best": -6.820211505568105,
+          "idea_chars": {
+            "n": 858,
+            "mean": 345.03846153846155,
+            "std": 59.002934194874605,
+            "median": 342.5
+          },
+          "code_chars": {
+            "n": 858,
+            "mean": 6625.396270396271,
+            "std": 2270.6061613299185,
+            "median": 6598.0
+          },
+          "ast_unique_count": 851
+        },
+        {
+          "path": "experiments/traceaad_v10_1/results/tsp_construct/20260902_tsp_v101_rep3",
+          "state_sha256": "8ffa20cc65d2d5c9534818b209002ae9d13fbe9588f961153fe9dccf2741b371",
+          "budget_used": 1000,
+          "n_nodes": 715,
+          "best": -5.837480664804707,
+          "best_id": 691,
+          "root_best": -7.3845946210529885,
+          "idea_chars": {
+            "n": 715,
+            "mean": 343.10769230769233,
+            "std": 61.2345985631792,
+            "median": 341
+          },
+          "code_chars": {
+            "n": 715,
+            "mean": 6918.981818181818,
+            "std": 2919.7664200836734,
+            "median": 6853
+          },
+          "ast_unique_count": 713
+        }
+      ],
+      "cvrp_aco": [
+        {
+          "path": "experiments/traceaad_v10_1/results/cvrp_aco/20260902_cvrp_v101_rep1",
+          "state_sha256": "d9df7f122866332b8596d34e9d738859cb8740770cad9af30cd392a6ce5f0968",
+          "budget_used": 1000,
+          "n_nodes": 944,
+          "best": -9.011676536500655,
+          "best_id": 913,
+          "root_best": -10.25241814047423,
+          "idea_chars": {
+            "n": 944,
+            "mean": 341.29237288135596,
+            "std": 53.27466699332803,
+            "median": 338.0
+          },
+          "code_chars": {
+            "n": 944,
+            "mean": 5480.1016949152545,
+            "std": 1443.7080403848943,
+            "median": 5376.0
+          },
+          "ast_unique_count": 935
+        },
+        {
+          "path": "experiments/traceaad_v10_1/results/cvrp_aco/20260902_cvrp_v101_rep2",
+          "state_sha256": "258add3c407ef3221ec7a26c2359bc7e561586983edd0f6fb04d5c19f8e7e9de",
+          "budget_used": 815,
+          "n_nodes": 716,
+          "best": -8.140790518152242,
+          "best_id": 653,
+          "root_best": -16.065735011072896,
+          "idea_chars": {
+            "n": 716,
+            "mean": 343.7877094972067,
+            "std": 61.02277153600179,
+            "median": 336.0
+          },
+          "code_chars": {
+            "n": 716,
+            "mean": 9574.460893854748,
+            "std": 4918.19437415451,
+            "median": 8404.0
+          },
+          "ast_unique_count": 712
+        },
+        {
+          "path": "experiments/traceaad_v10_1/results/cvrp_aco/20260902_cvrp_v101_rep3",
+          "state_sha256": "28a486521d72857a972e0b8e12fcd1ceb02f125e2adcd63b2785abe8b1f8cfba",
+          "budget_used": 1000,
+          "n_nodes": 926,
+          "best": -9.170468310993972,
+          "best_id": 912,
+          "root_best": -15.901002877654014,
+          "idea_chars": {
+            "n": 926,
+            "mean": 350.5950323974082,
+            "std": 59.326719172129174,
+            "median": 346.0
+          },
+          "code_chars": {
+            "n": 926,
+            "mean": 5458.333693304536,
+            "std": 1551.4462455569394,
+            "median": 5349.5
+          },
+          "ast_unique_count": 909
+        }
+      ],
+      "op_aco": [
+        {
+          "path": "experiments/traceaad_v10_1/results/op_aco/20260902_op_v101_rep1",
+          "state_sha256": "153cb8bcb5da1251fadc6593794f8a8d4a60ee4fc3021b6e78239e8c141ec5be",
+          "budget_used": 1000,
+          "n_nodes": 948,
+          "best": 14.851999999999999,
+          "best_id": 329,
+          "root_best": 13.642000000000001,
+          "idea_chars": {
+            "n": 948,
+            "mean": 361.63713080168776,
+            "std": 59.60102453528398,
+            "median": 358.0
+          },
+          "code_chars": {
+            "n": 948,
+            "mean": 5473.666666666667,
+            "std": 1976.8373295558538,
+            "median": 5159.5
+          },
+          "ast_unique_count": 932
+        },
+        {
+          "path": "experiments/traceaad_v10_1/results/op_aco/20260902_op_v101_rep2",
+          "state_sha256": "04cfbddeb1a5804684fd868e1aaf9f0c505ccf3bd775375e99e9f97f88b5bed5",
+          "budget_used": 1000,
+          "n_nodes": 945,
+          "best": 14.931999999999999,
+          "best_id": 341,
+          "root_best": 14.0,
+          "idea_chars": {
+            "n": 945,
+            "mean": 358.02962962962965,
+            "std": 55.25552325305238,
+            "median": 354
+          },
+          "code_chars": {
+            "n": 945,
+            "mean": 5951.776719576719,
+            "std": 1749.964751427042,
+            "median": 5634
+          },
+          "ast_unique_count": 927
+        },
+        {
+          "path": "experiments/traceaad_v10_1/results/op_aco/20260902_op_v101_rep3",
+          "state_sha256": "ecd32baac37c6225ee13021ef69d5490a484c4df329dd22a62c5abddb1f28a64",
+          "budget_used": 1000,
+          "n_nodes": 962,
+          "best": 14.915999999999997,
+          "best_id": 786,
+          "root_best": 13.206,
+          "idea_chars": {
+            "n": 962,
+            "mean": 340.1091476091476,
+            "std": 55.112424493101784,
+            "median": 333.0
+          },
+          "code_chars": {
+            "n": 962,
+            "mean": 4431.234927234927,
+            "std": 1424.341542344069,
+            "median": 4133.0
+          },
+          "ast_unique_count": 936
+        }
+      ],
+      "online_bin_packing": [
+        {
+          "path": "experiments/traceaad_v10_1/results/online_bin_packing/20260902_obp_v101_rep1",
+          "state_sha256": "1c3a8b92d078c74057eea506f138334b4f088666c439c9176bc1f1d67d35920f",
+          "budget_used": 1000,
+          "n_nodes": 985,
+          "best": -726.25,
+          "best_id": 847,
+          "root_best": -744.5,
+          "idea_chars": {
+            "n": 985,
+            "mean": 311.2020304568528,
+            "std": 58.62469161895669,
+            "median": 309
+          },
+          "code_chars": {
+            "n": 985,
+            "mean": 3424.107614213198,
+            "std": 2392.523293077751,
+            "median": 2765
+          },
+          "ast_unique_count": 962
+        },
+        {
+          "path": "experiments/traceaad_v10_1/results/online_bin_packing/20260902_obp_v101_rep2",
+          "state_sha256": "bdea4a2d747ea77af1c1da03259073f40aea5ff0c45b64e669f335ba8996efbb",
+          "budget_used": 1000,
+          "n_nodes": 990,
+          "best": -730.0,
+          "best_id": 977,
+          "root_best": -744.5,
+          "idea_chars": {
+            "n": 990,
+            "mean": 326.93636363636364,
+            "std": 63.88055232643124,
+            "median": 323.0
+          },
+          "code_chars": {
+            "n": 990,
+            "mean": 2922.712121212121,
+            "std": 2006.9410305879385,
+            "median": 2324.0
+          },
+          "ast_unique_count": 893
+        },
+        {
+          "path": "experiments/traceaad_v10_1/results/online_bin_packing/20260902_obp_v101_rep3",
+          "state_sha256": "f5c86a101d1578225540977e29993bba1c7e3014c4a975946e09b438e6128d0e",
+          "budget_used": 1000,
+          "n_nodes": 988,
+          "best": -738.0,
+          "best_id": 859,
+          "root_best": -744.5,
+          "idea_chars": {
+            "n": 988,
+            "mean": 321.7580971659919,
+            "std": 88.67109166855158,
+            "median": 314.0
+          },
+          "code_chars": {
+            "n": 988,
+            "mean": 2630.844129554656,
+            "std": 2027.4959211374328,
+            "median": 2045.5
+          },
+          "ast_unique_count": 851
+        }
+      ],
+      "vrptw_construct": [
+        {
+          "path": "experiments/traceaad_v10_1/results/vrptw_construct/20260902_vrptw_v101_rep1",
+          "state_sha256": "47ef15d1932dc57f4dd818888116a7b0bed61242e40257c8ec2a7ed2a90d3982",
+          "budget_used": 1000,
+          "n_nodes": 913,
+          "best": -20.62606727627653,
+          "best_id": 627,
+          "root_best": -21.49437931504279,
+          "idea_chars": {
+            "n": 913,
+            "mean": 336.7469879518072,
+            "std": 53.5954689493847,
+            "median": 336
+          },
+          "code_chars": {
+            "n": 913,
+            "mean": 6036.414019715225,
+            "std": 2125.953219512983,
+            "median": 5882
+          },
+          "ast_unique_count": 901
+        },
+        {
+          "path": "experiments/traceaad_v10_1/results/vrptw_construct/20260902_vrptw_v101_rep2",
+          "state_sha256": "a4a2df6c54f69cc17ceed87d435d22077e52f233ea9ef8ede4186869cdbf35eb",
+          "budget_used": 1000,
+          "n_nodes": 940,
+          "best": -19.154595456878322,
+          "best_id": 862,
+          "root_best": -21.566894915144253,
+          "idea_chars": {
+            "n": 940,
+            "mean": 331.8053191489362,
+            "std": 55.001417092831836,
+            "median": 329.0
+          },
+          "code_chars": {
+            "n": 940,
+            "mean": 7135.56914893617,
+            "std": 2385.9962441746347,
+            "median": 6972.5
+          },
+          "ast_unique_count": 939
+        },
+        {
+          "path": "experiments/traceaad_v10_1/results/vrptw_construct/20260902_vrptw_v101_rep3",
+          "state_sha256": "fc7fd0a2f08cf37619646c3a6e9f4e7a33dd7b16e44539de9597b900db86aa2f",
+          "budget_used": 1000,
+          "n_nodes": 941,
+          "best": -18.984014951829746,
+          "best_id": 939,
+          "root_best": -22.698596596840076,
+          "idea_chars": {
+            "n": 941,
+            "mean": 381.12752391073326,
+            "std": 66.3355164420118,
+            "median": 376
+          },
+          "code_chars": {
+            "n": 941,
+            "mean": 7996.643995749203,
+            "std": 2320.331018144705,
+            "median": 7960
+          },
+          "ast_unique_count": 935
+        }
+      ]
+    },
+    "v10.2": {
+      "tsp_construct": [
+        {
+          "path": "experiments/traceaad_v10_2/results/tsp_construct/20260902_tsp_v102_rep1",
+          "state_sha256": "ffdd18c8338f436d87332961d57fc340ba52f886de7b783053ac5b9e73e09059",
+          "budget_used": 1000,
+          "n_nodes": 967,
+          "best": -6.39994018528092,
+          "best_id": 575,
+          "root_best": -7.034715292619871,
+          "idea_chars": {
+            "n": 967,
+            "mean": 334.89348500517065,
+            "std": 58.86704700017876,
+            "median": 330
+          },
+          "code_chars": {
+            "n": 967,
+            "mean": 1321.564632885212,
+            "std": 611.8016005683683,
+            "median": 1276
+          },
+          "ast_unique_count": 928,
+          "best_at_400": -6.411495479290144,
+          "operators_400": {
+            "Refine": {
+              "valid": 139,
+              "parent_improved": 12,
+              "both_improved": 12,
+              "global_improved": 4,
+              "global_gain": 0.18415140441141986
+            },
+            "Pivot": {
+              "valid": 108,
+              "parent_improved": 4,
+              "both_improved": 4,
+              "global_improved": 3,
+              "global_gain": 0.3971243349920943
+            },
+            "Fuse": {
+              "valid": 129,
+              "parent_improved": 24,
+              "both_improved": 8,
+              "global_improved": 3,
+              "global_gain": 0.04194407392621269
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 142,
+            "Pivot": 121,
+            "Fuse": 130
+          },
+          "statuses_through_400_evals": {
+            "ok": 384,
+            "eval_failed": 16,
+            "invalid_output": 1
+          },
+          "event_prefix_lines": 401
+        },
+        {
+          "path": "experiments/traceaad_v10_2/results/tsp_construct/20260902_tsp_v102_rep2",
+          "state_sha256": "fa21683b66488dbee3bb440fb1f100b1cd052e19fc58e2859350905efbf9a221",
+          "budget_used": 1000,
+          "n_nodes": 819,
+          "best": -6.082508855032144,
+          "best_id": 671,
+          "root_best": -6.820211505568105,
+          "idea_chars": {
+            "n": 819,
+            "mean": 342.74603174603175,
+            "std": 61.05814270405241,
+            "median": 338
+          },
+          "code_chars": {
+            "n": 819,
+            "mean": 2638.832722832723,
+            "std": 954.3779897345524,
+            "median": 2645
+          },
+          "ast_unique_count": 768,
+          "best_at_400": -6.122869519273297,
+          "operators_400": {
+            "Pivot": {
+              "valid": 81,
+              "parent_improved": 2,
+              "both_improved": 2,
+              "global_improved": 1,
+              "global_gain": 0.5585696915078504
+            },
+            "Refine": {
+              "valid": 90,
+              "parent_improved": 8,
+              "both_improved": 8,
+              "global_improved": 3,
+              "global_gain": 0.07640742567523517
+            },
+            "Fuse": {
+              "valid": 114,
+              "parent_improved": 26,
+              "both_improved": 9,
+              "global_improved": 5,
+              "global_gain": 0.062364869111722676
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 9,
+            "Pivot": 140,
+            "Refine": 118,
+            "Fuse": 135
+          },
+          "statuses_through_400_evals": {
+            "eval_failed": 107,
+            "ok": 293,
+            "invalid_output": 2
+          },
+          "event_prefix_lines": 402
+        },
+        {
+          "path": "experiments/traceaad_v10_2/results/tsp_construct/20260902_tsp_v102_rep3",
+          "state_sha256": "1564ffdd0c29b7be3a21c6d2fff15f39d0fe3ade09a69bd2dc35e151e2bc5694",
+          "budget_used": 1000,
+          "n_nodes": 693,
+          "best": -5.724712652607812,
+          "best_id": 568,
+          "root_best": -6.820211505568105,
+          "idea_chars": {
+            "n": 693,
+            "mean": 325.33189033189035,
+            "std": 62.52386440604429,
+            "median": 321
+          },
+          "code_chars": {
+            "n": 693,
+            "mean": 3380.4242424242425,
+            "std": 1801.7807959131105,
+            "median": 2982
+          },
+          "ast_unique_count": 656,
+          "best_at_400": -5.764259898832158,
+          "operators_400": {
+            "Refine": {
+              "valid": 102,
+              "parent_improved": 9,
+              "both_improved": 9,
+              "global_improved": 4,
+              "global_gain": 0.5099426937753542
+            },
+            "Fuse": {
+              "valid": 101,
+              "parent_improved": 30,
+              "both_improved": 7,
+              "global_improved": 4,
+              "global_gain": 0.3553957964028065
+            },
+            "Pivot": {
+              "valid": 88,
+              "parent_improved": 6,
+              "both_improved": 6,
+              "global_improved": 3,
+              "global_gain": 0.19061311655778646
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 138,
+            "Fuse": 122,
+            "Pivot": 134
+          },
+          "statuses_through_400_evals": {
+            "ok": 299,
+            "eval_failed": 101,
+            "invalid_output": 2
+          },
+          "event_prefix_lines": 402
+        }
+      ],
+      "cvrp_aco": [
+        {
+          "path": "experiments/traceaad_v10_2/results/cvrp_aco/20260902_cvrp_v102_rep1",
+          "state_sha256": "058aa63958caadd9d4aad2bf69681e789464b75a9d68dd88a67b3aa7724c77f4",
+          "budget_used": 1000,
+          "n_nodes": 830,
+          "best": -8.904101614163915,
+          "best_id": 810,
+          "root_best": -18.64171949019842,
+          "idea_chars": {
+            "n": 830,
+            "mean": 353.7421686746988,
+            "std": 61.019394414301104,
+            "median": 350.0
+          },
+          "code_chars": {
+            "n": 830,
+            "mean": 3004.8168674698795,
+            "std": 1092.2350234257715,
+            "median": 2560.5
+          },
+          "ast_unique_count": 732,
+          "best_at_400": -9.08474978342645,
+          "operators_400": {
+            "Refine": {
+              "valid": 133,
+              "parent_improved": 33,
+              "both_improved": 33,
+              "global_improved": 13,
+              "global_gain": 9.071603410061444
+            },
+            "Pivot": {
+              "valid": 86,
+              "parent_improved": 3,
+              "both_improved": 3,
+              "global_improved": 1,
+              "global_gain": 0.30591607125826137
+            },
+            "Fuse": {
+              "valid": 125,
+              "parent_improved": 38,
+              "both_improved": 8,
+              "global_improved": 4,
+              "global_gain": 0.17945022545226408
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 142,
+            "Pivot": 121,
+            "Fuse": 129
+          },
+          "statuses_through_400_evals": {
+            "ok": 352,
+            "eval_failed": 48
+          },
+          "event_prefix_lines": 400
+        },
+        {
+          "path": "experiments/traceaad_v10_2/results/cvrp_aco/20260902_cvrp_v102_rep2",
+          "state_sha256": "ccd814f8b4aad9a264f0c15c6ed28542d353ccc4136202103c0de90ac37ac9de",
+          "budget_used": 1000,
+          "n_nodes": 908,
+          "best": -9.094377761573778,
+          "best_id": 348,
+          "root_best": -9.673168221101484,
+          "idea_chars": {
+            "n": 908,
+            "mean": 334.5484581497797,
+            "std": 57.23431854429455,
+            "median": 331.5
+          },
+          "code_chars": {
+            "n": 908,
+            "mean": 2000.1277533039647,
+            "std": 592.1858572311052,
+            "median": 2111.0
+          },
+          "ast_unique_count": 841,
+          "best_at_400": -9.094377761573778,
+          "operators_400": {
+            "Pivot": {
+              "valid": 103,
+              "parent_improved": 0,
+              "both_improved": 0,
+              "global_improved": 0,
+              "global_gain": 0
+            },
+            "Fuse": {
+              "valid": 132,
+              "parent_improved": 25,
+              "both_improved": 11,
+              "global_improved": 6,
+              "global_gain": 0.1952289893331045
+            },
+            "Refine": {
+              "valid": 109,
+              "parent_improved": 9,
+              "both_improved": 9,
+              "global_improved": 5,
+              "global_gain": 0.38356147019460174
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 9,
+            "Pivot": 140,
+            "Refine": 117,
+            "Fuse": 135
+          },
+          "statuses_through_400_evals": {
+            "invalid_output": 1,
+            "ok": 352,
+            "eval_failed": 48
+          },
+          "event_prefix_lines": 401
+        },
+        {
+          "path": "experiments/traceaad_v10_2/results/cvrp_aco/20260902_cvrp_v102_rep3",
+          "state_sha256": "96e7255fffd1ae4a87558939248c894203e58858dddab36cbe83c5cd5e37c297",
+          "budget_used": 1000,
+          "n_nodes": 878,
+          "best": -8.96801528403497,
+          "best_id": 753,
+          "root_best": -10.203271597520454,
+          "idea_chars": {
+            "n": 878,
+            "mean": 321.01822323462414,
+            "std": 53.70250104514939,
+            "median": 317.5
+          },
+          "code_chars": {
+            "n": 878,
+            "mean": 1969.4202733485195,
+            "std": 743.7636040124019,
+            "median": 1974.0
+          },
+          "ast_unique_count": 822,
+          "best_at_400": -9.19867893132373,
+          "operators_400": {
+            "Refine": {
+              "valid": 126,
+              "parent_improved": 13,
+              "both_improved": 13,
+              "global_improved": 4,
+              "global_gain": 0.7468625306820762
+            },
+            "Fuse": {
+              "valid": 120,
+              "parent_improved": 24,
+              "both_improved": 7,
+              "global_improved": 3,
+              "global_gain": 0.12514615466977475
+            },
+            "Pivot": {
+              "valid": 90,
+              "parent_improved": 3,
+              "both_improved": 3,
+              "global_improved": 2,
+              "global_gain": 0.13258398084487233
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 10,
+            "Refine": 135,
+            "Fuse": 122,
+            "Pivot": 133
+          },
+          "statuses_through_400_evals": {
+            "ok": 344,
+            "eval_failed": 56
+          },
+          "event_prefix_lines": 400
+        }
+      ],
+      "op_aco": [
+        {
+          "path": "experiments/traceaad_v10_2/results/op_aco/20260902_op_v102_rep1",
+          "state_sha256": "a64785079fc4351b2b4ccc2ec343500e93b0c6fd536f76a487a068fea680ae52",
+          "budget_used": 1000,
+          "n_nodes": 923,
+          "best": 14.841999999999999,
+          "best_id": 393,
+          "root_best": 12.810000000000002,
+          "idea_chars": {
+            "n": 923,
+            "mean": 330.9945828819068,
+            "std": 54.57978868481417,
+            "median": 326
+          },
+          "code_chars": {
+            "n": 923,
+            "mean": 1731.581798483207,
+            "std": 553.6808408350653,
+            "median": 1701
+          },
+          "ast_unique_count": 781,
+          "best_at_400": 14.703999999999999,
+          "operators_400": {
+            "Refine": {
+              "valid": 136,
+              "parent_improved": 5,
+              "both_improved": 5,
+              "global_improved": 3,
+              "global_gain": 0.8579999999999988
+            },
+            "Pivot": {
+              "valid": 102,
+              "parent_improved": 2,
+              "both_improved": 2,
+              "global_improved": 2,
+              "global_gain": 0.2640000000000011
+            },
+            "Fuse": {
+              "valid": 128,
+              "parent_improved": 10,
+              "both_improved": 5,
+              "global_improved": 5,
+              "global_gain": 0.7719999999999967
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 9,
+            "Refine": 142,
+            "Pivot": 121,
+            "Fuse": 128
+          },
+          "statuses_through_400_evals": {
+            "ok": 374,
+            "eval_failed": 26
+          },
+          "event_prefix_lines": 400
+        },
+        {
+          "path": "experiments/traceaad_v10_2/results/op_aco/20260902_op_v102_rep2",
+          "state_sha256": "cc390b845e2058af37ce93e1988d846d571e018286c37ccb600128e24c0e812d",
+          "budget_used": 1000,
+          "n_nodes": 935,
+          "best": 14.872,
+          "best_id": 505,
+          "root_best": 13.142000000000001,
+          "idea_chars": {
+            "n": 935,
+            "mean": 330.4524064171123,
+            "std": 56.182438675347356,
+            "median": 327
+          },
+          "code_chars": {
+            "n": 935,
+            "mean": 1164.5422459893048,
+            "std": 736.7877194660467,
+            "median": 1023
+          },
+          "ast_unique_count": 856,
+          "best_at_400": 14.786000000000001,
+          "operators_400": {
+            "Pivot": {
+              "valid": 113,
+              "parent_improved": 2,
+              "both_improved": 2,
+              "global_improved": 2,
+              "global_gain": 0.11999999999999922
+            },
+            "Refine": {
+              "valid": 116,
+              "parent_improved": 1,
+              "both_improved": 1,
+              "global_improved": 1,
+              "global_gain": 0.18400000000000105
+            },
+            "Fuse": {
+              "valid": 135,
+              "parent_improved": 9,
+              "both_improved": 8,
+              "global_improved": 5,
+              "global_gain": 1.3399999999999999
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Pivot": 140,
+            "Refine": 118,
+            "Fuse": 136
+          },
+          "statuses_through_400_evals": {
+            "ok": 372,
+            "eval_failed": 28,
+            "invalid_output": 2
+          },
+          "event_prefix_lines": 402
+        },
+        {
+          "path": "experiments/traceaad_v10_2/results/op_aco/20260902_op_v102_rep3",
+          "state_sha256": "40b3e2c670c87a76da9c5ea61dd669bbe7dcf4847097a29b0ae822d3d07235d4",
+          "budget_used": 1000,
+          "n_nodes": 916,
+          "best": 14.871999999999996,
+          "best_id": 571,
+          "root_best": 13.358,
+          "idea_chars": {
+            "n": 916,
+            "mean": 345.92903930131007,
+            "std": 60.52282582146051,
+            "median": 342.5
+          },
+          "code_chars": {
+            "n": 916,
+            "mean": 2599.0349344978167,
+            "std": 918.1882665158155,
+            "median": 2453.5
+          },
+          "ast_unique_count": 830,
+          "best_at_400": 14.443999999999999,
+          "operators_400": {
+            "Refine": {
+              "valid": 131,
+              "parent_improved": 6,
+              "both_improved": 6,
+              "global_improved": 2,
+              "global_gain": 0.24599999999999866
+            },
+            "Fuse": {
+              "valid": 120,
+              "parent_improved": 21,
+              "both_improved": 10,
+              "global_improved": 4,
+              "global_gain": 0.3360000000000021
+            },
+            "Pivot": {
+              "valid": 104,
+              "parent_improved": 2,
+              "both_improved": 2,
+              "global_improved": 2,
+              "global_gain": 0.5039999999999978
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 9,
+            "Refine": 136,
+            "Fuse": 122,
+            "Pivot": 133
+          },
+          "statuses_through_400_evals": {
+            "ok": 363,
+            "eval_failed": 37
+          },
+          "event_prefix_lines": 400
+        }
+      ],
+      "online_bin_packing": [
+        {
+          "path": "experiments/traceaad_v10_2/results/online_bin_packing/20260902_obp_v102_rep1",
+          "state_sha256": "dcf20f92c8fe818afa9fceb505e6ab59f9a30d0397485ffd3faf783727879df1",
+          "budget_used": 1000,
+          "n_nodes": 988,
+          "best": -726.25,
+          "best_id": 861,
+          "root_best": -744.5,
+          "idea_chars": {
+            "n": 988,
+            "mean": 293.4089068825911,
+            "std": 59.11051934369628,
+            "median": 289.0
+          },
+          "code_chars": {
+            "n": 988,
+            "mean": 534.7277327935223,
+            "std": 538.17616479807,
+            "median": 494.5
+          },
+          "ast_unique_count": 938,
+          "best_at_400": -731.75,
+          "operators_400": {
+            "Refine": {
+              "valid": 143,
+              "parent_improved": 1,
+              "both_improved": 1,
+              "global_improved": 1,
+              "global_gain": 10.0
+            },
+            "Pivot": {
+              "valid": 116,
+              "parent_improved": 1,
+              "both_improved": 1,
+              "global_improved": 0,
+              "global_gain": 0.0
+            },
+            "Fuse": {
+              "valid": 129,
+              "parent_improved": 5,
+              "both_improved": 3,
+              "global_improved": 1,
+              "global_gain": 2.75
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 144,
+            "Pivot": 121,
+            "Fuse": 131
+          },
+          "statuses_through_400_evals": {
+            "ok": 396,
+            "eval_failed": 4,
+            "invalid_output": 4
+          },
+          "event_prefix_lines": 404
+        },
+        {
+          "path": "experiments/traceaad_v10_2/results/online_bin_packing/20260902_obp_v102_rep2",
+          "state_sha256": "1071b915340cf6a36a389ee65b297e331ddbceaa29f47269ef9931d907f36201",
+          "budget_used": 1000,
+          "n_nodes": 990,
+          "best": -728.5,
+          "best_id": 680,
+          "root_best": -744.5,
+          "idea_chars": {
+            "n": 990,
+            "mean": 304.27777777777777,
+            "std": 55.96666466931357,
+            "median": 300.0
+          },
+          "code_chars": {
+            "n": 990,
+            "mean": 658.9575757575758,
+            "std": 674.5179248609542,
+            "median": 569.0
+          },
+          "ast_unique_count": 931,
+          "best_at_400": -729.25,
+          "operators_400": {
+            "Pivot": {
+              "valid": 134,
+              "parent_improved": 4,
+              "both_improved": 4,
+              "global_improved": 1,
+              "global_gain": 6.75
+            },
+            "Refine": {
+              "valid": 117,
+              "parent_improved": 12,
+              "both_improved": 12,
+              "global_improved": 4,
+              "global_gain": 7.0
+            },
+            "Fuse": {
+              "valid": 135,
+              "parent_improved": 40,
+              "both_improved": 7,
+              "global_improved": 1,
+              "global_gain": 1.5
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 9,
+            "Pivot": 140,
+            "Refine": 117,
+            "Fuse": 135
+          },
+          "statuses_through_400_evals": {
+            "ok": 394,
+            "invalid_output": 1,
+            "eval_failed": 6
+          },
+          "event_prefix_lines": 401
+        },
+        {
+          "path": "experiments/traceaad_v10_2/results/online_bin_packing/20260902_obp_v102_rep3",
+          "state_sha256": "4927eea041d4049c7a6cd3cb8a062dd3776be4d3799518b2be45db85b37a259f",
+          "budget_used": 1000,
+          "n_nodes": 980,
+          "best": -726.75,
+          "best_id": 969,
+          "root_best": -744.5,
+          "idea_chars": {
+            "n": 980,
+            "mean": 299.55408163265304,
+            "std": 61.10248706985692,
+            "median": 295.0
+          },
+          "code_chars": {
+            "n": 980,
+            "mean": 744.4142857142857,
+            "std": 777.2295826242275,
+            "median": 698.5
+          },
+          "ast_unique_count": 947,
+          "best_at_400": -729.75,
+          "operators_400": {
+            "Refine": {
+              "valid": 138,
+              "parent_improved": 4,
+              "both_improved": 4,
+              "global_improved": 2,
+              "global_gain": 1.0
+            },
+            "Fuse": {
+              "valid": 122,
+              "parent_improved": 15,
+              "both_improved": 2,
+              "global_improved": 1,
+              "global_gain": 1.75
+            },
+            "Pivot": {
+              "valid": 128,
+              "parent_improved": 4,
+              "both_improved": 4,
+              "global_improved": 1,
+              "global_gain": 12.0
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 139,
+            "Fuse": 123,
+            "Pivot": 134
+          },
+          "statuses_through_400_evals": {
+            "ok": 396,
+            "invalid_output": 4,
+            "eval_failed": 4
+          },
+          "event_prefix_lines": 404
+        }
+      ],
+      "vrptw_construct": [
+        {
+          "path": "experiments/traceaad_v10_2/results/vrptw_construct/20260902_vrptw_v102_rep1",
+          "state_sha256": "79cd3274563c549f51fb605871e21d8f204e63235a59378b7bdeeeec9e2a66e5",
+          "budget_used": 1000,
+          "n_nodes": 979,
+          "best": -20.33961619577434,
+          "best_id": 957,
+          "root_best": -22.698596596840076,
+          "idea_chars": {
+            "n": 979,
+            "mean": 332.97242083758937,
+            "std": 58.36983014300212,
+            "median": 328
+          },
+          "code_chars": {
+            "n": 979,
+            "mean": 2440.511746680286,
+            "std": 856.7318488018552,
+            "median": 2338
+          },
+          "ast_unique_count": 952,
+          "best_at_400": -20.93838419058107,
+          "operators_400": {
+            "Pivot": {
+              "valid": 119,
+              "parent_improved": 1,
+              "both_improved": 1,
+              "global_improved": 1,
+              "global_gain": 0.5030996925180418
+            },
+            "Fuse": {
+              "valid": 128,
+              "parent_improved": 32,
+              "both_improved": 4,
+              "global_improved": 4,
+              "global_gain": 0.8715934924936839
+            },
+            "Refine": {
+              "valid": 142,
+              "parent_improved": 7,
+              "both_improved": 7,
+              "global_improved": 2,
+              "global_gain": 0.3855192212472822
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 144,
+            "Pivot": 121,
+            "Fuse": 130
+          },
+          "statuses_through_400_evals": {
+            "ok": 397,
+            "invalid_output": 3,
+            "eval_failed": 3
+          },
+          "event_prefix_lines": 403
+        },
+        {
+          "path": "experiments/traceaad_v10_2/results/vrptw_construct/20260902_vrptw_v102_rep2",
+          "state_sha256": "1a9cb872ab6c3ad374c64f5541e075e322210bd0f4030a7c1143e6ec7be9e42e",
+          "budget_used": 1000,
+          "n_nodes": 954,
+          "best": -20.47765615678169,
+          "best_id": 848,
+          "root_best": -22.083967033754135,
+          "idea_chars": {
+            "n": 954,
+            "mean": 322.28825995807125,
+            "std": 56.778704908371324,
+            "median": 317.0
+          },
+          "code_chars": {
+            "n": 954,
+            "mean": 2458.009433962264,
+            "std": 948.871736768729,
+            "median": 2377.0
+          },
+          "ast_unique_count": 904,
+          "best_at_400": -20.55635122514866,
+          "operators_400": {
+            "Pivot": {
+              "valid": 123,
+              "parent_improved": 4,
+              "both_improved": 4,
+              "global_improved": 3,
+              "global_gain": 1.0390420485454612
+            },
+            "Refine": {
+              "valid": 114,
+              "parent_improved": 9,
+              "both_improved": 9,
+              "global_improved": 5,
+              "global_gain": 0.3971843921696987
+            },
+            "Fuse": {
+              "valid": 133,
+              "parent_improved": 35,
+              "both_improved": 5,
+              "global_improved": 1,
+              "global_gain": 0.09138936789031504
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 10,
+            "Pivot": 140,
+            "Refine": 117,
+            "Fuse": 135
+          },
+          "statuses_through_400_evals": {
+            "ok": 378,
+            "eval_failed": 22,
+            "invalid_output": 2
+          },
+          "event_prefix_lines": 402
+        },
+        {
+          "path": "experiments/traceaad_v10_2/results/vrptw_construct/20260902_vrptw_v102_rep3",
+          "state_sha256": "dd9619e83b33648d0108af1f509ad2d125d5d1c4d5c36d52f510738172761043",
+          "budget_used": 1000,
+          "n_nodes": 939,
+          "best": -20.22487358265615,
+          "best_id": 571,
+          "root_best": -21.249718161559414,
+          "idea_chars": {
+            "n": 939,
+            "mean": 309.6741214057508,
+            "std": 58.57244781479794,
+            "median": 307
+          },
+          "code_chars": {
+            "n": 939,
+            "mean": 2488.543130990415,
+            "std": 900.8542918959129,
+            "median": 2427
+          },
+          "ast_unique_count": 899,
+          "best_at_400": -20.45638526904087,
+          "operators_400": {
+            "Refine": {
+              "valid": 129,
+              "parent_improved": 15,
+              "both_improved": 15,
+              "global_improved": 6,
+              "global_gain": 0.41623027336337515
+            },
+            "Fuse": {
+              "valid": 120,
+              "parent_improved": 32,
+              "both_improved": 6,
+              "global_improved": 3,
+              "global_gain": 0.3771026191551705
+            },
+            "Pivot": {
+              "valid": 114,
+              "parent_improved": 3,
+              "both_improved": 3,
+              "global_improved": 0,
+              "global_gain": 0.0
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 10,
+            "Refine": 135,
+            "Fuse": 122,
+            "Pivot": 133
+          },
+          "statuses_through_400_evals": {
+            "ok": 371,
+            "eval_failed": 29
+          },
+          "event_prefix_lines": 400
+        }
+      ]
+    },
+    "v10.3": {
+      "tsp_construct": [
+        {
+          "path": "experiments/traceaad_v10_3/results/tsp_construct/20260904_tsp_v103_rep1",
+          "state_sha256": "63e85d80b8a8f9407c5831f22b67f2f9b7272ec2bdea9e5721296feb7ac173d0",
+          "budget_used": 1000,
+          "n_nodes": 985,
+          "best": -6.351050532009763,
+          "best_id": 419,
+          "root_best": -6.820211505568105,
+          "idea_chars": {
+            "n": 985,
+            "mean": 340.66294416243653,
+            "std": 49.16045259196335,
+            "median": 338
+          },
+          "code_chars": {
+            "n": 985,
+            "mean": 3232.2324873096445,
+            "std": 2191.1037761563443,
+            "median": 2546
+          },
+          "ast_unique_count": 940,
+          "best_at_400": -6.358093845179079,
+          "operators_400": {
+            "Refine": {
+              "valid": 142,
+              "parent_improved": 11,
+              "both_improved": 11,
+              "global_improved": 3,
+              "global_gain": 0.09066032573121952
+            },
+            "Pivot": {
+              "valid": 117,
+              "parent_improved": 5,
+              "both_improved": 5,
+              "global_improved": 1,
+              "global_gain": 0.1916067860188697
+            },
+            "Fuse": {
+              "valid": 128,
+              "parent_improved": 42,
+              "both_improved": 5,
+              "global_improved": 4,
+              "global_gain": 0.179850548638937
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 144,
+            "Pivot": 121,
+            "Fuse": 130
+          },
+          "statuses_through_400_evals": {
+            "ok": 395,
+            "eval_failed": 5,
+            "invalid_output": 3
+          },
+          "event_prefix_lines": 403
+        },
+        {
+          "path": "experiments/traceaad_v10_3/results/tsp_construct/20260904_tsp_v103_rep2",
+          "state_sha256": "03d0cdd3fa708b991004c1933cc1569a1a0a9d3315d932dd873581e99b6b8b61",
+          "budget_used": 1000,
+          "n_nodes": 633,
+          "best": -5.812236736625655,
+          "best_id": 333,
+          "root_best": -7.171880565909159,
+          "idea_chars": {
+            "n": 633,
+            "mean": 353.173775671406,
+            "std": 61.602863506569975,
+            "median": 348
+          },
+          "code_chars": {
+            "n": 633,
+            "mean": 5934.710900473934,
+            "std": 2465.5274072132315,
+            "median": 5560
+          },
+          "ast_unique_count": 613,
+          "best_at_400": -5.824907834638452,
+          "operators_400": {
+            "Pivot": {
+              "valid": 114,
+              "parent_improved": 9,
+              "both_improved": 9,
+              "global_improved": 6,
+              "global_gain": 0.6299847182155194
+            },
+            "Refine": {
+              "valid": 99,
+              "parent_improved": 23,
+              "both_improved": 23,
+              "global_improved": 6,
+              "global_gain": 0.3809586814916921
+            },
+            "Fuse": {
+              "valid": 110,
+              "parent_improved": 45,
+              "both_improved": 19,
+              "global_improved": 6,
+              "global_gain": 0.3360293315634957
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Pivot": 145,
+            "Refine": 121,
+            "Fuse": 143
+          },
+          "statuses_through_400_evals": {
+            "ok": 331,
+            "invalid_output": 17,
+            "eval_failed": 69
+          },
+          "event_prefix_lines": 417
+        },
+        {
+          "path": "experiments/traceaad_v10_3/results/tsp_construct/20260904_tsp_v103_rep3",
+          "state_sha256": "916a121e5f37bd9415cccd4d17e5ebd9ffe795a0c9151e16e5985a9679a515ba",
+          "budget_used": 1000,
+          "n_nodes": 984,
+          "best": -6.352823877979702,
+          "best_id": 979,
+          "root_best": -6.6166413838574325,
+          "idea_chars": {
+            "n": 984,
+            "mean": 342.0813008130081,
+            "std": 55.721326453198564,
+            "median": 337.5
+          },
+          "code_chars": {
+            "n": 984,
+            "mean": 4109.994918699187,
+            "std": 2164.7100043245,
+            "median": 3664.5
+          },
+          "ast_unique_count": 943,
+          "best_at_400": -6.419005873770603,
+          "operators_400": {
+            "Refine": {
+              "valid": 137,
+              "parent_improved": 21,
+              "both_improved": 21,
+              "global_improved": 0,
+              "global_gain": 0.0
+            },
+            "Fuse": {
+              "valid": 122,
+              "parent_improved": 45,
+              "both_improved": 9,
+              "global_improved": 6,
+              "global_gain": 0.19763551008682967
+            },
+            "Pivot": {
+              "valid": 127,
+              "parent_improved": 5,
+              "both_improved": 5,
+              "global_improved": 0,
+              "global_gain": 0
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 143,
+            "Fuse": 124,
+            "Pivot": 134
+          },
+          "statuses_through_400_evals": {
+            "ok": 394,
+            "eval_failed": 6,
+            "invalid_output": 9
+          },
+          "event_prefix_lines": 409
+        }
+      ],
+      "cvrp_aco": [
+        {
+          "path": "experiments/traceaad_v10_3/results/cvrp_aco/20260904_cvrp_v103_rep1",
+          "state_sha256": "56e1e12e426a666eef6e862df02501db99f2d69fbe9e3a2fa67097f8f73d26b1",
+          "budget_used": 1000,
+          "n_nodes": 919,
+          "best": -9.173522760201829,
+          "best_id": 403,
+          "root_best": -17.055275495289276,
+          "idea_chars": {
+            "n": 919,
+            "mean": 344.7791077257889,
+            "std": 58.36775976539502,
+            "median": 340
+          },
+          "code_chars": {
+            "n": 919,
+            "mean": 5621.13710554951,
+            "std": 1589.4232914746924,
+            "median": 5552
+          },
+          "ast_unique_count": 827,
+          "best_at_400": -9.318211437048467,
+          "operators_400": {
+            "Refine": {
+              "valid": 137,
+              "parent_improved": 22,
+              "both_improved": 22,
+              "global_improved": 11,
+              "global_gain": 2.265799949636163
+            },
+            "Pivot": {
+              "valid": 101,
+              "parent_improved": 0,
+              "both_improved": 0,
+              "global_improved": 0,
+              "global_gain": 0.0
+            },
+            "Fuse": {
+              "valid": 125,
+              "parent_improved": 40,
+              "both_improved": 17,
+              "global_improved": 10,
+              "global_gain": 5.471264108604647
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 145,
+            "Pivot": 121,
+            "Fuse": 132
+          },
+          "statuses_through_400_evals": {
+            "ok": 371,
+            "eval_failed": 29,
+            "invalid_output": 6
+          },
+          "event_prefix_lines": 406
+        },
+        {
+          "path": "experiments/traceaad_v10_3/results/cvrp_aco/20260904_cvrp_v103_rep2",
+          "state_sha256": "e6d8466dd5fc0a8e94aaa3a64108015c3a7f679054aedc444578ab5c3efe211a",
+          "budget_used": 1000,
+          "n_nodes": 968,
+          "best": -8.657509662635684,
+          "best_id": 734,
+          "root_best": -12.78989958624087,
+          "idea_chars": {
+            "n": 968,
+            "mean": 365.4793388429752,
+            "std": 71.27196834191389,
+            "median": 359.0
+          },
+          "code_chars": {
+            "n": 968,
+            "mean": 4683.987603305785,
+            "std": 1419.7006893764496,
+            "median": 4685.5
+          },
+          "ast_unique_count": 838,
+          "best_at_400": -8.753726730093469,
+          "operators_400": {
+            "Pivot": {
+              "valid": 131,
+              "parent_improved": 4,
+              "both_improved": 4,
+              "global_improved": 2,
+              "global_gain": 0.08422688111012278
+            },
+            "Refine": {
+              "valid": 114,
+              "parent_improved": 13,
+              "both_improved": 13,
+              "global_improved": 4,
+              "global_gain": 2.770724115305063
+            },
+            "Fuse": {
+              "valid": 134,
+              "parent_improved": 55,
+              "both_improved": 21,
+              "global_improved": 9,
+              "global_gain": 1.181221859732215
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Pivot": 140,
+            "Refine": 118,
+            "Fuse": 136
+          },
+          "statuses_through_400_evals": {
+            "ok": 387,
+            "eval_failed": 13,
+            "invalid_output": 2
+          },
+          "event_prefix_lines": 402
+        },
+        {
+          "path": "experiments/traceaad_v10_3/results/cvrp_aco/20260904_cvrp_v103_rep3",
+          "state_sha256": "2b4724050271490688dedefe803ef0553ccfc3b239a3148e3bc3eaf1935b59be",
+          "budget_used": 1000,
+          "n_nodes": 974,
+          "best": -9.043974140343824,
+          "best_id": 843,
+          "root_best": -9.80763326077368,
+          "idea_chars": {
+            "n": 974,
+            "mean": 363.605749486653,
+            "std": 54.87731442071192,
+            "median": 357.0
+          },
+          "code_chars": {
+            "n": 974,
+            "mean": 3903.374743326489,
+            "std": 1563.7954784024766,
+            "median": 3528.5
+          },
+          "ast_unique_count": 918,
+          "best_at_400": -9.085611487822268,
+          "operators_400": {
+            "Refine": {
+              "valid": 136,
+              "parent_improved": 8,
+              "both_improved": 8,
+              "global_improved": 4,
+              "global_gain": 0.0870287046839966
+            },
+            "Fuse": {
+              "valid": 120,
+              "parent_improved": 30,
+              "both_improved": 8,
+              "global_improved": 7,
+              "global_gain": 0.6349930682674145
+            },
+            "Pivot": {
+              "valid": 129,
+              "parent_improved": 0,
+              "both_improved": 0,
+              "global_improved": 0,
+              "global_gain": 0
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 139,
+            "Fuse": 122,
+            "Pivot": 134
+          },
+          "statuses_through_400_evals": {
+            "ok": 393,
+            "eval_failed": 7,
+            "invalid_output": 3
+          },
+          "event_prefix_lines": 403
+        }
+      ],
+      "op_aco": [
+        {
+          "path": "experiments/traceaad_v10_3/results/op_aco/20260904_op_v103_rep1",
+          "state_sha256": "35c684ee0a86415b5090bc9e4fba40eb64561f9b8caeb321a46fe37863a18a10",
+          "budget_used": 1000,
+          "n_nodes": 950,
+          "best": 14.76,
+          "best_id": 527,
+          "root_best": 14.108,
+          "idea_chars": {
+            "n": 950,
+            "mean": 369.4221052631579,
+            "std": 56.225982914290206,
+            "median": 365.0
+          },
+          "code_chars": {
+            "n": 950,
+            "mean": 4601.456842105264,
+            "std": 1520.4453377237287,
+            "median": 4511.0
+          },
+          "ast_unique_count": 849,
+          "best_at_400": 14.691999999999998,
+          "operators_400": {
+            "Refine": {
+              "valid": 134,
+              "parent_improved": 10,
+              "both_improved": 10,
+              "global_improved": 2,
+              "global_gain": 0.1980000000000004
+            },
+            "Pivot": {
+              "valid": 109,
+              "parent_improved": 1,
+              "both_improved": 1,
+              "global_improved": 0,
+              "global_gain": 0
+            },
+            "Fuse": {
+              "valid": 127,
+              "parent_improved": 42,
+              "both_improved": 6,
+              "global_improved": 6,
+              "global_gain": 0.38599999999999746
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 10,
+            "Refine": 142,
+            "Pivot": 121,
+            "Fuse": 128
+          },
+          "statuses_through_400_evals": {
+            "ok": 378,
+            "eval_failed": 22,
+            "invalid_output": 1
+          },
+          "event_prefix_lines": 401
+        },
+        {
+          "path": "experiments/traceaad_v10_3/results/op_aco/20260904_op_v103_rep2",
+          "state_sha256": "a584c4356b9e64ec5d93721f55ace3499a020f08329794ad3c5ee54b876747d0",
+          "budget_used": 1000,
+          "n_nodes": 988,
+          "best": 14.860000000000003,
+          "best_id": 221,
+          "root_best": 13.236,
+          "idea_chars": {
+            "n": 988,
+            "mean": 356.07995951417,
+            "std": 56.92000717691132,
+            "median": 352.0
+          },
+          "code_chars": {
+            "n": 988,
+            "mean": 3466.5445344129553,
+            "std": 1193.6506538876138,
+            "median": 3106.5
+          },
+          "ast_unique_count": 921,
+          "best_at_400": 14.860000000000003,
+          "operators_400": {
+            "Pivot": {
+              "valid": 131,
+              "parent_improved": 1,
+              "both_improved": 1,
+              "global_improved": 1,
+              "global_gain": 0.22599999999999731
+            },
+            "Refine": {
+              "valid": 118,
+              "parent_improved": 17,
+              "both_improved": 17,
+              "global_improved": 5,
+              "global_gain": 0.872000000000007
+            },
+            "Fuse": {
+              "valid": 134,
+              "parent_improved": 27,
+              "both_improved": 7,
+              "global_improved": 4,
+              "global_gain": 0.525999999999998
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Pivot": 140,
+            "Refine": 118,
+            "Fuse": 135
+          },
+          "statuses_through_400_evals": {
+            "ok": 391,
+            "eval_failed": 9,
+            "invalid_output": 1
+          },
+          "event_prefix_lines": 401
+        },
+        {
+          "path": "experiments/traceaad_v10_3/results/op_aco/20260904_op_v103_rep3",
+          "state_sha256": "8d323299cedb428c75347c21fb4d337a282473ff7420cca7ab35594891852b63",
+          "budget_used": 1000,
+          "n_nodes": 944,
+          "best": 14.921999999999997,
+          "best_id": 889,
+          "root_best": 13.642000000000001,
+          "idea_chars": {
+            "n": 944,
+            "mean": 346.60487288135596,
+            "std": 54.72518460351124,
+            "median": 344.0
+          },
+          "code_chars": {
+            "n": 944,
+            "mean": 6151.297669491525,
+            "std": 1816.792656901331,
+            "median": 6020.0
+          },
+          "ast_unique_count": 867,
+          "best_at_400": 14.898,
+          "operators_400": {
+            "Refine": {
+              "valid": 131,
+              "parent_improved": 15,
+              "both_improved": 15,
+              "global_improved": 5,
+              "global_gain": 0.5399999999999991
+            },
+            "Fuse": {
+              "valid": 121,
+              "parent_improved": 32,
+              "both_improved": 12,
+              "global_improved": 4,
+              "global_gain": 0.44399999999999906
+            },
+            "Pivot": {
+              "valid": 120,
+              "parent_improved": 5,
+              "both_improved": 5,
+              "global_improved": 3,
+              "global_gain": 0.27200000000000024
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 10,
+            "Refine": 139,
+            "Fuse": 122,
+            "Pivot": 134
+          },
+          "statuses_through_400_evals": {
+            "ok": 380,
+            "invalid_output": 5,
+            "eval_failed": 20
+          },
+          "event_prefix_lines": 405
+        }
+      ],
+      "online_bin_packing": [
+        {
+          "path": "experiments/traceaad_v10_3/results/online_bin_packing/20260904_obp_v103_rep1",
+          "state_sha256": "d4d28f5a4726472005fff71c35baa9091971223790814b2a89543ba95bc9117a",
+          "budget_used": 1000,
+          "n_nodes": 999,
+          "best": -744.5,
+          "best_id": 0,
+          "root_best": -744.5,
+          "idea_chars": {
+            "n": 999,
+            "mean": 313.85085085085086,
+            "std": 228.1682016260006,
+            "median": 292
+          },
+          "code_chars": {
+            "n": 999,
+            "mean": 1859.1021021021022,
+            "std": 2084.093057742924,
+            "median": 1104
+          },
+          "ast_unique_count": 729,
+          "best_at_400": -744.5,
+          "operators_400": {
+            "Refine": {
+              "valid": 142,
+              "parent_improved": 0,
+              "both_improved": 0,
+              "global_improved": 0,
+              "global_gain": 0.0
+            },
+            "Pivot": {
+              "valid": 115,
+              "parent_improved": 0,
+              "both_improved": 0,
+              "global_improved": 0,
+              "global_gain": 0.0
+            },
+            "Fuse": {
+              "valid": 134,
+              "parent_improved": 0,
+              "both_improved": 0,
+              "global_improved": 0,
+              "global_gain": 0.0
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 9,
+            "Refine": 149,
+            "Pivot": 124,
+            "Fuse": 136
+          },
+          "statuses_through_400_evals": {
+            "invalid_output": 18,
+            "ok": 399,
+            "eval_failed": 1
+          },
+          "event_prefix_lines": 418
+        },
+        {
+          "path": "experiments/traceaad_v10_3/results/online_bin_packing/20260904_obp_v103_rep2",
+          "state_sha256": "9d04a76a55b50c5ee3abbb595476b98250dd456ed0351973d0f569e94f461551",
+          "budget_used": 1000,
+          "n_nodes": 996,
+          "best": -726.75,
+          "best_id": 487,
+          "root_best": -744.5,
+          "idea_chars": {
+            "n": 996,
+            "mean": 344.9668674698795,
+            "std": 65.20363083445959,
+            "median": 340.0
+          },
+          "code_chars": {
+            "n": 996,
+            "mean": 2731.85140562249,
+            "std": 1341.2148884099424,
+            "median": 2490.0
+          },
+          "ast_unique_count": 942,
+          "best_at_400": -727.75,
+          "operators_400": {
+            "Pivot": {
+              "valid": 133,
+              "parent_improved": 12,
+              "both_improved": 12,
+              "global_improved": 5,
+              "global_gain": 6.25
+            },
+            "Refine": {
+              "valid": 117,
+              "parent_improved": 9,
+              "both_improved": 9,
+              "global_improved": 3,
+              "global_gain": 3.25
+            },
+            "Fuse": {
+              "valid": 139,
+              "parent_improved": 39,
+              "both_improved": 9,
+              "global_improved": 6,
+              "global_gain": 7.25
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Pivot": 142,
+            "Refine": 121,
+            "Fuse": 140
+          },
+          "statuses_through_400_evals": {
+            "ok": 397,
+            "invalid_output": 11,
+            "eval_failed": 3
+          },
+          "event_prefix_lines": 411
+        },
+        {
+          "path": "experiments/traceaad_v10_3/results/online_bin_packing/20260904_obp_v103_rep3",
+          "state_sha256": "9ebf5dfd48a0871f2d8ecf2e333dd2756b0fe832e42bb36cc3f29b32a3baea9d",
+          "budget_used": 1000,
+          "n_nodes": 991,
+          "best": -738.5,
+          "best_id": 966,
+          "root_best": -744.5,
+          "idea_chars": {
+            "n": 991,
+            "mean": 300.44399596367305,
+            "std": 89.36606502219676,
+            "median": 289
+          },
+          "code_chars": {
+            "n": 991,
+            "mean": 2192.4177598385468,
+            "std": 2249.9768697009576,
+            "median": 1454
+          },
+          "ast_unique_count": 889,
+          "best_at_400": -744.5,
+          "operators_400": {
+            "Refine": {
+              "valid": 136,
+              "parent_improved": 0,
+              "both_improved": 0,
+              "global_improved": 0,
+              "global_gain": 0.0
+            },
+            "Fuse": {
+              "valid": 127,
+              "parent_improved": 0,
+              "both_improved": 0,
+              "global_improved": 0,
+              "global_gain": 0.0
+            },
+            "Pivot": {
+              "valid": 126,
+              "parent_improved": 0,
+              "both_improved": 0,
+              "global_improved": 0,
+              "global_gain": 0.0
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 145,
+            "Fuse": 127,
+            "Pivot": 135
+          },
+          "statuses_through_400_evals": {
+            "ok": 397,
+            "invalid_output": 15,
+            "eval_failed": 3
+          },
+          "event_prefix_lines": 415
+        }
+      ],
+      "vrptw_construct": [
+        {
+          "path": "experiments/traceaad_v10_3/results/vrptw_construct/20260904_vrptw_v103_rep1",
+          "state_sha256": "330d37e79007d5590f0382df7c3ccfc5334e9c466ad8fea5b72b7087cd74f6d5",
+          "budget_used": 1000,
+          "n_nodes": 879,
+          "best": -19.942471404597182,
+          "best_id": 828,
+          "root_best": -21.591869425538476,
+          "idea_chars": {
+            "n": 879,
+            "mean": 356.3014789533561,
+            "std": 56.89995524333945,
+            "median": 352
+          },
+          "code_chars": {
+            "n": 879,
+            "mean": 6636.116040955631,
+            "std": 2079.831432127032,
+            "median": 6613
+          },
+          "ast_unique_count": 855,
+          "best_at_400": -20.26829559452247,
+          "operators_400": {
+            "Refine": {
+              "valid": 123,
+              "parent_improved": 14,
+              "both_improved": 14,
+              "global_improved": 4,
+              "global_gain": 0.6139062709458827
+            },
+            "Pivot": {
+              "valid": 81,
+              "parent_improved": 0,
+              "both_improved": 0,
+              "global_improved": 0,
+              "global_gain": 0.0
+            },
+            "Fuse": {
+              "valid": 124,
+              "parent_improved": 48,
+              "both_improved": 14,
+              "global_improved": 4,
+              "global_gain": 0.7096675600701232
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 9,
+            "Refine": 146,
+            "Pivot": 121,
+            "Fuse": 132
+          },
+          "statuses_through_400_evals": {
+            "ok": 336,
+            "eval_failed": 64,
+            "invalid_output": 8
+          },
+          "event_prefix_lines": 408
+        },
+        {
+          "path": "experiments/traceaad_v10_3/results/vrptw_construct/20260904_vrptw_v103_rep2",
+          "state_sha256": "be6ebf49552444e54f5d98f8f549cacd08be0091085c4fb8c9bc9e7eade6b1e6",
+          "budget_used": 1000,
+          "n_nodes": 961,
+          "best": -19.46318092994953,
+          "best_id": 878,
+          "root_best": -23.814267985923895,
+          "idea_chars": {
+            "n": 961,
+            "mean": 337.5900104058273,
+            "std": 54.18239320514914,
+            "median": 333
+          },
+          "code_chars": {
+            "n": 961,
+            "mean": 6075.1456815816855,
+            "std": 2016.945146131835,
+            "median": 5823
+          },
+          "ast_unique_count": 898,
+          "best_at_400": -19.62303481159725,
+          "operators_400": {
+            "Pivot": {
+              "valid": 127,
+              "parent_improved": 5,
+              "both_improved": 5,
+              "global_improved": 4,
+              "global_gain": 2.407598094048126
+            },
+            "Refine": {
+              "valid": 113,
+              "parent_improved": 17,
+              "both_improved": 17,
+              "global_improved": 3,
+              "global_gain": 0.3505067030410558
+            },
+            "Fuse": {
+              "valid": 133,
+              "parent_improved": 46,
+              "both_improved": 18,
+              "global_improved": 10,
+              "global_gain": 1.4331283772374626
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 9,
+            "Pivot": 140,
+            "Refine": 120,
+            "Fuse": 139
+          },
+          "statuses_through_400_evals": {
+            "eval_failed": 19,
+            "ok": 381,
+            "invalid_output": 8
+          },
+          "event_prefix_lines": 408
+        },
+        {
+          "path": "experiments/traceaad_v10_3/results/vrptw_construct/20260904_vrptw_v103_rep3",
+          "state_sha256": "e45f4f352826734efd1eae7f075cd6a4ecbc4114c3b4cc3d1f25639603fbd5db",
+          "budget_used": 1000,
+          "n_nodes": 966,
+          "best": -20.47361229439789,
+          "best_id": 952,
+          "root_best": -22.698596596840076,
+          "idea_chars": {
+            "n": 966,
+            "mean": 340.26293995859214,
+            "std": 52.324369076208974,
+            "median": 337.0
+          },
+          "code_chars": {
+            "n": 966,
+            "mean": 6750.574534161491,
+            "std": 1991.3193741535576,
+            "median": 6540.0
+          },
+          "ast_unique_count": 948,
+          "best_at_400": -20.579163797438905,
+          "operators_400": {
+            "Refine": {
+              "valid": 136,
+              "parent_improved": 16,
+              "both_improved": 16,
+              "global_improved": 2,
+              "global_gain": 1.4066051954028609
+            },
+            "Fuse": {
+              "valid": 123,
+              "parent_improved": 45,
+              "both_improved": 10,
+              "global_improved": 4,
+              "global_gain": 0.7128276039983099
+            },
+            "Pivot": {
+              "valid": 115,
+              "parent_improved": 3,
+              "both_improved": 3,
+              "global_improved": 0,
+              "global_gain": 0
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 11,
+            "Refine": 143,
+            "Fuse": 129,
+            "Pivot": 136
+          },
+          "statuses_through_400_evals": {
+            "invalid_output": 19,
+            "ok": 382,
+            "eval_failed": 18
+          },
+          "event_prefix_lines": 419
+        }
+      ]
+    },
+    "v10.4": {
+      "tsp_construct": [
+        {
+          "path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep1",
+          "state_sha256": "7c51141fdbbb4dbed76759441a24b9c42060d1a827353938d8acb43dfe1e51b2",
+          "budget_used": 529,
+          "n_nodes": 501,
+          "best": -6.316425778756767,
+          "best_id": 499,
+          "root_best": -6.8239686184057184,
+          "idea_chars": {
+            "n": 501,
+            "mean": 3770.940119760479,
+            "std": 199.93561065299406,
+            "median": 3755
+          },
+          "code_chars": {
+            "n": 501,
+            "mean": 5653.500998003992,
+            "std": 1342.1395078377664,
+            "median": 5517
+          },
+          "ast_unique_count": 498,
+          "best_at_400": -6.369410469224076,
+          "operators_400": {
+            "Refine": {
+              "valid": 131,
+              "parent_improved": 16,
+              "both_improved": 16,
+              "global_improved": 7,
+              "global_gain": 0.3261064225443633
+            },
+            "Pivot": {
+              "valid": 113,
+              "parent_improved": 10,
+              "both_improved": 10,
+              "global_improved": 0,
+              "global_gain": 0
+            },
+            "Fuse": {
+              "valid": 123,
+              "parent_improved": 32,
+              "both_improved": 13,
+              "global_improved": 7,
+              "global_gain": 0.12845172663727933
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 142,
+            "Pivot": 121,
+            "Fuse": 129
+          },
+          "statuses_through_400_evals": {
+            "ok": 375,
+            "eval_failed": 25
+          },
+          "event_prefix_lines": 400,
+          "idea_audit_window": "LLM generation steps 0..399; distinct from 400-eval performance prefix",
+          "idea_calls_in_window": 408,
+          "idea_response_chars": {
+            "n": 408,
+            "mean": 3752.549019607843,
+            "std": 204.80567297938833,
+            "median": 3732.0
+          },
+          "idea_prompt_chars": {
+            "n": 408,
+            "mean": 39906.700980392154,
+            "std": 9631.506393812604,
+            "median": 40466.0
+          },
+          "history_chars": {
+            "n": 400,
+            "mean": 27849.3875,
+            "std": 6382.404391912071,
+            "median": 29902.0
+          },
+          "idea_seconds": {
+            "n": 408,
+            "mean": 45.562606719194676,
+            "std": 5.099114788805983,
+            "median": 45.20501244068146
+          },
+          "code_seconds": {
+            "n": 408,
+            "mean": 62.31491570320784,
+            "std": 16.651415366978124,
+            "median": 60.879682421684265
+          }
+        },
+        {
+          "path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep2",
+          "state_sha256": "77a026384f35deb98bc9b0cef55ddc2fcabc43f598738da58b93bd444dfcb960",
+          "budget_used": 564,
+          "n_nodes": 300,
+          "best": -6.462454932318026,
+          "best_id": 243,
+          "root_best": -7.3845946210529885,
+          "idea_chars": {
+            "n": 300,
+            "mean": 3741.2,
+            "std": 275.50429286059295,
+            "median": 3735.0
+          },
+          "code_chars": {
+            "n": 300,
+            "mean": 5656.24,
+            "std": 2693.390884602071,
+            "median": 4868.5
+          },
+          "ast_unique_count": 285,
+          "best_at_400": -6.482496725488482,
+          "operators_400": {
+            "Pivot": {
+              "valid": 90,
+              "parent_improved": 25,
+              "both_improved": 25,
+              "global_improved": 6,
+              "global_gain": 0.22745107333823622
+            },
+            "Refine": {
+              "valid": 74,
+              "parent_improved": 33,
+              "both_improved": 33,
+              "global_improved": 7,
+              "global_gain": 0.40912694950797057
+            },
+            "Fuse": {
+              "valid": 66,
+              "parent_improved": 22,
+              "both_improved": 10,
+              "global_improved": 6,
+              "global_gain": 0.2655198727182997
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Pivot": 140,
+            "Refine": 118,
+            "Fuse": 135
+          },
+          "statuses_through_400_evals": {
+            "ok": 238,
+            "eval_failed": 162,
+            "invalid_output": 1
+          },
+          "event_prefix_lines": 401,
+          "idea_audit_window": "LLM generation steps 0..399; distinct from 400-eval performance prefix",
+          "idea_calls_in_window": 408,
+          "idea_response_chars": {
+            "n": 408,
+            "mean": 3655.3799019607845,
+            "std": 288.61251628822566,
+            "median": 3638.0
+          },
+          "idea_prompt_chars": {
+            "n": 408,
+            "mean": 41453.61274509804,
+            "std": 12156.410192713065,
+            "median": 43761.0
+          },
+          "history_chars": {
+            "n": 400,
+            "mean": 27487.04,
+            "std": 7361.809441232675,
+            "median": 29232.0
+          },
+          "idea_seconds": {
+            "n": 408,
+            "mean": 39.23545088312205,
+            "std": 4.42746835664615,
+            "median": 38.744210839271545
+          },
+          "code_seconds": {
+            "n": 408,
+            "mean": 58.36627274576355,
+            "std": 27.136437399665063,
+            "median": 51.66573345661163
+          }
+        },
+        {
+          "path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep3",
+          "state_sha256": "9cd3200f840c70cd995eab470c3163a6b6c51f0d5c9eaf598eb0e265b4f3be0a",
+          "budget_used": 655,
+          "n_nodes": 603,
+          "best": -6.313720260767879,
+          "best_id": 512,
+          "root_best": -7.278716589367963,
+          "idea_chars": {
+            "n": 603,
+            "mean": 3831.978441127695,
+            "std": 184.38328885466157,
+            "median": 3840
+          },
+          "code_chars": {
+            "n": 603,
+            "mean": 3639.842454394693,
+            "std": 1355.3782029916213,
+            "median": 3460
+          },
+          "ast_unique_count": 598,
+          "best_at_400": -6.562287391301441,
+          "operators_400": {
+            "Refine": {
+              "valid": 128,
+              "parent_improved": 21,
+              "both_improved": 21,
+              "global_improved": 6,
+              "global_gain": 0.2781506896654271
+            },
+            "Fuse": {
+              "valid": 108,
+              "parent_improved": 26,
+              "both_improved": 6,
+              "global_improved": 3,
+              "global_gain": 0.1942147862528696
+            },
+            "Pivot": {
+              "valid": 122,
+              "parent_improved": 17,
+              "both_improved": 17,
+              "global_improved": 4,
+              "global_gain": 0.24406372214822536
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 138,
+            "Fuse": 122,
+            "Pivot": 133
+          },
+          "statuses_through_400_evals": {
+            "ok": 366,
+            "eval_failed": 34,
+            "invalid_output": 1
+          },
+          "event_prefix_lines": 401,
+          "idea_audit_window": "LLM generation steps 0..399; distinct from 400-eval performance prefix",
+          "idea_calls_in_window": 408,
+          "idea_response_chars": {
+            "n": 408,
+            "mean": 3841.551470588235,
+            "std": 183.31267121453303,
+            "median": 3855.5
+          },
+          "idea_prompt_chars": {
+            "n": 408,
+            "mean": 38008.063725490196,
+            "std": 9824.753740915809,
+            "median": 40129.0
+          },
+          "history_chars": {
+            "n": 400,
+            "mean": 28452.165,
+            "std": 7796.230961225876,
+            "median": 31776.0
+          },
+          "idea_seconds": {
+            "n": 408,
+            "mean": 47.37891710564202,
+            "std": 5.8569275075208145,
+            "median": 47.48332619667053
+          },
+          "code_seconds": {
+            "n": 408,
+            "mean": 39.26668875299248,
+            "std": 14.519471864321895,
+            "median": 37.83356559276581
+          }
+        }
+      ],
+      "cvrp_aco": [
+        {
+          "path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep1",
+          "state_sha256": "bf5fbe7bbbc68309a5f4d0b37baf74d59e55ad8697aebed7e70a31df50184866",
+          "budget_used": 584,
+          "n_nodes": 570,
+          "best": -9.346671972308044,
+          "best_id": 562,
+          "root_best": -13.352774905661846,
+          "idea_chars": {
+            "n": 570,
+            "mean": 3861.4280701754387,
+            "std": 363.67460095447626,
+            "median": 3915.0
+          },
+          "code_chars": {
+            "n": 570,
+            "mean": 3739.022807017544,
+            "std": 922.5879859103202,
+            "median": 3588.5
+          },
+          "ast_unique_count": 497,
+          "best_at_400": -9.38941515955214,
+          "operators_400": {
+            "Refine": {
+              "valid": 141,
+              "parent_improved": 22,
+              "both_improved": 22,
+              "global_improved": 8,
+              "global_gain": 2.9240779453090404
+            },
+            "Pivot": {
+              "valid": 119,
+              "parent_improved": 14,
+              "both_improved": 14,
+              "global_improved": 3,
+              "global_gain": 0.8638581404800565
+            },
+            "Fuse": {
+              "valid": 127,
+              "parent_improved": 18,
+              "both_improved": 4,
+              "global_improved": 3,
+              "global_gain": 0.1754236603206092
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 9,
+            "Refine": 142,
+            "Pivot": 121,
+            "Fuse": 128
+          },
+          "statuses_through_400_evals": {
+            "ok": 395,
+            "eval_failed": 5
+          },
+          "event_prefix_lines": 400,
+          "idea_audit_window": "LLM generation steps 0..399; distinct from 400-eval performance prefix",
+          "idea_calls_in_window": 409,
+          "idea_response_chars": {
+            "n": 409,
+            "mean": 3884.760391198044,
+            "std": 361.5543328244876,
+            "median": 3931
+          },
+          "idea_prompt_chars": {
+            "n": 409,
+            "mean": 41486.58924205379,
+            "std": 8091.310355686577,
+            "median": 42071
+          },
+          "history_chars": {
+            "n": 400,
+            "mean": 31120.625,
+            "std": 4472.853983898669,
+            "median": 32171.0
+          },
+          "idea_seconds": {
+            "n": 409,
+            "mean": 42.242109946924785,
+            "std": 4.1621494559291685,
+            "median": 42.52825403213501
+          },
+          "code_seconds": {
+            "n": 409,
+            "mean": 42.48603785941537,
+            "std": 10.100418795796086,
+            "median": 41.07577967643738
+          }
+        },
+        {
+          "path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep2",
+          "state_sha256": "fed1c7d739e946c90ff5abd68baa67e4ea24f01bec059e095fbff0e563bb36e5",
+          "budget_used": 513,
+          "n_nodes": 497,
+          "best": -9.659711315530625,
+          "best_id": 494,
+          "root_best": -12.487119540914028,
+          "idea_chars": {
+            "n": 497,
+            "mean": 3845.887323943662,
+            "std": 238.8181235783363,
+            "median": 3842
+          },
+          "code_chars": {
+            "n": 497,
+            "mean": 4732.482897384306,
+            "std": 886.0707256512339,
+            "median": 4567
+          },
+          "ast_unique_count": 440,
+          "best_at_400": -9.713988647906117,
+          "operators_400": {
+            "Pivot": {
+              "valid": 134,
+              "parent_improved": 26,
+              "both_improved": 26,
+              "global_improved": 5,
+              "global_gain": 1.6461002650271652
+            },
+            "Refine": {
+              "valid": 113,
+              "parent_improved": 24,
+              "both_improved": 24,
+              "global_improved": 6,
+              "global_gain": 0.8762062000689088
+            },
+            "Fuse": {
+              "valid": 133,
+              "parent_improved": 44,
+              "both_improved": 5,
+              "global_improved": 3,
+              "global_gain": 0.25082442791183723
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Pivot": 140,
+            "Refine": 117,
+            "Fuse": 135
+          },
+          "statuses_through_400_evals": {
+            "ok": 388,
+            "eval_failed": 12
+          },
+          "event_prefix_lines": 400,
+          "idea_audit_window": "LLM generation steps 0..399; distinct from 400-eval performance prefix",
+          "idea_calls_in_window": 408,
+          "idea_response_chars": {
+            "n": 408,
+            "mean": 3849.9926470588234,
+            "std": 239.15236771283796,
+            "median": 3850.0
+          },
+          "idea_prompt_chars": {
+            "n": 408,
+            "mean": 41211.51225490196,
+            "std": 10218.510141810153,
+            "median": 42095.5
+          },
+          "history_chars": {
+            "n": 400,
+            "mean": 28762.305,
+            "std": 6979.925674606613,
+            "median": 30985.5
+          },
+          "idea_seconds": {
+            "n": 408,
+            "mean": 45.93004752140419,
+            "std": 5.32904225262835,
+            "median": 46.240238904953
+          },
+          "code_seconds": {
+            "n": 408,
+            "mean": 55.62180247435383,
+            "std": 11.739983579591954,
+            "median": 54.80754780769348
+          }
+        },
+        {
+          "path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep3",
+          "state_sha256": "8da3fc0963b85f8223ad5c808e824bc19630c519bc4f49c11d52529bf25725c7",
+          "budget_used": 481,
+          "n_nodes": 451,
+          "best": -8.99203050322221,
+          "best_id": 434,
+          "root_best": -15.968351077340063,
+          "idea_chars": {
+            "n": 451,
+            "mean": 3937.241685144124,
+            "std": 198.2454071560986,
+            "median": 3944
+          },
+          "code_chars": {
+            "n": 451,
+            "mean": 6215.583148558759,
+            "std": 1981.6845267666872,
+            "median": 6076
+          },
+          "ast_unique_count": 438,
+          "best_at_400": -9.127025327929887,
+          "operators_400": {
+            "Refine": {
+              "valid": 129,
+              "parent_improved": 31,
+              "both_improved": 31,
+              "global_improved": 6,
+              "global_gain": 0.24224034729775035
+            },
+            "Fuse": {
+              "valid": 116,
+              "parent_improved": 42,
+              "both_improved": 12,
+              "global_improved": 6,
+              "global_gain": 3.1469813799752053
+            },
+            "Pivot": {
+              "valid": 121,
+              "parent_improved": 23,
+              "both_improved": 23,
+              "global_improved": 6,
+              "global_gain": 3.4521040221372203
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 10,
+            "Refine": 135,
+            "Fuse": 122,
+            "Pivot": 133
+          },
+          "statuses_through_400_evals": {
+            "ok": 374,
+            "eval_failed": 26
+          },
+          "event_prefix_lines": 400,
+          "idea_audit_window": "LLM generation steps 0..399; distinct from 400-eval performance prefix",
+          "idea_calls_in_window": 410,
+          "idea_response_chars": {
+            "n": 410,
+            "mean": 3953.1658536585364,
+            "std": 197.81104516462872,
+            "median": 3958.0
+          },
+          "idea_prompt_chars": {
+            "n": 410,
+            "mean": 43877.81951219512,
+            "std": 10867.852977652607,
+            "median": 44533.5
+          },
+          "history_chars": {
+            "n": 400,
+            "mean": 29911.765,
+            "std": 5542.572194487209,
+            "median": 32376.0
+          },
+          "idea_seconds": {
+            "n": 410,
+            "mean": 39.177832720919355,
+            "std": 4.199682436970823,
+            "median": 39.13386261463165
+          },
+          "code_seconds": {
+            "n": 410,
+            "mean": 69.67461551805822,
+            "std": 22.544043655890658,
+            "median": 67.39041209220886
+          }
+        }
+      ],
+      "op_aco": [
+        {
+          "path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep1",
+          "state_sha256": "ac9d668afc181c9ed5302b9b2363d9254959eec29c8ab388079f2313295304af",
+          "budget_used": 500,
+          "n_nodes": 478,
+          "best": 14.725999999999999,
+          "best_id": 440,
+          "root_best": 13.11,
+          "idea_chars": {
+            "n": 478,
+            "mean": 3766.246861924686,
+            "std": 243.41304316187907,
+            "median": 3776.5
+          },
+          "code_chars": {
+            "n": 478,
+            "mean": 4868.2468619246865,
+            "std": 1711.567095430367,
+            "median": 5109.0
+          },
+          "ast_unique_count": 457,
+          "best_at_400": 14.709999999999999,
+          "operators_400": {
+            "Refine": {
+              "valid": 134,
+              "parent_improved": 11,
+              "both_improved": 11,
+              "global_improved": 3,
+              "global_gain": 0.3240000000000016
+            },
+            "Pivot": {
+              "valid": 115,
+              "parent_improved": 9,
+              "both_improved": 9,
+              "global_improved": 2,
+              "global_gain": 0.7159999999999993
+            },
+            "Fuse": {
+              "valid": 125,
+              "parent_improved": 21,
+              "both_improved": 7,
+              "global_improved": 4,
+              "global_gain": 0.5599999999999987
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 9,
+            "Refine": 142,
+            "Pivot": 121,
+            "Fuse": 128
+          },
+          "statuses_through_400_evals": {
+            "ok": 382,
+            "eval_failed": 18
+          },
+          "event_prefix_lines": 400,
+          "idea_audit_window": "LLM generation steps 0..399; distinct from 400-eval performance prefix",
+          "idea_calls_in_window": 409,
+          "idea_response_chars": {
+            "n": 409,
+            "mean": 3773.78728606357,
+            "std": 240.46920277868944,
+            "median": 3785
+          },
+          "idea_prompt_chars": {
+            "n": 409,
+            "mean": 40196.195599022,
+            "std": 10137.681833957367,
+            "median": 41532
+          },
+          "history_chars": {
+            "n": 400,
+            "mean": 28714.02,
+            "std": 6531.002027507591,
+            "median": 30836.0
+          },
+          "idea_seconds": {
+            "n": 409,
+            "mean": 48.45274227930456,
+            "std": 5.944056060224551,
+            "median": 48.76565670967102
+          },
+          "code_seconds": {
+            "n": 409,
+            "mean": 62.324522210216756,
+            "std": 24.439686160288325,
+            "median": 67.55098032951355
+          }
+        },
+        {
+          "path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep2",
+          "state_sha256": "98564f785001b60d7e8a52336061b3ca3b761fd292488f234a4fb1dd99c535ec",
+          "budget_used": 545,
+          "n_nodes": 535,
+          "best": 14.364,
+          "best_id": 256,
+          "root_best": 13.254,
+          "idea_chars": {
+            "n": 535,
+            "mean": 3794.3439252336448,
+            "std": 271.3097471013604,
+            "median": 3849
+          },
+          "code_chars": {
+            "n": 535,
+            "mean": 4898.3121495327105,
+            "std": 1317.2105093627624,
+            "median": 4895
+          },
+          "ast_unique_count": 478,
+          "best_at_400": 14.364,
+          "operators_400": {
+            "Pivot": {
+              "valid": 135,
+              "parent_improved": 9,
+              "both_improved": 9,
+              "global_improved": 4,
+              "global_gain": 0.12799999999999834
+            },
+            "Refine": {
+              "valid": 115,
+              "parent_improved": 8,
+              "both_improved": 8,
+              "global_improved": 1,
+              "global_gain": 0.15600000000000414
+            },
+            "Fuse": {
+              "valid": 135,
+              "parent_improved": 32,
+              "both_improved": 3,
+              "global_improved": 3,
+              "global_gain": 0.8259999999999987
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 9,
+            "Pivot": 139,
+            "Refine": 117,
+            "Fuse": 135
+          },
+          "statuses_through_400_evals": {
+            "ok": 393,
+            "eval_failed": 7
+          },
+          "event_prefix_lines": 400,
+          "idea_audit_window": "LLM generation steps 0..399; distinct from 400-eval performance prefix",
+          "idea_calls_in_window": 409,
+          "idea_response_chars": {
+            "n": 409,
+            "mean": 3807.5061124694375,
+            "std": 253.56725639653814,
+            "median": 3853
+          },
+          "idea_prompt_chars": {
+            "n": 409,
+            "mean": 37371.11491442543,
+            "std": 12621.660429167523,
+            "median": 41658
+          },
+          "history_chars": {
+            "n": 400,
+            "mean": 25971.7025,
+            "std": 9570.594288579221,
+            "median": 31504.5
+          },
+          "idea_seconds": {
+            "n": 409,
+            "mean": 43.246975138601286,
+            "std": 5.555542759817889,
+            "median": 42.558419704437256
+          },
+          "code_seconds": {
+            "n": 409,
+            "mean": 56.637287454675054,
+            "std": 17.167166814899854,
+            "median": 56.528565645217896
+          }
+        },
+        {
+          "path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep3",
+          "state_sha256": "34d0428efb03327b8bd9946f3dea7a764fdba986c52b396ae851f99c8bc5eec7",
+          "budget_used": 544,
+          "n_nodes": 520,
+          "best": 14.145999999999997,
+          "best_id": 114,
+          "root_best": 13.064000000000002,
+          "idea_chars": {
+            "n": 520,
+            "mean": 3880.9211538461536,
+            "std": 241.735614776681,
+            "median": 3883.0
+          },
+          "code_chars": {
+            "n": 520,
+            "mean": 4911.265384615384,
+            "std": 1165.2859212154312,
+            "median": 4914.5
+          },
+          "ast_unique_count": 498,
+          "best_at_400": 14.145999999999997,
+          "operators_400": {
+            "Refine": {
+              "valid": 132,
+              "parent_improved": 15,
+              "both_improved": 15,
+              "global_improved": 2,
+              "global_gain": 0.2680000000000007
+            },
+            "Fuse": {
+              "valid": 118,
+              "parent_improved": 22,
+              "both_improved": 3,
+              "global_improved": 3,
+              "global_gain": 0.40599999999999703
+            },
+            "Pivot": {
+              "valid": 125,
+              "parent_improved": 10,
+              "both_improved": 10,
+              "global_improved": 3,
+              "global_gain": 0.4079999999999977
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 137,
+            "Fuse": 122,
+            "Pivot": 133
+          },
+          "statuses_through_400_evals": {
+            "ok": 383,
+            "eval_failed": 17
+          },
+          "event_prefix_lines": 400,
+          "idea_audit_window": "LLM generation steps 0..399; distinct from 400-eval performance prefix",
+          "idea_calls_in_window": 408,
+          "idea_response_chars": {
+            "n": 408,
+            "mean": 3865.4460784313724,
+            "std": 220.53163825974494,
+            "median": 3873.0
+          },
+          "idea_prompt_chars": {
+            "n": 408,
+            "mean": 40524.44607843137,
+            "std": 10709.579991949495,
+            "median": 42285.5
+          },
+          "history_chars": {
+            "n": 400,
+            "mean": 28855.73,
+            "std": 7518.584458376747,
+            "median": 31579.0
+          },
+          "idea_seconds": {
+            "n": 408,
+            "mean": 45.78815216059778,
+            "std": 5.423396105723668,
+            "median": 45.61694025993347
+          },
+          "code_seconds": {
+            "n": 408,
+            "mean": 57.996617248245315,
+            "std": 13.87126253503952,
+            "median": 58.64026200771332
+          }
+        }
+      ],
+      "online_bin_packing": [
+        {
+          "path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep1",
+          "state_sha256": "bcad884deb6f0e75f497480f4f23ccfe9b2cebd2c77fa4c764f6f307f62b5e60",
+          "budget_used": 976,
+          "n_nodes": 968,
+          "best": -727.0,
+          "best_id": 901,
+          "root_best": -744.5,
+          "idea_chars": {
+            "n": 968,
+            "mean": 3638.693181818182,
+            "std": 324.55905633588173,
+            "median": 3635.5
+          },
+          "code_chars": {
+            "n": 968,
+            "mean": 2174,
+            "std": 1130.1317198627412,
+            "median": 1913.0
+          },
+          "ast_unique_count": 859,
+          "best_at_400": -727.5,
+          "operators_400": {
+            "Refine": {
+              "valid": 143,
+              "parent_improved": 10,
+              "both_improved": 10,
+              "global_improved": 0,
+              "global_gain": 0.0
+            },
+            "Pivot": {
+              "valid": 116,
+              "parent_improved": 12,
+              "both_improved": 12,
+              "global_improved": 4,
+              "global_gain": 11.5
+            },
+            "Fuse": {
+              "valid": 131,
+              "parent_improved": 30,
+              "both_improved": 4,
+              "global_improved": 4,
+              "global_gain": 5.5
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 145,
+            "Pivot": 121,
+            "Fuse": 131
+          },
+          "statuses_through_400_evals": {
+            "ok": 398,
+            "invalid_output": 5,
+            "eval_failed": 2
+          },
+          "event_prefix_lines": 405,
+          "idea_audit_window": "LLM generation steps 0..399; distinct from 400-eval performance prefix",
+          "idea_calls_in_window": 408,
+          "idea_response_chars": {
+            "n": 408,
+            "mean": 3801.1838235294117,
+            "std": 352.88297791380535,
+            "median": 3826.0
+          },
+          "idea_prompt_chars": {
+            "n": 408,
+            "mean": 22249.083333333332,
+            "std": 9585.4746014249,
+            "median": 22298.0
+          },
+          "history_chars": {
+            "n": 400,
+            "mean": 14388.775,
+            "std": 8697.380356292926,
+            "median": 12619.0
+          },
+          "idea_seconds": {
+            "n": 408,
+            "mean": 37.265894414747464,
+            "std": 4.71653105912542,
+            "median": 37.280210733413696
+          },
+          "code_seconds": {
+            "n": 408,
+            "mean": 25.864680980934818,
+            "std": 30.55144369282633,
+            "median": 19.297012448310852
+          }
+        },
+        {
+          "path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep2",
+          "state_sha256": "d9dc807aa9b0a0b07fc7323fd8633a89ca33927b7025ab71ba327abf131fe880",
+          "budget_used": 790,
+          "n_nodes": 771,
+          "best": -725.75,
+          "best_id": 717,
+          "root_best": -744.5,
+          "idea_chars": {
+            "n": 771,
+            "mean": 3724.32944228275,
+            "std": 308.70750734808047,
+            "median": 3729
+          },
+          "code_chars": {
+            "n": 771,
+            "mean": 1906.857328145266,
+            "std": 808.683169065608,
+            "median": 1851
+          },
+          "ast_unique_count": 695,
+          "best_at_400": -729.0,
+          "operators_400": {
+            "Pivot": {
+              "valid": 139,
+              "parent_improved": 4,
+              "both_improved": 4,
+              "global_improved": 1,
+              "global_gain": 7.0
+            },
+            "Refine": {
+              "valid": 118,
+              "parent_improved": 6,
+              "both_improved": 6,
+              "global_improved": 1,
+              "global_gain": 3.25
+            },
+            "Fuse": {
+              "valid": 133,
+              "parent_improved": 32,
+              "both_improved": 9,
+              "global_improved": 4,
+              "global_gain": 5.25
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Pivot": 140,
+            "Refine": 118,
+            "Fuse": 135
+          },
+          "statuses_through_400_evals": {
+            "ok": 398,
+            "eval_failed": 2,
+            "invalid_output": 1
+          },
+          "event_prefix_lines": 401,
+          "idea_audit_window": "LLM generation steps 0..399; distinct from 400-eval performance prefix",
+          "idea_calls_in_window": 408,
+          "idea_response_chars": {
+            "n": 408,
+            "mean": 3785.906862745098,
+            "std": 345.98385321424144,
+            "median": 3802.0
+          },
+          "idea_prompt_chars": {
+            "n": 408,
+            "mean": 23820.710784313724,
+            "std": 10186.763867300495,
+            "median": 23282.0
+          },
+          "history_chars": {
+            "n": 400,
+            "mean": 16090.3125,
+            "std": 9426.24070504341,
+            "median": 16732.0
+          },
+          "idea_seconds": {
+            "n": 408,
+            "mean": 44.99103339922194,
+            "std": 5.964491632603143,
+            "median": 45.222750544548035
+          },
+          "code_seconds": {
+            "n": 408,
+            "mean": 24.72077689334458,
+            "std": 29.481944156962737,
+            "median": 18.885553121566772
+          }
+        },
+        {
+          "path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep3",
+          "state_sha256": "ee467ab31f200fb713831d0d69bef1c8a6304033b0e8e2f1cc0c1372a575785a",
+          "budget_used": 859,
+          "n_nodes": 851,
+          "best": -725.25,
+          "best_id": 649,
+          "root_best": -744.5,
+          "idea_chars": {
+            "n": 851,
+            "mean": 3733.982373678026,
+            "std": 455.15601040367943,
+            "median": 3783
+          },
+          "code_chars": {
+            "n": 851,
+            "mean": 2246.8413631022327,
+            "std": 1080.5099567192492,
+            "median": 2146
+          },
+          "ast_unique_count": 812,
+          "best_at_400": -726.5,
+          "operators_400": {
+            "Refine": {
+              "valid": 136,
+              "parent_improved": 6,
+              "both_improved": 6,
+              "global_improved": 2,
+              "global_gain": 12.0
+            },
+            "Fuse": {
+              "valid": 122,
+              "parent_improved": 9,
+              "both_improved": 4,
+              "global_improved": 3,
+              "global_gain": 2.5
+            },
+            "Pivot": {
+              "valid": 132,
+              "parent_improved": 2,
+              "both_improved": 2,
+              "global_improved": 2,
+              "global_gain": 3.5
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 8,
+            "Refine": 138,
+            "Fuse": 122,
+            "Pivot": 133
+          },
+          "statuses_through_400_evals": {
+            "ok": 398,
+            "eval_failed": 2,
+            "invalid_output": 1
+          },
+          "event_prefix_lines": 401,
+          "idea_audit_window": "LLM generation steps 0..399; distinct from 400-eval performance prefix",
+          "idea_calls_in_window": 408,
+          "idea_response_chars": {
+            "n": 408,
+            "mean": 3861.6789215686276,
+            "std": 533.9502110302761,
+            "median": 3949.0
+          },
+          "idea_prompt_chars": {
+            "n": 408,
+            "mean": 21587.053921568626,
+            "std": 9191.251159883686,
+            "median": 20313.0
+          },
+          "history_chars": {
+            "n": 400,
+            "mean": 13940.7325,
+            "std": 8123.280083453316,
+            "median": 12591.0
+          },
+          "idea_seconds": {
+            "n": 408,
+            "mean": 39.19017308307629,
+            "std": 6.730251608796529,
+            "median": 38.903446316719055
+          },
+          "code_seconds": {
+            "n": 408,
+            "mean": 22.1566110627324,
+            "std": 18.598607549851344,
+            "median": 17.74744141101837
+          }
+        }
+      ],
+      "vrptw_construct": [
+        {
+          "path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep1",
+          "state_sha256": "12124dfb61c564d284d25ab126ee240dd9c781e7960fb96d90a592e5a26b1944",
+          "budget_used": 660,
+          "n_nodes": 634,
+          "best": -20.009742623698543,
+          "best_id": 565,
+          "root_best": -25.83578813838403,
+          "idea_chars": {
+            "n": 634,
+            "mean": 3831.0157728706627,
+            "std": 198.83536833337928,
+            "median": 3818.5
+          },
+          "code_chars": {
+            "n": 634,
+            "mean": 4708.52523659306,
+            "std": 1527.3375972629551,
+            "median": 4498.5
+          },
+          "ast_unique_count": 633,
+          "best_at_400": -20.068659482668146,
+          "operators_400": {
+            "Refine": {
+              "valid": 136,
+              "parent_improved": 24,
+              "both_improved": 24,
+              "global_improved": 6,
+              "global_gain": 3.1693129922665833
+            },
+            "Pivot": {
+              "valid": 112,
+              "parent_improved": 8,
+              "both_improved": 8,
+              "global_improved": 1,
+              "global_gain": 0.11246800202176388
+            },
+            "Fuse": {
+              "valid": 124,
+              "parent_improved": 35,
+              "both_improved": 15,
+              "global_improved": 6,
+              "global_gain": 2.485347661427536
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 12,
+            "Refine": 142,
+            "Pivot": 121,
+            "Fuse": 127
+          },
+          "statuses_through_400_evals": {
+            "ok": 380,
+            "eval_failed": 20,
+            "invalid_output": 2
+          },
+          "event_prefix_lines": 402,
+          "idea_audit_window": "LLM generation steps 0..399; distinct from 400-eval performance prefix",
+          "idea_calls_in_window": 412,
+          "idea_response_chars": {
+            "n": 412,
+            "mean": 3827.381067961165,
+            "std": 180.85324380951423,
+            "median": 3815.0
+          },
+          "idea_prompt_chars": {
+            "n": 412,
+            "mean": 39480.00485436893,
+            "std": 8981.812812647357,
+            "median": 40393.5
+          },
+          "history_chars": {
+            "n": 400,
+            "mean": 28961.525,
+            "std": 5305.006455047462,
+            "median": 31002.5
+          },
+          "idea_seconds": {
+            "n": 412,
+            "mean": 44.451145037285336,
+            "std": 5.816572281177851,
+            "median": 43.6525022983551
+          },
+          "code_seconds": {
+            "n": 412,
+            "mean": 50.0481340572672,
+            "std": 17.42016403223771,
+            "median": 46.877384305000305
+          }
+        },
+        {
+          "path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep2",
+          "state_sha256": "b63045dccf8905d2a38a8fba9bdd30e3d8a2e1b43695610927dd6968cfc3ce31",
+          "budget_used": 693,
+          "n_nodes": 682,
+          "best": -18.394699808791145,
+          "best_id": 514,
+          "root_best": -21.883055131251677,
+          "idea_chars": {
+            "n": 682,
+            "mean": 3978.868035190616,
+            "std": 226.3487235975813,
+            "median": 3985.0
+          },
+          "code_chars": {
+            "n": 682,
+            "mean": 5528.373900293255,
+            "std": 1375.6142943131574,
+            "median": 5342.5
+          },
+          "ast_unique_count": 679,
+          "best_at_400": -18.695023965308714,
+          "operators_400": {
+            "Pivot": {
+              "valid": 133,
+              "parent_improved": 15,
+              "both_improved": 15,
+              "global_improved": 3,
+              "global_gain": 1.0814385190314972
+            },
+            "Refine": {
+              "valid": 117,
+              "parent_improved": 18,
+              "both_improved": 18,
+              "global_improved": 4,
+              "global_gain": 2.0312397567897627
+            },
+            "Fuse": {
+              "valid": 135,
+              "parent_improved": 27,
+              "both_improved": 5,
+              "global_improved": 1,
+              "global_gain": 0.0753528901217031
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 10,
+            "Pivot": 140,
+            "Refine": 117,
+            "Fuse": 135
+          },
+          "statuses_through_400_evals": {
+            "ok": 393,
+            "eval_failed": 7,
+            "invalid_output": 2
+          },
+          "event_prefix_lines": 402,
+          "idea_audit_window": "LLM generation steps 0..399; distinct from 400-eval performance prefix",
+          "idea_calls_in_window": 410,
+          "idea_response_chars": {
+            "n": 410,
+            "mean": 3962.531707317073,
+            "std": 215.3361169113688,
+            "median": 3980.5
+          },
+          "idea_prompt_chars": {
+            "n": 410,
+            "mean": 41742.71951219512,
+            "std": 10807.139868339273,
+            "median": 43170.5
+          },
+          "history_chars": {
+            "n": 400,
+            "mean": 29582.915,
+            "std": 7346.07501718914,
+            "median": 32423.0
+          },
+          "idea_seconds": {
+            "n": 410,
+            "mean": 38.40764780102707,
+            "std": 4.535099010872961,
+            "median": 38.14047694206238
+          },
+          "code_seconds": {
+            "n": 410,
+            "mean": 48.61531692249019,
+            "std": 12.956446844635908,
+            "median": 46.737085819244385
+          }
+        },
+        {
+          "path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep3",
+          "state_sha256": "b1565ccc8da945f27cf61caeeb88b6eb43f3047c8928c0918c355bbad534dc25",
+          "budget_used": 495,
+          "n_nodes": 468,
+          "best": -19.609963804359005,
+          "best_id": 408,
+          "root_best": -23.94954011664426,
+          "idea_chars": {
+            "n": 468,
+            "mean": 3859.5042735042734,
+            "std": 240.43641170986658,
+            "median": 3849.5
+          },
+          "code_chars": {
+            "n": 468,
+            "mean": 6314.547008547009,
+            "std": 1665.4528909076275,
+            "median": 6055.0
+          },
+          "ast_unique_count": 467,
+          "best_at_400": -19.67779986131441,
+          "operators_400": {
+            "Refine": {
+              "valid": 124,
+              "parent_improved": 21,
+              "both_improved": 21,
+              "global_improved": 7,
+              "global_gain": 2.5755242452095146
+            },
+            "Fuse": {
+              "valid": 119,
+              "parent_improved": 38,
+              "both_improved": 16,
+              "global_improved": 10,
+              "global_gain": 0.30873406666611913
+            },
+            "Pivot": {
+              "valid": 127,
+              "parent_improved": 24,
+              "both_improved": 24,
+              "global_improved": 6,
+              "global_gain": 1.387481943454219
+            }
+          },
+          "attempts_through_400_evals": {
+            "Init": 9,
+            "Refine": 138,
+            "Fuse": 122,
+            "Pivot": 133
+          },
+          "statuses_through_400_evals": {
+            "ok": 378,
+            "eval_failed": 22,
+            "invalid_output": 2
+          },
+          "event_prefix_lines": 402,
+          "idea_audit_window": "LLM generation steps 0..399; distinct from 400-eval performance prefix",
+          "idea_calls_in_window": 409,
+          "idea_response_chars": {
+            "n": 409,
+            "mean": 3859.682151589242,
+            "std": 241.23647315377715,
+            "median": 3850
+          },
+          "idea_prompt_chars": {
+            "n": 409,
+            "mean": 40735.69682151589,
+            "std": 10553.631270846769,
+            "median": 42461
+          },
+          "history_chars": {
+            "n": 400,
+            "mean": 28020.2025,
+            "std": 7533.741048906159,
+            "median": 30637.0
+          },
+          "idea_seconds": {
+            "n": 409,
+            "mean": 48.30463951141152,
+            "std": 5.328373500432458,
+            "median": 48.61489486694336
+          },
+          "code_seconds": {
+            "n": 409,
+            "mean": 73.82327819045423,
+            "std": 23.604960961794152,
+            "median": 70.77967858314514
+          }
+        }
+      ]
+    }
+  },
+  "aggregates": {
+    "v10.1": {
+      "tsp_construct": {
+        "complete_1000": {
+          "n": 3,
+          "mean": -5.9412887576956255,
+          "std": 0.1341813034046994,
+          "median": -5.8935808968651635
+        },
+        "first_400": {
+          "n": 0,
+          "mean": null,
+          "std": null,
+          "median": null
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -7.008339210729733,
+          "std": 0.325846743651277,
+          "median": -6.820211505568105
+        }
+      },
+      "cvrp_aco": {
+        "complete_1000": {
+          "n": 2,
+          "mean": -9.091072423747313,
+          "std": 0.11228274054086915,
+          "median": -9.091072423747313
+        },
+        "first_400": {
+          "n": 0,
+          "mean": null,
+          "std": null,
+          "median": null
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -14.073052009733713,
+          "std": 3.3097910117022042,
+          "median": -15.901002877654014
+        }
+      },
+      "op_aco": {
+        "complete_1000": {
+          "n": 3,
+          "mean": 14.899999999999999,
+          "std": 0.042332020977033154,
+          "median": 14.915999999999997
+        },
+        "first_400": {
+          "n": 0,
+          "mean": null,
+          "std": null,
+          "median": null
+        },
+        "root_best": {
+          "n": 3,
+          "mean": 13.616,
+          "std": 0.3976380263505997,
+          "median": 13.642000000000001
+        }
+      },
+      "online_bin_packing": {
+        "complete_1000": {
+          "n": 3,
+          "mean": -731.4166666666666,
+          "std": 6.00173586001028,
+          "median": -730.0
+        },
+        "first_400": {
+          "n": 0,
+          "mean": null,
+          "std": null,
+          "median": null
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -744.5,
+          "std": 0.0,
+          "median": -744.5
+        }
+      },
+      "vrptw_construct": {
+        "complete_1000": {
+          "n": 3,
+          "mean": -19.588225894994867,
+          "std": 0.9028346895756335,
+          "median": -19.154595456878322
+        },
+        "first_400": {
+          "n": 0,
+          "mean": null,
+          "std": null,
+          "median": null
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -21.919956942342374,
+          "std": 0.6752957957308384,
+          "median": -21.566894915144253
+        }
+      }
+    },
+    "v10.2": {
+      "tsp_construct": {
+        "complete_1000": {
+          "n": 3,
+          "mean": -6.069053897640292,
+          "std": 0.3378147896832907,
+          "median": -6.082508855032144
+        },
+        "first_400": {
+          "n": 3,
+          "mean": -6.0995416324652,
+          "std": 0.32424777081715617,
+          "median": -6.122869519273297
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -6.891712767918694,
+          "std": 0.12384381919653106,
+          "median": -6.820211505568105
+        }
+      },
+      "cvrp_aco": {
+        "complete_1000": {
+          "n": 3,
+          "mean": -8.988831553257555,
+          "std": 0.09683099125045307,
+          "median": -8.96801528403497
+        },
+        "first_400": {
+          "n": 3,
+          "mean": -9.125935492107986,
+          "std": 0.06318132993616374,
+          "median": -9.094377761573778
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -12.839386436273452,
+          "std": 5.031953303531877,
+          "median": -10.203271597520454
+        }
+      },
+      "op_aco": {
+        "complete_1000": {
+          "n": 3,
+          "mean": 14.861999999999998,
+          "std": 0.017320508075688405,
+          "median": 14.871999999999996
+        },
+        "first_400": {
+          "n": 3,
+          "mean": 14.644666666666666,
+          "std": 0.17855344671367632,
+          "median": 14.703999999999999
+        },
+        "root_best": {
+          "n": 3,
+          "mean": 13.103333333333335,
+          "std": 0.276038644637545,
+          "median": 13.142000000000001
+        }
+      },
+      "online_bin_packing": {
+        "complete_1000": {
+          "n": 3,
+          "mean": -727.1666666666666,
+          "std": 1.1814539065631522,
+          "median": -726.75
+        },
+        "first_400": {
+          "n": 3,
+          "mean": -730.25,
+          "std": 1.3228756555322954,
+          "median": -729.75
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -744.5,
+          "std": 0.0,
+          "median": -744.5
+        }
+      },
+      "vrptw_construct": {
+        "complete_1000": {
+          "n": 3,
+          "mean": -20.347381978404062,
+          "std": 0.12657009117588786,
+          "median": -20.33961619577434
+        },
+        "first_400": {
+          "n": 3,
+          "mean": -20.6503735615902,
+          "std": 0.2543833522538835,
+          "median": -20.55635122514866
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -22.010760597384543,
+          "std": 0.7272080629364517,
+          "median": -22.083967033754135
+        }
+      }
+    },
+    "v10.3": {
+      "tsp_construct": {
+        "complete_1000": {
+          "n": 3,
+          "mean": -6.172037048871707,
+          "std": 0.31159747224303586,
+          "median": -6.351050532009763
+        },
+        "first_400": {
+          "n": 3,
+          "mean": -6.200669184529378,
+          "std": 0.32684095958228937,
+          "median": -6.358093845179079
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -6.869577818444899,
+          "std": 0.2808921714050692,
+          "median": -6.820211505568105
+        }
+      },
+      "cvrp_aco": {
+        "complete_1000": {
+          "n": 3,
+          "mean": -8.958335521060446,
+          "std": 0.26845457539316486,
+          "median": -9.043974140343824
+        },
+        "first_400": {
+          "n": 3,
+          "mean": -9.052516551654735,
+          "std": 0.2836938529409252,
+          "median": -9.085611487822268
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -13.217602780767942,
+          "std": 3.6427018827842685,
+          "median": -12.78989958624087
+        }
+      },
+      "op_aco": {
+        "complete_1000": {
+          "n": 3,
+          "mean": 14.847333333333333,
+          "std": 0.08173942337289375,
+          "median": 14.860000000000003
+        },
+        "first_400": {
+          "n": 3,
+          "mean": 14.816666666666666,
+          "std": 0.10962359843269896,
+          "median": 14.860000000000003
+        },
+        "root_best": {
+          "n": 3,
+          "mean": 13.662,
+          "std": 0.43634390106887017,
+          "median": 13.642000000000001
+        }
+      },
+      "online_bin_packing": {
+        "complete_1000": {
+          "n": 3,
+          "mean": -736.5833333333334,
+          "std": 9.028888820521235,
+          "median": -738.5
+        },
+        "first_400": {
+          "n": 3,
+          "mean": -738.9166666666666,
+          "std": 9.670617008926232,
+          "median": -744.5
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -744.5,
+          "std": 0.0,
+          "median": -744.5
+        }
+      },
+      "vrptw_construct": {
+        "complete_1000": {
+          "n": 3,
+          "mean": -19.959754876314868,
+          "std": 0.5054373594830568,
+          "median": -19.942471404597182
+        },
+        "first_400": {
+          "n": 3,
+          "mean": -20.15683140118621,
+          "std": 0.4877128860187371,
+          "median": -20.26829559452247
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -22.701578002767484,
+          "std": 1.1112022799143155,
+          "median": -22.698596596840076
+        }
+      }
+    },
+    "v10.4": {
+      "tsp_construct": {
+        "complete_1000": {
+          "n": 0,
+          "mean": null,
+          "std": null,
+          "median": null
+        },
+        "first_400": {
+          "n": 3,
+          "mean": -6.471398195338,
+          "std": 0.09691625145524013,
+          "median": -6.482496725488482
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -7.1624266096088895,
+          "std": 0.2978554989509819,
+          "median": -7.278716589367963
+        }
+      },
+      "cvrp_aco": {
+        "complete_1000": {
+          "n": 0,
+          "mean": null,
+          "std": null,
+          "median": null
+        },
+        "first_400": {
+          "n": 3,
+          "mean": -9.41014304512938,
+          "std": 0.29403013226497177,
+          "median": -9.38941515955214
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -13.936081841305313,
+          "std": 1.8124371681327665,
+          "median": -13.352774905661846
+        }
+      },
+      "op_aco": {
+        "complete_1000": {
+          "n": 0,
+          "mean": null,
+          "std": null,
+          "median": null
+        },
+        "first_400": {
+          "n": 3,
+          "mean": 14.406666666666666,
+          "std": 0.2844105014469996,
+          "median": 14.364
+        },
+        "root_best": {
+          "n": 3,
+          "mean": 13.142666666666667,
+          "std": 0.09912281943797381,
+          "median": 13.11
+        }
+      },
+      "online_bin_packing": {
+        "complete_1000": {
+          "n": 0,
+          "mean": null,
+          "std": null,
+          "median": null
+        },
+        "first_400": {
+          "n": 3,
+          "mean": -727.6666666666666,
+          "std": 1.2583057392117916,
+          "median": -727.5
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -744.5,
+          "std": 0.0,
+          "median": -744.5
+        }
+      },
+      "vrptw_construct": {
+        "complete_1000": {
+          "n": 0,
+          "mean": null,
+          "std": null,
+          "median": null
+        },
+        "first_400": {
+          "n": 3,
+          "mean": -19.480494436430423,
+          "std": 0.707753987381432,
+          "median": -19.67779986131441
+        },
+        "root_best": {
+          "n": 3,
+          "mean": -23.88946112875999,
+          "std": 1.977051256292383,
+          "median": -23.94954011664426
+        }
+      }
+    }
+  },
+  "idea_token_samples": [
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep1",
+      "line": 1,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:14",
+      "parent_id": null,
+      "prompt_chars": 1754,
+      "history_chars": 0,
+      "seconds": 37.07334113121033,
+      "response_chars": 4275,
+      "tail": " min_next_dist = d_cand_to_other\n        \n        # If this is the last step (only 1 other unvisited node remains),\n        # the 'other' loop finds the last node. \n        # If len(unvisited) == 2, candidate has 1 other",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep1",
+      "line": 3,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:19:09",
+      "parent_id": null,
+      "prompt_chars": 1754,
+      "history_chars": 0,
+      "seconds": 40.12808442115784,
+      "response_chars": 4155,
+      "tail": "le for typical TSP instance sizes.\n- **Robustness:** Median-based statistics are robust to outliers in the distance distribution, avoiding pathological behavior from a single distant node.\n\n## Implementation Notes\n\n- Use",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep1",
+      "line": 17,
+      "step": 0,
+      "operator": "Refine",
+      "ts": "2026-09-04T23:26:48",
+      "parent_id": 4,
+      "prompt_chars": 6679,
+      "history_chars": 91,
+      "seconds": 38.7357292175293,
+      "response_chars": 4218,
+      "tail": " the consequence of the current step on the remaining problem size (distance to finish). This often prevents the \"zig-zag\" effect and produces tours that are smoother and shorter globally.\n\n#### 6. Implementation Notes\n*",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep1",
+      "line": 283,
+      "step": 133,
+      "operator": "Refine",
+      "ts": "2026-09-05T03:32:12",
+      "parent_id": 112,
+      "prompt_chars": 39511,
+      "history_chars": 29724,
+      "seconds": 47.78947615623474,
+      "response_chars": 3507,
+      "tail": "or behavior for the bulk of the tour).\n\n*   **At the transition ($n=15$):** We want $\\lambda \\approx 0.8$ (high urgency).\n*   **For large $n$ (e.g., 100):** We want $\\lambda \\approx 0.3$ (moderate urgency, mostly local).",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep1",
+      "line": 549,
+      "step": 266,
+      "operator": "Refine",
+      "ts": "2026-09-05T08:07:38",
+      "parent_id": 226,
+      "prompt_chars": 40092,
+      "history_chars": 29791,
+      "seconds": 48.140698194503784,
+      "response_chars": 3492,
+      "tail": " -\\frac{(d(u, D) - m_1)^2}{2 \\sigma_{gap}^2} \\right) $$\n    Where $\\sigma_{gap} = \\frac{m_2 - m_1}{2} + \\epsilon$.\n    $$ \\hat{T}(u) = m_1 + (m_2 - m_1) \\cdot w(u) $$\n    *   If $u$ is the closest ($d(u,D)=m_1$), $w(u)=1",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep1",
+      "line": 815,
+      "step": 399,
+      "operator": "Pivot",
+      "ts": "2026-09-05T12:28:27",
+      "parent_id": 377,
+      "prompt_chars": 38970,
+      "history_chars": 29165,
+      "seconds": 34.908913135528564,
+      "response_chars": 3715,
+      "tail": "\n$$ \\tilde{d}_{\\text{rest}}[i] = \\frac{\\bar{d}_{i, \\text{rest}}}{\\mu_{\\text{rest}} + \\epsilon} $$\n\nThe new terminal cost $\\hat{T}^*(u_i)$ combines the destination proximity and the local connectivity:\n$$ \\hat{T}^*(u_i) =",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep2",
+      "line": 1,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:15",
+      "parent_id": null,
+      "prompt_chars": 1754,
+      "history_chars": 0,
+      "seconds": 38.12434792518616,
+      "response_chars": 4015,
+      "tail": "0`, `w4 = 0.25`\n\nThe shift in `w4` (destination distance) in the late phase ensures the final few edges don't leave a very long return-to-start edge. The decrease in `w2` and `w3` in the late phase reflects that with few",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep2",
+      "line": 3,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:19:22",
+      "parent_id": null,
+      "prompt_chars": 1754,
+      "history_chars": 0,
+      "seconds": 32.235677003860474,
+      "response_chars": 3779,
+      "tail": "near the start (high destination pull).\n\n#### Edge Cases:\n-   If `unvisited_nodes` is empty, return -1 or handle externally (though the prompt implies it's non-empty).\n-   If $m=1$, the average connectivity is 0, and the",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep2",
+      "line": 17,
+      "step": 0,
+      "operator": "Pivot",
+      "ts": "2026-09-04T23:26:21",
+      "parent_id": 2,
+      "prompt_chars": 8978,
+      "history_chars": 91,
+      "seconds": 35.224058866500854,
+      "response_chars": 3733,
+      "tail": " candidates at once:\n- `d_current = distance_matrix[current_node, unvisited_nodes]` — shape (k,)\n- Build a sub-matrix of `distance_matrix[unvisited_nodes][:, unvisited_nodes]` — shape (k, k)\n- For each row `i` (candidate",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep2",
+      "line": 283,
+      "step": 133,
+      "operator": "Fuse",
+      "ts": "2026-09-05T02:36:10",
+      "parent_id": 105,
+      "prompt_chars": 52161,
+      "history_chars": 33019,
+      "seconds": 43.34099054336548,
+      "response_chars": 3790,
+      "tail": "ocal step size to the mean step size. This makes the penalty relative to the \"normal\" behavior.\n    *   **Detour Penalty:**\n        $$ \\text{Detour}(c) = \\max(0, (d_{curr} + d_{dest}) - d_{direct}) $$\n        $$ P_{det}(",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep2",
+      "line": 549,
+      "step": 266,
+      "operator": "Pivot",
+      "ts": "2026-09-05T07:10:11",
+      "parent_id": 188,
+      "prompt_chars": 38327,
+      "history_chars": 29232,
+      "seconds": 33.1974892616272,
+      "response_chars": 3692,
+      "tail": "de $u$, estimate the cost of the immediate next step to the best possible successor $v$ (chosen greedily based on distance to destination or combined score). Add this estimated next-step cost to the current score of $u$.",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep2",
+      "line": 815,
+      "step": 399,
+      "operator": "Fuse",
+      "ts": "2026-09-05T11:30:59",
+      "parent_id": 230,
+      "prompt_chars": 44776,
+      "history_chars": 29088,
+      "seconds": 30.4162015914917,
+      "response_chars": 3434,
+      "tail": "l step.\n2.  **Optimized Implementation:** To handle the increased state space ($131,072$ masks), we must minimize per-iteration overhead:\n    *   Use a **flat array** for `dp` and `parent` to avoid list-of-lists indexing",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep3",
+      "line": 1,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:12",
+      "parent_id": null,
+      "prompt_chars": 1754,
+      "history_chars": 0,
+      "seconds": 35.61918258666992,
+      "response_chars": 4206,
+      "tail": "rix.shape[0]`).\n   - Let $u$ be the number of unvisited nodes (`len(unvisited_nodes)`).\n   - Calculate the dynamic weight $\\alpha = \\frac{u}{N}$.\n   - We want to emphasize the return cost when few nodes are left. So, the",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep3",
+      "line": 3,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:19:00",
+      "parent_id": null,
+      "prompt_chars": 1754,
+      "history_chars": 0,
+      "seconds": 33.519551038742065,
+      "response_chars": 4265,
+      "tail": "d unless it's the best bridge.\n    *   Let `min_outgoing_dist_c` be the minimum distance from `c` to any other node in the *current* unvisited set (including destination if it's still in the set for flow analysis, but we",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep3",
+      "line": 17,
+      "step": 0,
+      "operator": "Refine",
+      "ts": "2026-09-04T23:26:12",
+      "parent_id": 6,
+      "prompt_chars": 7977,
+      "history_chars": 91,
+      "seconds": 37.63315796852112,
+      "response_chars": 3577,
+      "tail": " = w_{imm} \\cdot C_{imm}(v) + w_{conn} \\cdot C_{conn}(v) + w_{dest} \\cdot C_{dest}(v) $$\n\n3.  **Selection**:\n    Select $v$ with the minimum $S(v)$.\n\n#### Why this is better than the previous algorithm:\n\n1.  **Robustness",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep3",
+      "line": 283,
+      "step": 133,
+      "operator": "Refine",
+      "ts": "2026-09-05T02:47:37",
+      "parent_id": 101,
+      "prompt_chars": 40263,
+      "history_chars": 32008,
+      "seconds": 49.61931562423706,
+      "response_chars": 4041,
+      "tail": "for pure greedy, $K$ only affects the *candidate pool*. Since we pick the min distance from the pool, and the pool is the $K$ nearest neighbors, **picking the min distance from the $K$ nearest neighbors is mathematically",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep3",
+      "line": 549,
+      "step": 266,
+      "operator": "Refine",
+      "ts": "2026-09-05T06:07:28",
+      "parent_id": 190,
+      "prompt_chars": 40832,
+      "history_chars": 31803,
+      "seconds": 45.0938835144043,
+      "response_chars": 3627,
+      "tail": "dge\" node that connects to the rest of the tour.\n\n    *   **Step 2: Compute Exit Costs (Vectorized)**\n        *   Let $\\mathcal{F}$ be the set of indices of the top $K$ nearest neighbors in `unvisited_nodes`.\n        *  ",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep3",
+      "line": 815,
+      "step": 399,
+      "operator": "Fuse",
+      "ts": "2026-09-05T09:23:16",
+      "parent_id": 293,
+      "prompt_chars": 44996,
+      "history_chars": 31449,
+      "seconds": 52.7501277923584,
+      "response_chars": 3896,
+      "tail": "ited\\_nodes[i]]$.\n*   **Step 2: Adaptive K Calculation.**\n    *   Calculate Mean ($\\mu$) and Standard Deviation ($\\sigma$) of $d_i$.\n    *   Calculate the Coefficient of Variation (CV) or spread factor: $R = \\frac{\\sigma",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep1",
+      "line": 1,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:07",
+      "parent_id": null,
+      "prompt_chars": 2218,
+      "history_chars": 0,
+      "seconds": 28.920005083084106,
+      "response_chars": 3623,
+      "tail": "cale of η matters less than relative values, but normalizing to [0, 1] or keeping values O(1) improves numerical stability. We normalize by dividing by the maximum entry (excluding zeros) so the max is 1.0.\n\n## Parameter",
+      "retokenized_tokens": 1023
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep1",
+      "line": 3,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:19:21",
+      "parent_id": null,
+      "prompt_chars": 2218,
+      "history_chars": 0,
+      "seconds": 31.854944467544556,
+      "response_chars": 3887,
+      "tail": "Score\n\n$$H_{ij} = \\text{geom}_{ij} \\times \\text{cap}_{ij}$$\n\nWith:\n- $\\text{geom}_{ij} = 1 / (d_{ij} + \\epsilon)$, $\\epsilon = 10^{-6}$ (handle $d_{ij} = 0$ for the diagonal)\n- $\\delta_{ij} = (d_i + d_j) / (2 \\cdot \\text",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep1",
+      "line": 19,
+      "step": 0,
+      "operator": "Refine",
+      "ts": "2026-09-04T23:30:41",
+      "parent_id": 6,
+      "prompt_chars": 8182,
+      "history_chars": 91,
+      "seconds": 34.067718267440796,
+      "response_chars": 3956,
+      "tail": "ynamic range:** ratio values cluster around 1.0 with a controlled spread, so the product with pheromone (which ACO multiplies into) stays informative across many iterations instead of saturating to a few dominant edges.\n",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep1",
+      "line": 285,
+      "step": 133,
+      "operator": "Refine",
+      "ts": "2026-09-05T03:17:49",
+      "parent_id": 87,
+      "prompt_chars": 40082,
+      "history_chars": 31573,
+      "seconds": 43.99415302276611,
+      "response_chars": 3650,
+      "tail": "tly after $8$ median spacings.\n    *   **Bounding:** To ensure robustness for very small or very large $N$:\n        *   $\\sigma_{ang} = \\text{clip}(\\kappa \\cdot \\Delta_{med}, \\pi/6, \\pi/2)$.\n        *   Lower bound $\\pi/",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep1",
+      "line": 551,
+      "step": 266,
+      "operator": "Refine",
+      "ts": "2026-09-05T07:16:16",
+      "parent_id": 236,
+      "prompt_chars": 37416,
+      "history_chars": 29677,
+      "seconds": 41.91394281387329,
+      "response_chars": 4029,
+      "tail": "y Factor:**\n    *   The current capacity factor uses $\\theta=0.8, \\lambda=4.0$. This is a soft constraint.\n    *   I will leave this unchanged as it has proven stable.\n\n### Algorithm Design\n\n1.  **Base Attractiveness:**\n",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep1",
+      "line": 817,
+      "step": 399,
+      "operator": "Pivot",
+      "ts": "2026-09-05T11:12:39",
+      "parent_id": 402,
+      "prompt_chars": 39643,
+      "history_chars": 30031,
+      "seconds": 38.01243543624878,
+      "response_chars": 3594,
+      "tail": "a \"continuation\" of the local sweep,\n    # so we should decay MPS less aggressively (lower alpha).\n    # If j is in a different sector, it's a \"jump\" to a new area, so decay MPS more aggressively.\n    \n    # knn_angles[i",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep2",
+      "line": 1,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:15",
+      "parent_id": null,
+      "prompt_chars": 2218,
+      "history_chars": 0,
+      "seconds": 37.44033169746399,
+      "response_chars": 4145,
+      "tail": "m:**\n\n1.  **Input**: `distance_matrix` ($D$), `coordinates`, `demands` ($d$), `capacity` ($C$).\n2.  **Sanitize Distances**:\n    -   Replace zeros (diagonal) with a large number or handle them separately to avoid division",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep2",
+      "line": 3,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:19:45",
+      "parent_id": null,
+      "prompt_chars": 2218,
+      "history_chars": 0,
+      "seconds": 32.978403091430664,
+      "response_chars": 4200,
+      "tail": "m small, tight clusters that ignore distant customers until the end, leading to inefficient routing.\n    \n    **Better Approach: Normalize and Smooth**\n    \n    1.  Compute inverse distances: $\\eta_{ij} = 1 / (d_{ij} + \\",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep2",
+      "line": 17,
+      "step": 0,
+      "operator": "Pivot",
+      "ts": "2026-09-04T23:32:32",
+      "parent_id": 3,
+      "prompt_chars": 8320,
+      "history_chars": 91,
+      "seconds": 38.60248255729675,
+      "response_chars": 3932,
+      "tail": "is close to $C$ (indicating a full, efficient route) or very small (indicating a start of a new route).\nActually, a simpler and robust approach is:\n$$ \\text{CapFactor}_{ij} = \\begin{cases} 0 & \\text{if } d_j > C - d_i \\\\",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep2",
+      "line": 283,
+      "step": 133,
+      "operator": "Fuse",
+      "ts": "2026-09-05T03:58:16",
+      "parent_id": 111,
+      "prompt_chars": 50905,
+      "history_chars": 31700,
+      "seconds": 51.04623317718506,
+      "response_chars": 3726,
+      "tail": " \\frac{d_{ij}}{\\delta_{ij}} $$\n    $$ L_{ij} = \\exp\\left( -1.8 \\cdot \\max(0, r_{ij} - 1.0) \\right) $$\n*   **Rationale:** Reverts to the threshold 1.0 and $\\lambda=1.8$ from History 8/9, which outperformed the reference's",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep2",
+      "line": 549,
+      "step": 266,
+      "operator": "Pivot",
+      "ts": "2026-09-05T08:41:39",
+      "parent_id": 222,
+      "prompt_chars": 40847,
+      "history_chars": 30501,
+      "seconds": 49.08635425567627,
+      "response_chars": 3601,
+      "tail": "to the packing gate from $\\exp(-D_{norm})$ to $\\exp(-0.5 D_{norm})$ is conservative. It does not introduce new local dependencies (which caused past regressions) but smooths the existing global signal. This should reduce",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep2",
+      "line": 815,
+      "step": 399,
+      "operator": "Fuse",
+      "ts": "2026-09-05T13:02:36",
+      "parent_id": 363,
+      "prompt_chars": 48958,
+      "history_chars": 30395,
+      "seconds": 41.075278520584106,
+      "response_chars": 4003,
+      "tail": " penalizing medium-distance local edges too harshly.\n    *   **Packing Factor (Depot-Customer):** Introduce a \"Proximity-Demand\" term. $P_{0j} = 1 + \\alpha_{dep} \\cdot (d_j/C) \\cdot \\exp(-\\gamma_{dep} \\cdot D_{norm, 0j})",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep3",
+      "line": 1,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:15",
+      "parent_id": null,
+      "prompt_chars": 2218,
+      "history_chars": 0,
+      "seconds": 39.35088586807251,
+      "response_chars": 3950,
+      "tail": "rt. Then compute per-node scalar, broadcast to row. Total O(n²).\n\nAll operations are vectorizable in NumPy, making it efficient for repeated evaluation.\n\n## Parameter Choice\n\n- `ε = 1e-8` for numerical stability.\n- `α = ",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep3",
+      "line": 3,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:19:49",
+      "parent_id": null,
+      "prompt_chars": 2218,
+      "history_chars": 0,
+      "seconds": 39.57962155342102,
+      "response_chars": 3904,
+      "tail": " than getting stuck with an infeasible partial tour.\n3. **Inverse distance** remains the primary TSP-like signal for shortness.\n\n## Computational Cost\n\n- Angular similarity: O(n²) via vectorized dot-product of normalized",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep3",
+      "line": 21,
+      "step": 0,
+      "operator": "Refine",
+      "ts": "2026-09-04T23:35:36",
+      "parent_id": 7,
+      "prompt_chars": 8555,
+      "history_chars": 91,
+      "seconds": 37.682923316955566,
+      "response_chars": 4543,
+      "tail": "\n- **Simple and stable**: The heuristic is a smooth, well-behaved matrix that provides a consistent prior without creating traps or noise.\n\n## Implementation Notes\n\n- All operations are vectorizable: power law is element",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep3",
+      "line": 287,
+      "step": 133,
+      "operator": "Refine",
+      "ts": "2026-09-05T04:04:30",
+      "parent_id": 109,
+      "prompt_chars": 43959,
+      "history_chars": 32481,
+      "seconds": 32.80487251281738,
+      "response_chars": 4021,
+      "tail": " \\approx 0.67$.\n    *   Heavy-Heavy ($d_i+d_j \\approx 1.0 C$): $DC \\approx 0.45$.\n*   This multiplicative factor directly reduces the heuristic value of edges that consume a lot of capacity, discouraging the ant from \"st",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep3",
+      "line": 553,
+      "step": 266,
+      "operator": "Refine",
+      "ts": "2026-09-05T09:07:51",
+      "parent_id": 204,
+      "prompt_chars": 45523,
+      "history_chars": 32814,
+      "seconds": 44.29530596733093,
+      "response_chars": 4319,
+      "tail": "istances to the $k_{max}$ nearest neighbors in $d_{eff}$.\n    *   Compute the local scale as the **mean of the first 3 nearest neighbors** (more robust to outliers than 4, and computationally cheaper). We will use vector",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep3",
+      "line": 819,
+      "step": 399,
+      "operator": "Fuse",
+      "ts": "2026-09-05T13:48:00",
+      "parent_id": 330,
+      "prompt_chars": 55235,
+      "history_chars": 32596,
+      "seconds": 36.60295867919922,
+      "response_chars": 3751,
+      "tail": " promoting sweep-like routes. We use $\\max(0, C_{ang})$.\n*   **Combined Score**:\n    $$ C_{flow, ij} = 0.6 \\cdot \\max(0, C_{rad, ij}) + 0.4 \\cdot \\max(0, C_{ang, ij}) $$\n    $$ C_{flow, ij} = \\text{clip}(C_{flow, ij}, 0,",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep1",
+      "line": 1,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:15",
+      "parent_id": null,
+      "prompt_chars": 2111,
+      "history_chars": 0,
+      "seconds": 36.92561721801758,
+      "response_chars": 3741,
+      "tail": "# Summary of the Formula\n\n```\nfor each (i, j):\n    if i == j:\n        h[i, j] = 0\n    elif j == 0:\n        h[i, j] = 1.0 / distance[i, 0] if distance[i, 0] <= maxlen else 0\n    else:\n        total_cost = distance[i, j] +",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep1",
+      "line": 3,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:19:43",
+      "parent_id": null,
+      "prompt_chars": 2111,
+      "history_chars": 0,
+      "seconds": 35.41969323158264,
+      "response_chars": 3863,
+      "tail": "onsistently across different problem sizes.\n\n### Computational Complexity\n\nAll operations are vectorized NumPy operations on $(n, n)$ matrices, giving $O(n^2)$ time and space, which is efficient for typical OP instances.",
+      "retokenized_tokens": 1012
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep1",
+      "line": 19,
+      "step": 0,
+      "operator": "Refine",
+      "ts": "2026-09-04T23:29:56",
+      "parent_id": 7,
+      "prompt_chars": 7510,
+      "history_chars": 91,
+      "seconds": 38.577962160110474,
+      "response_chars": 3753,
+      "tail": "ations ($j \\neq 0$):**\n    *   Calculate `out_and_back_cost = distance[:, j] + distance[j, 0]` (vectorized: `dist[:, j] + dist[j, 0]` for each column $j$).\n    *   Calculate `feas = exp(-((out_and_back_cost / maxlen) ** ",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep1",
+      "line": 285,
+      "step": 133,
+      "operator": "Refine",
+      "ts": "2026-09-05T02:48:23",
+      "parent_id": 128,
+      "prompt_chars": 39771,
+      "history_chars": 31021,
+      "seconds": 52.1692841053009,
+      "response_chars": 3928,
+      "tail": "frac{\\log(P_j + 1)}{d_{ij}} $$\n    For the depot return edge ($j=0$), use $B_{i0} = \\frac{\\log(P_{max} + 1)}{d_{i0}}$ as the base.\n\n3.  **Calculate Feasibility Factor:**\n    $$ F_{ij} = \\frac{1}{1 + \\kappa E_{ij}} $$\n   ",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep1",
+      "line": 551,
+      "step": 266,
+      "operator": "Refine",
+      "ts": "2026-09-05T07:39:34",
+      "parent_id": 230,
+      "prompt_chars": 43319,
+      "history_chars": 31532,
+      "seconds": 55.58242702484131,
+      "response_chars": 4066,
+      "tail": " 1.0 + \\lambda_{risk} \\cdot \\mu_i^2$.\n*   $\\lambda_{risk} = 2.0$ (tunable).\n*   This multiplies the entire exponent in the feasibility calculation.\n    *   New Exponent: $E_{ij} = \\beta_i \\cdot \\alpha_i \\cdot \\frac{d_{ij",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep1",
+      "line": 817,
+      "step": 399,
+      "operator": "Pivot",
+      "ts": "2026-09-05T12:46:49",
+      "parent_id": 388,
+      "prompt_chars": 42853,
+      "history_chars": 31186,
+      "seconds": 51.88671851158142,
+      "response_chars": 3613,
+      "tail": "\n*   **$\\alpha_i$ (Adaptive Risk):** Retain $\\alpha_i = 1.0 + \\frac{d_{i0}}{maxlen}$.\n*   **$R_j$ (Prize-Weighted Risk):** Retain $R_j = 1.0 - 0.3 \\frac{P_j}{P_{max}}$.\n*   **$G_{ij}$ (Geometric Efficiency):** Retain the",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep2",
+      "line": 1,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:07",
+      "parent_id": null,
+      "prompt_chars": 2111,
+      "history_chars": 0,
+      "seconds": 29.349045276641846,
+      "response_chars": 3721,
+      "tail": " Works\n\n- **Prize/cost ratio** captures the greedy \"bang for the buck\" — the most valuable nodes per unit distance.\n- **Budget factor** encodes the structural constraint of OP: a tour must return to the depot within `max",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep2",
+      "line": 3,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:19:05",
+      "parent_id": null,
+      "prompt_chars": 2111,
+      "history_chars": 0,
+      "seconds": 38.425007343292236,
+      "response_chars": 4060,
+      "tail": "use a slightly more generous factor since the ant is just starting: `f_budget(0, j) = clamp(slack_j / maxlen, 0.1, 1)`.\n\n**Factor 3: Distance component `f_distance(i, j)`**\n\n- Use a softened inverse distance: `f_distance",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep2",
+      "line": 19,
+      "step": 0,
+      "operator": "Pivot",
+      "ts": "2026-09-04T23:29:52",
+      "parent_id": 0,
+      "prompt_chars": 7107,
+      "history_chars": 91,
+      "seconds": 34.26010084152222,
+      "response_chars": 4073,
+      "tail": " travel cost against the future return cost. A value of $\\lambda = 0.5$ is a reasonable heuristic: \"going to $j$ costs $\\text{distance}_{ij}$, but it also 'locks in' a return cost of $\\text{distance}_{j0}$\".\n\nSo, the new",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep2",
+      "line": 285,
+      "step": 133,
+      "operator": "Fuse",
+      "ts": "2026-09-05T02:53:47",
+      "parent_id": 119,
+      "prompt_chars": 43776,
+      "history_chars": 27812,
+      "seconds": 44.05761766433716,
+      "response_chars": 4013,
+      "tail": "ith a gentler coefficient $\\lambda$ derived from the instance tightness.\n    $$ W_{ij} = \\exp\\left( - \\lambda \\frac{C_{ij}}{maxlen} \\right) $$\n    We keep $\\lambda$ adaptive: $\\lambda = 1.0 + 1.0 \\cdot \\max(0, \\rho - 0.2",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep2",
+      "line": 551,
+      "step": 266,
+      "operator": "Pivot",
+      "ts": "2026-09-05T07:02:37",
+      "parent_id": 234,
+      "prompt_chars": 41843,
+      "history_chars": 31707,
+      "seconds": 46.061975955963135,
+      "response_chars": 4107,
+      "tail": "C_{ij} = d_{ij} + d_{j0}$.\n\nProposed penalty: $-\\lambda_j \\frac{C_{ij}}{M}$ where $\\lambda_j$ is scaled by the relative prize of node $j$.\n\nLet $\\bar{p}$ be the median prize of non-depot nodes.\nDefine a \"prize factor\" $F",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep2",
+      "line": 817,
+      "step": 399,
+      "operator": "Fuse",
+      "ts": "2026-09-05T11:36:39",
+      "parent_id": 369,
+      "prompt_chars": 50210,
+      "history_chars": 31433,
+      "seconds": 43.241291522979736,
+      "response_chars": 3060,
+      "tail": "prize_eff, eps)\n    prize_eff = np.where(np.isfinite(prize_eff) & (prize_eff > 0), prize_eff, eps)\n\n    # 4. Core Heuristic Calculation (Log Space)\n    with np.errstate(divide='ignore', invalid='ignore', over='ignore'):\n",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep3",
+      "line": 1,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:13",
+      "parent_id": null,
+      "prompt_chars": 2111,
+      "history_chars": 0,
+      "seconds": 36.57546329498291,
+      "response_chars": 3825,
+      "tail": "g complex and might be computationally heavy or unstable. Let's simplify to a robust, efficient form.*\n\n**Simplified Robust Heuristic:**\n\nThe core idea is: **High Prize / Low Cost** adjusted for **Depot Proximity**.\n\n1. ",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep3",
+      "line": 3,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:20:07",
+      "parent_id": null,
+      "prompt_chars": 2111,
+      "history_chars": 0,
+      "seconds": 36.47392249107361,
+      "response_chars": 3845,
+      "tail": "e **Harmonic Mean** or a **Weighted Sum**.\n    \n    Let's propose a **Cost-Effective Prize** heuristic:\n    $$ \\eta_{ij} = \\frac{P_j}{(d_{ij} + \\epsilon)^{\\gamma}} \\cdot \\exp\\left(-\\lambda \\frac{d_{j0}}{maxlen}\\right) $$",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep3",
+      "line": 17,
+      "step": 0,
+      "operator": "Refine",
+      "ts": "2026-09-04T23:29:38",
+      "parent_id": 4,
+      "prompt_chars": 7609,
+      "history_chars": 91,
+      "seconds": 37.60998845100403,
+      "response_chars": 3872,
+      "tail": "t diminishes? No, we want the bias to be *stronger* when far out to ensure return.\n    \n    Let's refine: We want to heavily penalize moving *outward* when already far out.\n    $$ D_{ij} = 1 - \\gamma \\cdot p_i \\cdot \\max",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep3",
+      "line": 283,
+      "step": 133,
+      "operator": "Refine",
+      "ts": "2026-09-05T03:17:04",
+      "parent_id": 101,
+      "prompt_chars": 42165,
+      "history_chars": 31811,
+      "seconds": 42.38365912437439,
+      "response_chars": 4031,
+      "tail": "an a low-prize node.\n\n1.  Define the \"effective cost\" $C_{ij}^{eff}$ as:\n    $$ C_{ij}^{eff} = C_{ij} \\cdot \\left( 1 - \\beta \\cdot \\frac{prize_j}{\\max(prize[1:])} \\right) $$\n    Where $\\beta$ is a scaling factor (e.g., 0",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep3",
+      "line": 549,
+      "step": 266,
+      "operator": "Refine",
+      "ts": "2026-09-05T07:39:34",
+      "parent_id": 141,
+      "prompt_chars": 41246,
+      "history_chars": 31841,
+      "seconds": 46.17999053001404,
+      "response_chars": 3755,
+      "tail": "ensity), the factor is $1$, so the return edge is not boosted (it remains at the baseline). We do *not* reduce it below baseline to avoid discouraging return too aggressively when the local cluster is exhausted.\n\n#### B.",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep3",
+      "line": 815,
+      "step": 399,
+      "operator": "Fuse",
+      "ts": "2026-09-05T12:00:57",
+      "parent_id": 346,
+      "prompt_chars": 51581,
+      "history_chars": 32785,
+      "seconds": 44.67417669296265,
+      "response_chars": 3953,
+      "tail": "tion Heuristics ($j \\neq 0, i \\neq j$):**\n    *   $H_{ij} = \\frac{p_j / \\mu}{d_{ij} (d_{ij} + \\sigma)^{\\delta_{adapt}}} \\cdot F_{ij} \\cdot D_{dir, ij}$.\n    *   $F_{ij}$: Asymmetric soft/hard feasibility gate.\n    *   $D",
+      "retokenized_tokens": 1023
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep1",
+      "line": 1,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:14",
+      "parent_id": null,
+      "prompt_chars": 1774,
+      "history_chars": 0,
+      "seconds": 37.46748471260071,
+      "response_chars": 4157,
+      "tail": "(negated remaining capacity) | Best Fit: prefer tightest fit |\n| Type handling | Cast to float before arithmetic | Per problem requirement |\n| Output | Finite float array, same shape as `bins` | Per problem requirement |",
+      "retokenized_tokens": 989
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep1",
+      "line": 3,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:38",
+      "parent_id": null,
+      "prompt_chars": 1774,
+      "history_chars": 0,
+      "seconds": 11.37997031211853,
+      "response_chars": 1565,
+      "tail": "tical or nearly identical. It prefers larger bins in these cases, which can slightly help by preserving smaller bins for potentially smaller items that might arrive later, though the primary driver remains tight packing.",
+      "retokenized_tokens": 357
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep1",
+      "line": 17,
+      "step": 0,
+      "operator": "Refine",
+      "ts": "2026-09-04T23:24:50",
+      "parent_id": 6,
+      "prompt_chars": 6709,
+      "history_chars": 91,
+      "seconds": 35.384427547454834,
+      "response_chars": 4284,
+      "tail": "ns, we should pick the bin where the item fits most tightly? Yes.\n$Space\\ Used\\ Increase = item$ (constant for all bins).\n$Remaining\\ Space\\ Decrease = item$.\nTotal Remaining Space decreases by `item` regardless of bin.\n",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep1",
+      "line": 283,
+      "step": 133,
+      "operator": "Refine",
+      "ts": "2026-09-05T01:54:15",
+      "parent_id": 111,
+      "prompt_chars": 24093,
+      "history_chars": 17062,
+      "seconds": 35.721699714660645,
+      "response_chars": 3845,
+      "tail": "es** tight fits heavily. This is the wrong direction for \"Best Fit\".\n\n    Let's invert the logic. We want a function that is **maximized** at $r=0$ and decreases as $r$ increases, but with a different shape than linear.\n",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep1",
+      "line": 549,
+      "step": 266,
+      "operator": "Refine",
+      "ts": "2026-09-05T04:13:27",
+      "parent_id": 214,
+      "prompt_chars": 22919,
+      "history_chars": 15739,
+      "seconds": 31.004984855651855,
+      "response_chars": 3916,
+      "tail": "e SISB attempt (-735.25) regressed by adding complex scale-dependent terms that distorted the proven heuristics.\n-   By reverting to the Reference's core logic, we regain the -740.0 baseline.\n-   The exact-fit bonus of `",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep1",
+      "line": 815,
+      "step": 399,
+      "operator": "Pivot",
+      "ts": "2026-09-05T06:38:36",
+      "parent_id": 397,
+      "prompt_chars": 37699,
+      "history_chars": 30531,
+      "seconds": 42.606682777404785,
+      "response_chars": 3642,
+      "tail": "onstant $\\alpha$, use a coefficient that favors tightness more strongly when $r$ is close to $s$, and behaves more like Best Fit when $r$ is large.\n    *   Formula: $Score_{safe} = -r + \\alpha_{eff} \\cdot \\min(r-s, s)$.\n",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep2",
+      "line": 1,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:01",
+      "parent_id": null,
+      "prompt_chars": 1774,
+      "history_chars": 0,
+      "seconds": 23.141718864440918,
+      "response_chars": 3167,
+      "tail": "alues.\n\nTo make it robust and clearly floating-point:\n1. Cast `bins` to float64.\n2. Return `item - bins_float`.\n\nThis is simple, provably a standard heuristic (Best Fit), and aligns with the goal of minimizing bin count.",
+      "retokenized_tokens": 737
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep2",
+      "line": 3,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:43",
+      "parent_id": null,
+      "prompt_chars": 1774,
+      "history_chars": 0,
+      "seconds": 36.359527587890625,
+      "response_chars": 4274,
+      "tail": ", with a slight preference for bins that are already more filled to ensure stability.\n\nLet's stick to the principle of **Best Fit**: Choose the bin with the smallest remaining capacity $R$ such that $R \\ge \\text{item}$.\n",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep2",
+      "line": 17,
+      "step": 0,
+      "operator": "Pivot",
+      "ts": "2026-09-04T23:24:57",
+      "parent_id": 0,
+      "prompt_chars": 5569,
+      "history_chars": 91,
+      "seconds": 34.13063669204712,
+      "response_chars": 4121,
+      "tail": "n Pure Best Fit\n\nConsider two bins: one with residual 0.1 (tight fit) and one with residual 1.5 (loose fit), for an item of size 5.\n\n- **Pure Best Fit:** Prefers residual 0.1 (score: `-0.1` vs `-1.5`). Creates a 0.1 dead",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep2",
+      "line": 283,
+      "step": 133,
+      "operator": "Fuse",
+      "ts": "2026-09-05T02:03:58",
+      "parent_id": 53,
+      "prompt_chars": 30953,
+      "history_chars": 19795,
+      "seconds": 54.87985920906067,
+      "response_chars": 4251,
+      "tail": " are still strongly preferred) with a **softening mechanism** that prevents over-aggressive fragmentation, and a **meaningful tie-breaking rule** that adds stability and can diverge from pure Best Fit in ambiguous cases.",
+      "retokenized_tokens": 973
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep2",
+      "line": 549,
+      "step": 266,
+      "operator": "Pivot",
+      "ts": "2026-09-05T04:42:29",
+      "parent_id": 241,
+      "prompt_chars": 35616,
+      "history_chars": 28714,
+      "seconds": 47.317129135131836,
+      "response_chars": 3893,
+      "tail": "ight be too small for future larger items.\nLet's modify the penalty to be **proportional to the base score** to maintain scale consistency.\n$Penalty_i = \\alpha \\cdot B_i \\cdot (1 - \\frac{r_i}{s})^k$ for $0 < r_i < s$.\nBy",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep2",
+      "line": 815,
+      "step": 399,
+      "operator": "Fuse",
+      "ts": "2026-09-05T07:21:22",
+      "parent_id": 379,
+      "prompt_chars": 39053,
+      "history_chars": 28009,
+      "seconds": 57.172571420669556,
+      "response_chars": 3771,
+      "tail": "$0.5 - \\text{penalty}$. The gap is large. We can smooth the \"Near-Zero\" behavior by using a softer bonus or simply trusting the $1/(r+1)$ base. However, the Reference's bonus worked, so we should keep a similar mechanism",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep3",
+      "line": 1,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:00",
+      "parent_id": null,
+      "prompt_chars": 1774,
+      "history_chars": 0,
+      "seconds": 23.00568461418152,
+      "response_chars": 3519,
+      "tail": "+ fill_frac\n```\n\nThis yields a finite float array. Higher priority → selected bin. The algorithm is online, uses only current item and current bin capacities, and generalizes Best Fit with a mild consolidation incentive.",
+      "retokenized_tokens": 821
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep3",
+      "line": 3,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:37",
+      "parent_id": null,
+      "prompt_chars": 1774,
+      "history_chars": 0,
+      "seconds": 32.26917386054993,
+      "response_chars": 4147,
+      "tail": "s a constant shift per bin that's correlated with waste. So it's redundant.\n\nLet me re-derive. We want a scoring function that:\n- Strongly prefers low waste.\n- Has a secondary preference that doesn't override the primary",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep3",
+      "line": 17,
+      "step": 0,
+      "operator": "Refine",
+      "ts": "2026-09-04T23:23:36",
+      "parent_id": 6,
+      "prompt_chars": 6730,
+      "history_chars": 91,
+      "seconds": 31.42354655265808,
+      "response_chars": 3795,
+      "tail": "But we don't control bin opening here, just assignment.\n\nLet's re-evaluate the \"Fitness\" metric. The evaluator minimizes the number of bins.\nA common pitfall of Best Fit is that it fills bins tightly, but if future items",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep3",
+      "line": 283,
+      "step": 133,
+      "operator": "Refine",
+      "ts": "2026-09-05T01:36:46",
+      "parent_id": 34,
+      "prompt_chars": 14374,
+      "history_chars": 8085,
+      "seconds": 39.31672024726868,
+      "response_chars": 3822,
+      "tail": "es by $s$ regardless of which bin we pick.\nSo, the total waste *increase* is 0 in all cases?\nWait.\nIf I have 2 bins of capacity 10.\nItem 1: size 6.\nBin 1 rem: 4, Bin 2 rem: 10. Total Waste: 14.\nItem 2: size 6.\nOption A (",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep3",
+      "line": 549,
+      "step": 266,
+      "operator": "Refine",
+      "ts": "2026-09-05T03:58:13",
+      "parent_id": 62,
+      "prompt_chars": 23957,
+      "history_chars": 17151,
+      "seconds": 41.730262994766235,
+      "response_chars": 3817,
+      "tail": "it. Residual is capacity *available*. If Bin 1 has residual 1, item 4 doesn't fit. My previous example was bad. Let's re-evaluate).\n\nCorrect Example:\nBin 1: Residual 5\nBin 2: Residual 10\nItem: Size 4\n\nBest Fit:\n-   Bin 1",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep3",
+      "line": 815,
+      "step": 399,
+      "operator": "Fuse",
+      "ts": "2026-09-05T06:23:37",
+      "parent_id": 340,
+      "prompt_chars": 37529,
+      "history_chars": 25105,
+      "seconds": 42.09333395957947,
+      "response_chars": 4087,
+      "tail": "ct where residual=threshold-ε gets a huge bonus but residual=threshold+ε gets none.\n\n**Proposed:** $B_{exact}(r) = K_{exact} \\cdot item \\cdot \\exp\\left(-\\frac{r}{r_0}\\right)$ for $r \\le r_{max}$, where $r_0 = \\max(0.5, 0",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep1",
+      "line": 1,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:16",
+      "parent_id": null,
+      "prompt_chars": 2312,
+      "history_chars": 0,
+      "seconds": 37.82515001296997,
+      "response_chars": 3860,
+      "tail": "res tight time windows are prioritized.\n\nWe choose the candidate with the **minimum** $S_j$.\n\n### Step 4: Selection and tie-breaking\n- Select the candidate with the smallest score.\n- If multiple candidates share the same",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep1",
+      "line": 3,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:19:52",
+      "parent_id": null,
+      "prompt_chars": 2312,
+      "history_chars": 0,
+      "seconds": 32.56317615509033,
+      "response_chars": 3919,
+      "tail": "isk}_j$)**\nWe want to avoid taking a large demand if it significantly reduces remaining capacity, potentially forcing an early return to depot or making future large nodes infeasible.\n$$ C_{load\\_risk}_j = \\frac{demand_j",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep1",
+      "line": 25,
+      "step": 0,
+      "operator": "Refine",
+      "ts": "2026-09-04T23:36:58",
+      "parent_id": 4,
+      "prompt_chars": 8877,
+      "history_chars": 91,
+      "seconds": 36.16360139846802,
+      "response_chars": 4280,
+      "tail": "lows a feasible completion of the route (i.e., one can go to $j$ and then back to depot within the global horizon), then we should **always** pick a customer if one exists.\n\nIf the feasibility check only ensures that $j$",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep1",
+      "line": 291,
+      "step": 133,
+      "operator": "Refine",
+      "ts": "2026-09-05T03:06:15",
+      "parent_id": 102,
+      "prompt_chars": 40407,
+      "history_chars": 31718,
+      "seconds": 46.86352014541626,
+      "response_chars": 3852,
+      "tail": "    $$ S_j = d_{i,j} + \\lambda_{detour} \\cdot (d_{i,j} + d_{j,depot} - d_{i,depot}) + \\lambda_{wait} \\cdot W_j $$\n    Simplifying, $S_j = d_{i,j} (1 + \\lambda_{detour}) + \\lambda_{detour} d_{j,depot} + \\lambda_{wait} W_j",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep1",
+      "line": 557,
+      "step": 266,
+      "operator": "Refine",
+      "ts": "2026-09-05T06:40:56",
+      "parent_id": 189,
+      "prompt_chars": 44074,
+      "history_chars": 31515,
+      "seconds": 52.57913851737976,
+      "response_chars": 3728,
+      "tail": "didates $k \\neq j$.\n*   Note: For the best candidate ($S_j$ is minimal), $R_j > 0$. For others, $R_j \\le 0$ or small.\n*   Actually, standard Regret-2 is: $R_j = (\\min_{k \\neq j} S_k) - S_j$.\n    *   If $j$ is the best, $",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep1",
+      "line": 823,
+      "step": 399,
+      "operator": "Pivot",
+      "ts": "2026-09-05T10:08:41",
+      "parent_id": 382,
+      "prompt_chars": 40895,
+      "history_chars": 31525,
+      "seconds": 39.01792001724243,
+      "response_chars": 3690,
+      "tail": " j} S_k - S_j) $$\nWhere $\\gamma = 0.3$. This is the current approach but with a lower weight to avoid over-correction. However, to improve, we will use a **Relative Regret**:\n$$ Regret_j = \\frac{\\min_{k \\neq j} S_k - S_j",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep2",
+      "line": 1,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:15",
+      "parent_id": null,
+      "prompt_chars": 2312,
+      "history_chars": 0,
+      "seconds": 38.684317111968994,
+      "response_chars": 3908,
+      "tail": "tion**: We prefer nodes where the slack $L_i - Arrival_i$ is small? No, we prefer nodes where we can still visit other nodes.\n    *   Let's stick to a proven heuristic: **Cost + Time Penalty**.\n    *   $T_i = \\max(0, E_i",
+      "retokenized_tokens": 1023
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep2",
+      "line": 3,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:19:22",
+      "parent_id": null,
+      "prompt_chars": 2312,
+      "history_chars": 0,
+      "seconds": 32.135199785232544,
+      "response_chars": 3597,
+      "tail": "ow-demand customers (pack more efficiently). If capacity is abundant, decrease $w_c$.\n  \n- **Time regime**: If `current_time` is approaching the end of the route's feasible horizon (approximated by the median upper bound",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep2",
+      "line": 21,
+      "step": 0,
+      "operator": "Pivot",
+      "ts": "2026-09-04T23:31:08",
+      "parent_id": 3,
+      "prompt_chars": 7916,
+      "history_chars": 91,
+      "seconds": 37.44218850135803,
+      "response_chars": 4093,
+      "tail": " 3: Score Each Candidate**\nFor each `candidate` in `unvisited_nodes`:\n\n1.  **Compute Time Metrics:**\n    *   $d_{curr} = distance\\_matrix[current\\_node][candidate]$\n    *   $t_{arr} = current\\_time + d_{curr}$\n    *   $t",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep2",
+      "line": 287,
+      "step": 133,
+      "operator": "Fuse",
+      "ts": "2026-09-05T03:01:09",
+      "parent_id": 103,
+      "prompt_chars": 51143,
+      "history_chars": 32327,
+      "seconds": 35.7348747253418,
+      "response_chars": 3598,
+      "tail": "oherent routes. Low weight to avoid over-committing to a specific path too early).\n\n**Step 4: Stopping Decision (Soft-Return)**\n\nInstead of a hard threshold on the score, we compare the **Marginal Benefit** of continuing",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep2",
+      "line": 553,
+      "step": 266,
+      "operator": "Pivot",
+      "ts": "2026-09-05T06:09:50",
+      "parent_id": 230,
+      "prompt_chars": 42229,
+      "history_chars": 32058,
+      "seconds": 39.723450660705566,
+      "response_chars": 4085,
+      "tail": "ctor:**\n    $$ S_{max} = \\max_{c \\in \\text{candidates}} S_{struct}(c) $$\n    If $S_{max} < \\epsilon$, set $S_{max} = \\epsilon$.\n\n2.  **Dynamic Weights:**\n    *   Let $R = rest\\_capacity$.\n    *   Let $N_{succ}(c)$ be the",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep2",
+      "line": 819,
+      "step": 399,
+      "operator": "Fuse",
+      "ts": "2026-09-05T09:20:03",
+      "parent_id": 354,
+      "prompt_chars": 52123,
+      "history_chars": 32716,
+      "seconds": 37.31743264198303,
+      "response_chars": 4114,
+      "tail": "}(c) = \\begin{cases} d_{cur, depot} + d_{depot, c} - d_{cur, c} & \\text{if } cur \\neq depot \\\\ 0.0 & \\text{if } cur = depot \\end{cases} $$\n    2.  **Effective Time Cost ($T_{eff}$):**\n        $$ T_{eff}(c) = d_{cur, c} +",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep3",
+      "line": 1,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:18:13",
+      "parent_id": null,
+      "prompt_chars": 2312,
+      "history_chars": 0,
+      "seconds": 36.31685972213745,
+      "response_chars": 4033,
+      "tail": "eep the route flexible.\n\n#### Selection Strategy\n1.  **Pre-check**: If `unvisited_nodes` is empty, return `depot`.\n2.  **Calculate Scores**: For each $c \\in \\text{unvisited\\_nodes}$:\n    -   Calculate arrival time.\n    -",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep3",
+      "line": 3,
+      "step": 0,
+      "operator": "Init",
+      "ts": "2026-09-04T23:19:18",
+      "parent_id": null,
+      "prompt_chars": 2312,
+      "history_chars": 0,
+      "seconds": 32.42605900764465,
+      "response_chars": 3990,
+      "tail": "e Score Calculation**\nWe want to minimize a cost function. Let's define a score $S$ for each candidate such that lower is better.\n\n**For Customer $c$:**\n$$ S_c = w_1 \\cdot d_c + w_2 \\cdot \\text{TimePenalty}_c + w_3 \\cdot",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep3",
+      "line": 19,
+      "step": 0,
+      "operator": "Refine",
+      "ts": "2026-09-04T23:30:32",
+      "parent_id": 6,
+      "prompt_chars": 8267,
+      "history_chars": 91,
+      "seconds": 34.12921977043152,
+      "response_chars": 4402,
+      "tail": "+ D_{j0}}{\\max(S, \\epsilon)} $$\n    *Correction:* The previous inverse slack was too noisy. A better approach used in many VRP heuristics is to prioritize nodes with **larger slack** (more flexible) and **less waiting**.",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep3",
+      "line": 285,
+      "step": 133,
+      "operator": "Refine",
+      "ts": "2026-09-05T03:38:10",
+      "parent_id": 81,
+      "prompt_chars": 37364,
+      "history_chars": 25821,
+      "seconds": 48.621095418930054,
+      "response_chars": 4107,
+      "tail": " that leaves us stranded far from the depot with few options.\n    *   **Efficiency**: To keep computation low, $k^*$ is selected as the node minimizing `dist(j, k) + alpha * wait(j->k)`. The return cost is simply `dist(k",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep3",
+      "line": 551,
+      "step": 266,
+      "operator": "Refine",
+      "ts": "2026-09-05T08:13:45",
+      "parent_id": 180,
+      "prompt_chars": 40226,
+      "history_chars": 30470,
+      "seconds": 41.82235860824585,
+      "response_chars": 3664,
+      "tail": "in R} d_{jk}$\n    *   *Correction*: Averaging raw distances is not directly comparable to $C_{nn}$ if $|R|$ is large. Instead, we use the **Median Distance** to the remaining nodes as a robust measure of isolation. Let $",
+      "retokenized_tokens": 1024
+    },
+    {
+      "run_path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep3",
+      "line": 817,
+      "step": 399,
+      "operator": "Fuse",
+      "ts": "2026-09-05T13:16:23",
+      "parent_id": 312,
+      "prompt_chars": 49387,
+      "history_chars": 29956,
+      "seconds": 46.67053270339966,
+      "response_chars": 3479,
+      "tail": ",depot})$.\n    *   *Rationale*: If $j$ is a dead-end (far from both remaining customers and depot), $C_{look}(j)$ will be high, penalizing it in the final score. If $j$ is a natural \"exit point\" (close to depot), the min",
+      "retokenized_tokens": 1024
+    }
+  ]
+}
