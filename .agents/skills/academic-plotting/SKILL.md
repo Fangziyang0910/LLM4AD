@@ -269,7 +269,7 @@ def generate_image(prompt_text, attempt_num):
 
 def main():
     results = []
-    for i in range(1, 4):
+    for i in range(1, 2):  # Start with one; generate alternatives only if needed.
         if i > 1:
             time.sleep(2)
         path = generate_image(PROMPT, i)
@@ -286,7 +286,7 @@ if __name__ == "__main__":
 
 ### Key Rules
 
-- **Always 3 attempts** — quality varies significantly between runs
+- **Start with one attempt** — inspect the result; regenerate when there is a concrete defect or the user wants alternatives
 - **Style block is mandatory** — without it, Gemini defaults to generic corporate look
 - **Never hardcode API keys** — use `os.environ.get("GEMINI_API_KEY")`
 - **Save generation scripts** — reproducibility is critical

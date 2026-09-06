@@ -98,7 +98,7 @@ Project Understanding:
 - [ ] Step 3: Identify the main contribution with the scientist
 - [ ] Step 4: Find papers already cited in the codebase
 - [ ] Step 5: Search for additional relevant literature
-- [ ] Step 6: Outline the paper structure together
+- [ ] Step 6: Reuse or develop the paper structure for the requested writing task
 - [ ] Step 7: Draft sections iteratively with feedback
 ```
 
@@ -132,13 +132,7 @@ These are high-signal starting points for Related Work—the scientist has alrea
 
 **Step 3: Clarify the Contribution**
 
-Before writing, explicitly confirm with the scientist:
-
-> "Based on my understanding of the repo, the main contribution appears to be [X].
-> The key results show [Y]. Is this the framing you want for the paper,
-> or should we emphasize different aspects?"
-
-**Never assume the narrative—always verify with the human.**
+Use the contribution and framing already established in the conversation and project. Draft the requested text directly. If the framing has a substantive problem, explain it and propose an improved draft. Ask a focused question only when an unresolved choice would materially change the paper and cannot reasonably be inferred; continue independent writing work meanwhile.
 
 **Step 4: Search for Additional Literature**
 
