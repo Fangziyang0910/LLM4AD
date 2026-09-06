@@ -1,19 +1,19 @@
-"""TraceAAD V10.5 Training Experiment Live Monitor & Visualizer.
+"""TraceAAD V10.6 Training Experiment Live Monitor & Visualizer.
 
-High-performance, lightweight live observer for official TraceAAD V10.5 runs.
+High-performance, lightweight live observer for official TraceAAD V10.6 runs.
 Features:
-- Full support for V10.5 telemetry (R/P/F 50/15/35, Pivot uniform parent route, Fuse fallbacks)
+- Full support for V10.6 telemetry (R/P/F 50/15/35, joint marginal parent route, Fuse fallbacks, post-code Implementation Summary)
 - Seamless queued runs detection from scheduler batch manifests
 - LLM vs Eval latency breakdown and parent/frontier improvement rates
 - File modification & size guards (zero redundant disk I/O / JSON deserialization)
 - Sparse step curve compression
 - Real-time progress across all 15 runs (5 tasks x 3 repeats)
 - Dynamic tmux session detection with windowed velocity blending
-- Individual run inspector (code, ideas, lineages, recent event stream)
-- Multi-version switcher support (V10.5, V10.4, V10.3, V10.2, V10.1)
+- Individual run inspector (code, implementation summaries, lineages, recent event stream)
+- Multi-version switcher support (V10.6, V10.5, V10.4, V10.3, V10.2, V10.1)
 
 Usage:
-    uv run python -m experiments.traceaad_v10_5.monitor [--port 8765] [--host 0.0.0.0]
+    uv run python -m experiments.traceaad_v10_6.monitor [--port 8765] [--host 0.0.0.0]
 """
 
 from __future__ import annotations
@@ -186,8 +186,8 @@ class MonitorDataEngine:
     def __init__(
         self,
         results_root: Path | None = None,
-        default_version: str = "v10_5",
-        default_session_prefix: str = "v105",
+        default_version: str = "v10_6",
+        default_session_prefix: str = "v106",
     ):
         self.default_results_root = results_root or DEFAULT_RESULTS_ROOT
         self.default_version = default_version
@@ -306,7 +306,7 @@ class MonitorDataEngine:
                         "id": curr["id"],
                         "operator": curr.get("operator", "Init"),
                         "fitness": curr.get("fitness"),
-                        "idea": (curr.get("idea") or "")[:80],
+                        "idea": (curr.get("idea") or "")[:120],
                     }
                 )
 
@@ -381,6 +381,20 @@ class MonitorDataEngine:
         self, item: dict[str, Any], task_info: dict[str, Any], rep: int, default_prefix: str
     ) -> dict[str, Any]:
         session = item.get("session") or f"{default_prefix}_{task_info['short']}_r{rep}"
+        telemetry_placeholder = {
+            "requested_operator_counts": {"Init": 0, "Refine": 0, "Pivot": 0, "Fuse": 0},
+            "executed_operator_counts": {"Init": 0, "Refine": 0, "Pivot": 0, "Fuse": 0},
+            "fuse_fallbacks": 0,
+            "parent_routes": {},
+            "pivot_routes": {"quality": 0, "uniform": 0},
+            "parent_improved_count": 0,
+            "frontier_improved_count": 0,
+            "avg_llm_seconds": None,
+            "avg_eval_seconds": None,
+            "avg_prompt_tokens": None,
+            "avg_summary_tokens": None,
+            "summary_present_count": 0,
+        }
         return {
             "name": item.get("run_name") or f"queued_{task_info['short']}_rep{rep}",
             "task": task_info["key"],
@@ -410,16 +424,8 @@ class MonitorDataEngine:
             "status_counts": {"ok": 0, "eval_failed": 0, "invalid_output": 0},
             "curve": [],
             "breakthroughs": [],
-            "v105_telemetry": {
-                "requested_operator_counts": {"Init": 0, "Refine": 0, "Pivot": 0, "Fuse": 0},
-                "fuse_fallbacks": 0,
-                "pivot_routes": {"quality": 0, "uniform": 0},
-                "parent_improved_count": 0,
-                "frontier_improved_count": 0,
-                "avg_llm_seconds": None,
-                "avg_eval_seconds": None,
-                "avg_prompt_tokens": None,
-            },
+            "v106_telemetry": telemetry_placeholder,
+            "v105_telemetry": telemetry_placeholder,
         }
 
     def _scan_overview(
@@ -626,12 +632,15 @@ class MonitorDataEngine:
         op_counts = {"Init": 0, "Refine": 0, "Pivot": 0, "Fuse": 0}
         req_op_counts = {"Init": 0, "Refine": 0, "Pivot": 0, "Fuse": 0}
         fuse_fallbacks = 0
+        parent_routes: dict[str, int] = {}
         pivot_routes = {"quality": 0, "uniform": 0}
         parent_improved_count = 0
         frontier_improved_count = 0
         llm_times: list[float] = []
         eval_times: list[float] = []
         prompt_tokens_list: list[int] = []
+        summary_tokens_list: list[int] = []
+        summary_present_count = 0
 
         status_counts = {"ok": 0, "eval_failed": 0, "invalid_output": 0}
         recent_timestamps: list[datetime] = []
@@ -652,11 +661,11 @@ class MonitorDataEngine:
                         if req_op == "Fuse" and op == "Refine":
                             fuse_fallbacks += 1
 
-                        # Parent route for Pivot (V10.5)
-                        if op == "Pivot":
-                            p_route = ev.get("selection", {}).get("parent_route")
-                            if p_route in pivot_routes:
-                                pivot_routes[p_route] += 1
+                        p_route = ev.get("selection", {}).get("parent_route")
+                        if p_route:
+                            parent_routes[p_route] = parent_routes.get(p_route, 0) + 1
+                        if op == "Pivot" and p_route in pivot_routes:
+                            pivot_routes[p_route] += 1
 
                         if ev.get("parent_improved"):
                             parent_improved_count += 1
@@ -669,6 +678,10 @@ class MonitorDataEngine:
                             eval_times.append(float(ev["eval_seconds"]))
                         if ev.get("prompt_tokens") is not None:
                             prompt_tokens_list.append(int(ev["prompt_tokens"]))
+                        if ev.get("summary_tokens") is not None:
+                            summary_tokens_list.append(int(ev["summary_tokens"]))
+                        if ev.get("summary_status") == "present":
+                            summary_present_count += 1
 
                         st = ev.get("status", "unknown")
                         status_counts[st] = status_counts.get(st, 0) + 1
@@ -741,7 +754,7 @@ class MonitorDataEngine:
                         "display": self._format_metric(fit, task_info),
                         "node_id": n.get("id"),
                         "operator": n.get("operator", "Init"),
-                        "idea": (n.get("idea") or "")[:80],
+                        "idea": (n.get("idea") or "")[:120],
                     }
                 )
 
@@ -759,6 +772,22 @@ class MonitorDataEngine:
         avg_llm = round(sum(llm_times) / len(llm_times), 1) if llm_times else None
         avg_eval = round(sum(eval_times) / len(eval_times), 2) if eval_times else None
         avg_tokens = int(sum(prompt_tokens_list) / len(prompt_tokens_list)) if prompt_tokens_list else None
+        avg_summary_tokens = int(sum(summary_tokens_list) / len(summary_tokens_list)) if summary_tokens_list else None
+
+        telemetry_payload = {
+            "requested_operator_counts": req_op_counts,
+            "executed_operator_counts": op_counts,
+            "fuse_fallbacks": fuse_fallbacks,
+            "parent_routes": parent_routes,
+            "pivot_routes": pivot_routes,
+            "parent_improved_count": parent_improved_count,
+            "frontier_improved_count": frontier_improved_count,
+            "avg_llm_seconds": avg_llm,
+            "avg_eval_seconds": avg_eval,
+            "avg_prompt_tokens": avg_tokens,
+            "avg_summary_tokens": avg_summary_tokens,
+            "summary_present_count": summary_present_count,
+        }
 
         return {
             "name": run_dir.name,
@@ -789,16 +818,8 @@ class MonitorDataEngine:
             "status_counts": status_counts,
             "curve": curve,
             "breakthroughs": breakthroughs,
-            "v105_telemetry": {
-                "requested_operator_counts": req_op_counts,
-                "fuse_fallbacks": fuse_fallbacks,
-                "pivot_routes": pivot_routes,
-                "parent_improved_count": parent_improved_count,
-                "frontier_improved_count": frontier_improved_count,
-                "avg_llm_seconds": avg_llm,
-                "avg_eval_seconds": avg_eval,
-                "avg_prompt_tokens": avg_tokens,
-            },
+            "v106_telemetry": telemetry_payload,
+            "v105_telemetry": telemetry_payload,
         }
 
     def _parse_run_detail(
@@ -835,7 +856,7 @@ class MonitorDataEngine:
                     "fitness": n.get("fitness"),
                     "parent_id": n.get("parent_id"),
                     "donor_id": n.get("donor_id"),
-                    "idea": (n.get("idea") or "")[:120],
+                    "idea": (n.get("idea") or "")[:160],
                 }
             )
 
@@ -871,7 +892,6 @@ class MonitorDataEngine:
                         continue
                     try:
                         raw_ev = json.loads(line)
-                        # Extract friendly event record for V10.5
                         p_route = raw_ev.get("selection", {}).get("parent_route")
                         recent_events.append(
                             {
@@ -887,6 +907,8 @@ class MonitorDataEngine:
                                 "llm_seconds": raw_ev.get("llm_seconds"),
                                 "eval_seconds": raw_ev.get("eval_seconds"),
                                 "prompt_tokens": raw_ev.get("prompt_tokens"),
+                                "summary_tokens": raw_ev.get("summary_tokens"),
+                                "summary_status": raw_ev.get("summary_status"),
                                 "parent_improved": raw_ev.get("parent_improved"),
                                 "frontier_improved": raw_ev.get("frontier_improved"),
                                 "reason": raw_ev.get("reason"),
@@ -1019,7 +1041,7 @@ def make_request_handler(engine: MonitorDataEngine) -> type[BaseHTTPRequestHandl
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="TraceAAD V10.5 Live Monitor")
+    parser = argparse.ArgumentParser(description="TraceAAD V10.6 Live Monitor")
     parser.add_argument("--host", default="0.0.0.0", help="Binding host")
     parser.add_argument("--port", type=int, default=8765, help="HTTP server port (default: 8765)")
     parser.add_argument(
@@ -1030,13 +1052,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--version",
-        default="v10_5",
-        help="Default experiment version (default: v10_5)",
+        default="v10_6",
+        help="Default experiment version (default: v10_6)",
     )
     parser.add_argument(
         "--session-prefix",
-        default="v105",
-        help="Tmux session prefix (default: v105)",
+        default="v106",
+        help="Tmux session prefix (default: v106)",
     )
     args = parser.parse_args()
 
@@ -1062,7 +1084,7 @@ def main() -> None:
     server = ThreadingHTTPServer(server_address, handler_class)
 
     print("===========================================================", flush=True)
-    print("🚀 TraceAAD V10.5 训练实验可视化监控已启动", flush=True)
+    print("🚀 TraceAAD V10.6 训练实验可视化监控已启动", flush=True)
     print(f"📡 本地访问地址: http://127.0.0.1:{args.port}", flush=True)
     print(f"🌐 远程访问地址: http://{args.host}:{args.port}", flush=True)
     print("===========================================================", flush=True)
@@ -1076,4 +1098,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
