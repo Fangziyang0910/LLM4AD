@@ -1,0 +1,206 @@
+{
+  "captured_at": "2026-09-06",
+  "method": "V10.5 formal Refine evaluations through evaluation_id 750. Runtime failures retained. Parent birth and quality measured from existing node and event best_before, no future features. This is selected-policy descriptive coverage, not causal or held-out prediction validation. gap=(best_before-parent_fitness)/abs(best_before).",
+  "summary": {
+    "runs": 15,
+    "formal_refine_attempts": 5847,
+    "distinct_parents": 2762,
+    "parents_one_attempt": 1343,
+    "parents_at_most_two_attempts": 2001,
+    "attempts_with_no_prior_refine": 2762,
+    "by_birth": {
+      "Fuse": {
+        "formal_attempts": 3458,
+        "valid": 3198,
+        "parent_improved": 198,
+        "frontier_improved": 40,
+        "distinct_parents": 1538
+      },
+      "Pivot": {
+        "formal_attempts": 189,
+        "valid": 182,
+        "parent_improved": 20,
+        "frontier_improved": 7,
+        "distinct_parents": 104
+      },
+      "Refine": {
+        "formal_attempts": 2132,
+        "valid": 1966,
+        "parent_improved": 164,
+        "frontier_improved": 26,
+        "distinct_parents": 1086
+      },
+      "Init": {
+        "formal_attempts": 68,
+        "valid": 65,
+        "parent_improved": 5,
+        "frontier_improved": 2,
+        "distinct_parents": 34
+      }
+    },
+    "by_quality_birth": {
+      "gap_le_1pct / Fuse": {
+        "formal_attempts": 1524,
+        "valid": 1403,
+        "parent_improved": 46,
+        "frontier_improved": 22,
+        "distinct_parents": 706
+      },
+      "frontier / Pivot": {
+        "formal_attempts": 84,
+        "valid": 83,
+        "parent_improved": 2,
+        "frontier_improved": 2,
+        "distinct_parents": 47
+      },
+      "frontier / Fuse": {
+        "formal_attempts": 925,
+        "valid": 862,
+        "parent_improved": 14,
+        "frontier_improved": 14,
+        "distinct_parents": 433
+      },
+      "frontier / Refine": {
+        "formal_attempts": 571,
+        "valid": 538,
+        "parent_improved": 8,
+        "frontier_improved": 8,
+        "distinct_parents": 292
+      },
+      "gap_le_1pct / Refine": {
+        "formal_attempts": 753,
+        "valid": 689,
+        "parent_improved": 34,
+        "frontier_improved": 12,
+        "distinct_parents": 345
+      },
+      "gap_gt_1pct / Fuse": {
+        "formal_attempts": 1009,
+        "valid": 933,
+        "parent_improved": 138,
+        "frontier_improved": 4,
+        "distinct_parents": 674
+      },
+      "gap_le_1pct / Pivot": {
+        "formal_attempts": 37,
+        "valid": 35,
+        "parent_improved": 5,
+        "frontier_improved": 4,
+        "distinct_parents": 16
+      },
+      "gap_gt_1pct / Pivot": {
+        "formal_attempts": 68,
+        "valid": 64,
+        "parent_improved": 13,
+        "frontier_improved": 1,
+        "distinct_parents": 55
+      },
+      "gap_gt_1pct / Refine": {
+        "formal_attempts": 808,
+        "valid": 739,
+        "parent_improved": 122,
+        "frontier_improved": 6,
+        "distinct_parents": 575
+      },
+      "gap_gt_1pct / Init": {
+        "formal_attempts": 20,
+        "valid": 19,
+        "parent_improved": 3,
+        "frontier_improved": 0,
+        "distinct_parents": 13
+      },
+      "frontier / Init": {
+        "formal_attempts": 45,
+        "valid": 43,
+        "parent_improved": 2,
+        "frontier_improved": 2,
+        "distinct_parents": 24
+      },
+      "gap_le_1pct / Init": {
+        "formal_attempts": 3,
+        "valid": 3,
+        "parent_improved": 0,
+        "frontier_improved": 0,
+        "distinct_parents": 2
+      }
+    },
+    "by_pivot_regression": {
+      "Pivot / False": {
+        "formal_attempts": 149,
+        "valid": 144,
+        "parent_improved": 9,
+        "frontier_improved": 7,
+        "distinct_parents": 77
+      },
+      "Pivot / True": {
+        "formal_attempts": 40,
+        "valid": 38,
+        "parent_improved": 11,
+        "frontier_improved": 0,
+        "distinct_parents": 27
+      }
+    }
+  },
+  "sources": [
+    {
+      "path": "experiments/traceaad_v10_5/results/cvrp_aco/20260905_cvrp_v105_rep1/tree_state.json",
+      "state_sha256": "92956264603462c7a6daa465346e08ec559ad1196dd40335a9f53e4dd0140143"
+    },
+    {
+      "path": "experiments/traceaad_v10_5/results/cvrp_aco/20260905_cvrp_v105_rep2/tree_state.json",
+      "state_sha256": "05fdd67e29301f525a57e59ddf82f5cb11b6955c5237505d1b712f3ebb96451f"
+    },
+    {
+      "path": "experiments/traceaad_v10_5/results/cvrp_aco/20260905_cvrp_v105_rep3/tree_state.json",
+      "state_sha256": "5a1164de1f648cf5e20cea6f25479ab4a38030d00f2d6508cb91fa549f37474e"
+    },
+    {
+      "path": "experiments/traceaad_v10_5/results/online_bin_packing/20260905_obp_v105_rep1/tree_state.json",
+      "state_sha256": "14269f34eb9b3e9d120792239c990990519d716fb1037ad41b14b5e357e62b8f"
+    },
+    {
+      "path": "experiments/traceaad_v10_5/results/online_bin_packing/20260905_obp_v105_rep2/tree_state.json",
+      "state_sha256": "01739f48a5623bbec40185ce42c8dd7c54a0194a70f66cb09b0acc77d29a1d2f"
+    },
+    {
+      "path": "experiments/traceaad_v10_5/results/online_bin_packing/20260905_obp_v105_rep3/tree_state.json",
+      "state_sha256": "5134250bbeb7c08d61352f0e269e2284689d700ace61eb1fb8da4b817271f157"
+    },
+    {
+      "path": "experiments/traceaad_v10_5/results/op_aco/20260905_op_v105_rep1/tree_state.json",
+      "state_sha256": "30feb90cb073c15ef2551371a195a9c140d3dc0736210def4e2c734458ce3494"
+    },
+    {
+      "path": "experiments/traceaad_v10_5/results/op_aco/20260905_op_v105_rep2/tree_state.json",
+      "state_sha256": "6302d852760db6514aad649417f9ea6a17458e50d0dd27bc728536a5d9039b3c"
+    },
+    {
+      "path": "experiments/traceaad_v10_5/results/op_aco/20260905_op_v105_rep3/tree_state.json",
+      "state_sha256": "2fcec34018d31e0f78a6cf52f044fb9d1f03d5d1a32d869fc270655ef4d979ab"
+    },
+    {
+      "path": "experiments/traceaad_v10_5/results/tsp_construct/20260905_tsp_v105_rep1/tree_state.json",
+      "state_sha256": "84ae52234ee6eb417b52e5e6906beaacc3c72160016fb3e0ac3fd553dc573c0d"
+    },
+    {
+      "path": "experiments/traceaad_v10_5/results/tsp_construct/20260905_tsp_v105_rep2/tree_state.json",
+      "state_sha256": "20a138f65ad7c5ddc39199a7b424eb7485ac0859f379fe4c86e2d33de48c9fdd"
+    },
+    {
+      "path": "experiments/traceaad_v10_5/results/tsp_construct/20260905_tsp_v105_rep3/tree_state.json",
+      "state_sha256": "0f13c027515786da11ba5b854036cdb8dd5135043b5ecfba1e2cbcabdd3bc664"
+    },
+    {
+      "path": "experiments/traceaad_v10_5/results/vrptw_construct/20260905_vrptw_v105_rep1/tree_state.json",
+      "state_sha256": "8617a53a2572e2cc9fca4b15f214d39fe1ee830535942cba83711ca31335f2c5"
+    },
+    {
+      "path": "experiments/traceaad_v10_5/results/vrptw_construct/20260905_vrptw_v105_rep2/tree_state.json",
+      "state_sha256": "ad2906dd15cdac0841dc83b85415c81d7f0d47bc2be1682a80cba504f7d0661c"
+    },
+    {
+      "path": "experiments/traceaad_v10_5/results/vrptw_construct/20260905_vrptw_v105_rep3/tree_state.json",
+      "state_sha256": "994926970289e5423193df361be7f3d2a4a3f92fc90ea9770241cfdbfc0df224"
+    }
+  ]
+}
