@@ -1,22 +1,25 @@
-# experiments 目录索引
+# 实验导航
 
-原始工件只留本地，Git 只跟踪各版本与基线实验包、plotting 与评估入口。凝练结果按 docs/experiments 的主实验 / 机制实验 / 其他实验分类，工件侧不再设归档层。
+科研背景见 [文档导航](../docs/README.md)。各方法的运行脚本位于 `experiments/<method>/`，近期版本的结果位于其 `results/<task>/<run>/`；历史布局以对应实验记录为准。共享后端、任务构建与客户端工具位于 `runners/`。原始工件只留本地。
 
-## 布局
+## 近期开发
 
-- **全量自包含实验包**：全部方法（包括 TraceAAD 各版本 `traceaad_*` 以及外部对照基线 `eoh`、`reevo`、`mcts_ahd`、`pathwise`、`calm`、`shinka_evo`）均在 `experiments/<method>/` 根下以一等公民身份自包含，内含运行脚本与发射器（`run.py`、`launch.py`）以及各任务运行结果（`results/<task>/<run>`），全仓没有任何跨目录软链接。
-- **共享底座**：`runners/` 仅保留所有方法共享的统一后端表、任务构建与 LLM 客户端（`runners/_common.py`）。
+- **V10.5**：[机制设计](../docs/methods/TraceAAD-V10.5完整机制设计.md)、[运行与恢复](traceaad_v10_5/README.md)、[启动记录](traceaad_v10_5/launch_20260905.md)。从批次 manifest 查看实际进度。
+- **V10.4**：[机制设计](../docs/methods/TraceAAD-V10.4完整机制设计.md)，运行入口 `traceaad_v10_4/run.py`、`launch.py`。
+- **V10.3**：[机制设计](../docs/methods/TraceAAD-V10.3完整机制设计.md)，运行入口 `traceaad_v10_3/run.py`、`launch.py`。
+- **V10.2**：[机制设计](../docs/methods/TraceAAD-V10.2完整机制设计.md)、[实验结果](../docs/experiments/机制实验/2026-09-02-TraceAAD-V10.2正式实验/结果.md)。
+- **V10.1**：[机制设计](../docs/methods/TraceAAD-V10.1完整机制设计.md)，运行入口 `traceaad_v10_1/run.py`、`launch.py`。
 
-## 主实验
+## 实验默认设置
 
-主表版本为 `traceaad_v9_16`、`traceaad_v9_17`。五对照 TSP/CVRP/OP/OBP 的正式数字读各方法目录下 `eval_best_20260825_rerun`（原批最终结果见[基线原批次结果](../docs/experiments/其他实验/基线原批次结果.md)）；VRPTW 对照用 20260822 原批，凝练结果见[主实验/结果](../docs/experiments/主实验/结果.md)。
+新正式比较采用 **Qwen3.8-27B、每路 1000 次真实 evaluator 调用**。采样参数为 temperature=1.0、top_p=0.95、top_k=20，客户端显式下发。thinking 开关与采样参数分别记录；V10.5 使用 `enable_thinking=False`。具体批次以对应协议及 `run_config.json` 为准。
 
-## 机制实验批次
+初始化、评价失败和超时计入真实评价预算；仅生成或解析失败不算 evaluator 调用。冒烟与诊断实验采用适合问题的小预算，单独记录。重复数、数据划分与运行容量查对应版本；已启动批次沿用原配置与恢复协议。
 
-- `traceaad_v9_18`：V9.18-R0 机会评分实验工件；过程审计 `traceaad_v9_18/analyze.py`。
-- `traceaad_v9_17`：V9.17 竞争质量门控实验工件；过程分析 `traceaad_v9_17/analyze.py`。
-- `traceaad_v9_19`（原批 + `fixed_20260829` 修订批）、`traceaad_v9_20`：行为度量时代的机制版本。
-- `traceaad_v9_21`：思想假设双重实现搜索，首批 `v9_21_core_20260830`，入口 `experiments/traceaad_v9_21/launch.py`。
-- `traceaad_v10`：design opportunity 分配，批次 `v10_20260831_q38`（2026-09-01 主动停止、checkpoint 完整可恢复），入口 `experiments/traceaad_v10/launch.py`。
-- `traceaad_v10_1`：V10.1 质量概率选父 + Refine/Pivot/Fuse 三算子扩展（机制见 [V10.1 完整机制设计](../docs/methods/TraceAAD-V10.1完整机制设计.md)），正式批次 `20260902_*`（5 任务 × 3 重复、1000 预算），入口 `experiments/traceaad_v10_1/launch.py`；过程工件为各 run 的 `events.jsonl` / `tree_state.json`。
-- 历史版本 `traceaad_v9_7` / `traceaad_v9_14` / `traceaad_v9_15`：主表历史对照，数字见[历史版本](../docs/experiments/其他实验/历史版本.md)；V9.7 的过程分析读各 run 的 `artifacts/candidates.jsonl`（`traceaad_v9_7/analyze.py`）。
+这里的 Qwen 是被研究的算法生成模型，科研协作者使用 Astra 不改变实验配置。
+
+## 已有比较与历史探索
+
+[V9 系列主实验结果](../docs/experiments/主实验/结果.md)及[配置](../docs/experiments/主实验/配置.md)保留 Qwen3.6 时期的比较口径。外部对照包括 EoH、ReEvo、MCTS-AHD、PathWise、CALM；其他实验包还包括 ShinkaEvo 等方法。
+
+其他版本与批次见 [历史版本](../docs/experiments/其他实验/历史版本.md)、[机制实验](../docs/experiments/机制实验/)及 [工作日志](../docs/worklog/)。引用旧结果时沿用其原始模型、预算与任务设置。
