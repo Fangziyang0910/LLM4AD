@@ -1,6 +1,6 @@
 # 技能安装分类
 
-更新日期：2026-09-06。按 TraceAAD 科研需求筛选，保留原安装位置。现有 98 份技能主文件：项目 80 个、全局用户工具 1 个、系统 6 个、插件 11 个。
+更新日期：2026-09-06。按 TraceAAD 科研需求筛选，保留原安装位置。现有 100 份技能主文件：项目 82 个、全局用户工具 1 个、系统 6 个、插件 11 个。
 
 ## 筛选结果
 
@@ -175,3 +175,12 @@
 - `to-tickets`
 - `triage`
 - `wayfinder`
+
+## Claude Scholar（2）
+
+来源：[Galaxy-Dawn/claude-scholar](https://github.com/Galaxy-Dawn/claude-scholar)，安装提交 `6ed46dac03191c7a734f49ed48b41195012098ff`。两个技能的 17 份原始文件均已与上游哈希核对。
+
+- [review-response](/home/fang/code/LLM4AD/LLM4AD/.agents/skills/review-response/SKILL.md)：审稿回复与 rebuttal。
+- [results-analysis](/home/fang/code/LLM4AD/LLM4AD/.agents/skills/results-analysis/SKILL.md)：正式统计与结果分析，设为手动调用；补入共享 research-contract.md 并改为本地引用。
+
+手动调用配置及共享说明引用为本地适配，其他上游内容保留。本次未运行统计分析或安装额外 Python 依赖。
