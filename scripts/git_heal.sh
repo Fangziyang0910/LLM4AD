@@ -36,8 +36,23 @@ if [ "$IS_CORRUPT" -eq 1 ]; then
     rm -f "$INDEX_FILE"
     git reset
     echo "✅ .git/index has been successfully restored from HEAD!"
+    if [ -s "${INDEX_FILE}.bak" ] && [ "$(stat -c %s "${INDEX_FILE}.bak")" -gt 100 ]; then
+        cp "${INDEX_FILE}.bak" "$INDEX_FILE"
+        if git status >/dev/null 2>&1; then
+            echo "✅ .git/index restored instantly from shadow backup!"
+        else
+            rm -f "$INDEX_FILE"
+            git reset
+            echo "✅ .git/index has been successfully restored from HEAD via git reset!"
+        fi
+    else
+        git reset
+        echo "✅ .git/index has been successfully restored from HEAD via git reset!"
+    fi
     git status -s
 else
+    # Keep shadow backup fresh
+    cp -p "$INDEX_FILE" "${INDEX_FILE}.bak" 2>/dev/null || true
     echo "✅ .git/index is healthy ($(stat -c %s "$INDEX_FILE") bytes)."
 fi
 

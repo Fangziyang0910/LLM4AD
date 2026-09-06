@@ -8,10 +8,10 @@
 - Orchestra 未安装的 ara-compiler、ara-research-manager、ara-rigor-reviewer 已检查：三者围绕 ARA 档案、固定证据字段和分级审查，暂不符合本项目偏好的轻量科研协作，不补装。
 - Matt Pocock：保留 17 个原有技能，补装手动调用的 retro，共 18 个。清理依赖未启用工单流程或重复交互的 8 个技能。to-spec 改为生成本地实现说明，移除已删除 setup 的依赖。
 - retro 安装来源为 mattpocock/skills 的 skills/in-progress/retro，提交 3cca18b368ae95cdbdebbff572ccafa662551015；SKILL.md 和 agents/openai.yaml 均与上游文件哈希一致。该技能是上游 in-progress 条目，仅手动调用。
-- 保留 Academic Humanizer 0.3.3；Ponytail 仅保留插件版。此前删除的 K-Dense、Draw.io 和模板缓存不恢复。
+- 使用通用 Humanizer 2.11.2（blader/humanizer），用于按原意和作者语气润色；论文结构继续使用 ml-paper-writing；Ponytail 仅保留插件版。此前删除的 K-Dense、Draw.io 和模板缓存不恢复。
 - 保留的技能文件不代表相关外部软件、模型服务或 API 凭据已经配置。系统 review-agent 文件可读取，但未列入本次会话技能目录。
 
-来源：[Matt Pocock](https://github.com/mattpocock/skills)、[Orchestra Research](https://github.com/Orchestra-Research/AI-Research-SKILLs)、[Academic Humanizer](https://github.com/AIScientists-Dev/academic-humanizer)、[Ponytail](https://github.com/DietrichGebert/ponytail)。
+来源：[Matt Pocock](https://github.com/mattpocock/skills)、[Orchestra Research](https://github.com/Orchestra-Research/AI-Research-SKILLs)、[Humanizer](https://github.com/blader/humanizer)、[Ponytail](https://github.com/DietrichGebert/ponytail)。
 
 ## Orchestra Research（61）
 
@@ -77,9 +77,9 @@
 - [serving-llms-vllm](/home/fang/code/LLM4AD/LLM4AD/.agents/skills/vllm/SKILL.md)
 - [weights-and-biases](/home/fang/code/LLM4AD/LLM4AD/.agents/skills/weights-and-biases/SKILL.md)
 
-## Academic Humanizer（1）
+## 通用 Humanizer（1）
 
-- [academic-humanizer](/home/fang/code/LLM4AD/LLM4AD/.agents/skills/academic-humanizer/SKILL.md)
+- [humanizer](/home/fang/code/LLM4AD/LLM4AD/.agents/skills/humanizer/SKILL.md)
 
 ## Matt Pocock（18）
 
