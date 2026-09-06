@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TraceAAD V10.2 · 实验进程可视化</title>
+<title>TraceAAD V10.3 · 实验进程可视化</title>
 <style>
 :root {
   --bg: #0b0f17;
@@ -58,7 +58,7 @@ header {
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 .brand-badge {
   background: linear-gradient(135deg, #0284c7, #6366f1);
@@ -74,6 +74,26 @@ header {
   font-weight: 650;
   color: var(--text-main);
 }
+.version-picker-wrap {
+  margin-left: 6px;
+}
+.version-select {
+  background: var(--surface);
+  color: var(--primary);
+  border: 1px solid var(--line);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+}
+.version-select:hover {
+  border-color: var(--primary);
+  background: var(--surface-hover);
+}
+
 .tabs-nav {
   display: flex;
   background: var(--surface);
@@ -669,8 +689,15 @@ table.feed-table td {
 
 <header>
   <div class="brand">
-    <span class="brand-badge">V10.2</span>
+    <span class="brand-badge" id="brand-badge">V10.3</span>
     <div class="brand-title">TraceAAD 训练监控与分析面板</div>
+    <div class="version-picker-wrap">
+      <select id="version-select" class="version-select" onchange="changeVersion(this.value)" title="切换监控实验版本">
+        <option value="v10_3" selected>TraceAAD V10.3 (当前运行)</option>
+        <option value="v10_2">TraceAAD V10.2</option>
+        <option value="v10_1">TraceAAD V10.1</option>
+      </select>
+    </div>
   </div>
   
   <div class="tabs-nav">
@@ -837,6 +864,67 @@ let activeView = "overview";
 let refreshTimer = null;
 let countdown = 10;
 let isInitialRender = true;
+let currentVersion = "";
+let availableVersions = [];
+
+async function loadVersions() {
+  try {
+    const res = await fetch("/api/versions");
+    if (!res.ok) return;
+    const data = await res.json();
+    availableVersions = data.versions || [];
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlVer = urlParams.get("version");
+    if (urlVer && availableVersions.some(v => v.id === urlVer)) {
+      currentVersion = urlVer;
+    } else if (currentVersion && availableVersions.some(v => v.id === currentVersion)) {
+      // keep currentVersion
+    } else {
+      currentVersion = data.current || (availableVersions[0] ? availableVersions[0].id : "v10_3");
+    }
+    renderVersionSelector();
+  } catch (e) {
+    console.warn("Failed to load versions:", e);
+  }
+}
+
+function renderVersionSelector() {
+  const sel = document.getElementById("version-select");
+  if (!sel || availableVersions.length === 0) return;
+  sel.innerHTML = "";
+  availableVersions.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v.id;
+    opt.textContent = v.name;
+    if (v.id === currentVersion) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  const badge = document.getElementById("brand-badge");
+  if (badge) {
+    const curr = availableVersions.find(v => v.id === currentVersion);
+    if (curr) {
+      badge.textContent = curr.badge || curr.id.toUpperCase();
+      document.title = `TraceAAD ${curr.badge || curr.id.toUpperCase()} · 实验进程可视化`;
+    }
+  }
+}
+
+function changeVersion(newVer) {
+  if (newVer === currentVersion) return;
+  currentVersion = newVer;
+  const newUrl = new URL(window.location);
+  newUrl.searchParams.set("version", newVer);
+  window.history.replaceState({}, "", newUrl);
+  isInitialRender = true;
+  currentRunDetail = null;
+  const badge = document.getElementById("brand-badge");
+  if (badge) {
+    const curr = availableVersions.find(v => v.id === currentVersion);
+    if (curr) badge.textContent = curr.badge || curr.id.toUpperCase();
+  }
+  document.title = `TraceAAD ${(badge ? badge.textContent : newVer.toUpperCase())} · 实验进程可视化`;
+  fetchState(true);
+}
 
 function switchView(view) {
   activeView = view;
@@ -853,9 +941,13 @@ function switchView(view) {
 
 async function fetchState(manual = false) {
   try {
-    const res = await fetch("/api/state");
+    const res = await fetch(`/api/state?version=${encodeURIComponent(currentVersion)}`);
     if (!res.ok) throw new Error("HTTP " + res.status);
     globalState = await res.json();
+    if (globalState.version) {
+      const badge = document.getElementById("brand-badge");
+      if (badge) badge.textContent = globalState.version;
+    }
     renderOverview();
     if (activeView === "inspector") {
       populateRunSelector();
@@ -887,6 +979,7 @@ function renderOverview() {
   document.getElementById("kpi-pct").textContent = `${global_summary.pct}%`;
   document.getElementById("kpi-bar-fill").style.width = `${Math.min(100, global_summary.pct)}%`;
   document.getElementById("kpi-evals-ratio").textContent = `${global_summary.total_evals} / ${global_summary.total_budget}`;
+  document.getElementById("kpi-evals-sub").textContent = `共 ${global_summary.total_runs} 路并行任务`;
   document.getElementById("kpi-status-val").textContent = `${global_summary.running_runs} 运行中`;
   document.getElementById("kpi-status-sub").textContent = `${global_summary.finished_runs} 已完成 · ${global_summary.stalled_runs} 停滞/异常`;
   document.getElementById("kpi-eta-val").textContent = global_summary.max_eta_formatted;
@@ -900,6 +993,11 @@ function renderOverview() {
       const meta = t.meta;
       const runs = t.runs;
       const dirTag = meta.direction === "min" ? `<span class="tag tag-min">目标: 最小化 ${meta.unit}</span>` : `<span class="tag tag-max">目标: 最大化 ${meta.unit}</span>`;
+      const legendHtml = runs.map(r => `
+        <div class="legend-item" onmouseenter="highlightCurve('${meta.key}', ${r.rep})" onmouseleave="resetCurve('${meta.key}')">
+          <span class="legend-line" style="background: var(--rep${r.rep});"></span><span>rep${r.rep}</span>
+        </div>
+      `).join("");
 
       html += `
       <div class="task-card" id="task-${meta.key}">
@@ -948,18 +1046,33 @@ function renderOverview() {
                 <div class="prog-bar">
                   <div class="prog-bar-fill" id="bar-${r.name}" style="width: ${r.pct}%; background: ${color};"></div>
                 </div>
-                <span class="mono prog-text" id="progtext-${r.name}" style="font-size: 12px; color: var(--text-muted); min-width: 65px;">${r.budget_used}/${r.budget} (${r.pct}%)</span>
+                <span class="mono" id="evals-${r.name}" style="font-size: 11.5px; color: var(--text-muted); width: 85px;">
+                  ${r.budget_used} / ${r.budget}
+                </span>
               </div>
             </td>
             <td>
-              <div class="eta-badge" id="eta-${r.name}">${r.eta_formatted}</div>
-              <div class="eta-sub" id="etasub-${r.name}">预计完成: ${r.eta_finish_time}</div>
+              <div>
+                <span class="eta-badge" id="eta-${r.name}">${r.eta_formatted}</span>
+                <div class="eta-sub" id="finish-${r.name}">预计: ${r.eta_finish_time}</div>
+              </div>
             </td>
-            <td><span class="best-badge mono" id="best-${r.name}">${r.best_display}</span></td>
-            <td class="mono mono-speed" id="speed-${r.name}" style="color: var(--text-muted);">${r.speed_formatted}</td>
-            <td id="ops-${r.name}"></td>
+            <td>
+              <span class="best-badge mono" id="best-${r.name}" style="color: ${color};">${r.best_display}</span>
+            </td>
+            <td>
+              <span class="mono" id="speed-${r.name}" style="color: var(--text-muted);">${r.speed_formatted}</span>
+            </td>
+            <td>
+              <div class="op-pills" id="ops-${r.name}">
+                <span class="op-pill mono" style="color: #94a3b8;" title="Init">${r.operator_counts.Init}</span>
+                <span class="op-pill mono" style="color: #60a5fa;" title="Refine">${r.operator_counts.Refine}</span>
+                <span class="op-pill mono" style="color: #fbbf24;" title="Pivot">${r.operator_counts.Pivot}</span>
+                <span class="op-pill mono" style="color: #c084fc;" title="Fuse">${r.operator_counts.Fuse}</span>
+              </div>
+            </td>
             <td style="text-align: right;">
-              <button class="btn-inspect" onclick="inspectRun('${meta.key}', '${r.name}')">检视详情 →</button>
+              <button class="btn-inspect" onclick="inspectRun('${meta.key}', '${r.name}')">检视代码</button>
             </td>
           </tr>
         `;
@@ -971,13 +1084,15 @@ function renderOverview() {
 
         <div class="chart-box">
           <div class="chart-top">
-            <div class="chart-title">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-6 6"/></svg>
-              <span>Best 改进曲线 (0 – 1000 评价预算)</span>
+            <span class="chart-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span>收敛趋势图 (1000 Evaluations)</span>
+            </span>
+            <div class="chart-legend">
+              ${legendHtml}
             </div>
-            <div class="chart-legend" id="legend-${meta.key}"></div>
           </div>
-          <div class="chart-svg-wrap" id="chart-wrap-${meta.key}">
+          <div class="chart-svg-wrap">
             <svg class="chart-svg" id="chart-svg-${meta.key}"></svg>
           </div>
         </div>
@@ -994,29 +1109,28 @@ function renderOverview() {
 
     const compEl = document.getElementById(`task-comp-${meta.key}`);
     if (compEl) {
-      compEl.innerHTML = `完成度: <b>${runs.filter(r=>r.status==="finished").length}/${runs.length}</b> 路已结束`;
+      compEl.innerHTML = `完成度: <b>${t.completed_runs}/${runs.length}</b> 路已结束`;
     }
 
     runs.forEach(r => {
+      const color = REP_COLORS[(r.rep - 1) % 3];
       const statusEl = document.getElementById(`status-${r.name}`);
       if (statusEl) {
-        const sClass = r.status === "running" ? "running" : (r.status === "finished" ? "finished" : "stalled");
-        const sText = r.status === "running" ? "● 运行中" : (r.status === "finished" ? "✓ 已完成" : "✕ 停滞");
-        statusEl.className = `status-pill ${sClass}`;
-        statusEl.textContent = sText;
+        statusEl.className = `status-pill ${r.status}`;
+        statusEl.textContent = r.status === "running" ? "● 运行中" : (r.status === "finished" ? "✓ 已完成" : "✕ 停滞");
       }
 
       const barEl = document.getElementById(`bar-${r.name}`);
       if (barEl) barEl.style.width = `${r.pct}%`;
 
-      const progTextEl = document.getElementById(`progtext-${r.name}`);
-      if (progTextEl) progTextEl.textContent = `${r.budget_used}/${r.budget} (${r.pct}%)`;
+      const evalsEl = document.getElementById(`evals-${r.name}`);
+      if (evalsEl) evalsEl.textContent = `${r.budget_used} / ${r.budget}`;
 
       const etaEl = document.getElementById(`eta-${r.name}`);
       if (etaEl) etaEl.textContent = r.eta_formatted;
 
-      const etaSubEl = document.getElementById(`etasub-${r.name}`);
-      if (etaSubEl) etaSubEl.textContent = r.status === 'running' ? '预计完成: ' + r.eta_finish_time : '';
+      const finishEl = document.getElementById(`finish-${r.name}`);
+      if (finishEl) finishEl.textContent = `预计: ${r.eta_finish_time}`;
 
       const bestEl = document.getElementById(`best-${r.name}`);
       if (bestEl) bestEl.textContent = r.best_display;
@@ -1024,29 +1138,16 @@ function renderOverview() {
       const speedEl = document.getElementById(`speed-${r.name}`);
       if (speedEl) speedEl.textContent = r.speed_formatted;
 
-      const opc = r.operator_counts;
       const opsEl = document.getElementById(`ops-${r.name}`);
       if (opsEl) {
         opsEl.innerHTML = `
-          <div class="op-pills">
-            <span class="op-pill" title="Init 产生">Init: ${opc.Init||0}</span>
-            <span class="op-pill" style="color: var(--op-refine)" title="Refine 产生">Ref: ${opc.Refine||0}</span>
-            <span class="op-pill" style="color: var(--op-pivot)" title="Pivot 产生">Piv: ${opc.Pivot||0}</span>
-            <span class="op-pill" style="color: var(--op-fuse)" title="Fuse 产生">Fus: ${opc.Fuse||0}</span>
-          </div>
+          <span class="op-pill mono" style="color: #94a3b8;" title="Init">${r.operator_counts.Init}</span>
+          <span class="op-pill mono" style="color: #60a5fa;" title="Refine">${r.operator_counts.Refine}</span>
+          <span class="op-pill mono" style="color: #fbbf24;" title="Pivot">${r.operator_counts.Pivot}</span>
+          <span class="op-pill mono" style="color: #c084fc;" title="Fuse">${r.operator_counts.Fuse}</span>
         `;
       }
     });
-
-    const legendEl = document.getElementById(`legend-${meta.key}`);
-    if (legendEl) {
-      legendEl.innerHTML = runs.map(r => `
-        <div class="legend-item" onmouseenter="highlightCurve('${meta.key}', ${r.rep})" onmouseleave="resetCurve('${meta.key}')">
-          <span class="legend-line" style="background: ${REP_COLORS[(r.rep-1)%3]};"></span>
-          <span>rep${r.rep} · 最佳: ${r.best_display}</span>
-        </div>
-      `).join("");
-    }
 
     drawTaskChart(meta, runs);
   });
@@ -1086,9 +1187,9 @@ function drawTaskChart(meta, runs) {
 
   let content = `
     <defs>
-      <linearGradient id="grad-rep1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38bdf8" stop-opacity="0.25"/><stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0"/></linearGradient>
-      <linearGradient id="grad-rep2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fbbf24" stop-opacity="0.25"/><stop offset="100%" stop-color="#fbbf24" stop-opacity="0.0"/></linearGradient>
-      <linearGradient id="grad-rep3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#34d399" stop-opacity="0.25"/><stop offset="100%" stop-color="#34d399" stop-opacity="0.0"/></linearGradient>
+      <linearGradient id="grad-rep1-${meta.key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38bdf8" stop-opacity="0.25"/><stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0"/></linearGradient>
+      <linearGradient id="grad-rep2-${meta.key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fbbf24" stop-opacity="0.25"/><stop offset="100%" stop-color="#fbbf24" stop-opacity="0.0"/></linearGradient>
+      <linearGradient id="grad-rep3-${meta.key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#34d399" stop-opacity="0.25"/><stop offset="100%" stop-color="#34d399" stop-opacity="0.0"/></linearGradient>
     </defs>
   `;
 
@@ -1133,7 +1234,7 @@ function drawTaskChart(meta, runs) {
 
     areaD += ` L ${lastX.toFixed(1)} ${h - pB} Z`;
 
-    content += `<path d="${areaD}" fill="url(#grad-rep${r.rep})" opacity="0.4" class="curve-area-${meta.key} rep-area-${r.rep}"/>`;
+    content += `<path d="${areaD}" fill="url(#grad-rep${r.rep}-${meta.key})" opacity="0.4" class="curve-area-${meta.key} rep-area-${r.rep}"/>`;
     content += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="2.2" class="curve-line-${meta.key} rep-line-${r.rep}"/>`;
 
     (r.breakthroughs || []).forEach(bt => {
@@ -1249,7 +1350,7 @@ async function loadRunDetail() {
   if (!task || !name) return;
 
   try {
-    const res = await fetch(`/api/run?task=${encodeURIComponent(task)}&name=${encodeURIComponent(name)}`);
+    const res = await fetch(`/api/run?version=${encodeURIComponent(currentVersion)}&task=${encodeURIComponent(task)}&name=${encodeURIComponent(name)}`);
     if (!res.ok) throw new Error("HTTP " + res.status);
     currentRunDetail = await res.json();
     renderInspector();
@@ -1386,7 +1487,7 @@ async function selectNode(nodeId) {
   const [task, name] = select.value.split("|");
 
   try {
-    const res = await fetch(`/api/node?task=${encodeURIComponent(task)}&name=${encodeURIComponent(name)}&id=${nodeId}`);
+    const res = await fetch(`/api/node?version=${encodeURIComponent(currentVersion)}&task=${encodeURIComponent(task)}&name=${encodeURIComponent(name)}&id=${nodeId}`);
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     displayNode(data.node, data.ancestors);
@@ -1427,8 +1528,11 @@ function copyCode() {
   });
 }
 
-fetchState();
-startAutoRefresh();
+loadVersions().then(() => {
+  fetchState();
+  startAutoRefresh();
+});
 </script>
 </body>
 </html>
+

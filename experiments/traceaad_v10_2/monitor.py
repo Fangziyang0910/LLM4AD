@@ -5,8 +5,9 @@ Features:
 - File modification & size guards (zero redundant disk I/O / JSON deserialization)
 - Sparse step curve compression (shrinks points by 98% while visually identical)
 - Real-time progress across all 15 runs (5 tasks x 3 repeats)
-- Accurate ETA estimation with windowed velocity blending
+- Dynamic tmux session detection with windowed velocity blending
 - Individual run inspector (code, ideas, lineages, recent event stream)
+- Multi-version switcher support (seamlessly observe V10.3, V10.2, V10.1)
 
 Usage:
     uv run python -m experiments.traceaad_v10_2.monitor [--port 8765] [--host 0.0.0.0]
@@ -28,7 +29,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-RESULTS_ROOT = Path(__file__).resolve().parent / "results"
+DEFAULT_RESULTS_ROOT = Path(__file__).resolve().parent / "results"
 HTML_FILE = Path(__file__).with_name("monitor.html")
 
 TASKS_METADATA = [
@@ -77,6 +78,50 @@ TASKS_METADATA = [
 TASK_MAP = {t["key"]: t for t in TASKS_METADATA}
 REP_RE = re.compile(r"_rep(\d+)$")
 
+KNOWN_VERSIONS = {
+    "v10_5": {
+        "id": "v10_5",
+        "name": "TraceAAD V10.5 (当前运行)",
+        "badge": "V10.5",
+        "default_prefix": "v105",
+        "path": REPO_ROOT / "experiments" / "traceaad_v10_5" / "results",
+        "is_latest": True,
+    },
+    "v10_4": {
+        "id": "v10_4",
+        "name": "TraceAAD V10.4",
+        "badge": "V10.4",
+        "default_prefix": "v104",
+        "path": REPO_ROOT / "experiments" / "traceaad_v10_4" / "results",
+        "is_latest": False,
+    },
+    "v10_3": {
+        "id": "v10_3",
+        "name": "TraceAAD V10.3",
+        "badge": "V10.3",
+        "default_prefix": "v103",
+        "path": REPO_ROOT / "experiments" / "traceaad_v10_3" / "results",
+        "is_latest": True,
+        "is_latest": False,
+    },
+    "v10_2": {
+        "id": "v10_2",
+        "name": "TraceAAD V10.2",
+        "badge": "V10.2",
+        "default_prefix": "v102",
+        "path": REPO_ROOT / "experiments" / "traceaad_v10_2" / "results",
+        "is_latest": False,
+    },
+    "v10_1": {
+        "id": "v10_1",
+        "name": "TraceAAD V10.1",
+        "badge": "V10.1",
+        "default_prefix": "v101",
+        "path": REPO_ROOT / "experiments" / "traceaad_v10_1" / "results",
+        "is_latest": False,
+    },
+}
+
 
 def _format_duration(seconds: float | None) -> str:
     if seconds is None or seconds <= 0:
@@ -117,40 +162,108 @@ def _get_active_tmux_sessions() -> set[str]:
         return set()
 
 
+def _is_run_session_alive(base_session: str, active_tmux: set[str]) -> tuple[bool, str]:
+    if base_session in active_tmux:
+        return True, base_session
+    prefix = f"{base_session}_r"
+    for s in active_tmux:
+        if s.startswith(prefix):
+            return True, s
+    return False, base_session
+
+
 class MonitorDataEngine:
-    def __init__(self, results_root: Path):
-        self.results_root = results_root
-        self._cache_overview: dict[str, Any] | None = None
-        self._cache_runs: dict[str, dict[str, Any]] = {}
-        self._cache_summaries: dict[str, dict[str, Any]] = {}
+    def __init__(
+        self,
+        results_root: Path | None = None,
+        default_version: str = "v10_2",
+        default_session_prefix: str = "v102",
+    ):
+        self.default_results_root = results_root or DEFAULT_RESULTS_ROOT
+        self.default_version = default_version
+        self.default_session_prefix = default_session_prefix
+
+        # Cache indexed by version_id
+        self._cache_overview: dict[str, dict[str, Any]] = {}
+        self._cache_overview_ts: dict[str, float] = {}
+        self._cache_runs: dict[str, dict[str, dict[str, Any]]] = {}
+        self._cache_summaries: dict[str, dict[str, dict[str, Any]]] = {}
         self._lock = threading.Lock()
 
-    def get_overview(self) -> dict[str, Any]:
+    def get_available_versions(self) -> list[dict[str, Any]]:
+        versions: list[dict[str, Any]] = []
+        for vid, info in KNOWN_VERSIONS.items():
+            if info["path"].is_dir():
+                versions.append(
+                    {
+                        "id": vid,
+                        "name": info["name"],
+                        "badge": info["badge"],
+                        "is_latest": info["is_latest"],
+                    }
+                )
+        if not versions:
+            versions.append(
+                {
+                    "id": self.default_version,
+                    "name": f"TraceAAD {self.default_version.upper()}",
+                    "badge": self.default_version.upper(),
+                    "is_latest": True,
+                }
+            )
+        return versions
+
+    def _resolve_version_meta(
+        self, version: str | None
+    ) -> tuple[str, Path, str, str]:
+        vid = version or self.default_version
+        if vid in KNOWN_VERSIONS:
+            vmeta = KNOWN_VERSIONS[vid]
+            # Use explicit root if specified and matches default
+            path = self.default_results_root if (vid == self.default_version) else vmeta["path"]
+            return vid, path, vmeta["default_prefix"], vmeta["badge"]
+        return vid, self.default_results_root, self.default_session_prefix, vid.upper()
+
+    def get_overview(
+        self, version: str | None = None, max_age_sec: float = 3.0
+    ) -> dict[str, Any]:
+        vid, root_dir, prefix, badge = self._resolve_version_meta(version)
+        now_ts = time.time()
         with self._lock:
-            if self._cache_overview is not None:
-                return self._cache_overview
-            overview = self._scan_overview()
-            self._cache_overview = overview
+            cached = self._cache_overview.get(vid)
+            cached_ts = self._cache_overview_ts.get(vid, 0.0)
+            if cached is not None and (now_ts - cached_ts) < max_age_sec:
+                return cached
+        overview = self._scan_overview(root_dir, vid, prefix, badge)
+        with self._lock:
+            self._cache_overview[vid] = overview
+            self._cache_overview_ts[vid] = time.time()
             return overview
 
-    def get_run_detail(self, task: str, run_name: str) -> dict[str, Any] | None:
-        run_dir = self.results_root / task / run_name
+    def get_run_detail(
+        self, task: str, run_name: str, version: str | None = None
+    ) -> dict[str, Any] | None:
+        vid, root_dir, prefix, _ = self._resolve_version_meta(version)
+        run_dir = root_dir / task / run_name
         if not run_dir.is_dir():
             return None
         with self._lock:
-            cached = self._cache_runs.get(run_name)
+            if vid not in self._cache_runs:
+                self._cache_runs[vid] = {}
+            cached = self._cache_runs[vid].get(run_name)
             stamp = self._get_run_mtime(run_dir)
             if cached and cached.get("_stamp") == stamp:
                 return cached["data"]
-            data = self._parse_run_detail(run_dir, task, run_name)
+            data = self._parse_run_detail(run_dir, task, run_name, prefix)
             if data:
-                self._cache_runs[run_name] = {"_stamp": stamp, "data": data}
+                self._cache_runs[vid][run_name] = {"_stamp": stamp, "data": data}
             return data
 
     def get_node_detail(
-        self, task: str, run_name: str, node_id: int
+        self, task: str, run_name: str, node_id: int, version: str | None = None
     ) -> dict[str, Any] | None:
-        run_dir = self.results_root / task / run_name
+        _, root_dir, _, _ = self._resolve_version_meta(version)
+        run_dir = root_dir / task / run_name
         tree_p = run_dir / "tree_state.json"
         if not tree_p.exists():
             return None
@@ -184,10 +297,25 @@ class MonitorDataEngine:
         except Exception:
             return None
 
-    def refresh(self) -> None:
-        overview = self._scan_overview()
-        with self._lock:
-            self._cache_overview = overview
+    def refresh(self, version: str | None = None) -> None:
+        if version is not None:
+            vids = [version]
+        else:
+            vids = [v["id"] for v in self.get_available_versions()]
+            if self.default_version not in vids:
+                vids.append(self.default_version)
+
+        for vid in vids:
+            try:
+                v_id, root_dir, prefix, badge = self._resolve_version_meta(vid)
+                if not root_dir.is_dir():
+                    continue
+                overview = self._scan_overview(root_dir, v_id, prefix, badge)
+                with self._lock:
+                    self._cache_overview[v_id] = overview
+                    self._cache_overview_ts[v_id] = time.time()
+            except Exception as e:
+                print(f"[monitor] Failed to refresh version {vid}: {e}", flush=True)
 
     def _get_run_mtime(self, run_dir: Path) -> tuple[Any, ...]:
         def _stat(p: Path) -> tuple[float, int] | None:
@@ -204,7 +332,9 @@ class MonitorDataEngine:
             _stat(run_dir / "logs" / "summary.json"),
         )
 
-    def _scan_overview(self) -> dict[str, Any]:
+    def _scan_overview(
+        self, root_dir: Path, version_id: str, default_prefix: str, badge: str
+    ) -> dict[str, Any]:
         active_tmux = _get_active_tmux_sessions()
         now = datetime.now()
 
@@ -219,7 +349,7 @@ class MonitorDataEngine:
 
         for task_info in TASKS_METADATA:
             task_key = task_info["key"]
-            task_dir = self.results_root / task_key
+            task_dir = root_dir / task_key
             runs_data: list[dict[str, Any]] = []
 
             if task_dir.is_dir():
@@ -232,7 +362,7 @@ class MonitorDataEngine:
                     rep = int(rep_match.group(1))
 
                     run_summary = self._parse_run_summary_cached(
-                        run_dir, task_info, rep, active_tmux, now
+                        run_dir, task_info, rep, active_tmux, now, version_id, default_prefix
                     )
                     runs_data.append(run_summary)
 
@@ -264,6 +394,8 @@ class MonitorDataEngine:
         avg_speed = (sum(all_speeds) / len(all_speeds)) if all_speeds else 0.0
 
         return {
+            "version": badge,
+            "version_id": version_id,
             "updated_at": now.isoformat(timespec="seconds"),
             "global_summary": {
                 "total_runs": sum(len(t["runs"]) for t in tasks_data),
@@ -288,22 +420,26 @@ class MonitorDataEngine:
         rep: int,
         active_tmux: set[str],
         now: datetime,
+        version_id: str,
+        default_prefix: str,
     ) -> dict[str, Any]:
         stamp = self._get_run_mtime(run_dir)
-        cached_entry = self._cache_summaries.get(run_dir.name)
+        if version_id not in self._cache_summaries:
+            self._cache_summaries[version_id] = {}
+        cached_entry = self._cache_summaries[version_id].get(run_dir.name)
 
         if cached_entry and cached_entry.get("_stamp") == stamp:
             base = dict(cached_entry["summary"])
-            status = base["status"]
             budget = base["budget"]
             budget_used = base["budget_used"]
             sec_per_eval = base.get("sec_per_eval")
-            expected_session = f"v102_{task_info['short']}_r{rep}"
+            expected_session = base.get("expected_session") or f"{base.get('method') or default_prefix}_{task_info['short']}_r{rep}"
+            is_in_tmux, actual_session = _is_run_session_alive(expected_session, active_tmux)
 
             if base.get("has_finished_summary") or budget_used >= budget:
                 status = "finished"
                 eta_sec = 0.0
-            elif expected_session in active_tmux:
+            elif is_in_tmux:
                 status = "running"
                 rem_evals = max(0, budget - budget_used)
                 eta_sec = (rem_evals * sec_per_eval) if sec_per_eval else None
@@ -312,6 +448,7 @@ class MonitorDataEngine:
                 eta_sec = None
 
             base["status"] = status
+            base["actual_session"] = actual_session
             base["eta_seconds"] = eta_sec
             base["eta_formatted"] = (
                 _format_duration(eta_sec)
@@ -325,8 +462,8 @@ class MonitorDataEngine:
             )
             return base
 
-        summary = self._parse_run_summary_raw(run_dir, task_info, rep, active_tmux, now)
-        self._cache_summaries[run_dir.name] = {"_stamp": stamp, "summary": summary}
+        summary = self._parse_run_summary_raw(run_dir, task_info, rep, active_tmux, now, default_prefix)
+        self._cache_summaries[version_id][run_dir.name] = {"_stamp": stamp, "summary": summary}
         return summary
 
     def _parse_run_summary_raw(
@@ -336,11 +473,13 @@ class MonitorDataEngine:
         rep: int,
         active_tmux: set[str],
         now: datetime,
+        default_prefix: str,
     ) -> dict[str, Any]:
         cfg_p = run_dir / "run_config.json"
         cfg = json.loads(cfg_p.read_text(encoding="utf-8")) if cfg_p.exists() else {}
         budget = cfg.get("method_params", {}).get("budget", 1000)
         backend = cfg.get("backend", "unknown")
+        method = cfg.get("method") or default_prefix
 
         tree_p = run_dir / "tree_state.json"
         tree_data: dict[str, Any] = {}
@@ -355,8 +494,8 @@ class MonitorDataEngine:
         started_at_str = tree_data.get("started_at") or cfg.get("created_at")
         started_at = datetime.fromisoformat(started_at_str) if started_at_str else None
 
-        expected_session = f"v102_{task_info['short']}_r{rep}"
-        is_in_tmux = expected_session in active_tmux
+        expected_session = f"{method}_{task_info['short']}_r{rep}"
+        is_in_tmux, actual_session = _is_run_session_alive(expected_session, active_tmux)
 
         events_p = run_dir / "events.jsonl"
         last_event_ts = None
@@ -465,6 +604,9 @@ class MonitorDataEngine:
             "task": task_info["key"],
             "rep": rep,
             "backend": backend,
+            "method": method,
+            "expected_session": expected_session,
+            "actual_session": actual_session,
             "status": status,
             "has_finished_summary": has_finished_summary,
             "budget": budget,
@@ -489,7 +631,7 @@ class MonitorDataEngine:
         }
 
     def _parse_run_detail(
-        self, run_dir: Path, task: str, run_name: str
+        self, run_dir: Path, task: str, run_name: str, default_prefix: str
     ) -> dict[str, Any]:
         task_info = TASK_MAP.get(task, {"key": task, "label": task, "unit": "fitness", "direction": "max", "short": task})
         rep_match = re.search(r"_rep(\d+)$", run_name)
@@ -497,7 +639,7 @@ class MonitorDataEngine:
         active_tmux = _get_active_tmux_sessions()
         now = datetime.now()
 
-        summary = self._parse_run_summary_raw(run_dir, task_info, rep, active_tmux, now)
+        summary = self._parse_run_summary_raw(run_dir, task_info, rep, active_tmux, now, default_prefix)
 
         tree_p = run_dir / "tree_state.json"
         tree_data: dict[str, Any] = {}
@@ -591,12 +733,22 @@ def make_request_handler(engine: MonitorDataEngine) -> type[BaseHTTPRequestHandl
             parsed = urlparse(self.path)
             path = parsed.path
             params = parse_qs(parsed.query)
+            version = params.get("version", [None])[0]
 
             if path == "/" or path == "/index.html":
                 return self._serve_file(HTML_FILE, "text/html; charset=utf-8")
 
+            if path == "/api/versions":
+                versions = engine.get_available_versions()
+                return self._send_json(
+                    {
+                        "current": version or engine.default_version,
+                        "versions": versions,
+                    }
+                )
+
             if path == "/api/state" or path == "/api/overview":
-                data = engine.get_overview()
+                data = engine.get_overview(version=version)
                 return self._send_json(data)
 
             if path == "/api/run":
@@ -604,7 +756,7 @@ def make_request_handler(engine: MonitorDataEngine) -> type[BaseHTTPRequestHandl
                 name = params.get("name", [""])[0]
                 if not task or not name:
                     return self.send_error(400, "Missing task or name parameter")
-                detail = engine.get_run_detail(task, name)
+                detail = engine.get_run_detail(task, name, version=version)
                 if not detail:
                     return self.send_error(404, "Run not found")
                 return self._send_json(detail)
@@ -619,7 +771,7 @@ def make_request_handler(engine: MonitorDataEngine) -> type[BaseHTTPRequestHandl
                     nid = int(node_id_str)
                 except ValueError:
                     return self.send_error(400, "Invalid node id")
-                node_detail = engine.get_node_detail(task, name, nid)
+                node_detail = engine.get_node_detail(task, name, nid, version=version)
                 if not node_detail:
                     return self.send_error(404, "Node not found")
                 return self._send_json(node_detail)
@@ -629,7 +781,7 @@ def make_request_handler(engine: MonitorDataEngine) -> type[BaseHTTPRequestHandl
         def do_HEAD(self) -> None:  # noqa: N802
             parsed = urlparse(self.path)
             path = parsed.path
-            if path in ("/", "/index.html", "/api/state", "/api/overview", "/api/run", "/api/node"):
+            if path in ("/", "/index.html", "/api/versions", "/api/state", "/api/overview", "/api/run", "/api/node"):
                 self.send_response(200)
                 if path.endswith(".html") or path == "/":
                     self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -669,9 +821,29 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="TraceAAD V10.2 Live Monitor")
     parser.add_argument("--host", default="0.0.0.0", help="Binding host")
     parser.add_argument("--port", type=int, default=8765, help="HTTP server port (default: 8765)")
+    parser.add_argument(
+        "--results-dir",
+        type=Path,
+        default=DEFAULT_RESULTS_ROOT,
+        help="Path to results directory",
+    )
+    parser.add_argument(
+        "--version",
+        default="v10_2",
+        help="Default experiment version (default: v10_3)",
+    )
+    parser.add_argument(
+        "--session-prefix",
+        default="v102",
+        help="Tmux session prefix (default: v103)",
+    )
     args = parser.parse_args()
 
-    engine = MonitorDataEngine(RESULTS_ROOT)
+    engine = MonitorDataEngine(
+        results_root=args.results_dir,
+        default_version=args.version,
+        default_session_prefix=args.session_prefix,
+    )
 
     def background_polling() -> None:
         while True:
@@ -688,11 +860,11 @@ def main() -> None:
     handler_class = make_request_handler(engine)
     server = ThreadingHTTPServer(server_address, handler_class)
 
-    print(f"===========================================================", flush=True)
-    print(f"🚀 TraceAAD V10.2 训练实验可视化监控已启动", flush=True)
+    print("===========================================================", flush=True)
+    print("🚀 TraceAAD V10.2 训练实验可视化监控已启动", flush=True)
     print(f"📡 本地访问地址: http://127.0.0.1:{args.port}", flush=True)
     print(f"🌐 远程访问地址: http://{args.host}:{args.port}", flush=True)
-    print(f"===========================================================", flush=True)
+    print("===========================================================", flush=True)
 
     try:
         server.serve_forever()
@@ -702,3 +874,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
