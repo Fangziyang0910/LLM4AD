@@ -54,15 +54,29 @@ def test_prompt_returns_algorithmic_judgment_to_the_model() -> None:
         max_gens=8,
     )
 
+    assert ALGORITHMIC_JUDGMENT == (
+        "Use your algorithmic judgment to decide how best to carry out this design move."
+    )
     assert ALGORITHMIC_JUDGMENT in prompt
     assert "# Implementation Principle" not in prompt
     assert "Keep the implementation concise" not in prompt
     assert "comments" not in prompt
     assert "reasoning" not in prompt
     assert "heuristic component, not a full solver" not in contract
-    assert "judge most promising" in OPERATOR_INSTRUCTIONS["Refine"]
-    assert "substantially different" in OPERATOR_INSTRUCTIONS["Pivot"]
-    assert "synthesizing complementary ideas" in OPERATOR_INSTRUCTIONS["Fuse"]
+    assert OPERATOR_INSTRUCTIONS["Refine"] == (
+        "Continue developing the current algorithmic direction. Use the historical\n"
+        "trajectory to understand how this idea has evolved, and pursue the improvement\n"
+        "you judge most promising."
+    )
+    assert OPERATOR_INSTRUCTIONS["Pivot"] == (
+        "Explore a promising algorithmic direction with a different primary mechanism\n"
+        "from the current one. Use the current algorithm and its trajectory as context\n"
+        "for developing the new direction."
+    )
+    assert OPERATOR_INSTRUCTIONS["Fuse"] == (
+        "Create a stronger coherent algorithm by developing the current algorithm with\n"
+        "complementary ideas or mechanisms from the reference algorithm."
+    )
     banned = ("simplify", "remove", "discard", "reuse only", "stack", "concise")
     operator_text = " ".join(OPERATOR_INSTRUCTIONS.values()).lower()
     assert not any(term in operator_text for term in banned)

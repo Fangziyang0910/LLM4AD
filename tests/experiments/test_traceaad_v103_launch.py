@@ -13,6 +13,6 @@ def test_v103_formal_backend_distribution() -> None:
     assert Counter(BACKEND_MAP.values()) == {
         "server3": 6,
         "server3b": 6,
-        "local": 1,
-        "server1": 2,
+        "server1": 3,
     }
+

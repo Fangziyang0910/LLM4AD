@@ -14,19 +14,18 @@ OPERATOR_INSTRUCTIONS: dict[str, str] = {
         "you judge most promising."
     ),
     "Pivot": (
-        "Explore a promising algorithmic direction substantially different from the\n"
-        "current one. Use the current algorithm and its trajectory as the starting\n"
-        "context."
+        "Explore a promising algorithmic direction with a different primary mechanism\n"
+        "from the current one. Use the current algorithm and its trajectory as context\n"
+        "for developing the new direction."
     ),
     "Fuse": (
-        "Create a stronger coherent algorithm by synthesizing complementary ideas from\n"
-        "the current and reference algorithms."
+        "Create a stronger coherent algorithm by developing the current algorithm with\n"
+        "complementary ideas or mechanisms from the reference algorithm."
     ),
 }
 
 ALGORITHMIC_JUDGMENT = (
-    "Use your algorithmic judgment to produce the most promising next algorithm for "
-    "maximizing fitness, guided by the selected operator and the provided trajectory."
+    "Use your algorithmic judgment to decide how best to carry out this design move."
 )
 
 INIT_INSTRUCTION = (

@@ -115,6 +115,8 @@ class _Attempt:
         return "ok"
 
 class TraceAADV103:
+    METHOD = "v103"
+
     def __init__(
         self,
         *,
@@ -317,7 +319,7 @@ class TraceAADV103:
         best = self.tree.best() if self.tree.nodes else None
         payload = {
             "status": status,
-            "method": "v103",
+            "method": self.METHOD,
             "started_at": self.started_at,
             "finished_at": datetime.now().isoformat(timespec="seconds"),
             "budget": self.budget,
