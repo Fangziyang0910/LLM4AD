@@ -1,192 +1,81 @@
-# 轨迹条件 RL
+# 轨迹条件生成学习：数据结构、目标定义与成本核算
 
-本文记录 TraceAAD 在 V9.19 之后要做的搜索—学习工作。V9.19 主实验仍按[完整机制](../methods/TraceAAD-V9.19完整机制设计.md)运行：一 slot 一个候选，搜索控制器固定。本文不改那套搜索规则。
+> **文档职责与定位**
+>
+> 本文记录 TraceAAD 面向未来的条件性学习扩展方案（例如通过强化学习或参数微调将搜索轨迹转化为模型训练信号）。
+> - **条件性扩展定位**：模型参数学习（RL / SFT / DPO）属于 TraceAAD 的**条件性远期扩展，而非当前研究成立的必要前提**；
+> - **当前科研主线**：当前主线聚焦于**在预训练大语言模型固定的受控条件下，深入理解搜索状态表示、生成上下文与算子指引的因果机理**（参见 [研究认识](研究认识.md) 与现行方法规范）；
+> - **本文唯一职责**：系统规范条件性策略训练的数据组织、成组规则、优化目标与严格的资源核算要求，供后续探索模型参数对齐时作为设计基准。
 
-当前主张：
+---
 
-> Algorithm design is a learnable sequential improvement process. Search provides both inference-time optimization and structured learning experience; trajectories expose how algorithms evolve, and RL internalizes these improvement patterns into the model.
+## 1. 核心设想与职责边界
 
-分三阶段推进。
+### 1.1 设想提出的背景
+在自动算法设计中，搜索过程不仅产出高分算法代码，同时累积了丰富的序贯设计历史（包含修改意图、代码 diff、evaluator 客观评分与报错反馈）。
+条件性学习扩展的核心设想是：**将这些结构化的搜索轨迹作为训练信号，通过强化学习或偏好微调将有效的代码改进模式内化进模型参数中**：
 
-$$
-\boxed{
-\text{Trajectory-guided Search}
-\rightarrow
-\text{Trajectory-derived Learning Signal}
-\rightarrow
-\text{Search-and-Learn}
-}
-$$
+$$\boxed{\text{轨迹引导搜索 (Search)} \longrightarrow \text{轨迹衍生学习信号 (Learning Signal)} \longrightarrow \text{模型参数对齐 (Model Alignment)}}$$
 
-## 1. 职责划分
+### 1.2 严格厘清生成策略训练的职责边界
+在外部搜索控制器负责选择父代 $n_t$ 与算子 $o_t$ 的架构下，若针对生成器进行条件化策略微调，其学习的目标策略形式为：
 
-V9.19 负责搜出高质量算法，同时产生结构化决策数据。RL 负责学习：在给定 trajectory state 和 action 时，怎样生成更好的下一步。
+$$\pi_\theta(\text{Idea, Code} \mid \text{Task, Current Code, Trajectory, Operator})$$
 
-第一阶段只训练生成模型，搜索控制器固定：
+**必须明确以下边界**：
+- **生成策略只学习条件代码生成**：模型学习的是“在给定的历史链路和指定算子（如 Refine、Pivot、Fuse）指引下，如何写出更高质量、更少崩溃的算法代码”；
+- **不能过度宣称全局搜索控制能力**：该训练不等于让模型学会了“何时换父代、何时切换算子”。后两者属于外部搜索控制器（Search Policy）的职责，两者不可混淆。
 
-$$
-\boxed{
-\text{V9.19 Search Controller 固定}
-\quad+\quad
-\text{LLM Policy 持续学习}
-}
-$$
+---
 
-搜索器由 \(P,U,T\) 选择 parent，再用同一个 \(T\) 选择 Develop 或 Explore，形成决策状态
+## 2. 状态组织与成组学习信号（Group Context）
 
-$$
-s_t
-=
-(\text{task},
-\text{current code},
-\text{behavior-grounded formation trajectory},
-\text{action}).
-$$
+若未来采用类似 GRPO（Group Relative Policy Optimization）等无需独立 Critic 的强化学习框架，核心在于建立公平、有针对性的组内基线对比。
 
-LLM 输出 \(a_t=(\text{Idea},\text{Code})\)，evaluator 给出 \(q(a_t)\)：
+### 2.1 算子条件化成组（Operator-Conditioned Grouping）
+给定搜索器确定的上下文状态 $s = (n, \text{trajectory}, o)$，生成提示 $x$ 随之确定。从同一提示采样 $K$ 个候选：
 
-$$
-\boxed{
-s_t
-\xrightarrow{\pi_\theta}
-a_t
-\xrightarrow{\text{evaluator}}
-r_t
-}.
-$$
+$$y_1, \ldots, y_K \sim \pi_\theta(\cdot \mid x)$$
 
-V9.19 的搜索机制因此同时定义未来 RL 的 state distribution。
+**成组规则**：必须在相同的父代、轨迹及算子条件下构成一个独立的 Group：
+- **按算子严格隔离成组**：Refine 候选与 Pivot 候选绝不能混在同一个 group 中计算相对优势。因为 Pivot 承担跳出局部极值的探索职能，其即时质量通常低于局部精炼；若混入同一 group，相对优势归一化会反向惩罚探索行为，迫使策略整体塌缩为保守的微调；
+- **探索奖励的非标量性**：在 Pivot group 中，若仅以即时 evaluator fitness 作为唯一奖励，同样会扼杀探索性。设计有效的探索奖励需要兼顾机制新颖度或行为差异，而不宜单纯依赖即时标量分数。
 
-第一阶段要学的政策是
+### 2.2 候选异常状态的差异化处理
+在构造优化信号时，不能粗暴地将所有“未改善”候选统统赋予单一的最低惩罚，应严格区分不同性质的反馈：
+1. **契约破坏与运行崩溃（Invalid / Syntax Error / Timeout）**：未满足接口契约或执行异常，属于严重违规，应赋予硬性低分惩罚；
+2. **实质性重复候选（Duplicate Candidate）**：代码合法但求解行为或结构与历史高度重访，反映的是多样性不足，应作为探索冗余处理；
+3. **合法但性能下降（Regressive Candidate）**：代码正常执行但目标函数表现欠佳，属于常规探索中的正常质量波动。
 
-$$
-\boxed{
-\pi_\theta(
-\text{Idea, Code}
-\mid
-\text{Task, Code, Trajectory, Action}
-)
-}.
-$$
+将上述不同性质的状态混为一谈，会导致模型无法准确区分“什么是不可执行的错误”与“什么是执行后表现平平的尝试”。
 
-Action policy \(\pi_\phi(o\mid s)\) 和 parent allocation policy \(\pi_\psi(a\mid\mathcal A_t)\) 留到生成政策成立之后，顺序为
+---
 
-$$
-\boxed{
-\text{Generation Policy}
-\rightarrow
-\text{Action Policy}
-\rightarrow
-\text{Allocation Policy}
-}.
-$$
+## 3. 资源核算的科学性与对比公平性
 
-## 2. Stage I：Search
+在讨论“边搜边训（Search-and-Learn）”方案时，**必须严谨核算评价与计算成本，绝不能在对比中隐匿训练资源**。
 
-就是当前 V9.19。目标是构成强搜索，并完整记录每次原子决策。主实验口径不变：五任务、三重复、1000 primary slots。
+### 3.1 训练采样的评价开销绝不能隐形
+在设想的在线边搜边训流程中（例如每完成 50 步普通搜索后，抽取 8 个历史状态，每个状态采样 4 个 rollout 进行评测与梯度更新）：
+- 每隔 50 步搜索就会额外产生 $8 \times 4 = 32$ 次真实评测；
+- 在一个名义为 1,000 步的搜索周期内，将额外消耗高达 $20 \times 32 = 640$ 次真实评估，总评估调用量实际上达到 1,640 次；
+- 同时，参数更新伴随着显著的 GPU 反向传播计算与显存开销。
 
-每个 transition 保存
+### 3.2 严格确立基线对比的三种口径
+未来若将参数微调方案与固定模型的基准方法（如标准 TraceAAD、EoH 等）进行对比，必须在报告中同时公开：
+1. **在线搜索评测数（Online Search Evaluations）**；
+2. **训练采样评测数（Training Rollout Evaluations）**；
+3. **计算与时间成本（Training Compute / GPU Hours）**。
 
-$$
-D_t=
-(
-\text{task},
-\text{parent id},
-\text{current code},
-\text{formation path},
-\text{action},
-\text{LLM output},
-q_p,
-q_c,
-\text{result},
-\nu,
-\text{behavior tag},
-P,U,T
-)
-$$
+在进行效果宣称时，必须在对应口径下进行严格对齐，严禁用“搜索主步数”掩盖实际消耗的评估总资源：
+- **同在线搜索步数对比（Matched Search Steps）**：承认此设置下训练方法享受了更多的总体评估预算与计算资源；
+- **同真实总评价预算对比（Matched Total Evaluations）**：将搜索步数与训练采样总和严格限制在相同的预算上限内（例如两者之和严格为 1,000 次）；
+- **同总耗时/总算力对比（Matched Compute / Wall-clock Budget）**：在综合折算模型训练算力后进行的公平竞争。
 
-以及当时模型实际看到和写出的内容：`exact_prompt`、`exact_response`、`model_id`、`sampling_temperature`、`seed`。V9.19 实现按这个接口落 `decisions.jsonl`，训练时才能复原 \(s_t\)。
+---
 
-## 3. Stage II：Learning Signal
+## 4. 总结与当前工作建议
 
-把搜索痕迹转成
-
-$$
-\boxed{
-\text{Decision State}
-\rightarrow
-\text{Candidate Action}
-\rightarrow
-\text{Outcome}
-}.
-$$
-
-关键是规定哪些候选在什么状态下相互比较。GRPO 下，同一个
-
-$$
-(\text{parent},\text{trajectory},\text{action})
-$$
-
-构成一个 group context。
-
-搜索器选定 parent \(a\) 和 action 后，prompt \(x\) 完全确定。GRPO 从同一 \(x\) 采样 \(K\) 个候选，例如 \(K=4\)：
-
-$$
-y_1,\ldots,y_K\sim\pi_\theta(\cdot\mid x).
-$$
-
-Group 必须 action-conditioned：同一 parent、同一 trajectory、同一 action 才进同一 group。Develop 与 Explore 分开放进不同 group。Explore 的即时 fitness 通常低于 Develop；混在一个 group 里会把政策推向安全的小修改。Explore group 只比较谁是更好的 Explore。
-
-第一版 reward 只用同 group 内的真实 evaluator fitness：
-
-$$
-r_i=q(y_i).
-$$
-
-GRPO 的 group-relative advantage 在同 task、同 prompt 内比较，绝对尺度随任务变化不影响这一比较。Invalid / timeout / duplicate 的 reward 低于该 group 中全部有效候选。BehaveSim 继续作为搜索控制信号和分析信号，第一版不进入 RL reward。
-
-在必须 Explore 的条件下，政策学习的是怎样 Explore 得更好：有质量的结构变化，而不是距离越大越好。
-
-轨迹作为 prompt 的一部分进入 \(x_t\)。政策在大量不同 formation path 上更新后，学习的是算法改进模式：连续堆机制而无收益时收手，刚改善的机制可以继续 refine，连续 regress 时换方向。
-
-## 4. Stage III：Search-and-Learn
-
-形成在线循环：
-
-$$
-\boxed{
-\text{Search}
-\rightarrow
-\text{collect rollouts}
-\rightarrow
-\text{GRPO update}
-\rightarrow
-\text{better policy}
-\rightarrow
-\text{Search}
-}.
-$$
-
-V9.19 每个 state 只生成一个候选。RL 版本（例如 V10）再引入独立的 RL rollout group，不回改 V9.19 主实验的原子协议。
-
-推荐的边搜边训节奏：每 \(B=50\) 个普通 search slots，从最近 replay buffer 采 \(N=8\) 个 decision states，每个 state 采 \(K=4\) 个 rollout，一次更新额外评价 32 个候选，然后带着更新后的模型继续搜索。
-
-```text
-Run 50 atomic search slots
-        ↓
-sample 8 stored trajectory states
-        ↓
-4 candidates/state
-        ↓
-evaluate 32 rollouts
-        ↓
-GRPO update
-        ↓
-resume search with updated model
-```
-
-Training rollouts 与 primary search budget 分开记账。1000-slot 搜索结果不把额外训练评价算进去。
-
-## 5. 现在做什么
-
-先把 V9.19 跑起来。日志按 \(D_t\) 和 exact prompt/response 保存，作为 Stage II 的 replay 接口。
+将形成轨迹作为大模型微调或强化学习的训练信号，是一个具有研究吸引力的远期方向；但在当前阶段：
+- **首要任务**：在固定预训练模型的受控环境下，彻底摸清上下文组织、历史证据呈现与算子语义对生成行为的因果影响；
+- **演进顺序**：唯有在推断端确立了清晰稳健的机理证据，后续的模型参数对齐才具备明确的优化靶点与坚实的科学价值。
