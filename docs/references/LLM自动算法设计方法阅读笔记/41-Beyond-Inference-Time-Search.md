@@ -16,7 +16,7 @@ Hero 用 Qwen2.5-Coder-14B 通过 GRPO 训练生成 standalone solver，不在�
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|完整 Hero 在 SDS 有较高通过率/低 VBS gap|Fig. `fig:main_performance`、Table `tab:main_results`（3 seeds、N=3000）|间接支持|这是完整 RL、prompt、奖励和 evaluator 的联合结果。|
+|完整 Hero 在 SDS 有较高通过率/低 VBS gap|Fig. `fig:main_performance`、Table `tab:main_results`（3 seeds、N=3000）|直接支持（整法有效性）|匹配协议下的整法比较直接支持 Hero 方案在 SDS 基准上取得高通过率与低 VBS gap；不能顺带证明内部各组件（结构脚手架、硬 gate 奖励等）分别独立有效（需看逐项消融）。|
 |solver 可跨实例复用|Table `tab:compile_once_main`；Appendix `app:baseline_eval_additions` 固定代码协议|直接支持|Frozen Hero 在整套 held-out SDS 上不变执行；论文报告选择规则和 matched fixed-code evaluator。|
 |结构 scaffold 有益|§Ablation “Necessity of Structural Scaffolding”；Appendix Table `tab:ablation_configs` 的 `w/o Structure`|部分支持|`w/o Structure` 同时移除结构检测与 curriculum，故支持该组合而非两者各自。|
 |硬 gate/奖励归一化有益|Appendix `app:ablation_rewards`（Soft Gate、normalization sensitivity）|部分支持|与 Hero 匹配的 3-seed 比较直接支持所列替代配方；不是每个奖励项的独立效应。|

@@ -16,7 +16,7 @@ MeLA 进化的对象是**指导生成的元认知 prompt**而非启发式代码�
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|整体 AHD 性能|实验比较段落与表 `tab:comparative`（Comparative Performance Analysis Across Different Problems）、图 `fig:fitness`、`fig:sta`|间接支持|整法比较不能单独归给元认知或经验模块。|
+|整体 AHD 性能|实验比较段落与表 `tab:comparative`（Comparative Performance Analysis Across Different Problems）、图 `fig:fitness`、`fig:sta`|直接支持（整法有效性）|匹配协议下的整法比较直接支持 MeLA 方案在所测问题上的整体性能优于基线；不能顺带证明元认知或经验模块各自独立有效（组件消融需看 Table 3）。|
 |元认知/经验模块|消融表 `tab:combined_results`（PA 有/无 × Meta-1/2/3 阶段推进）|部分支持|PA 去除使 BPP SR 70.00→56.67%、ACS 100→93.33%；元认知阶段推进 BPP 219.61→207.16→207.20、ACS 5335→4311→3642→3530（SR 至 100%）。缺"去掉整个元认知"的对照——该对照由 MeEvo 的 (/,M) 配置补上。|
 |推理过程合理|`MeEvo.drawio.pdf`、`PE.drawio.pdf`|间接支持|图示描述流程，不能检验状态判断的正确性。|
 

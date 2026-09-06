@@ -16,7 +16,7 @@
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|联合框架主效果|§Experiment/§Experiment Result/§Main Result，表 `main_result`（TGB、BOB）|间接支持|这是 prompt、经验、代码更新共同改变的整体比较。|
+|联合框架主效果|§Experiment/§Experiment Result/§Main Result，表 `main_result`（TGB、BOB）|直接支持（整法有效性）|匹配协议下的整法比较直接支持联合框架在所测任务上的整体优越性；不能顺带证明 prompt 进化、经验或岛屿选择各自独立有效（组件贡献需看消融表）。|
 |提示共同进化的贡献|§消融表 `ablation`（w/o Strategy Sampling / w/o Prompt Evolution / w/o Island-Elites × 6 个初始启发式）|部分支持|三变体消融存在：w/o Prompt Evolution 显著（Christofides 5.17→9.24%），w/o Island-Based Elites Selection 最大（nearest-insertion 4.41→9.70%）；但无重复次数与方差报告。|
 |经验质量改善生成|`TSPPrompt.pdf`、`BPPPrompt.pdf`、`Case.pdf` 案例|间接支持|案例解释可读，不是重复的因果检验。|
 

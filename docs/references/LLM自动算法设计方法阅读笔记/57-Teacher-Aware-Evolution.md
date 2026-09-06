@@ -16,7 +16,7 @@
 
 |机制主张|论文证据|证据等级|判断|
 |---|---|---|---|
-|完整方法跨 JSSP/TSP/CVRP/MaxCut 有竞争力|Tables 3–7|间接支持|联合 teacher、analyzer、operators 与 Pareto selection。|
+|完整方法跨 JSSP/TSP/CVRP/MaxCut 有竞争力|Tables 3–7|直接支持（整法有效性）|匹配协议下的整法比较直接支持该方案在所测四类组合优化问题上优于基线；不能顺带证明内部每个机制分别有效（各机制贡献由 Table 8 消融支持）。|
 |teacher feedback 有益|§4.4、Table 8 Performance-only|直接支持|移除全部教师反馈后 ID/OOD 均退化。|
 |analyzer 与 teacher-guided operators 有益|Table 8|直接支持|各自移除均在 JSSP/TSP 退化。|
 |三种 revision mode 各有贡献|Table 8|直接支持|逐项 w/o structural/parameter/fusion 均比完整方法差，但幅度依任务。|

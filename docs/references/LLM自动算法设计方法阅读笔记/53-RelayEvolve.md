@@ -17,7 +17,7 @@
 |机制主张|论文证据|证据等级|判断|
 |---|---|---|---|
 |进步前置且 cheap model 捕获大部分早期增益|Figures 1–2|部分支持|四任务轨迹支持描述；早期—最终 Spearman 随时点/任务变化且可为负。|
-|完整 handoff 在固定成本有效|Table 1、Figure 5|间接支持|12 个任务×预算设置中 11 个平均分最高，但为完整 scheduler+curation+cascade。|
+|完整 handoff 在固定成本有效|Table 1、Figure 5|直接支持（整法有效性）|匹配协议下的整法比较直接支持完整 handoff 方案在固定成本下总体优于基线（12 个设置中 11 个最优）；不能顺带推出每个组件分别有效（需看逐项消融）。|
 |Relay Gain 的 allocation/stopping 有益|Figure 4(a)|直接支持|random allocation 和 no stopping 均退化。|
 |质量—多样性 curation 有益|Figure 4(b)|直接支持|与 quality-only、diversity-only、random seeds 比较。|
 |方向应为 cheap→strong|Figure 4(c–d)|部分支持|cascade 方向和 strong reserve 敏感性支持所测模型对；不是普遍模型大小定律。|

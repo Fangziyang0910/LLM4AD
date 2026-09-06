@@ -19,7 +19,7 @@ CALM 的主张不是单纯管理上下文，而是在进化式 AHD 中让“算�
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|完整 CALM 的端到端性能|Tables `tab:obp`、`tab:tsp`、`tab:cvrp_op`，均三次运行平均|间接支持|主表同时改变本地模型、GRPO、reward 与 verbal operators；不能给任何单一机制分配功劳。|
+|完整 CALM 的端到端性能|Tables `tab:obp`、`tab:tsp`、`tab:cvrp_op`，均三次运行平均|直接支持（整法有效性）|匹配协议下的整法比较直接支持完整 CALM 方案在所测基准上的端到端有效性；不能顺带给任何单一机制分配全部功劳（需结合消融表）。|
 |GRPO 是该配方的关键部分|Table `tab:ablation` 的 `local, w/o GRPO`，OBP 1.78%、OP 19.89%，相对 CALM local w/ GRPO 的 0.71%、17.41% 是表中最大退化|部分支持|这是同一本地模型配方中关闭 GRPO 的直接对照；仍随 GRPO 一起去除了在线参数更新，不能分离优化器与训练数据闭环。|
 |提出的相对/复制惩罚 reward 优于两种替代|Table `tab:ablation` 的 `rew∈{0.5r_rand,1}` 与 `rew=performance`|部分支持|两变体保持不可行惩罚，但同时移除了复制惩罚/改变质量归因；支持完整 reward 设计优于这两种替代，不能逐项证明每个 reward term。|
 |collapse 有益且触发过早有害|Table `tab:ablation` 的 `w/o Collapse` 与四组 \(\delta_0,C\)；§Discussion “Impact of collapse”|部分支持|无 collapse 和参数敏感性均有同任务数值；最严格的 \(0.005,15\) 明显退化，说明不是“越频繁越好”。|

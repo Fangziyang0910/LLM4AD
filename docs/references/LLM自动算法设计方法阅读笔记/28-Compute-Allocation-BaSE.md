@@ -109,7 +109,7 @@ BaSE 即这一杠杆：维持 $K$ 条并行轨迹，各自作为一个臂，都�
 | 任务几何源于算法族提议质量不对称 | `app:case_study`：CP 的 scipy 门控、MMD 的解析吸引子、HT 的可行性硬边界；两族均值差 $+0.35$ 与 $-0.14$ | 部分支持 | 由代码级个案与两侧均值支持，非受控消融；三任务、单模型 |
 | 分配收益受能力闸门限制 | `tab:effect_model_size` 置换检验；Llama 全部格子；`fig:model_family_split` | 直接支持 | 阈值按 (model, task) 划分；双线性拟合失效更接近模型族性质而非纯能力下界 |
 | 能力排序在有效 FLOPs 轴上塌缩 | `fig:flops_envelope`，MMD $R^2=0.94$、CP $R^2=0.93$ | 部分支持 | 限于未触顶区间、Qwen3 族内与三个几何任务 |
-| BaSE 整体优于 \*Evolve 基线 | `tab:fitness_scores`、`tab:threshold_iteration_flops` | 间接支持 | 为臂池、bandit 策略与 $(T,N)$ 选择的联合效果 |
+| BaSE 整体优于 \*Evolve 基线 | `tab:fitness_scores`、`tab:threshold_iteration_flops` | 直接支持（整法有效性） | 匹配协议下的整法比较直接支持 BaSE 方案在适应度得分与达阈 FLOPs 上整体优于 \*Evolve 基线；不能顺带推出臂池、bandit 策略与 $(T,N)$ 分配各自独立有效（组件效应由后续消融分解）。 |
 | 池效应与分配效应可分解 | Greedy/Island 到 Random 再到 BaSE 的两步差 | 部分支持 | 分解在达阈表上可读；终局适应度主表未逐格给出 Random 列 |
 | 臂池规模存在中等最优 | `tab:bandit_ablation_arms` | 直接支持 | 对目标变量 $K$ 的消融；$K=50$ 超过每格独立种子数，见第 9 节 |
 | 与父代采样协议正交可组合 | `tab:pairwise_fitness` | 反向或混合证据 | 多数格子改善，同时存在整格退化的组合 |

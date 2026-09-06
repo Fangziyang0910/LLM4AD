@@ -16,7 +16,7 @@ Clade-AHD 指出逐节点 UCT 在稀疏访问下"结构性过度开发"：点估
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|整体比较|§Experiment，表 `tab:step-by-step`、`tab:step-bpp-online`、`tab:aco`；收敛图 `fig:convergence_curves`|间接支持|整法领先不能单独归给 clade 选择。|
+|整体比较|§Experiment，表 `tab:step-by-step`、`tab:step-bpp-online`、`tab:aco`；收敛图 `fig:convergence_curves`|直接支持（整法有效性）|匹配协议下的整法比较直接支持 Clade-AHD 方案在所测任务上优于基线；不能顺带证明 clade 选择单独造成全部领先（组件贡献需看逐项消融）。|
 |clade 选择|附录组件消融表 `tab:ablation_components` 与 $\lambda$ 敏感性（TSP50，3 次）|部分支持|去动态冻结退化最大（+7.751%）、去温度退火 +6.657%、去深度衰减 +4.950%、去伪评价 +1.869%、去自适应归一化 +1.870%；$\lambda=0$（节点级）明显最差。缺 UCT↔Thompson 的显式选择规则交换消融（prompt 已相同，主表接近受控）。|
 |优势并非全域|`tab:step-by-step`、`tab:aco`|部分支持|TSP50 构造与 ACO MKP 上 MCTS-AHD 仍反超（9.69 vs 10.39%）；KP100 上各组件影响 ≤0.862%。|
 |谱系覆盖|`flow.pdf`、`comparison.pdf`|间接支持|流程/可视化不是性能因果证据。|

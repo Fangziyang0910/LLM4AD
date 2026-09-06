@@ -16,7 +16,7 @@ MEMOIR 让每个树分支对应一种算法设计。branch-local memory 保留�
 
 |机制主张|论文证据|证据等级|判断|
 |---|---|---|---|
-|完整系统提高有效率和归一化成绩|Table 1、Figures 2–3|间接支持|七任务、匹配 16 次执行预算的联合结果。|
+|完整系统提高有效率和归一化成绩|Table 1、Figures 2–3|直接支持（整法有效性）|匹配协议下的整法比较直接支持 MEMOIR 方案在七个任务上的总体表现优于基线；不能顺带推出每个组件分别有效（需看逐项消融）。|
 |global memory 有益|§4.3、Table 2 w/o Global Memory|直接支持|Avg 降 6.81 点、Valid 降 5.32 点。|
 |branch-local memory 有益且更关键|Table 2 w/o Branch-Local Memory|直接支持|该消融下降最大，尤其约束密集任务。|
 |失败记录有益|Table 2 w/o Failed Nodes|直接支持|只保留有效记录也下降，支持保留失败事实。|

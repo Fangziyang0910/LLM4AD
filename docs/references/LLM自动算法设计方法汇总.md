@@ -5,16 +5,22 @@
 当前共收录 **59 个方法**：44 个直接 AAD/AHD 方法，15 个更广义的程序与算法发现方法。
 
 ## 机制分类
+## 机制分类说明
 
 分类依据是方法控制持续设计过程的主导机制；同一方法通常同时包含多种组件，按其主要贡献归入一类。
+分类依据是各方法论文所强调的**主导机制**，以便于结构化检索。必须明确：**这些类别并非互斥分割**。在实际算法设计系统中，一个方法往往同时涉及多个维度的组合（例如同时改变选父分布、组织生成上下文、维护候选归档甚至微调模型参数）。
 
 | 主导机制 | 解决的主要问题 | 直接 AAD/AHD | 广义算法发现 | 合计 |
 | --- | --- | ---: | ---: | ---: |
+| 主导机制 | 侧重解决的核心问题 | 直接 AAD/AHD | 广义算法发现 | 合计 |
+| :--- | :--- | ---: | ---: | ---: |
 | 语义进化与种群搜索 | 如何生成、组合和保留候选程序 | 11 | 8 | 19 |
 | 反思、记忆与历史上下文 | 如何把评价结果和改进历史用于下一次生成 | 9 | 2 | 11 |
+| 反思、记忆与历史上下文 | 如何把评价结果和改进历史组织为下一次生成证据 | 9 | 2 | 11 |
 | 树搜索、规划与预算分配 | 如何选择下一条路线并分配有限评价预算 | 9 | 0 | 9 |
 | 表示扩展与系统级合成 | 如何从单函数设计扩展到集合、组件或完整求解器 | 7 | 0 | 7 |
 | 模型学习、智能体与协作 | 如何让模型或智能体系统随设计过程共同改进 | 8 | 5 | 13 |
+| 模型学习、智能体与协作 | 如何让模型或智能体系统随设计过程共同适应与演进 | 8 | 5 | 13 |
 | **合计** |  | **44** | **15** | **59** |
 
 ## 一、语义进化与种群搜索
@@ -31,12 +37,12 @@
 | [MEoH](../../../papers/MEoH/) | 直接 AAD/AHD | 用 Pareto 选择同时优化启发式性能及其他目标。 |
 | [HSEvo](../../../papers/HSEvo/) | 直接 AAD/AHD | 结合和声搜索、遗传操作与多样性维护，扩展种群探索。 |
 | [QUBE](../../../papers/QUBE_Enhancing_Automatic_Heuristic_Design_via_Quality_Uncertainty_Balanced_Evolution/) | 直接 AAD/AHD | 在选择中联合候选质量与不确定性，平衡利用和探索。 |
-| [CDEoH](../../../papers/CDEoH_Category_Driven_Automatic_Algorithm_Design_With_Large_Language_Models/) | 直接 AAD/AHD | 用算法类别组织多样性，并联合演化思想和代码。 |
+| [CDEoH](../../../papers/CDEoH_Category_Driven_Automatic_Algorithm_Design_With_Large_Language_Models/) | 直接 AAD/AHD | 候选生成（单父代创新与改进指令，无类别）与评估后事后归纳类别，用于两阶段小生境种群管理；执行报错由反思算子独立修复。 |
 | [EoH-S](../../../papers/EoH_S_Evolution_of_Heuristic_Set_using_LLMs_for_Automated_Heuristic_Design/) | 直接 AAD/AHD | 将设计对象从单个启发式扩展为互补启发式集合。 |
 | [Controlling the Mutation in LLMs](../../../papers/Controlling_the_Mutation_in_LLMs_for_Efficient_Evolution_of_Algorithms/) | 直接 AAD/AHD | 显式控制 LLM 变异的概率与修改范围，调节搜索步幅。 |
 | [AlphaEvolve](../../../papers/AlphaEvolve/) | 广义算法发现 | 以多模型编码智能体、程序数据库和自动评价持续演化可执行程序。 |
 | [ShinkaEvolve](../../../papers/ShinkaEvolve/) | 广义算法发现 | 用程序库、搜索组、历史 patch 和经验摘要组织开放式程序进化。 |
-| [Evolutionary Discovery of RL Algorithms via LLMs](../../../papers/Evolutionary_Discovery_of_RL_Algorithms_via_LLMs/) | 广义算法发现 | 直接演化可执行的强化学习更新规则与训练流程。 |
+| [Evolutionary Discovery of RL Algorithms via LLMs](../../../papers/Evolutionary_Discovery_of_RL_Algorithms_via_LLMs/) | 广义算法发现 | 直接演化可执行强化学习更新规则；交叉父代选择引入 Levenshtein 结构相异性加权，变异使用单模块宏观重写。 |
 | [SMCEvolve](../../../papers/SMCEvolve_Principled_Scientific_Discovery_via_Sequential_Monte_Carlo_Evolution/) | 广义算法发现 | 将程序进化视为 SMC，以自适应重采样、mutation mixture 和 ESS 停止控制搜索。 |
 | [RelayEvolve](../../../papers/Relay_Dont_Route_Adaptive_Population_Handoff/) | 直接 AAD/AHD | 用路线级 Relay Gain 调度 cheap-model 探索，并把精选种群整体交给强模型。 |
 | [BehaveSim](../../../papers/Rethinking_Code_Similarity_for_Automated_Algorithm_Design/) | 直接 AAD/AHD | 用执行轨迹与 DTW 构造行为相似度，按真实求解行为组织多岛种群。 |
@@ -98,7 +104,7 @@
 | 方法 | 范围 | 主导机制 |
 | --- | --- | --- |
 | [CALM](../../../papers/CALM/) | 直接 AAD/AHD | 在演化启发式的同时根据搜索反馈更新语言模型，使生成器与算法共同进化。 |
-| [EvoTune](../../../papers/Algorithm_Discovery_With_LLMs_Evolutionary_Search_Meets_Reinforcement_Learning/) | 直接 AAD/AHD | 把进化搜索反馈转化为强化学习信号，训练模型学习如何继续搜索算法。 |
+| [EvoTune](../../../papers/Algorithm_Discovery_With_LLMs_Evolutionary_Search_Meets_Reinforcement_Learning/) | 直接 AAD/AHD | 进化供给偏好对并在线 DPO 微调模型；无训练搜索基线支持加入训练阶段整包收益，但内部各配方未完全隔离且总训练算力需另计。 |
 | [Fine-tuning LLM for AAD](../../../papers/Fine-tuning-LLM-Automated-Algorithm-Design/) | 直接 AAD/AHD | 用质量与多样性兼顾的数据采样和偏好优化，专门训练算法设计模型。 |
 | [AHD Agent](../../../papers/AHD_Agent_Agentic_Reinforcement_Learning_for_Automatic_Heuristic_Design/) | 直接 AAD/AHD | 将生成、评价和选择建模为 agentic RL 动作，让模型学习控制完整 AHD 循环。 |
 | [RoCo](../../../papers/RoCo_Role_Based_LLMs_Collaboration_for_Automatic_Heuristic_Design/) | 直接 AAD/AHD | 由 explorer、exploiter、critic 等角色协作提出、检查和改进启发式。 |
@@ -107,13 +113,49 @@
 | [Self-Developing](../../../papers/Can_Large_Language_Models_Invent_Algorithms_to_Improve_Themselves/) | 广义算法发现 | 生成模型合并算法，并用算法成败的偏好对迭代 DPO 更新 algorithm factory。 |
 | [AlgoPilot](../../../papers/AlgoPilot_Fully_Autonomous_Program_Synthesis_Without_Human_Written_Programs/) | 广义算法发现 | 以随机程序轨迹训练 TLM，再用其软奖励引导 RL 形成可恢复的排序轨迹。 |
 | [LLaMEA-SAGE](../../../papers/LLaMEA_SAGE_Guiding_Automated_Algorithm_Design_with_Structural_Feedback/) | 直接 AAD/AHD | 从 archive 训练结构—性能 surrogate，以 SHAP 解释指导 LLM 变异。 |
-| [Latent Heuristic Search](../../../papers/Latent_Heuristic_Search_Continuous_Optimization_for_Automated_Algorithm_Design/) | 直接 AAD/AHD | 训练程序 latent manifold 与 surrogate，在代码 LLM 权重固定的前提下做连续梯度搜索。 |
+| [Latent Heuristic Search](../../../papers/Latent_Heuristic_Search_Continuous_Optimization_for_Automated_Algorithm_Design/) | 直接 AAD/AHD | 预训练代码 Encoder 与解码 LLM 冻结，训练 Flow/Mapper/Surrogate 并做潜空间梯度搜索；区分内层梯度步与外层真实评估。 |
 | [GAE](../../../papers/GAE_Graph_Augmented_Evolution_for_Scientific_Discovery/) | 广义算法发现 | 联合训练程序图 GNN、SAC meta-controller 与在线 GRPO mutation policy。 |
 | [Teacher-Aware Evolution](../../../papers/Teacher_Aware_Evolution_of_Heuristic_Programs/) | 直接 AAD/AHD | 查询独立 learned teacher 的动作偏好，为程序进化提供密集行为反馈。 |
 
 ## 统一比较问题
+## 六、统一的多维机制对照框架
 
 1. **设计对象是什么**：单个函数、启发式集合、算法组件还是完整求解器；
 2. **保存什么历史**：当前种群、祖先路径、反思摘要、程序差分还是共享记忆；
 3. **怎样分配预算**：精英选择、Pareto 选择、树搜索、bandit、规划模型还是智能体策略；
 4. **LLM 怎样改进**：固定提示生成、反思后生成、提示自适应、模型参数更新还是多智能体协作。
+为了穿透表面术语并跨越分类壁垒，建议从“优化对象区分”、“多维机制解构”与“机理对话视角”三个层次对照文献方法。
+
+### 1. 优化对象的五层切分
+
+不同方法优化的物理客体不同，**不能直接套用同一种效果指标做简单横向比较**：
+1. **单实例解（Instance-level Solution）**：针对具体某一个问题实例搜索可行解或数值解（如针对特定 TSP 实例求回路），不产生跨实例可复用的规则；
+2. **单个可复用算法（Single Reusable Algorithm / Heuristic Function）**：在固定程序模板中优化单个关键函数（如贪心优先级 `priority` 或邻域选择 `select_next_node`），供求解器在任意未见实例上调用（**TraceAAD 的主要优化对象**）；
+3. **算法集合（Algorithm Portfolio / Heuristic Set）**：协同演化一组互补的启发式函数，通过规则调度或集成求解（如 EoH-S）；
+4. **完整求解器（Full Solver Pipeline / Program Tree）**：超越单个预设函数插槽，合成多阶段或完整端到端算法程序骨架（如 A2DEPT、BEAM、RedAHD）；
+5. **智能体策略（Agent Policy / Meta-controller）**：优化控制搜索过程本身的决策模型或多角色协作协议（如 AHD Agent、RoCo、CORAL）。
+
+### 2. 解构任意 AAD 方法的七个核心比较字段
+
+评价和对比不同自动算法设计方法时，推荐统一提取以下 7 个正交维度：
+
+| 比较字段 | 核心回答的问题 | 常见实现方式 |
+| :--- | :--- | :--- |
+| **① 优化对象** | 搜索产出的最终目标是什么？ | 单函数 / 启发式集合 / 完整管道 / 元策略 |
+| **② 历史保存形式** | 搜索历史在系统内部如何表示与留存？ | 纯种群列表 / 外部记忆库 / 演化谱系树 / 行为图 / 隐空间流形 |
+| **③ 历史对选择的影响** | 搜索历史如何决定“下一次机会给谁”？ | 纯质量排序 / 适应度加探索奖励 / UCT 树搜索 / 岛屿迁移 / 均匀随机 |
+| **④ 历史对生成的影响** | 搜索历史如何组织为模型看到的上下文？ | Few-shot 精英样例 / 局部形成来时路 (Orbit) / 历史反思摘要 / 代码差分动量 |
+| **⑤ 模型参数是否更新** | 是否涉及语言模型的权重调整？ | 权重固定 (In-context 推断) / 离线微调 / 在线强化学习 (PPO/GRPO/DPO) |
+| **⑥ 候选归档与失败处理** | 如何处理无效代码、退步与已访问状态？ | 语法报错直接丢弃 / 赋予硬惩罚 / 低质量节点保留在树 / 永久归档 |
+| **⑦ 主要预算计量单位** | 实验受限的核心资源尺度是什么？ | 真实 evaluator 调用次数 / LLM API 调用次数 / Token 总量 / 运行时间 |
+
+### 3. 对 TraceAAD 的科研启发视角：从“功能拼接”转向“机理对话”
+
+在阅读与借鉴前沿文献时，必须转变思考方式：
+- **避免功能拼图心态**：不要看到一个方法就思考“TraceAAD 是否也要加一个多智能体/加一个记忆库/加一个元认知模块”，这容易导致架构过度膨胀与多变量混杂；
+- **建立机理对话心态**：转为思考**“这个方法帮助解释或印证了我们的哪个科学问题”**：
+  - *例如*：PhyloEvolve / MEMOIR 的谱系与局部历史，印证了局部形成状态比全局扁平种群更具因果约束力；
+  - *例如*：BehaveSim / DyACE 的行为度量，帮助我们审视代码文本变异与运行时求解行为的解耦；
+  - *例如*：BaSE / MCTS-AHD 的探索，帮助理解预算分配在深挖与跳出之间的取舍代价；
+  - *例如*：EvoTune / CALM 的参数更新，帮助我们认清推断期上下文引导与权重内化各自的假设与资源边界。
+

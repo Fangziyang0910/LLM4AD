@@ -6,42 +6,83 @@
 
 证据来自各论文实验章节与附录；找不到的项标「论文未明确」。各论文协议不统一，数字不宜直接横向比较。
 
-**预算口径**：方法比较以**启发式/程序评估次数（eval）**为主标准。表中「评估预算」统一写成 `N eval`；数字来自论文原文，或由代数×算子×种群等可核对公式推出。推不出评估次数时，才写 token / LLM query / 墙钟等原文指标。
+**预算口径与真实性核查原则**：
+不同论文对搜索规模的控制轴截然不同。**宁可保留未知，不做无依据的统一**。严禁将“候选数、samples、LLM calls、代数、token、运行时间”强行换算并直接等同于真实启发式评估次数（eval）：
+- 例如 A₂DEPT 的细项明确是 500 次 LLM 调用（calls），并非 500 次算法程序评测；
+- EoH / MEoH 的“代数 × 算子 × 种群数”只能算得名义生成上限，无法自动证明实际评价次数相同（未披露语法错误拦截、超时丢弃或缓存去重是否消耗评价）；
+- HSEvo 主报 425K tokens，InstSpecHH 主报 800 LLM queries/子类，CORAL 主报 100 iter 或 3h 墙钟，均无法直接折算为 eval。
+
+因此，预算汇总严格区分为“按原文记录的原始指标”与“真实评价核查”，避免在不可比的基准上形成虚假公平结论。
 
 **Tasks 口径**：下表与各节「Tasks」均统计**主文实验 + 附录实验**中出现的问题/设定；同问题不同嵌入框架（如 TSP-构造 / TSP-GLS / TSP-ACO）分开列出。仅做跨规模测试或增加同库实例、不构成新题时，写在括号内。
 
 ## 总览
 
-| 方法 | Tasks（主文+附录） | 评估预算 | LLM | 常见对比 |
-|------|-------------------|----------|-----|----------|
-| FunSearch | Cap set；Admissible sets；Online BPP；附录 Corners、Shannon capacity | 1000000 eval | Codey/StarCoder | First/Best Fit；文献下界 |
-| EoH | Online BPP（构造）；TSP-GLS；FSSP-GLS（测 TSPLib/Taillard） | 2000 eval（BPP）；1000 eval（TSP/FSSP） | GPT-3.5 | FunSearch；手工/NCO |
-| ReEvo | TSP-GLS；TSP/CVRP/OP/MKP/Offline BPP（ACO）；DPP（GA）；TSP-构造；TSP/CVRP（NCO attention） | 100 eval | GPT-3.5 | KGLS、DeepACO、EoH、POMO/LEHD |
-| MEoH | Online BPP（构造）；TSP-GLS（测 TSPLIB；含多目标变体） | 2000 eval（BPP）；1000 eval（TSP） | GPT-3.5 | FunSearch、EoH |
-| HSEvo | Online BPP（构造）；TSP-GLS；OP-ACO | 425K tokens | GPT-4o-mini | FunSearch、EoH、ReEvo |
-| MCTS-AHD | 主文：TSP/KP/Online BPP（构造）；TSP/CVRP/MKP/Offline BPP（ACO）；BO-CAF；附录：ASP（构造）；TSP-GLS | 1000 eval | GPT-3.5/4o-mini | FunSearch、EoH、ReEvo、HSEvo、NCO |
-| PathWise | 主文：TSP/KP（构造）；TSP/CVRP/MKP/OP/Offline BPP（ACO）；附录：Online BPP（构造）；TSP-GLS | 500 eval | GPT-4o-mini/GPT-5-nano | 上列 + MCTS-AHD |
-| CALM | Online BPP（构造）；TSP（构造）；CVRP-ACO；OP-ACO | 1000 eval | Qwen2.5-7B | FunSearch…MCTS-AHD、EvoTune |
-| CDEoH | Online BPP（构造）；TSP（构造） | 200 eval | DeepSeek-Chat | EoH、FunSearch、ReEvo |
-| QUBE | Online BPP；Cap set；TSP-GLS | 80000 eval（OBP）；2000000 eval（Cap）；2000 eval（TSP） | OpenCoder-8B 等 | FunSearch、EoH |
-| RedAHD | TSP；CVRP；KP；MKP；Online BPP；Offline BPP（测 TSPLib） | 1000 eval | GPT-4o-mini | MCTS-AHD 协议下多基线 |
-| RoCo | TSP/OP/CVRP/MKP/Offline BPP（ACO）；TSP-GLS；白盒/黑盒 | 400 eval | GPT-4o-mini | EoH、ReEvo、HSEvo、MCTS-AHD |
-| HiFo-Prompt | 主文：TSP（构造+GLS）；Online BPP；FSSP；附录：BO-CAF（测 TSPLib/Taillard） | 200 eval | Qwen2.5-Max | FunSearch…MCTS-AHD |
-| A₂DEPT | MIS；CVRP；CFLP；FJSP；CEVRPTW；MRCPSP（构造为主；另评 GLS/开放 AAD） | 500 eval | DeepSeek / Gemini | FunSearch…MCTS-AHD、Gurobi |
-| AHD Agent | TSP/CVRP（构造+ACO）；OVRP（构造）；OP/MKP（ACO）；CAF | 30 eval（w/SR：100 eval） | Qwen3-4B | ReEvo、EoH、MCTS-AHD、CALM |
-| EoH-S | Online BPP；TSP；CVRP（测 BPPLib/TSPLib/CVRPLib） | 2000 eval | DeepSeek-V3 | FunSearch、EoH、ReEvo、MCTS-AHD 等 |
-| PoH | TSP-GLS；FSSP-GLS（测 TSPLib/Taillard） | 60 eval | GPT-4 | EoH、ReEvo、NCO、手工 |
-| Hercules | TSP-GLS；TSP-构造；ACO：BPP/MKP/OP/TSP；附录 ACO-CVRP；NCO attention：POMO/LEHD×TSP/CVRP | 100 eval | 多 LLM | Random、EoH、ReEvo |
-| MoH | TSP-构造/GLS/KGLS；Online BPP；CVRP-ACO；Offline BPP-ACO；附录 Acrobot、QAP（测 TSPLib/Cluster） | 1000 eval | GPT-4o-mini | FunSearch…MCTS-AHD |
-| InstSpecHH | Online BPP（子类）；CVRP（子类） | 800 LLM queries / 子类 | DeepSeek 系 | EoH、ReEvo、手工 |
-| EvoTune | Online BPP；TSP；Flatpack；Hash Code datacenter/rides；LLM-SR×2 | 9600 / 16000 / 22400 eval | Llama/Phi/Granite 1–2B | FunSearch-style |
-| Fine-tune AAD | ASP；TSP（构造）；CVRP（构造） | 2000 eval | Llama/Pangu + DPO | base LLM；EoH/FunSearch |
-| AlphaEvolve | 矩阵乘；数学构造套件（50+，附录全表）；Borg 调度；Gemini kernel；TPU RTL；FlashAttention/XLA | 任务定制，无统一 eval | Gemini Flash+Pro | 任务 SOTA |
-| ShinkaEvolve | Circle packing；AIME scaffold；ALE-Bench LITE；MoE LBL | 150 eval（Circle）；75 eval（AIME）；50 eval（ALE）；20 eval（MoE） | 多模型 UCB | AlphaEvolve、OpenEvolve、EoH |
-| DeltaEvolve | BBOB；Hexagon Packing；Symbolic Regression；PDE Solver；Efficient Convolution | 100 eval | LLM 集成 | Parallel Sampling、AlphaEvolve |
-| CORAL | Math×6（Circle Packing、Signal Processing、Erdős Overlap、MMD-16-2、MMD-14-3、3rd Autocorr）；System×5（EPLB、PRISM、LLM-SQL、Txn Sched.、Cloudcast）；Stress×2（Kernel Engineering、Polyominoes） | 100 iter 或 3h 墙钟 | Claude Opus 等 | OpenEvolve、ShinkaEvolve、EvoX |
-| BaSE | Circle Packing；MinMaxDist；Heilbronn Triangle | 512 LLM 调用 | Qwen3 / Llama | OpenEvolve、ShinkaEvolve、greedy |
-| AutoEP | TSP；CVRP；FSSP；UAV-IoT | 非启发式设计预算（调参循环） | Qwen3-30B | PT、GLEET、EoH、ReEvo |
+### 1. 各方法预算口径与评价真实性核查表
+
+| 方法 | 原文预算数值 | 原始单位 | 是否能确定真实评价次数 | 失败、修复、初始化是否计入 |
+|---|---|---|---|---|
+| FunSearch | 约 10⁶ | samples (programs) | 可推导（分布式架构评估约 10⁶ 样本） | 语法/运行错误丢弃不计有效样本；初始化计入（原文 §Methods） |
+| EoH | BPP: 2000; TSP/FSSP: 1000 | generations × operators × pop | 未知（仅为名义上限，实际真实 eval 未逐一记录） | 未披露（语法错误/超时丢弃是否计入未明确） |
+| ReEvo | 100 | evals (evaluations) | 已明确（以 100 次启发式评估为显式预算上限） | 初始种群（30）计入；运行失败异常由框架处理（原文 §4.1） |
+| MEoH | BPP: 2000; TSP: 1000 | generations × operators × pop | 未知（名义上限，实际有效评价次数未记录） | 未披露 |
+| HSEvo | 约 425K | tokens | 未知（以 LLM token 耗尽为停止条件，未按 eval 计数） | 未披露 |
+| MCTS-AHD | T = 1000 | evals (iterations/evaluations) | 已明确（固定 1000 次模拟/评估） | 语法错误是否重试或扣减未披露 |
+| PathWise | n_e = 500（辅以上限 6h 墙钟） | evals | 已明确（以 500 次环境反馈/评估为预算） | 计入初始与规划展开 |
+| CALM | T = 500 rounds（声称对齐约 1000 eval） | rounds / samples | 可推导（每轮采样 G 个 response 评估并打分） | 不可行输出给予层级负奖励并计入训练，但不进入种群（原文 §3.2） |
+| CDEoH | 200 | samples (采样预算) | 可推导（以 200 个生成样本评估为上限） | 未披露 |
+| QUBE | OBP: 80K; Cap set: 2M; TSP: 2K | samples | 可推导（沿用 FunSearch 样本流） | 语法错误丢弃，沿用 FunSearch 机制 |
+| RedAHD | ≤ 1000 | evals | 已明确（对齐 MCTS-AHD 的 1000 次评估） | 未披露 |
+| RoCo | 400 | calls / evals（原文称 400 calls/代，最大评估 400） | 已明确（以 400 次评估为上限） | 初始种群 30 计入 |
+| HiFo-Prompt | 约 200 | LLM requests | 未知（原始单位为 request，未证明与真实 eval 1:1） | 未披露 |
+| A₂DEPT | N = 500（父预算 K = 5） | LLM calls | 未知（原文明确为 500 次 LLM 调用，真实 eval 未披露） | 包含自修复循环，未明确修复调用是否消耗 N |
+| AHD Agent | 约 30（w/SR 扩展至 100） | evals / steps | 已明确（强化学习在线设计时评估严格受限） | 离线训练阶段交互消耗已另外分账 |
+| EoH-S | N_max = 2000 | evals (LLM4AD 框架设定) | 可推导（LLM4AD 框架计数器） | 框架过滤无效程序 |
+| PoH | 10 iterations, w=5, d=5 | iterations / proposals | 可推导（主文对比表显式标注 60 eval） | 未披露 |
+| Hercules | 100 | evals | 已明确（对齐 ReEvo 的 100 次评估协议） | 初始种群 15 计入 |
+| MoH | 1000 | evals | 已明确（双层演化总评估 1000 次） | 未披露 |
+| InstSpecHH | ≤ 800 / 子类 | LLM queries / 子类 | 未知（原始单位是 query，全题 4500/675 子类总真实 eval 极大） | 未披露 |
+| EvoTune | 9.6k / 16k / 22.4k | samples | 可推导（island 生成样本并评估） | 离策略 DPO 训练另外消耗，已分账 |
+| Fine-tune AAD | N_max = 2000 | evals | 可推导（微调后用 EoH/FunSearch 评测，名义上限 2000） | 数据集收集阶段生成/评估未计入搜索 |
+| AlphaEvolve | 任务定制 | iterations / 墙钟 / runs | 未知（无统一定量 eval 报告） | 异步并行与验证器过滤 |
+| ShinkaEvolve | Circle 150; AIME 75; ALE 50; MoE 20 | generations / evals | 已明确（各域设定固定轮数/评估上限） | 未披露 |
+| DeltaEvolve | 100 | iterations | 未知（3 islands × 种群 40，真实 eval 显著高于 100） | 未披露 |
+| CORAL | 100 iter 或 3h | iterations / 墙钟时间 | 未知（多智能体自由交互与调用工具） | 未披露 |
+| BaSE | 512 | LLM calls | 未知（原始为 LLM 调用，以有效 FLOPs 为对齐轴） | 未披露 |
+| AutoEP | 非启发式评估预算 | 在线 ELA + 调参 steps | 不适用（优化对象为超参，非生成代码评估） | 不适用 |
+
+### 2. 任务范围、LLM 底座与对比基准总览
+
+| 方法 | Tasks（主文+附录） | LLM | 常见对比 |
+|---|---|---|---|
+| FunSearch | Cap set；Admissible sets；Online BPP；附录 Corners、Shannon capacity | Codey/StarCoder | First/Best Fit；文献下界 |
+| EoH | Online BPP（构造）；TSP-GLS；FSSP-GLS（测 TSPLib/Taillard） | GPT-3.5 | FunSearch；手工/NCO |
+| ReEvo | TSP-GLS；TSP/CVRP/OP/MKP/Offline BPP（ACO）；DPP（GA）；TSP-构造；TSP/CVRP（NCO attention） | GPT-3.5 | KGLS、DeepACO、EoH、POMO/LEHD |
+| MEoH | Online BPP（构造）；TSP-GLS（测 TSPLIB；含多目标变体） | GPT-3.5 | FunSearch、EoH |
+| HSEvo | Online BPP（构造）；TSP-GLS；OP-ACO | GPT-4o-mini | FunSearch、EoH、ReEvo |
+| MCTS-AHD | 主文：TSP/KP/Online BPP（构造）；TSP/CVRP/MKP/Offline BPP（ACO）；BO-CAF；附录：ASP（构造）；TSP-GLS | GPT-3.5/4o-mini | FunSearch、EoH、ReEvo、HSEvo、NCO |
+| PathWise | 主文：TSP/KP（构造）；TSP/CVRP/MKP/OP/Offline BPP（ACO）；附录：Online BPP（构造）；TSP-GLS | GPT-4o-mini/GPT-5-nano | 上列 + MCTS-AHD |
+| CALM | Online BPP（构造）；TSP（构造）；CVRP-ACO；OP-ACO | Qwen2.5-7B | FunSearch…MCTS-AHD、EvoTune |
+| CDEoH | Online BPP（构造）；TSP（构造） | DeepSeek-Chat | EoH、FunSearch、ReEvo |
+| QUBE | Online BPP；Cap set；TSP-GLS | OpenCoder-8B 等 | FunSearch、EoH |
+| RedAHD | TSP；CVRP；KP；MKP；Online BPP；Offline BPP（测 TSPLib） | GPT-4o-mini | MCTS-AHD 协议下多基线 |
+| RoCo | TSP/OP/CVRP/MKP/Offline BPP（ACO）；TSP-GLS；白盒/黑盒 | GPT-4o-mini | EoH、ReEvo、HSEvo、MCTS-AHD |
+| HiFo-Prompt | 主文：TSP（构造+GLS）；Online BPP；FSSP；附录：BO-CAF（测 TSPLib/Taillard） | Qwen2.5-Max | FunSearch…MCTS-AHD |
+| A₂DEPT | MIS；CVRP；CFLP；FJSP；CEVRPTW；MRCPSP（构造为主；另评 GLS/开放 AAD） | DeepSeek / Gemini | FunSearch…MCTS-AHD、Gurobi |
+| AHD Agent | TSP/CVRP（构造+ACO）；OVRP（构造）；OP/MKP（ACO）；CAF | Qwen3-4B | ReEvo、EoH、MCTS-AHD、CALM |
+| EoH-S | Online BPP；TSP；CVRP（测 BPPLib/TSPLib/CVRPLib） | DeepSeek-V3 | FunSearch、EoH、ReEvo、MCTS-AHD 等 |
+| PoH | TSP-GLS；FSSP-GLS（测 TSPLib/Taillard） | GPT-4 | EoH、ReEvo、NCO、手工 |
+| Hercules | TSP-GLS；TSP-构造；ACO：BPP/MKP/OP/TSP；附录 ACO-CVRP；NCO attention：POMO/LEHD×TSP/CVRP | 多 LLM | Random、EoH、ReEvo |
+| MoH | TSP-构造/GLS/KGLS；Online BPP；CVRP-ACO；Offline BPP-ACO；附录 Acrobot、QAP（测 TSPLib/Cluster） | GPT-4o-mini | FunSearch…MCTS-AHD |
+| InstSpecHH | Online BPP（子类）；CVRP（子类） | DeepSeek 系 | EoH、ReEvo、手工 |
+| EvoTune | Online BPP；TSP；Flatpack；Hash Code datacenter/rides；LLM-SR×2 | Llama/Phi/Granite 1–2B | FunSearch-style |
+| Fine-tune AAD | ASP；TSP（构造）；CVRP（构造） | Llama/Pangu + DPO | base LLM；EoH/FunSearch |
+| AlphaEvolve | 矩阵乘；数学构造套件（50+，附录全表）；Borg 调度；Gemini kernel；TPU RTL；FlashAttention/XLA | Gemini Flash+Pro | 任务 SOTA |
+| ShinkaEvolve | Circle packing；AIME scaffold；ALE-Bench LITE；MoE LBL | 多模型 UCB | AlphaEvolve、OpenEvolve、EoH |
+| DeltaEvolve | BBOB；Hexagon Packing；Symbolic Regression；PDE Solver；Efficient Convolution | LLM 集成 | Parallel Sampling、AlphaEvolve |
+| CORAL | Math×6（Circle Packing、Signal Processing、Erdős Overlap、MMD-16-2、MMD-14-3、3rd Autocorr）；System×5（EPLB、PRISM、LLM-SQL、Txn Sched.、Cloudcast）；Stress×2（Kernel Engineering、Polyominoes） | Claude Opus 等 | OpenEvolve、ShinkaEvolve、EvoX |
+| BaSE | Circle Packing；MinMaxDist；Heilbronn Triangle | Qwen3 / Llama | OpenEvolve、ShinkaEvolve、greedy |
+| AutoEP | TSP；CVRP；FSSP；UAV-IoT | Qwen3-30B | PT、GLEET、EoH、ReEvo |
 
 ## FunSearch
 
@@ -137,7 +178,10 @@
 - **配置**: INT4 Qwen2.5-7B-Instruct + GRPO；T=500 rounds；与 baseline 对齐约 1000 次启发式评估；API 变体用 GPT-4o-mini；3 次
 - **对比方法**: Best-Fit、GC、ACO；POMO、DeepACO；FunSearch…MCTS-AHD；EvoTune（Optuna 复现）
 - **指标**: Gap%、Obj
-- **备注**: 联合演化启发式与 LLM 权重
+- **备注与对照规范**:
+  - 联合演化启发式与 LLM 权重（强化学习闭环）。
+  - **对照命名规范**：若外层对比未运行在线 GRPO 参数更新（使用固定底座模型），**必须始终标为 `CALM w/o GRPO` 或 `CALM（搜索框架版本）`**。
+  - **严禁在结果叙述中简化成“击败了完整 CALM”**：消融实验显示 GRPO 微调是其性能跃升的核心支柱；未包含微调的基线仅代表其 verbal operators 与搜索流水线，不能代表完整 CALM 系统的上限。
 
 ## CDEoH
 
@@ -393,11 +437,30 @@
 
 ## 协议差异（读结果时注意）
 
-1. **主预算应统一为启发式评估次数**。ReEvo 等已明确主张：在启发式评估昂贵时，应以 eval 次数而非 LLM query/token 作为主比较轴。LLM 调用与 token 反映生成成本，应另报，不宜替代 eval。
-2. **少数方法原文未给 eval**：HSEvo 主报 425K tokens；InstSpecHH 主报 800 LLM queries/子类；CORAL 主报 100 iter 或 3h；AlphaEvolve / AutoEP 无统一启发式 eval 口径。其余表内数字均可由论文直接读出或由明确公式推出（如 EoH/MEoH：代数×5 算子×种群；RedAHD：≤1000；PoH 表内 60）。
-3. **嵌入框架不同**：同一 TSP 可嵌构造、GLS 或 ACO，绝对 gap 不可直接比。
-4. **LLM 底座不同**：GPT-3.5 / 4o-mini / DeepSeek / Qwen / Gemini 等；部分工作还有微调。
-5. **搜索/测试划分**：有的在测试集上直接演化（如 OR-Library），有的使用严格独立测试，有的强调跨规模测试。
-6. **重复与聚合**：3 次均值、10 次最优、单次报告并存。
+1. **生成器成本、搜索系统开销与候选求解成本必须彻底分开**：
+   - **生成器成本（Generator Cost）**：LLM 本身的推理消耗，包括 LLM API 调用次数、Token 输入/输出量、生成模型推理延迟与 GPU 显存/FLOPs。它反映“产出一个候选算法消耗了多少大模型算力”。
+   - **搜索系统墙钟与调度开销（Search Wall-clock & Orchestration Overhead）**：外层搜索流水线的系统耗时，包括端到端运行总墙钟时间（Wall-clock time）、并发 evaluator 数量、并行加速比、任务调度与通信开销。它反映“完成一次完整自动算法设计过程需要多少物理时间与并发资源”。
+   - **被生成算法在问题实例上的求解运行成本（Candidate Solver Execution Cost）**：被设计出来的启发式代码在测试/验证实例上运行的开销，包括单个实例的 CPU/GPU 运行秒数、局部搜索迭代步数（如 GLS 1000 步）、ACO 蚂蚁代数、渐近时间复杂度等。它反映“该算法在实际应用中好不好用、快不快”。
+   - **方法论警示**：Token 消耗大不代表算法求解慢，求解速度快也不代表生成器开销小。三者属于不同层级，必须分项独立报告，严禁混同为单一成本指标。
 
-本仓库正式比较已固定：**评估预算 = 1000 eval**；主表外部对照为 **EoH、ReEvo、MCTS-AHD、PathWise、CALM**；主实验 task 为 **Online BPP、TSP-构造、CVRP-ACO、OP-ACO、VRPTW-构造**（见 [实验配置](../experiments/主实验/配置.md)）。其中 CALM 当前阶段跑 **w/o GRPO** 搜索框架，微调阶段再补 **w/ GRPO**。任务协议取舍：OBP 保持多容量现状；TSP-构造维持降采样（同标准重跑）；CVRP-ACO 测试含 **CVRP200×64**；OP-ACO 保持现状。统一比较时再固定嵌入框架 × LLM，并另报 LLM 调用与 token 作为成本辅指标。
+2. **不能把不同预算强行换算成 eval（宁可保留未知，不做无依据的统一）**：
+   - 严格区分原文单位与真实评价次数：候选数、samples、LLM calls、代数不能直接读成真实 evaluator 调用次数。
+   - 例如 A₂DEPT 的细项明确是 500 次 LLM 调用（calls），未经语法与可行性筛选前并非 500 次算法评估；EoH/MEoH 的“代数 × 5 算子 × 种群数”仅为名义生成上限，无法自动证明实际评价次数相同（语法错误拦截、超时丢弃或缓存去重是否计入通常未披露）；HSEvo（425K tokens）、InstSpecHH（800 queries/子类）、CORAL（100 iter 或 3h）等更无法简单折算为 eval。在跨论文分析时，必须保留其原始单位与未知状态。
+
+3. **嵌入框架与 LLM 底座不同**：
+   - 同一 TSP 可嵌构造、GLS 或 ACO，各框架的 Baseline 与求解质量不在同一量级，绝对 gap 不可直接横向比较；
+   - 模型底座（GPT-3.5 / 4o-mini / DeepSeek / Qwen / Gemini 等）的先验与代码生成能力差异巨大，脱离基座模型单谈算法框架性能是不严谨的。
+
+4. **反复观察 held-out 的用途定性与防泄漏原则**：
+   - 部分文献与机制设计（如 `05-EoH.md` 建议“每次新增 best 立即 held-out 重测”）倡导在搜索进行中频繁触发 held-out 实例测试以监控泛化性能。
+   - **用途定性**：若这些 held-out 重测的结果被研究者即时观察，并实质性地用于调试提示词模板、调整算子比例、修改代码结构、选择超参数或筛选方法版本，则该集合**已经实际承担了‘开发验证集（Development/Validation Set）’的角色**。
+   - **严禁虚假声称**：在这种情况下，**绝不能继续宣称该集合是‘完全未参与研究决策的严格独立测试集（Pristine Held-out Test Set）’**。
+   - **规范做法**：真正的最终泛化能力评测，必须在算法搜索逻辑与所有超参数完全冻结的前提下，仅对最终产出的最佳候选在独立的 Test 集上执行单次盲态评估；过程中的中间重测应如实披露为验证集观测。
+
+5. **CALM 对照命名与叙述规范**：
+   - CALM 的性能由 verbal operators（搜索框架）与在线 GRPO 微调共同支撑。当外部基准仅使用固定预训练模型复现其搜索流程时，**必须始终标为 `CALM w/o GRPO` 或 `CALM（搜索框架版本）`**。
+   - **严禁在结果叙述中简化成“击败了完整 CALM”**：消融实验已证实去掉 GRPO 会导致性能显著下滑，未微调版本仅代表其启发式变异算子逻辑，不能代表完整 CALM 联合系统的能力边界。
+
+6. **本仓库正式比较基准与口径**：
+   - 本仓库正式比较已固定：**评估预算 = 1000 eval**；主表外部对照为 **EoH、ReEvo、MCTS-AHD、PathWise、CALM w/o GRPO**；主实验 task 为 **Online BPP、TSP-构造、CVRP-ACO、OP-ACO、VRPTW-构造**（见 [实验配置](../experiments/主实验/配置.md)）。
+   - 其中 CALM 当前阶段跑 **CALM w/o GRPO（搜索框架版本）**，微调阶段再补 **完整 CALM（w/ GRPO）**。任务协议取舍：OBP 保持多容量现状；TSP-构造维持降采样（同标准重跑）；CVRP-ACO 测试含 **CVRP200×64**；OP-ACO 保持现状。统一比较时再固定嵌入框架 × LLM，并独立报告 LLM 调用与 token（生成器成本）以及算法运行时间（求解成本）。

@@ -16,7 +16,7 @@ AHD-Agent 将自动启发式设计表述为 agentic RL：agent 在任务上下�
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|完整 agentic RL 配方优于比较方法|§`sec:overallResult`，Table `tab:table20-rl-training-mean-gap-no-para`；未见域为 Table `tab:table21-generalization-mean-gap-no-para`，连续域为 `tab:caf-table4-comparison`|间接支持|端到端结果不能证明 RL、agent loop 或某个工具动作各自有效。|
+|完整 agentic RL 配方优于比较方法|§`sec:overallResult`，Table `tab:table20-rl-training-mean-gap-no-para`；未见域为 Table `tab:table21-generalization-mean-gap-no-para`，连续域为 `tab:caf-table4-comparison`|直接支持（整法有效性）|匹配协议下的整法比较直接支持完整 agentic RL 方案在所测领域优于对比基线；不能顺带证明 RL、agent loop 或某个工具动作各自独立有效。|
 |跨域 RL 训练的训练域数影响|§`sec:cross-domain-ablation`，Fig. `fig:cross-domain-slopes`，所有变体 500 steps|部分支持|逐步扩展训练 mixture，并在未训练的 OP-ACO 和 in-domain TSP-ACO 报告变化；它检验域混合规模，不是 RL-on/off 消融。|
 |agent 对诊断工具的利用|Appendix §`apx:tool_ablation`，Table `tab:deepseek-v4-tool-ablation-two-domain`|部分支持|同为 DeepSeek-V4-Flash，比较 evaluator-only 与 full tools；表明该 agent 配置从工具获益，不能归因到某一个工具。|
 |多步 agent 行为有因果作用|§Training Curves 的 Fig. `fig:rl-training-reward-turns`|间接支持|reward/turn 数过程曲线只表明训练中行为改变，不证明其导致质量提高。|

@@ -4,11 +4,11 @@
 
 ## 核心判断
 
-1. **错误处理是这一领域系统性欠披露的部分。** 38 篇中约半数对"生成代码评估失败怎么办"零着墨（EoH-S、HiFo-Prompt、RoCo、MCTS 系五篇、LLaMEA 系三篇、多篇综述）；无效率几乎从不进主表，综述归纳"关键模块"时也不含此维度。方法论文的伪代码普遍把评估写成无失败的黑盒。
-2. **存在一个稳定的家族默认：无效即丢弃。** FunSearch、EoH、ReEvo、QUBE、EoH-S、MoH、MCTS-AHD、TurboEvolve 一条线上，失败个体拿不到分数、不进种群/数据库/树，配套的防御全部前置在 prompt 层（固定签名、禁随机组件、代码围栏、不可变代码区）。
-3. **2025 下半年起修复范式收敛：报错信息回喂 + 限次重试。** CDEoH、MeLA、EvoPH、MeEvo、ShinkaEvolve、BEAM、PhyloEvolve、MWV 采用同一形态，重试上限 2–10 次。但修复的独立证据薄弱：只有 CDEoH 有专门消融（中小规模显著正收益，10k 大规模为负）；MeLA 以成功率表佐证，MeEvo、BEAM、A2DEPT 自认未隔离贡献；没有一篇报告修复成功率。REx 证明朴素修复与独立重采样收益相当、调度才是价值来源，MWV 警告修复过程会污染变异测量——这是两条方向相反的独立证据。
-4. **失败信息的"利用"正在取代"处置"成为新前沿。** 错误进生成 prompt（EvoPH 的 traceback、RL-Algorithms 的 Runtime Errors 槽位、DGA2D 的 diagnostic 注入），进跨代记忆（MeEvo 的 ERR 历史四元组、CORAL 的失败 attempt 档案），进搜索统计与信用（Compute Allocation 的 0 分进 bandit、DGA2D 的路径信用回传、AutoSND 的结构策略、Clade-AHD 的 Beta 信念中预留但未启用的 β 通道），进训练信号（AHD Agent 的分档惩罚 reward）。
-5. **预算口径普遍模糊。** 修复调用算 LLM 预算还是评价预算、失败评估是否计入评价预算，只有 TurboEvolve（失败执行全额计入 N_eval）、A2DEPT（修复计入全局 LLM 预算）、AHD Agent（evaluator 预算只算实际执行）、AutoSND（失败计入分母不插补）说清楚了。
+1. **错误处理在文献中系统性欠披露，但“未披露不等于丢弃”。** 38 篇中约半数对“生成代码评估失败怎么办”零着墨或仅一笔带过（如 EoH-S、HiFo-Prompt、RoCo、Hercules、MCTS 系多篇）。必须严格区分四种证据状态：**“原文明确”**、**“代码确认”**、**“从流程推测”**与**“未知”**。未明确披露处理流程的方法只能归入“未知”或“从流程推测”，不能武断推断为“默认丢弃”。
+2. **重试与修复改变有效候选分布，绝非“零机制成本”。** 解析容错与限次报错重试即便没有调用主 evaluator，也直接消耗了 LLM 调用次数、Token 预算与生成墙钟。更重要的是，重采样或带报错回喂的修复使最终送入评估的候选转变为**条件修复后的有效提议分布**，而不是无偏的原始采样。因此它构成了实质性的生成机制改变，绝非零成本的工程附属层。
+3. **错误信息属于环境观察或提示上下文，不是天然属于算子 $o_t$。** 必须保持严密的形式化分层：选择算子（如 Refine, Pivot, Fuse, 或执行 Repair）是控制器的**动作（Action）**；执行代码后捕获的 traceback 或异常类型是环境给出的**观察（Observation）**；将报错信息结构化组装并放进下一次请求是**上下文构造（Context Construction）**。混淆动作与观察会导致状态空间与动作空间定义紊乱。
+4. **保留失败不等于把所有失败塞进 prompt：六类失败状态的显式解耦。** 事实库应当分别记录：解析失败（Parse Error）、运行错误（Runtime Error）、超时（Timeout）、不可行（Infeasible）、有效但低分（Valid but Suboptimal）、重复候选（Duplicate）。分别记录后，“是否进入生成上下文”、“是否影响选父权重”、“是否参与 credit/bandit 质量统计”，是三个完全正交的下游控制决策。
+5. **预算口径与计账边界必须透明。** 修复调用是计入 LLM 预算还是评价预算、失败评估是否扣减主预算，必须清晰分账（如 TurboEvolve 失败全额计入 N_eval，A2DEPT 修复计入全局 LLM 预算，AHD Agent 评价预算只算实际执行）。跨方法比较时，不能让未披露的重试成本破坏评价公平性。
 
 ## 一、各家做法总览
 
@@ -26,28 +26,28 @@
 | [MEoH](LLM自动算法设计方法阅读笔记/06-MEoH.md) | 继承 EoH | 附录图注承认 illegal code 导致种群空白 | 图注级 |
 | [HSEvo](LLM自动算法设计方法阅读笔记/07-HSEvo.md) | 丢弃 | 评估时限 50/100s 显式化（源码注释：应对 infinite loops） | 参数表一行 |
 | [QUBE](LLM自动算法设计方法阅读笔记/08-QUBE.md) | FunSearch 式丢弃（exceptions or timeouts 不保留） | UIQ 不受污染（质量项只由保留样本构成），但无效 offspring 对质量证据的稀释未讨论 | 继承性实现细节 |
-| [EoH-S](LLM自动算法设计方法阅读笔记/10-EoH-S.md) | 未提及 | 未提及 | 完全沉默 |
-| [CDEoH](LLM自动算法设计方法阅读笔记/09-CDEoH.md) | **反思修复**：$h' \sim R_{LLM}(h, e)$，报错+thought+code 回喂，预算 B 内重试 | 错误信息是修复 prompt 的输入 | 有专门消融（见下节） |
-| [MoH](LLM自动算法设计方法阅读笔记/31-MoH.md) | 容错下放给生成的优化器代码（try/except 跳过+全批无效回退现有最优） | 经 seed optimizer 与 prompt 隐式传递给后代 | 附录示例代码 |
-| [ReEvo](LLM自动算法设计方法阅读笔记/15-ReEvo.md) | 丢弃（父代从 successfully executed 中选） | 无；反思只消费成功个体的优劣对比，7 个 prompt 模板无报错字段 | 两处一句话 |
-| Hercules（Efficient Heuristics Generation） | 未提及代码错误 | 火力在评估端：代理预测置信度分层+不可信回退真实评估 | 代码有效性完全沉默 |
+| [EoH-S](LLM自动算法设计方法阅读笔记/10-EoH-S.md) | 未知（未提及） | 未提及 | **未知**（正文完全未提及） |
+| [CDEoH](LLM自动算法设计方法阅读笔记/09-CDEoH.md) | **反思修复**：$h' \sim R_{LLM}(h, e)$，报错+thought+code 回喂，预算 B 内重试 | 错误信息是修复 prompt 的输入 | **原文明确**（有专门消融） |
+| [MoH](LLM自动算法设计方法阅读笔记/31-MoH.md) | 容错下放给生成的优化器代码（try/except 跳过+全批无效回退现有最优） | 经 seed optimizer 与 prompt 隐式传递给后代 | **代码/附录明确**（附录示例代码） |
+| [ReEvo](LLM自动算法设计方法阅读笔记/15-ReEvo.md) | 丢弃（父代从 successfully executed 中选） | 无；反思只消费成功个体的优劣对比，7 个 prompt 模板无报错字段 | **原文明确**（两处一句话规则） |
+| Hercules（Efficient Heuristics Generation） | 未知（未提及代码错误处置） | 火力在评估端：代理预测置信度分层+不可信回退真实评估 | **未知**（代码有效性未提及） |
 
 ### 树搜索与分配线
 
 | 方法 | 无效处置 | 错误信息的去向 | 证据强度 |
 |---|---|---|---|
-| [MCTS-AHD](LLM自动算法设计方法阅读笔记/22-MCTS-AHD.md) | 节点定义为 executable 实现（隐式不入树），失败 reward 未定义 | 无 | 完全未提及（丢弃只出现在描述别人的句子） |
-| [PoH](LLM自动算法设计方法阅读笔记/23-Planning-of-Heuristics.md) | 未定义；early stopping 剪低分路径 | 无 | 唯一写明提取机制（re.findall+importlib） |
-| [CogMCTS](LLM自动算法设计方法阅读笔记/26-CogMCTS.md) | 继承 MCTS-AHD | 负知识库 $K^-$：无改进经验入库为 avoidance cues（性能失败，非运行错误） | 负知识有消融，运行错误未提及 |
-| [Clade-AHD](LLM自动算法设计方法阅读笔记/25-Clade-AHD.md) | 失败 outcome 未定义（α/β 由归一化分数驱动） | Beta 信念形式上为失败计数预留 β 通道，未启用；失败若映射 0 分与"极差但可运行"混同 | 结构预留、语义空白 |
-| [PathWise](LLM自动算法设计方法阅读笔记/24-PathWise.md) | argmax rollout 入图，其余含无效者只作备位；全部消耗预算 | worst-vs-best critic 把当步最差 rollout 转为语言反馈 | critic 有消融，无效处理未提及 |
-| [Compute Allocation/BaSE](LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md) | invalid 显式映射 fitness 0.0 | 0 分 pull 改变 bandit 臂估计，预算转离停滞轨迹；无效段长度进案例研究 | 唯一把无效当统计对象并进分配决策 |
+| [MCTS-AHD](LLM自动算法设计方法阅读笔记/22-MCTS-AHD.md) | 从流程推测（节点定义为 executable 实现，失败 reward 未定义） | 无 | **从流程推测**（未披露具体处置细节） |
+| [PoH](LLM自动算法设计方法阅读笔记/23-Planning-of-Heuristics.md) | 从流程推测（early stopping 剪低分路径，无效处置未定义） | 无 | **从流程推测**（写明提取机制，处置未提及） |
+| [CogMCTS](LLM自动算法设计方法阅读笔记/26-CogMCTS.md) | 从流程推测（继承 MCTS-AHD） | 负知识库 $K^-$：无改进经验入库为 avoidance cues（性能失败，非运行错误） | **从流程推测**（负知识有消融，运行错误处置未知） |
+| [Clade-AHD](LLM自动算法设计方法阅读笔记/25-Clade-AHD.md) | 未知（失败 outcome 未定义，α/β 由归一化分数驱动） | Beta 信念形式上为失败计数预留 β 通道，未启用；失败若映射 0 分与"极差但可运行"混同 | **未知**（结构预留但未实现） |
+| [PathWise](LLM自动算法设计方法阅读笔记/24-PathWise.md) | 从流程推测（argmax rollout 入图，其余含无效者只作备位；全部消耗预算） | worst-vs-best critic 把当步最差 rollout 转为语言反馈 | **从流程推测**（critic 有消融，无效处理未提及） |
+| [Compute Allocation/BaSE](LLM自动算法设计方法阅读笔记/28-Compute-Allocation-BaSE.md) | invalid 显式映射 fitness 0.0 | 0 分 pull 改变 bandit 臂估计，预算转离停滞轨迹；无效段长度进案例研究 | **原文明确**（唯一把无效当统计对象并进分配决策） |
 
 ### 反思与记忆线
 
 | 方法 | 无效处置 | 错误信息的去向 | 证据强度 |
 |---|---|---|---|
-| [HiFo-Prompt](LLM自动算法设计方法阅读笔记/16-HiFo-Prompt.md) | 未提及（注释稿暴露 EoH 式 null 过滤） | 记忆只存成功精英的规律 | 完全未提及 |
+| [HiFo-Prompt](LLM自动算法设计方法阅读笔记/16-HiFo-Prompt.md) | 未知（正文未提及，注释稿暴露 EoH 式 null 过滤） | 记忆只存成功精英的规律 | **未知**（正文完全未提及） |
 | [MeLA](LLM自动算法设计方法阅读笔记/18-MeLA.md) | **报错回喂修复**：错误 prompt 回喂，至多 M 次重试，最优有效候选替换 | 错误历史进元认知 prompt（"avoid the errors"）；附 12 条典型错误清单 | SR 表佐证（EoH 53–89%、ReEvo 41–96%、MeLA 93–99%），无关停对照 |
 | [EvoPH](LLM自动算法设计方法阅读笔记/17-Experience-Guided-CoEvolution.md) | 失败赋大负值，隐性淘汰出精英 | 失败→分析报告入经验库；演化后的 prompt 自建 `error_reason`/traceback 字段与"先纠错后优化"分层指令 | 有可执行率图（70–80% vs 20–45%）+消融 |
 | [MeEvo](LLM自动算法设计方法阅读笔记/19-MeEvo.md) | 执行失败 $f(h)=\infty$，排除出父代池（可行父代<2 则跳过该代）；COR=2 次修复，无错且更优才替换 | ERR 是跨代共享历史四元组之一，驱动收敛诊断与"勿重复致错策略"约束 | 有伪代码，修复未单独消融（作者自认） |
@@ -82,7 +82,7 @@
 |---|---|---|---|
 | [AHD Agent](LLM自动算法设计方法阅读笔记/38-AHD-Agent.md) | **分档惩罚进 RL reward**：提取失败 -2.0、执行失败/不可行 -1.5、可行得改进量 | 错误作为环境 observation，修复是策略在多轮 revise 中的涌现行为 | reward 设计核心，档位无消融 |
 | [CORAL](LLM自动算法设计方法阅读笔记/40-CORAL.md) | 五状态判定（improved/baseline/regressed/crashed/timeout），后两者 null score | 文件级操作消解解析层；失败 attempt 全量入共享记忆；本地测试在消耗评估预算前拦截编译失败；"what NEVER worked" 防重访 | 失败入记忆有消融，状态机是实现细节 |
-| [RoCo](LLM自动算法设计方法阅读笔记/39-RoCo.md) | 未提及 | critic 只反思性能回退（"avoid..."反馈进角色记忆），代码级无效不在职责内 | 完全未提及 |
+| [RoCo](LLM自动算法设计方法阅读笔记/39-RoCo.md) | 未知（未提及代码级无效处置） | critic 只反思性能回退（"avoid..."反馈进角色记忆），代码级无效不在职责内 | **未知**（正文完全未提及） |
 | Experience Memory Graph | 离线编译：失败轨迹与专家轨迹图匹配→最短编辑路径→条件纠正规则，单次执行零试错 | 错误知识结构化存储、检索复用、跨任务迁移 | 核心机制（小模型上 53.6% vs 迭代反思 27–39%）；前提是失败+专家成对轨迹 |
 | Where LLM Agents Fail | AET 五模块错误分类+关键错误检测（最早可翻转成败的步骤）+限次迭代调试 | 级联失败是可靠性主瓶颈；action/system 模块与 AAD 的签名/运行错误同构 | 核心机制，但实验全部在通用 agent 任务，未用于 AAD |
 | [AutoSND](LLM自动算法设计方法阅读笔记/52-AutoSND.md) | 失败候选排除出 parent；三状态执行证据全量保留 | 负例按劣质/慢/无效三分，与 Pareto 正例做结构频率对比，编译成 avoid/bound 约束在前端压无效率 | 核心机制（去结构引导 validity 98%→76.5%）；validity 99% vs 对照 23.6% |
@@ -102,10 +102,10 @@
 
 **1. 预防：把失败面从可变空间切掉。** FunSearch 骨架+空函数头（"减少重建已知结构时的失误面"）；EoH/ReEvo 固定签名+禁随机+禁解释；ShinkaEvolve/BEAM 的 EVOLVE-BLOCK 不可变区；A2DEPT 的 Preface 固定+Immutable/Mutable 角色化解析；EvoStage 组件级分工+coder 低温 0.2；RedAHD 删最易错算子+拆分两次调用；RL-Algorithms 把类名/方法名/返回形状契约写进 prompt；ShinkaEvolve 的 HT prompt 预先注入失败模式警告（degeneracy warning）。这一层全部论文都有，是唯一的全员共识。
 
-**2. 解析容错与限次重采样（评估前，代价最低）。** MWV 失败原因回喂 5 次+fallback 模型；ShinkaEvolve patch 无效（含动了不可变区）以 Reflexion 解析反馈重采样 3–10 次；TurboEvolve 返回不足 K 个候选该轮 re-query；Evolving Code 解析失败回退父代（恒等变异，失败变无害空转）。重采样只消耗 LLM 调用，不消耗评价预算。
+**2. 解析容错与限次重采样（评估前重试）。** MWV 失败原因回喂 5 次+fallback 模型；ShinkaEvolve patch 无效（含动了不可变区）以 Reflexion 解析反馈重采样 3–10 次；TurboEvolve 返回不足 K 个候选该轮 re-query；Evolving Code 解析失败回退父代（恒等变异，失败变无害空转）。**机制与资源定性**：重采样虽然未消耗主 evaluator 预算，但直接消耗 LLM 调用与 token，且通过改变进入后续环节的有效候选分布对搜索机制产生实质影响，绝非“零机制成本”。
 
 **3. 失败个体的处置。** 三种形态并存：
-- **丢弃**（家族默认）：不进种群/数据库/父代池。树搜索语境下即不入树（MCTS 系的隐式行为）。
+- **丢弃**：FunSearch、ReEvo、LMX、TurboEvolve 等明确规定无效个体不进种群/数据库/父代池。树搜索语境下部分方法可能隐式不入树，但未披露的方法应严格归为“未知”，不能一律推定为默认丢弃。
 - **惩罚值**：MeEvo 执行失败 $f=\infty$ 并排除出父代池；A2DEPT 评估失败 $-\infty$ 但仍插入搜索树（谱系保留，配合 Boltzmann 全树历史采样）；AHD Agent 的 -2.0/-1.5 分档；DeltaEvolve 各任务 0 分/惩罚分；Compute Allocation 的 0.0；SMCEvolve 的最差奖励+MH 连续接受（把"丢弃 vs 惩罚"的差别消解为退火温度的连续压缩）。惩罚值的关键设计点是统计语义：进不进均值、进不进 UCT/Beta 信念、与"极差但可运行"是否混同——除 A2DEPT 和 SMCEvolve 外没有论文处理过这一点。
 - **限次修复**：CDEoH（预算 B）、MeLA（M 次，最优有效候选替换）、MeEvo（COR=2，无错且更优才替换）、BEAM（max_fix_try=3，组件级）、PhyloEvolve（3 次+回滚/Designer 升级路径）。触发条件从"评估抛错"到"动了不可变区"不等；修复失败者的最终去向普遍没写。
 
@@ -155,14 +155,38 @@
 
 **智能体化的结构性差异。** 文件级操作（CORAL）让解析错误这一类整体消失；修复时机从框架规则变为策略自主决策（本地测试 vs 提交 vs 修复）；失败以知识对象形式跨 agent、跨代复用。EMG 代表最彻底的形态——错误离线编译成条件纠正规则、测试时零试错，但其前提（失败+专家成对轨迹）在 AAD 场景没有天然对应物。
 
-## 六、对本仓库的可借鉴点
+## 六、对本仓库的可借鉴点（TraceAAD 的设计启示）
 
-TraceAAD 的轨迹条件生成 $P(x_{t+1} \mid x_t, h_t, o_t)$ 与轨迹感知分配 $\mu(a_t \mid \mathcal H_t)$ 恰好对应文献中错误处理的两条演进方向，落地按代价递增排序：
+> **核心判断收束**：
+> **错误处理影响候选可执行率、有效提议分布和单位资源下的搜索收益。先明确失败语义与计账边界，再决定哪些失败信息值得用于生成或分配。**
 
-1. **解析层重采样（零机制成本）**：解析失败在评估前以报错回喂重采样 2–3 次（MWV/ShinkaEvolve 形态），只消耗 LLM 调用不消耗评价预算。
-2. **失败状态的显式语义**：当前"评估出错/解析出错"若被吞掉或与低分混同，会污染一切基于 $o_t$ 的统计。参照 A2DEPT/MeEvo：失败拿显式哨兵值并标记状态（parse_failed / runtime_error / timeout / infeasible），进不进均值/锚点统计作为口径写死。
-3. **错误信息入轨迹上下文**：报错文本与失败模式是 $o_t$ 的一部分，EvoPH 与 RL-Algorithms 已验证它进生成 prompt 的价值；轨迹条件生成框架下这是自然操作，且比它们的"全局 prompt 进化"粒度更细（可条件于分支与历史）。
-4. **无效率作为诊断量与分配输入**：Compute Allocation 证明无效段长度是任务/模型特征且 0 分信号可以驱动预算转移；TraceAAD 的分配杠杆可以直接消费"分支的无效历史"——这正对应文献中没人做完的 Clade-AHD β 通道（失败进信念统计）。
-5. **限次修复按条件启用**：修复的独立证据只在部分任务成立（CDEoH 中小规模正、大规模负；REx：朴素修复≈重采样）。若引入，修复成功率与修复消耗的预算必须进实验口径（文献盲区，也是可写的点）。
+围绕这一认识，TraceAAD 应在形式化抽象与系统实现上落实以下四点：
+
+1. **严格解耦动作、观察与上下文构造**：
+   - **动作（Action）**：选择算子 $o_t \in \{\text{Refine}, \text{Pivot}, \text{Fuse}, \text{Repair}\}$ 是控制器的决策；
+   - **观察（Observation）**：执行候选代码后从沙箱环境获得的 traceback、报错文本或超时信号是环境反馈 $e_t$；
+   - **上下文构造（Context Construction）**：将报错信息结构化提取并组织进下一次请求的提示词中，是上下文工程策略。
+   - **形式化边界**：错误信息属于观察或上下文，**绝非天然属于算子 $o_t$ 本身**。混淆动作与观察会导致状态与动作空间定义紊乱。
+
+2. **重采样与修复不是“零机制成本”，会实质改变有效提议分布**：
+   - 在解析层加入报错重试虽然避免了将坏代码送入耗时的主 evaluator，但直接消耗了额外的 LLM 调用与 Token 资源；
+   - 更重要的是，重试与修复改变了进入评估池的有效候选提议分布 $K_\phi(x \mid C, o_t)$，使其转变为带有报错纠正偏置的后验分布。这属于实质性的生成机制改变，必须在资源核算中明确分账（同时记录 LLM 调用与 evaluator 评估）。
+
+3. **保留失败不等于把所有失败塞进 prompt：六类失败状态的显式解耦**：
+   - 事实库中应当分别记录六类失败事实：
+     (1) **解析失败**（Parse Error: 提取不出代码/语法非法）；
+     (2) **运行错误**（Runtime Error: 异常崩溃）；
+     (3) **超时**（Timeout: 死循环/超计算时限）；
+     (4) **不可行**（Infeasible: 违反问题硬约束/输出格式不合规）；
+     (5) **有效但低分**（Valid but Suboptimal: 算法质量劣质）；
+     (6) **重复候选**（Duplicate: 语义或代码与历史记录重合）。
+   - 分别记录后，必须将下游的三项设计选择正交拆开：
+     - **是否进入生成上下文**：例如将运行 traceback 整理后选择性放入下一步修复 prompt，而将低级解析失败在前端消化；
+     - **是否影响选父权重**：例如严重退化或不可行节点降低选父权重，但仍保留在谱系中；
+     - **是否参与质量与信用统计**：例如失败节点是否折算为 0 分或负信用，避免将运行崩溃与可运行的低分算法简单混淆。
+
+4. **无效率作为任务/分支诊断量与资源分配信号**：
+   - 无效段长度和失败类型分布反映了当前代码分支的修改容错度与模型的表达边界；
+   - 在预算分配层，连续产生无效候选的分支可被分配器识别为脆弱或停滞区域，从而指导探索预算向更具可行潜力的分支转移；在跨任务比较时，无效率也是衡量任务难度与 Prompt 约束有效性的关键诊断指标。
 
 覆盖 `papers/` 库 38 篇；LLaMEA 原论文与 FunSearch 补充材料不在库内，相关结论以库内转述为限。

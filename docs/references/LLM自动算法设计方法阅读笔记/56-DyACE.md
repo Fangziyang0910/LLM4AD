@@ -16,7 +16,7 @@ DyACE 不把启发式当作一次生成后固定的程序，而把算法与解�
 
 |机制主张|论文证据|证据等级|判断|
 |---|---|---|---|
-|完整方法在 JSSP/TSP/CVRP 有竞争力|Tables 1–3、Figure 2|间接支持|联合 look-ahead、特征、LLM controller 与动态代码的结果。|
+|完整方法在 JSSP/TSP/CVRP 有竞争力|Tables 1–3、Figure 2|直接支持（整法有效性）|匹配协议下的整法比较直接支持完整 DyACE 方案在 JSSP/TSP/CVRP 任务上优于基线；不能顺带证明 look-ahead、特征提取、LLM controller 各自独立有效（组件贡献见 Table 4 消融）。|
 |动态 control loop 有益|§4.4、Table 4，Full 对 Static|直接支持|规模越大差距越明显，ta71 为 11.13% 对 17.94%。|
 |无感知的动态适应可能有害|Table 4，Blind 对 Static|直接支持|ta71 Blind 19.60% 劣于 Static 17.94%，是明确反例而非仅“无改善”。|
 |trajectory features 与 controller 各自独立必要|Table 4|部分支持|Blind 去掉特征但保留 loop，w/o-both 同时去掉两者；未给只保留特征、关闭更新的完全析因设计。|

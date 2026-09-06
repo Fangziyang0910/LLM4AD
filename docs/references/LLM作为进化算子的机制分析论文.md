@@ -4,24 +4,35 @@
 
 纳入重点是**机制诊断**。论文分为三层：直接研究算法设计过程的核心论文；在实例优化、代码修复或理论环境中研究相同算子问题的邻近论文；只提供概念框架、缺少针对性受控实验的背景论文。
 
+> **核心方法论边界：严格解耦四类轨迹概念与搜索空间**
+>
+> 分析此类文献时，必须明确区分四类具有完全不同时间轴与对象的“轨迹”，严禁混用：
+> 1. **形成谱系（Ancestral Lineage，外层程序进化）**：记录算法候选由哪些父代代码演化而来（代码 diff、父子生成边、算子与提示词事实），负责组织外层生成上下文与信用溯源；
+> 2. **优化过程几何（Search Space Geometry，外层搜索空间）**：记录群体随世代演进在算法语义或特征空间中的宏观移动趋势、聚集密度与流形演变；
+> 3. **求解行为轨迹（Problem-Solving Trajectory, PSTraj，内层算法求解执行）**：记录候选算法在具体实例上运行时的一步步决策动作（如 BBOB 步长、TSP 状态转移、DTW 距离），用于透视算法的黑盒求解策略；
+> 4. **Pipeline 拓扑（Pipeline Topology，如 DGA²D）**：属于单一求解器内部功能组件的前后调用图；其一阶转移信用讨论的是组件执行依赖，既非外层进化祖先路径亦非 prompt 长度，不可外推为“搜索只应使用短历史”。
+>
+> **关键警示**：被生成算法在求解具体问题时“小步长利用表现好”，**绝不能直接推导为外层生成模型“应该小步修改代码”**！混淆两者会导致严重的机制归因错位。
+
 ## 一、核心机制论文
 
-核心集合包含 **12 个研究方向、13 篇论文**。其中 ELM 与 *Evolving Code with a Large Language Model* 引用谱系相连但角色不同：前者提供算子机制的受控证据，后者是同期的算子代数形式化（演示实验为简化符号回归，不含 ELM 的 diff 模型与 Sodaracer）。
+核心集合包含 **13 个研究方向、13 篇论文**。其中 ELM（Lehman 等）与 *Evolving Code with a Large Language Model*（Hemberg 等，MIT CSAIL）为两个完全独立的研究工作，不属于同一技术谱系或衍生关系：前者研究预训练 diff 变异模型与 MAP-Elites 开放式演化，后者形式化 GP+LLM 提示算子代数并给出各算子的代价/错误率 profile。
 
-| 机制问题 | 论文 | 主要分析对象 | 最值得保留的结论 | 局限与条件说明 |
+| 机制问题 | 论文 | 主要分析对象与观测量层次 | 最值得保留的结论 | 局限与条件说明 |
 | --- | --- | --- | --- | --- |
-| LLM 变异为何可能优于随机程序变异 | [Evolution through Large Models](../../../papers/Evolution_through_Large_Models/)；[Evolving Code with a Large Language Model](../../../papers/Evolving_Code_with_A_Large_Language_Model/) | 代码 diff（ELM）、GP+LLM 算子代数与成本/错误 profile（Evolving Code） | 代码模型从人类修改分布获得结构化变异先验，能协调多处相关修改；diff 保留父代的大部分可运行结构；Evolving Code 补充：选择/替换算子 LLM 化最贵最易错，变异/初始化最稳健 | 受控证据（4-Parity、Sodaracer、MAP-Elites）全部属于 ELM；Evolving Code 的演示为受限符号回归。已有[逐篇笔记](LLM自动算法设计方法阅读笔记/01-ELM.md)与[形式化笔记](LLM自动算法设计方法阅读笔记/03-Evolving-Code.md) |
-| 多父代提示是否形成真正的交叉 | [Language Model Crossover](../../../papers/Language_Model_Crossover_Variation_through_Few_Shot_Prompting/) | 父代特征继承、父代顺序、模型规模、文本／代码等多种 genotype | few-shot 父代上下文可以产生可测的特征继承和语义组合，说明 LLM 交叉不是简单字符串拼接 | 跨表示演示较广，但不能推出它普遍优于领域专用 crossover；见[逐篇笔记](LLM自动算法设计方法阅读笔记/02-Language-Model-Crossover.md) |
-| 进化搜索相对直接采样是否必要 | [Understanding the Importance of Evolutionary Search in AHD with LLMs](../../../papers/Understanding_the_Importance_of_Evolutionary_Search_in_Automated_Heuristic_Design_with_L/)（[笔记](LLM自动算法设计方法阅读笔记/62-Understanding-Evolutionary-Search.md)） | 多种 LLM-EPS、简单 \((1+1)\) 基线、直接／零样本采样 | LLM 单独生成不足以稳定完成 AHD；\((1+1)\) 最小循环 500 次查询即可在多数组合上超过独立采样 10000 次的结果；统一基准下没有单一方法跨任务一致占优（正式版结论，弱于早期稿的"无方法统计显著超过 \((1+1)\)"）；搜索增益在任务×模型格间高度不均匀（OBP-OR 上 EPS 几乎无优势），复杂框架必须与强简单基线比较 | 四个 AHD 问题、最多九个模型、五次运行；方法级对比，无组件级消融；它证明搜索循环的必要性，不等于证明某个复杂种群机制最优 |
-| LLM 变异幅度能否被提示控制 | [Controlling the Mutation in LLMs](../../../papers/Controlling_the_Mutation_in_LLMs_for_Efficient_Evolution_of_Algorithms/) | 目标变异率、实际代码 diff、动态 mutation prompt、模型差异 | prompt 确实能改变实际代码差异，但可控性依赖模型；GPT-4o 较能遵循幅度，GPT-3.5-turbo 基本失败。人工动态提示改善收敛，自动提示未稳定改善 | 代码差异只是变异幅度代理，不等于算法行为差异；结果限 LLaMEA 和所测模型。见[逐篇笔记](LLM自动算法设计方法阅读笔记/11-Controlling-Mutation.md) |
-| 算法代码结构如何随进化变化 | [Code Evolution Graphs](../../../papers/Code_Evolution_Graphs_Understanding_Large_Language_Model_Driven_Design_of_Algorithms/)（[笔记](LLM自动算法设计方法阅读笔记/64-Code-Evolution-Graphs.md)） | AST 特征、复杂度、代码演化图、LLaMEA／EoH 轨迹 | 反复提示往往使代码持续复杂化，但复杂度与性能的关系依任务而变；不同模型表现出不同代码风格 | AST 静态特征看不到超参数和运行行为，相关性不能证明复杂度导致性能变化 |
-| LLM 算子诱导怎样的适应度景观 | [Fitness Landscape of LLM-Assisted Automated Algorithm Search](../../../papers/Fitness-Landscape-LLM-Assisted-Automated-Algorithm-Search/)（[笔记](LLM自动算法设计方法阅读笔记/63-Fitness-Landscape.md)） | 算法节点、生成转移边、六任务×六模型、四种相似度 | LLM 算法搜索景观高度多峰且崎岖，任务和模型会改变景观结构；文本／结构相似度与性能关系并不固定 | 图景依赖采样到的候选和距离定义，只能描述被具体模型与 prompt 访问的经验景观，而非完整算法空间 |
-| 不同变异提示产生怎样的算法行为 | [Behaviour Space Analysis of LLM-driven Meta-heuristic Discovery](../../../papers/Behaviour_Space_Analysis_of_LLM_driven_Meta_heuristic_Discovery/)（[笔记](LLM自动算法设计方法阅读笔记/66-Behaviour-Space-Analysis.md)） | 六种配置（变异提示 × μ/λ × 精英）、探索／利用／收敛／停滞指标、CEG 与轨迹网络 | 双意图提示（"refine & simplify" + "生成与之前尝试都不同的新算法"）配合 1+1 精英保留的配置（L4）表现最好且最稳；自适应变异幅度提示（L5/L6）不如 L4；高性能被生成算法呈现更强局部利用、更快收敛和较少停滞；纯"生成新算法"配置（L2）低成功率、高停滞 | 只使用 GPT o4-mini、LLaMEA 和十个 BBOB 函数；行为—性能关系主要是观察关联，不是普遍因果规律 |
-| 什么使一个 LLM 成为好的持续优化算子 | [What Makes an LLM a Good Optimizer?](../../../papers/What_Makes_an_LLM_a_Good_Optimizer_Trajectory_Analysis/)（[笔记](LLM自动算法设计方法阅读笔记/65-LLM-Optimizer-Trajectory-Analysis.md)） | 15 个 LLM×8 个任务的完整进化轨迹、局部改进、突破率、新颖性、语义移动 | 强算子更像可靠的局部精炼器：持续产生小步改进并逐渐局部化。平均新颖性本身不预测最终结果；只有搜索仍围绕高质量区域时，新颖性才有帮助 | 轨迹统计揭示关联结构，不单独证明怎样修改 prompt 就能获得该能力 |
-| 没有选择压力时，LLM 变异会自行走向哪里 | [Mutation Without Variation](LLM自动算法设计方法阅读笔记/49-Mutation-Without-Variation.md) | 受限 DSL 中的纯 mutation chains、结构 attractor、重复访问、自环与短周期 | 即使移除 fitness selection，LLM 变异也会快速汇聚到少数结构骨架；这揭示的是算子自身的生成偏置，而非选择器造成的坍缩 | 直接证据限于受限 genotype 空间，不能推出行为或 held-out fitness 必然坍缩 |
-| 文本相似度能否代表算法行为多样性 | [BehaveSim](LLM自动算法设计方法阅读笔记/54-BehaveSim.md) | 候选在问题实例上的执行轨迹、DTW 行为距离、代码／文本相似度 | 代码近似与行为近似会错位；用执行轨迹定义 niche 更接近搜索真正需要保留的功能差异 | 轨迹设计和实例采样会决定距离，完整方法收益不能全部归因于 BehaveSim |
-| 变异、接受与重采样如何共同控制退化 | [SMCEvolve](LLM自动算法设计方法阅读笔记/48-SMCEvolve.md) | mutation mixture、Metropolis-style acceptance、父代重采样与自动收敛控制 | 把 LLM 程序进化写成序贯蒙特卡洛后，可以显式区分“提出什么变化”和“哪些变化进入后续分布”；受控消融支持多个环节共同作用 | 理论目标分布依赖近似的 LLM proposal，整法优势不能说明每个概率组件都精确校准 |
-| 每次生成多少子代、如何语言化采样 | [TurboEvolve](LLM自动算法设计方法阅读笔记/58-TurboEvolve.md) | verbalized multi-offspring sampling、自适应 offspring 数、多岛与 seed injection | 一次提示生成多个带自述意图的子代，为同一父代提供相关但可比较的局部方向；预算控制应随搜索状态变化 | 缺少固定 offspring 数和 verbalization-off 的完全匹配消融，当前主要是合理机制与联合系统证据 |
+| LLM 变异为何可能优于随机程序变异 | [Evolution through Large Models](../../../papers/Evolution_through_Large_Models/)（[笔记](LLM自动算法设计方法阅读笔记/01-ELM.md)） | **【外层程序进化】** 代码 diff 变异模型、4-Parity 受控实验、Sodaracer 机器人形态与 MAP-Elites | 代码模型从人类修改分布获得结构化变异先验，能同时协调多处相关修改；diff 形式保留父代的大部分可运行结构 | 受控证据主要限于 4-Parity 错误修复与 Sodaracer；多阶段自举改进在不同 cutoff 下趋势不一，非通用保证 |
+| GP 算子全面 LLM 化的代价与稳健性 | [Evolving Code with a Large Language Model](../../../papers/Evolving_Code_with_A_Large_Language_Model/)（[笔记](LLM自动算法设计方法阅读笔记/03-Evolving-Code.md)） | **【外层程序进化】** 8 类 GP 算子的 LLM 形式化代数、提示词协议、调用时长/token/错误率 profile | 变异与初始化算子 LLM 化成本较低且相对稳健；选择与替换算子 token 消耗最大、解析与执行错误率最高 | 演示仅基于受限符号回归与 GPT-3.5-turbo 少样本提示，全程无模型微调，无跨任务竞争力结论 |
+| 多父代提示是否形成真正的交叉 | [Language Model Crossover](../../../papers/Language_Model_Crossover_Variation_through_Few_Shot_Prompting/) | **【外层程序进化】** 父代特征继承、父代顺序、模型规模、文本／代码等多种 genotype | few-shot 父代上下文可以产生可测的特征继承和语义组合，说明 LLM 交叉不是简单字符串拼接 | 跨表示演示较广，但不能推出它普遍优于领域专用 crossover；见[逐篇笔记](LLM自动算法设计方法阅读笔记/02-Language-Model-Crossover.md) |
+| 进化搜索相对直接采样是否必要 | [Understanding the Importance of Evolutionary Search in AHD with LLMs](../../../papers/Understanding_the_Importance_of_Evolutionary_Search_in_Automated_Heuristic_Design_with_L/)（[笔记](LLM自动算法设计方法阅读笔记/62-Understanding-Evolutionary-Search.md)） | **【外层程序进化】** 多种 LLM-EPS、简单 \((1+1)\) 基线、直接／零样本采样 | LLM 单独生成不足以稳定完成 AHD；\((1+1)\) 最小循环 500 次查询即可在多数组合上超过独立采样 10000 次的结果；统一基准下没有单一方法跨任务一致占优（正式版结论，弱于早期稿的"无方法统计显著超过 \((1+1)\)"）；搜索增益在任务×模型格间高度不均匀（OBP-OR 上 EPS 几乎无优势），复杂框架必须与强简单基线比较 | 四个 AHD 问题、最多九个模型、五次运行；方法级对比，无组件级消融；它证明搜索循环的必要性，不等于证明某个复杂种群机制最优 |
+| LLM 变异幅度能否被提示控制 | [Controlling the Mutation in LLMs](../../../papers/Controlling_the_Mutation_in_LLMs_for_Efficient_Evolution_of_Algorithms/) | **【外层程序进化】** 目标变异率、实际代码 diff、动态 mutation prompt、模型差异 | prompt 确实能改变实际代码差异，但可控性依赖模型；GPT-4o 较能遵循幅度，GPT-3.5-turbo 基本失败。人工动态提示改善收敛，自动提示未稳定改善 | 代码差异只是变异幅度代理，不等于算法行为差异；结果限 LLaMEA 和所测模型。见[逐篇笔记](LLM自动算法设计方法阅读笔记/11-Controlling-Mutation.md) |
+| 算法代码结构如何随进化变化 | [Code Evolution Graphs](../../../papers/Code_Evolution_Graphs_Understanding_Large_Language_Model_Driven_Design_of_Algorithms/)（[笔记](LLM自动算法设计方法阅读笔记/64-Code-Evolution-Graphs.md)） | **【外层程序进化】** AST 特征、复杂度、代码演化图、LLaMEA／EoH 轨迹 | 反复提示往往使代码持续复杂化，但复杂度与性能的关系依任务而变；不同模型表现出不同代码风格 | AST 静态特征看不到超参数和运行行为，相关性不能证明复杂度导致性能变化 |
+| LLM 算子诱导怎样的适应度景观 | [Fitness Landscape of LLM-Assisted Automated Algorithm Search](../../../papers/Fitness-Landscape-LLM-Assisted-Automated-Algorithm-Search/)（[笔记](LLM自动算法设计方法阅读笔记/63-Fitness-Landscape.md)） | **【外层程序进化】** 算法节点、生成转移边、六任务×六模型、四种相似度 | LLM 算法搜索景观高度多峰且崎岖，任务和模型会改变景观结构；文本／结构相似度与性能关系并不固定 | 图景依赖采样到的候选和距离定义，只能描述被具体模型与 prompt 访问的经验景观，而非完整算法空间 |
+| 不同变异提示产生怎样的算法行为 | [Behaviour Space Analysis of LLM-driven Meta-heuristic Discovery](../../../papers/Behaviour_Space_Analysis_of_LLM_driven_Meta_heuristic_Discovery/)（[笔记](LLM自动算法设计方法阅读笔记/66-Behaviour-Space-Analysis.md)） | **【内层求解执行】** 六种配置下被生成算法在 BBOB 实例上的解空间步长、探索/利用/停滞指标及轨迹网络 | 双意图提示（"refine & simplify" + "生成与之前尝试都不同的新算法"）配合 1+1 精英保留的配置（L4）表现最好且最稳；高性能被生成算法呈现更强局部利用、更快收敛；注意 L4 相对 L3 同时改变了种群结构（4/12 变 1+1）与精英规则，存在混杂 | 只使用 GPT o4-mini、LLaMEA 和十个 BBOB 函数；指标度量的是被生成算法在解空间的运行时行为，非外层代码修改步长 |
+| 什么使一个 LLM 成为好的持续优化算子 | [What Makes an LLM a Good Optimizer?](../../../papers/What_Makes_an_LLM_a_Good_Optimizer_Trajectory_Analysis/)（[笔记](LLM自动算法设计方法阅读笔记/65-LLM-Optimizer-Trajectory-Analysis.md)） | **【外层程序进化】** 15 个 LLM×8 个任务的完整进化轨迹、严格局部改进（LRR）、突破率、新颖性 | 强算子更像可靠的局部精炼器：持续产生小步改进并逐渐局部化。平均新颖性本身不预测最终结果；只有搜索仍围绕高质量区域时，新颖性才有帮助 | 轨迹统计揭示关联结构，不单独证明怎样修改 prompt 就能获得该能力；换模型涉及多维能力变化，不可等同于单一精炼率干预 |
+| 没有选择压力时，LLM 变异会自行走向哪里 | [Mutation Without Variation](LLM自动算法设计方法阅读笔记/49-Mutation-Without-Variation.md) | **【外层程序进化】** 受限 DSL 中的纯 mutation chains、代码结构 attractor、重复访问与自环 | 即使移除 fitness selection，LLM 变异也会快速汇聚到少数结构骨架；这揭示的是算子自身的生成偏置（模式吸引子），不等于在进行有效的局部利用 | 直接证据限于受限 genotype 空间，不能推出行为或 held-out fitness 必然坍缩 |
+| 文本相似度能否代表算法行为多样性 | [BehaveSim](LLM自动算法设计方法阅读笔记/54-BehaveSim.md) | **【内层求解执行】** 候选算法在问题实例上的执行轨迹（PSTraj）、DTW 行为距离、代码／文本相似度 | 代码近似与行为近似会错位；用执行轨迹定义 niche 更接近搜索真正需要保留的功能差异 | 轨迹设计和实例采样会决定距离，完整方法收益不能全部归因于 BehaveSim |
+| 变异、接受与重采样如何共同控制退化 | [SMCEvolve](LLM自动算法设计方法阅读笔记/48-SMCEvolve.md) | **【外层程序进化】** mutation mixture、Metropolis-style acceptance、父代重采样与自动收敛控制 | 把 LLM 程序进化写成序贯蒙特卡洛后，可以显式区分“提出什么变化”和“哪些变化进入后续分布”；受控消融支持多个环节共同作用 | 理论目标分布依赖近似的 LLM proposal，整法优势不能说明每个概率组件都精确校准 |
+| 每次生成多少子代、如何语言化采样 | [TurboEvolve](LLM自动算法设计方法阅读笔记/58-TurboEvolve.md) | **【外层程序进化】** verbalized multi-offspring sampling、自适应 offspring 数、多岛与 seed injection | 一次提示生成多个带自述意图的子代，为同一父代提供相关但可比较的局部方向；预算控制应随搜索状态变化 | 缺少固定 offspring 数和 verbalization-off 的完全匹配消融，当前主要是合理机制与联合系统证据 |
 
 ## 二、这组论文共同解释了什么
 
@@ -51,7 +62,9 @@ Understanding the Importance of Evolutionary Search 表明，直接多次采样�
 
 ### 5. 代码多样性、行为多样性与路线多样性必须分层
 
-Mutation Without Variation 表明，纯 LLM 变异在结构空间里也会反复访问少数骨架；BehaveSim 则表明，相似代码仍可能产生不同求解轨迹，反之亦然。因此“去重”至少要区分文本／AST、执行行为和 lineage 三层。对搜索真正有价值的不是表面新代码，而是能带来不同决策过程、不同后续可改进方向或更好 held-out 结果的候选。
+Mutation Without Variation 表明，纯 LLM 变异在结构空间里也会反复访问少数骨架；BehaveSim 则表明，相似代码仍可能产生不同求解轨迹，反之亦然。因此必须将【形成谱系】、【优化过程几何】、【求解行为 PSTraj】与【Pipeline 拓扑】严格分层。
+
+同时，**必须审慎对待行为距离的诊断含义**：行为距离高但当前未见质量改善，**不能立即判定为无效漂移**（可能正在跨越适应度低谷或构建全新策略骨架）；行为距离低也**不能直接武断判定为停滞**（可能正在进行关键参数或局部逻辑的有效精炼）。它们首先是条件性诊断信号，不能直接硬编码为自动触发分配的排他性规则。对搜索真正有价值的不是表面新代码，而是能带来不同决策过程、不同后续可改进方向或更好 held-out 结果的有效探索。
 
 ### 6. 生成算子不能脱离接受与预算机制单独评价
 

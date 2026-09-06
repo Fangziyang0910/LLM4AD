@@ -16,7 +16,7 @@ RefineEvo 保持种群进化骨架（N=10、精英截断、1000 评价），把"
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|整体效果|`04_experiment.tex` 主结果；`curves.pdf`、`bar_chart.pdf`、`aco_results_*`|间接支持|是规划、双向经验及其他流程的联合比较。|
+|整体效果|`04_experiment.tex` 主结果；`curves.pdf`、`bar_chart.pdf`、`aco_results_*`|直接支持（整法有效性）|匹配协议下的整法比较直接支持 RefineEvo 方案在所测任务上优于基线；不能顺带证明规划与双向经验各自独立有效（组件贡献需看逐项消融）。|
 |双向经验池|Appendix 的 `tab:ablation_bep`：w/o Experience 15.91%、w/o Negative 13.94%、w/o Positive 12.92%（完整 11.54%，TSPLIB）|直接支持|移除对照齐全且方向一致；**负经验比正经验更重要**（去负退化大于去正），负经验承担"不重复失败"的探索侧保护。|
 |规划/操作精炼|Appendix `tab:full_k_ablation` 比较 Random/Planner Selection 与 Fixed-Interval Refinement 的 $k$|部分支持|参数/策略对照支持所测设置，不证明“规划”全部语义内容。|
 |经验避免失败|`survival_rate_heatmap1.pdf`、`survival_rate_heatmap2.pdf`|间接支持|过程统计可描述现象，不能确认经验是唯一原因。|

@@ -16,7 +16,7 @@ CogMCTS 保留 MCTS 的选择—扩展—模拟—回传，根节点虚拟、其
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|主任务结果|§Experiments 的 ACO、GLS、KP 表（表注为三次平均）|间接支持|整体系统比较，不能拆给 em1/em2 或 UCT。|
+|主任务结果|§Experiments 的 ACO、GLS、KP 表（表注为三次平均）|直接支持（整法有效性）|匹配协议下的整法比较直接支持 CogMCTS 方案在所测 ACO、GLS、KP 任务上优于基线；不能顺带证明 em1/em2、快慢认知或 UCT 各自独立有效（组件消融见 Table 4）。|
 |扩展动作有用|§Ablation Study，表 `tab:kp100_actions`：移除 em1、em2、二者|直接支持|同一 KP 设定的目标动作移除，支持该局部机制贡献。|
 |认知周期 $C_t=2$|表 `aco_op_kp`、`aco_mkp_cvrp`|部分支持|是参数比较，支持所测任务配置，非普遍最优周期。|
 |过程/知识存储|§Cognitive-Guided Mechanism 与图|间接支持|展示规则，不检验知识真假。|

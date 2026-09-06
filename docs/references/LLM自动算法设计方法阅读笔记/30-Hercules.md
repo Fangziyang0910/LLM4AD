@@ -16,7 +16,7 @@ Hercules 针对 LLM-EPS 的两类代价：搜索方向常空泛，且所有候�
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|在 TSP GLS 上兼顾质量与搜索成本|§`4.1`，Tables `tabgls`、`tabsearchreport`|间接支持|支持所列设置与基线的整法比较；成本口径应与 evaluator、模型调用和候选数一起读。|
+|在 TSP GLS 上兼顾质量与搜索成本|§`4.1`，Tables `tabgls`、`tabsearchreport`|直接支持（整法有效性）|匹配协议下的整法比较直接支持 Hercules 方案在所列 TSP GLS 设置下优于基线；不能顺带证明每个组件分别有效（组件贡献需看逐项消融）。|
 |可迁移到构造、ACO、NCO 设计对象|§`4.2`--`4.4`，Tables `tabselect`、`tabaco`、`tabNCO`|间接支持|说明完整方法覆盖多个设计槽；没有将“对象扩展”自身与统一控制器独立随机化。|
 |CAP、PPP 各自有效|Table `ablation`、§`4.5`；Fig. `accuracy`（EXEMPLAR 变体预测精度箱线图，图非表）|直接支持|组件消融提供直接证据（w/o rank-based selection 8.49 vs 完整 11.10），但范围限于所挑任务与预算。|
 |预测性能可替代真实评估|PPP 描述、Table `tabsearchreport`|间接支持|论文自认 PPP 预测精度一般（预测值与真值 Pearson r=0.39、ANOVA p=0.6），EXEMPLAR 使预测精度中位数提升 26%/37%（p=0.048/0.004），可靠性靠 ConS 分层复评兜底；支持用于该筛选流程降低调用，不能证明预测分数可作可靠 fitness。|

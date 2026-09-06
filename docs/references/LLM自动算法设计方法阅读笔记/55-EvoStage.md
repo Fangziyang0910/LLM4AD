@@ -16,7 +16,7 @@ Stagewise-Design 由 coordinator 自动把算法任务分解为顺序阶段，�
 
 |机制主张|论文证据|证据等级|判断|
 |---|---|---|---|
-|完整 EvoStage 在芯片布局上有效|Tables 1–4|间接支持|联合三算子与任务专用 evaluator 的结果。|
+|完整 EvoStage 在芯片布局上有效|Tables 1–4|直接支持（整法有效性）|匹配协议下的整法比较直接支持完整 EvoStage 方案在芯片宏单元布局任务上优于基线；不能顺带推出内部三个算子各自独立有效（算子消融见 §3.1）。|
 |Stagewise-Design 算子有益|§3.1 Ablation、Figure 6|直接支持|完整版本与 w/o Stagewise-Design 在只设计 learning-rate schedule 时对照，前者更快更好。|
 |方法可扩展到 BO acquisition function|Table 5、Figure 9|间接支持|跨应用联合结果，未隔离阶段反馈。|
 |阶段数与反馈频率的独立贡献|§2.2、Appendix settings|未验证|采用固定 3/4 阶段，未报告 matched sensitivity。|

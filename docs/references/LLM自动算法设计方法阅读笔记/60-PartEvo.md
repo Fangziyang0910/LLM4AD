@@ -16,7 +16,7 @@ PartEvo 将代码相似度向量（CodeBLEU 两两相似度矩阵的行）或思
 
 |机制主张|论文证据|证据等级|判断|
 |---|---|---|---|
-|完整系统提高搜索效率|Tables 1–2、Figure 2|间接支持|四 benchmark、多个 runs 的联合结果。|
+|完整系统提高搜索效率|Tables 1–2、Figure 2|直接支持（整法有效性）|匹配协议下的整法比较直接支持 PartEvo 方案在四个 benchmark 上优于基线；不能顺带推出每个组件分别有效（需看逐项消融）。|
 |niche 数影响探索—利用|§4.4、Table 4|直接支持|K=1/2/4/6 同设置比较，K=4 在所测任务较稳。|
 |有意义 feature 优于随机 partition|Table 5、Appendix Figure 4|直接支持|Code Similarity/Thought Embedding 比 random 更稳、更快。|
 |prompt-centric operators 有益|Tables 6/11，w/o RE、SE、PartEvo†|直接支持|逐项和成组移除均退化。|

@@ -16,7 +16,7 @@ HSEvo 先测量再设计：提出两个嵌入空间多样性指标（SWDI、CDI�
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|三任务目标分全部最优|§Experiments，`tab:hsevo_results`（BPO 1.07±1.11 vs FunSearch 2.05/EoH 3.17/ReEvo 2.48；TSP 0.02±0.03；OP −14.62±0.12）|间接支持|3 次运行、统一 gpt-4o-mini；CDI 仍低于 EoH——以略低的多样性换最好分数。|
+|三任务目标分全部最优|§Experiments，`tab:hsevo_results`（BPO 1.07±1.11 vs FunSearch 2.05/EoH 3.17/ReEvo 2.48；TSP 0.02±0.03；OP −14.62±0.12）|直接支持（整法有效性）|匹配协议下的整法比较直接支持 HSEvo 方案在所测三任务目标分上优于对比基线；不能顺带证明和声参数利用或 flash reflection 各自独立有效（组件消融见 Table 4–5）。|
 |和声搜索的参数利用有效|§Ablation，`tab:ablation_hs`|部分支持|HS 加进 ReEvo 只有边际改善（OP −14.54→−14.58）；作者解释为 ReEvo 缺多样性机制故无法从 HS 获益——"利用机制需要探索机制配套"的直接论证。|
 |flash reflection 的成本效率|`tab:ablation_flash_reflection`（150K token 小预算）|部分支持|小预算下 ReEvo+flash reflection 优于 HSEvo（−14.36 vs −14.07），大预算反转：无多样性机制时反思只有早期收益。|
 |SWDI/CDI 可作为探索-利用诊断量|`fig:hsevo_di` 与诊断实验|间接支持|指标用于诊断而非选择信号；HSEvo 没有把 SWDI/CDI 写进任何选择公式，指标与性能的因果关系未验证。|

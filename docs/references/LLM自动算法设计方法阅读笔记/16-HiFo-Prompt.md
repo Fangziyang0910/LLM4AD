@@ -16,7 +16,7 @@ HiFo-Prompt 将指导拆为 hindsight 与 foresight。前者从精英代码蒸�
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|主结果优于基线|§Experiments 的 TSP/BPP/FSSP/BO 表；同为 Qwen2.5-Max 的 AHD 比较|间接支持|这是 HiFo-Prompt 整体比较，不能分别证明 Insight Pool 或 Navigator。|
+|主结果优于基线|§Experiments 的 TSP/BPP/FSSP/BO 表；同为 Qwen2.5-Max 的 AHD 比较|直接支持（整法有效性）|匹配协议下的整法比较直接支持 HiFo-Prompt 方案在所测任务上优于基线；不能顺带分别证明 Insight Pool 或 Navigator 各自独立有效（需看逐项消融）。|
 |Insight 与 Navigator 分别有用|表 `tab:ablation`：TSP、Online BPP，去 Hindsight、去 Foresight、都去|部分支持|支持两个模块在该两任务的联合系统中有增益；不足以证明每项内部规则。|
 |更快收敛|附录 comparative 的 EoH 比较|部分支持|曲线可支持该对照的达到分数速度；需与相同有效调用和 evaluator 成本核对。|
 |参数稳健|附录 parameter analysis|间接支持|敏感性不是机制有效性的独立对照。|

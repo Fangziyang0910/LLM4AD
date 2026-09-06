@@ -16,7 +16,7 @@ GAE 用 relational GNN 把 AST 解析成 typed computation graph 并在线回归
 
 |机制主张|论文证据|证据等级|判断|
 |---|---|---|---|
-|完整 GAE 在振子发现上有竞争力|Tables 1–2、Figure 2|间接支持|Table 2 的受控低预算比较显示联合系统较好；Table 1 引用的高预算结果不可直接横比。|
+|完整 GAE 在振子发现上有竞争力|Tables 1–2、Figure 2|直接支持（整法有效性）|匹配受控协议下的整法比较（Table 2）直接支持完整 GAE 方案在振子发现任务上的有效性；不能顺带证明 GNN、SAC 或 GRPO 各自独立有效（需看逐项消融）。|
 |GNN、SAC、GRPO 各自有效|§4、Appendix B|未验证|Appendix B 只说明参数与训练信号可分解，没有报告 w/o-component 成绩。|
 |发现式子能外推且有物理可解释性|Table 2、§4 qualitative equations|部分支持|ID/OOD NMSE 与公式案例支持该任务上的外推；只有一个符号回归域。|
 |在线 GRPO 在搜索中持续改善算子|Figure 2、§3.5|未验证|有性能轨迹但无权重固定 LLM 的匹配对照，无法归因训练。|

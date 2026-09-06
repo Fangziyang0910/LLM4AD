@@ -16,7 +16,7 @@ PoH 将启发式设计显式建模为 MDP + 战略规划：状态=启发式，�
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|整体性能|表 `tab:tsplib`、`tab: main-exp-gls`、`tab:fssp`|间接支持|整法比较，不能单独归给 MCTS 规划或反思。|
+|整体性能|表 `tab:tsplib`、`tab: main-exp-gls`、`tab:fssp`|直接支持（整法有效性）|匹配协议下的整法比较直接支持该方案在 TSPLIB、GLS、FSSP 任务上的整体优越性；不能顺带证明 MCTS 规划或反思各自独立有效（规划策略对照见 Fig. 5 消融）。|
 |MCTS 规划作用|§Ablation on Search Strategies，图 `fig:ablation`：MC、Greedy、Beam、MCTS，状态转移与动作生成相同、探索启发式数固定|直接支持|目标搜索策略的受控比较支持 TSP200 中 MCTS 的局部优势。|
 |规划路线可解释|树/案例图|间接支持|可读路径不等于被证明导致提升。|
 

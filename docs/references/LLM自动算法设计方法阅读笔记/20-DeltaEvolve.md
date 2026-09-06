@@ -16,7 +16,7 @@ DeltaEvolve 不直接保存历史完整代码，而让 LLM 为每条父子边生
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|整体质量与 token 消耗|§Experiments/§Main Results，表 `tab:main_exp`；五域、三 seeds（11/42/100）|间接支持|整法比较，不能单独证明 semantic delta、多层库或 sampler。|
+|整体质量与 token 消耗|§Experiments/§Main Results，表 `tab:main_exp`；五域、三 seeds（11/42/100）|直接支持（整法有效性）|匹配协议下的整法比较直接支持 DeltaEvolve 方案在五域、三 seeds 下优于对比基线；不能顺带推出 semantic delta、多层库或 sampler 各自独立有效（需看逐项消融）。|
 |“保留代码上下文比标量分数重要”|§Evolutionary Framework/§Context Selection Dominates Scalar Feedback，表 `tab:ablation_raw`：Standard、Blind-Elite、Random-Context|直接支持|这是目标问题的受控上下文/分数对照；它支持选择的代码上下文价值，不等于直接证明 delta 动量。|
 |semantic delta 的独立因果|正文未给出仅移除 delta、保留多层库/采样器其余不变的消融|未验证|主表不能拆解为动量本身有效。|
 |过程轨迹|Appendix Task Details 的 `fig:bbob_evolution` 等为固定 seed 42；Case Study 的 `fig:case_study`|间接支持|代表运行与案例，不替代重复统计。|

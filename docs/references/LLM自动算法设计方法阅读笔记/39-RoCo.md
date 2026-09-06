@@ -16,7 +16,7 @@ RoCo 将生成、批评、反思等职责分给预定义角色：explorer（"cre
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|完整 RoCo 在五类 ACO 任务上有竞争力|Tables `tab:whitebox`、`tab:black_box_table`，Fig. `fig:whiteboxcurve`|间接支持|主结果均为完整协作配方，不能归因给角色或反思。|
+|完整 RoCo 在五类 ACO 任务上有竞争力|Tables `tab:whitebox`、`tab:black_box_table`，Fig. `fig:whiteboxcurve`|直接支持（整法有效性）|匹配协议下的整法比较直接支持 RoCo 方案在五类 ACO 任务上的整体竞争力；不能顺带归因给每个角色或反思机制（需看逐项消融）。|
 |角色/反思组件的影响|Table `tab:ablation`，§`sec:ablation`|部分支持|白盒 TSP 下完整 RoCo 8.256 与 EoH 8.257 几乎持平——角色协作的增益集中在反馈受限场景；黑盒下去 integrator 退化最大（8.641 vs 8.256），协作轮数 1→3 显著改善（9.341→8.254）、4–5 轮边际。仍需注意通信量/调用数是否随之变化。|
 |多任务稳定性|Fig. `fig:blackbox`|部分支持|黑盒图为四次独立运行的均值和标准差；白盒主表为 64 实例、三次平均，不覆盖所有设置。|
 |局部搜索变体解释收益|Table `tab:gls`|间接支持|只说明 LS variants 的表现，不能证明角色协作收益来自 LS。|

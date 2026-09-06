@@ -16,7 +16,7 @@
 
 |主张|论文证据|证据等级|判断|
 |---|---|---|---|
-|REvolve 优于 Eureka 与专家奖励|AirSim（DDQN，5×10⁵ 步）、MuJoCo Humanoid/Adroit Door（SAC，5×10⁶ 步）的 Elo 表：Humanoid 1586、Adroit 1594 第一；AirSim 1575 仅次于真人 1586；Eureka 1557/1522/1549|间接支持|仅 2 个随机种子；Elo 口径依赖人类评估协议。|
+|REvolve 优于 Eureka 与专家奖励|AirSim（DDQN，5×10⁵ 步）、MuJoCo Humanoid/Adroit Door（SAC，5×10⁶ 步）的 Elo 表：Humanoid 1586、Adroit 1594 第一；AirSim 1575 仅次于真人 1586；Eureka 1557/1522/1549|直接支持（整法有效性）|匹配协议下的整法比较直接支持 REvolve 方案在所测环境下优于 Eureka 与专家奖励；不能顺带推出变异、杂交或岛屿机制各自独立有效（且结论受限于 2 个随机种子及 Elo 评估协议边界）。|
 |变异+杂交互补|AirSim 消融：变异+杂交 > 仅杂交 > 仅变异|部分支持|单任务、两种子；提示生成意图应含跨个体组件重组。|
 |奖励跨环境泛化|两个新 AirSim 环境：0.86±0.03 / 0.68±0.04 优于 Eureka（0.73/0.57）与专家（0.71/0.48）|部分支持|同模拟器族内的迁移。|
 |自动反馈可替代人类|REvolve Auto 在反馈稀疏的 MuJoCo 任务仅与 Eureka 持平|反向或混合证据|进化搜索的收益需与丰富反馈耦合。|

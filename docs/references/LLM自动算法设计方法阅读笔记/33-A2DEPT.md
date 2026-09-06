@@ -19,7 +19,7 @@ A2DEPT 的机制单独看都是标准件，值得记录的是它们咬合的逻�
 
 | 主张 | 论文证据 | 证据等级 | 判断 |
 | --- | --- | --- | --- |
-| 程序级搜索优于组件级 AHD | Table `tab:main_results`：4 个标准基准 × 2 backbone 对 FunSearch/EoH/ReEvo/MCTS-AHD 全胜 | 间接支持 | 支持完整配方；表示、维护、控制器同时变化，不能归因给程序树单一因素。摘要/贡献 (iv)/§`sec:exp_standard` 三处称"对最优竞品 AAD 方法的**平均 gap 相对下降** 9.8%"，但该数字**无法从主表复现**：按 DeepSeek 组逐任务最优竞品均值（17.35%）对 A2DEPT（10.85%）实算相对下降约 37.5%——论文内部数字不一致，引用时以主表为准。 |
+| 程序级搜索优于组件级 AHD | Table `tab:main_results`：4 个标准基准 × 2 backbone 对 FunSearch/EoH/ReEvo/MCTS-AHD 全胜 | 直接支持（整法有效性） | 匹配协议下的整法比较直接支持 A2DEPT 完整配方在所测基准上优于 FunSearch/EoH/ReEvo/MCTS-AHD；不能顺带归因给程序树单一因素（表示、维护与控制器同时变化）。摘要/贡献 (iv)/§`sec:exp_standard` 三处称"对最优竞品 AAD 方法的**平均 gap 相对下降** 9.8%"，但该数字**无法从主表复现**：按 DeepSeek 组逐任务最优竞品均值（17.35%）对 A2DEPT（10.85%）实算相对下降约 37.5%——论文内部数字不一致，引用时以主表为准。 |
 | 每个循环组件有贡献 | Table `tab:ablation_unified`：去 Boltzmann、去自适应调度、随机选择、固定模板均退化 | 直接支持（任务条件） | 只覆盖 CVRP/FJSP 两任务，是任务条件下的组件证据，非普适必需性。 |
 | 维护提高可执行性 | §`subsec:engineering` 的机制描述 | 未验证 | 消融没有"只关维护"的变体；三大宣称机制之一缺少独立量化。 |
 | AAD 后期上限更高 | Table `tab:convergence_stages`、Fig. `fig:convergence` | 部分支持 | 两点快照加单任务曲线，见 §4.1。 |

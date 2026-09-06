@@ -16,7 +16,7 @@ TurboEvolve 让一次 LLM 调用通过 Verbalized Sampling 产生 K 个带自报
 
 |机制主张|论文证据|证据等级|判断|
 |---|---|---|---|
-|完整 TurboEvolve 提高样本效率与稳健性|主结果 Figures/Tables in §5|间接支持|完整 multi-island、VS、adaptive K 和 initialization 的联合结果。|
+|完整 TurboEvolve 提高样本效率与稳健性|主结果 Figures/Tables in §5|直接支持（整法有效性）|匹配协议下的整法比较直接支持 TurboEvolve 方案在所测基准上优于基线；不能顺带推出 multi-island、VS 或 adaptive K 各自独立有效（需看逐项消融与分析）。|
 |seed allocation 优于随机|§5 RQ3、seed-pool allocation figure|部分支持|同 seed pool 比较 random、kmeans、kmeans+elite；收益随任务而变且幅度有限。|
 |一次大 K 调用的头部候选更有用|§6.1 within-event top-m analysis|部分支持|控制在同一次调用内部，支持候选排序/互补现象；不是固定 K 因果消融。|
 |adaptive K 本身优于 fixed K|§6|未验证|论文明确采用观察性 within-event 分析来规避在线选择偏差，没有 matched fixed-K ablation。|

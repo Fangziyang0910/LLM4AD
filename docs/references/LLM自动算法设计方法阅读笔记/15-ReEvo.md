@@ -16,7 +16,7 @@ ReEvo 关注在昂贵评价下怎样提高启发式搜索的样本效率。每�
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|整体样本效率/质量更好|§6 comparative evaluation，图 `lhh_evolution_bar`、`lhh_evolutions_gpt3.5`；TSP、CVRP、OP、MKP、BPP，三种 LLM|间接支持|这是整法比较，支持 ReEvo 系统效果，不能单独证明反思、交叉或变异。|
+|整体样本效率/质量更好|§6 comparative evaluation，图 `lhh_evolution_bar`、`lhh_evolutions_gpt3.5`；TSP、CVRP、OP、MKP、BPP，三种 LLM|直接支持（整法有效性）|匹配协议下的整法比较直接支持 ReEvo 方案在所测任务上样本效率与解质量优于基线；不能顺带证明短/长期反思、交叉或变异各自独立有效（需看逐项消融）。|
 |短、长期反思及遗传算子有贡献|§6.2 表 `tab:ablation_study`：TSP100，分别移除 long/short reflection、crossover、mutation|部分支持|同一任务和提示设定的组件移除支持局部因果；未隔离组件交互。|
 |反思使景观较不崎岖|§6.1 表 `tab:autocorrelation`；TSP50，3 次随机游走、每次 40 步|部分支持|支持该随机游走统计的相关性，不能直接证明所有后续提升由“平滑”造成。|
 |过程分析|图 `reevo_v4_compressed` 与反思示例|间接支持|说明运行过程，不构成独立对照。|

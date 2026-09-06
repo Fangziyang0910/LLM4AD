@@ -16,7 +16,7 @@
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|BEAM 在所列 benchmark 有端到端收益|Tables `tab:traditionalmain`、`tab:CAF`、`tab:CombinedTable`、`tab:BBOBTable`|间接支持|完整系统相对基线的比较不能归因于双层或自适应记忆。|
+|BEAM 在所列 benchmark 有端到端收益|Tables `tab:traditionalmain`、`tab:CAF`、`tab:CombinedTable`、`tab:BBOBTable`|直接支持（整法有效性）|匹配协议下的整法比较直接支持 BEAM 方案在所列 benchmark 上取得端到端收益；不能顺带推出双层或自适应记忆各自有效（组件贡献需看逐项消融）。|
 |自适应记忆有贡献|Table `tab:ablation` 的 BEAM 与 BE；TSP-500、CVRP-500、Ackley/Rastrigin；`tab:stability`（5 次运行 BEAM 3.46±0.01 vs BE 4.41±0.19）|部分支持|该表的 "Adaptive Memory" 小节只比较 BEAM/BE，支持该命名版本差异及其稳定性；主文未逐项披露所有上下文/调用成本。|
 |教育/搜索控制方式的影响|Table `tab:ablation` 的 One-Shot 与 MCTS（MIS、CVRP、CAF）|部分支持|CAF 上 MCTS 教育输给 One-Shot（8.17 vs 5.12，论文归因于任务简单、结构比函数重要）——教育方式的收益有任务条件；且这不是双层机制的单组件消融。|
 |KA-guided 评测管线有效|`sections/benchmark.tex` 的 BBOB 与 PMSP/KnoBase 实验|间接支持|管线主张以案例与端到端实验呈现，无管线 on/off 消融。|

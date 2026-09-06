@@ -16,7 +16,7 @@ GeoEvolve 以内层 OpenEvolve 生成/变异代码，外层 controller 评估并
 
 |机制主张|论文证据|证据等级|判断|
 |---|---|---|---|
-|完整系统改善 Kriging/GeoCP|Tables 1–2、Figures 4–5（相对原始 kriging RMSE 降 15.4%/21.2%/13.0% Cu/Pb/Zn；GeoCP interval score 55.37→46.12 即 −16.7%）|间接支持|两任务的联合系统结果；headline 对 OpenEvolve（52.37）的优势含 10 倍迭代差——OpenEvolve 系基线只跑 10 次迭代，GeoEvolve 系跑 10 外层 × 10 内层 = 100 次（§4 开头）。|
+|完整系统改善 Kriging/GeoCP|Tables 1–2、Figures 4–5（相对原始 kriging RMSE 降 15.4%/21.2%/13.0% Cu/Pb/Zn；GeoCP interval score 55.37→46.12 即 −16.7%）|部分支持（基线预算未对齐）|整系统比较直接支持相对原始 Kriging 基线的解质量改善；但对 OpenEvolve 的 headline 优势含有 10 倍迭代差（100 次 vs 10 次），且整法结果不能顺带推出每个内部组件分别有效。|
 |动态结构化检索优于移除检索|§4、Tables 1–2，GeoEvolve w/o GeoKnowRAG|直接支持|相同进化预算（同为 100 次迭代）下完整方法总体更好——"identical budgets" 只适用于这一消融对。|
 |仅静态加知识 prompt 足够|Tables 1–2，OpenEvolve+GeoKnowledge|反向或混合证据|静态知识有时改善、有时恶化（GeoCP 54.80 差于 OpenEvolve 52.37；kriging 上 Cu/Pb 变差、Zn 略好）。|
 |code analyzer 的主动查询单独必要|§3.2–3.4|未验证|未分别关闭 analyzer、RAG-Fusion 或 outer-loop elite 控制。||

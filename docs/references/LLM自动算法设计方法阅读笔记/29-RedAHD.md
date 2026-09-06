@@ -16,7 +16,7 @@
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|端到端约简设计能与固定 GAF 方法竞争|§Experiments，Tables `tab:main-sbs`、`tab:main-aco`（三次运行均值）与 `tab:tsp-sbs`（三次运行中最好的启发式，且该启发式因随机选起点对每实例再跑 3 次取均值——best-of-3 口径），六类 COP|间接支持|支持该配置在所列白盒/黑盒任务的整法结果；比较含文献复用结果，不能单独归因给约简。|
+|端到端约简设计能与固定 GAF 方法竞争|§Experiments，Tables `tab:main-sbs`、`tab:main-aco`（三次运行均值）与 `tab:tsp-sbs`（三次运行中最好的启发式，且该启发式因随机选起点对每实例再跑 3 次取均值——best-of-3 口径），六类 COP|直接支持（整法有效性）|匹配协议下的整法比较直接支持该方案在所列白盒/黑盒任务上的整法竞争力；不能顺带单独归因给约简机制（需看逐项消融）。|
 |约简精炼有益|Table `tab:ablation-reduc-refi`|直接支持|该消融改变精炼步骤，能检验其对报告任务的影响；不是对所有约简或预算的普遍证明。|
 |多问题交叉参考有益|Appendix Table `tab:ablation-reduc`（M=1 vs M=3）|直接支持|支持该实验配置下的跨问题 LLM-EPS；Figure `fig:demo` 只是一个说明性个案。|
 |模型与底层 EPS 影响结果方向|Tables `tab:ablation-llm`、`tab:ablation-llmeps`|部分支持|换 o3-mini 后 OBPP/CVRP 显著改善（CVRP OOD 13.516 优于 OR-Tools）；RedAHD[MEoH] 最优、RedAVO[ReEvo] 略差——证据方向为"更强模型/更强 EPS 更好、框架可移植"。|

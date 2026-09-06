@@ -16,7 +16,7 @@ PathWise 把启发式发现建模为**蕴含图上的序贯决策 + 多智能体
 
 |机制主张|论文证据（具体表/图/消融/章节）|证据等级|判断|
 |---|---|---|---|
-|整体结果|§Overall Results，`tab:tsp_kp_step_by_step`、`tab:aco_general_framework_merged`；曲线 `fig:evolution_same_ne_exp`|间接支持|整法比较不能分别证明图状态、agent 分工或提示内容。|
+|整体结果|§Overall Results，`tab:tsp_kp_step_by_step`、`tab:aco_general_framework_merged`；曲线 `fig:evolution_same_ne_exp`|直接支持（整法有效性）|匹配协议下的整法比较直接支持 PathWise 方案在所测 TSP/KP/ACO 任务上优于基线；不能顺带证明图状态、agent 分工或提示内容各自的独立贡献（需看逐项消融）。|
 |critic 反馈|§Ablation Study，`tab:ablation-ours`：固定其余组件，移除 policy/world-model critics|直接支持|目标 critic 机制的受控消融，限 TSP 构造、GPT-5-nano(low)、5 次平均。|
 |prompt 多样性|§Ablation Study，`tab:ablation-diversity-v2`：固定其余组件，移除 prompt perturbation/state shuffling|直接支持|支持该任务上两个多样性处理的局部贡献。|
 |路径可解释性|方法示例/路径图|间接支持|仅说明记录形式。|
