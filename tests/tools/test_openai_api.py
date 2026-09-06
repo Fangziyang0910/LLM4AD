@@ -49,6 +49,19 @@ def install_fake_openai(monkeypatch, response):
     return clients
 
 
+def test_completion_details_preserve_usage_and_length_even_with_empty_content(monkeypatch):
+    response = make_response(content=None, finish_reason='length')
+    response.usage = SimpleNamespace(model_dump=lambda: {'prompt_tokens': 12, 'completion_tokens': 7})
+    response.id = 'test-response'
+    response.model = 'test-model'
+    clients = install_fake_openai(monkeypatch, response)
+    llm = OpenAIAPI(base_url='http://localhost:8000/v1', api_key='EMPTY', model='test-model')
+    details = llm.draw_sample_with_details('test', max_tokens=7)
+    assert details == {'content': '', 'finish_reason': 'length', 'usage': {'prompt_tokens': 12, 'completion_tokens': 7},
+                       'response_id': 'test-response', 'model': 'test-model'}
+    assert clients[0].chat.completions.calls[0]['max_tokens'] == 7
+
+
 def test_openai_api_disables_thinking_by_default(monkeypatch):
     clients = install_fake_openai(monkeypatch, make_response())
 

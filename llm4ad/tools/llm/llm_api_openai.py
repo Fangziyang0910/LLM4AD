@@ -73,6 +73,23 @@ class OpenAIAPI(LLM):
         )
 
     def draw_sample(self, prompt: str | Any, *args: Any, **kwargs: Any) -> str:
+        return self._content_from_response(self._request_completion(prompt, **kwargs))
+
+    def draw_sample_with_details(self, prompt: str | Any, **kwargs: Any) -> dict[str, Any]:
+        """Return completion metadata without discarding truncated/empty responses."""
+        response = self._request_completion(prompt, **kwargs)
+        choice = response.choices[0]
+        content = choice.message.content
+        usage = getattr(response, "usage", None)
+        return {
+            "content": self._content_from_response(response) if content else "",
+            "finish_reason": getattr(choice, "finish_reason", None),
+            "usage": usage.model_dump() if hasattr(usage, "model_dump") else usage,
+            "model": getattr(response, "model", self.model),
+            "response_id": getattr(response, "id", None),
+        }
+
+    def _request_completion(self, prompt: str | Any, **kwargs: Any) -> Any:
         messages = self._build_messages(prompt, kwargs.pop("messages", None))
         request = {
             "model": kwargs.pop("model", self.model),
@@ -95,8 +112,7 @@ class OpenAIAPI(LLM):
             request["extra_body"] = extra_body
 
         request.update(kwargs)
-        response = self._client.chat.completions.create(**request)
-        return self._content_from_response(response)
+        return self._client.chat.completions.create(**request)
 
     def count_tokens(self, text: str) -> int:
         """Count raw text tokens with the tokenizer serving this model."""
