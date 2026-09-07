@@ -1,0 +1,216 @@
+{
+  "specific_correction_count": 12,
+  "criteria": "Specific claim correction only; not whole-summary accuracy or net pairwise preference. Single non-blinded reviewer; no exhaustive correctness guarantee.",
+  "entries": [
+    {
+      "index": 0,
+      "sample_id": "cvrp_aco_r1_e74",
+      "at_least_one_specific_correction": false,
+      "gain": "补充了 1/d、0.5 余弦系数和长边指数惩罚。",
+      "remaining_or_new_issue": "两版均把无方向的径向余弦相似性讲成有方向的 sweep；二次版延续了行归一化改变信息素相对强度的解释。在乘法 ACO 的理想计算中，同一行的公共比例因子会抵消，实际 epsilon/floor 的影响需另算。"
+    },
+    {
+      "index": 1,
+      "sample_id": "cvrp_aco_r1_e251",
+      "at_least_one_specific_correction": true,
+      "gain": "原版描述相对于下一客户返仓成本的容量项；二次版改成 depot→i 加 i→j 的 partial_cost，与代码一致。",
+      "remaining_or_new_issue": "仍把归一化讲成探索平衡改进；代码的 remaining_j 只有 C-demand_j，是静态代理量，不能按真实行程剩余容量理解。"
+    },
+    {
+      "index": 2,
+      "sample_id": "cvrp_aco_r2_e126",
+      "at_least_one_specific_correction": false,
+      "gain": "展开了正确的乘法公式、需求项 0.02 及出仓行计算。",
+      "remaining_or_new_issue": "新增错误父代差异：声称父代是加权加法、子代才采用乘法；父代实际已有 heuristic = geo_component * modulation。"
+    },
+    {
+      "index": 3,
+      "sample_id": "cvrp_aco_r2_e259",
+      "at_least_one_specific_correction": true,
+      "gain": "原版声称出仓偏置同时使用距离和角度；二次版改为更近客户的距离偏置。",
+      "remaining_or_new_issue": "新描述把有效系数说成 0.3，实际 starter_bonus 先乘 0.3，组合时又乘 w_start=0.3，合计 0.09；可行需求奖励随 cap_ratio 增长，不能解释为远离容量上限。"
+    },
+    {
+      "index": 4,
+      "sample_id": "cvrp_aco_r3_e173",
+      "at_least_one_specific_correction": true,
+      "gain": "二次版明确指出可见父代本来就只有 hard mask，识别了前置 Idea 所称“移除 soft capacity penalty”与父代码不符。",
+      "remaining_or_new_issue": "这是有价值的核对，同时仍附带对不可见历史的推测；最终公式与主要差异描述基本对应。"
+    },
+    {
+      "index": 5,
+      "sample_id": "cvrp_aco_r3_e265",
+      "at_least_one_specific_correction": true,
+      "gain": "把原版相互冲突的 Gaussian-like、保持 d^-3 等措辞收敛到实际 d^-2.5、角度幂函数、两节点需求线性惩罚。",
+      "remaining_or_new_issue": "二次版的主要公式和 lambda 从 min 改为平均等父代变化有代码依据；“更平滑所以搜索更好”仍是收益假设。"
+    },
+    {
+      "index": 6,
+      "sample_id": "online_bin_packing_r1_e121",
+      "at_least_one_specific_correction": true,
+      "gain": "原版公式写 -lambda*item/bins、lambda=0.001 且方向解释混乱；二次版写对 bins/item 和 1e-6，并改称 Best Fit。",
+      "remaining_or_new_issue": "两版均保留不存在的破平局收益；在 item>0 的有限常规输入上，s=-(1+eps/item)*bins+item，排序仍是 Best Fit。二次版还误称更大 item 会产生更大的该项惩罚。"
+    },
+    {
+      "index": 7,
+      "sample_id": "online_bin_packing_r1_e266",
+      "at_least_one_specific_correction": true,
+      "gain": "二次版写对大间隙阈值由 2.5*item 改为 2*item，以及实际惩罚、bonus 权重。",
+      "remaining_or_new_issue": "两版均说 Gaussian sigma=0.5*item；代码是 max(item,1)，item=10 时实际 sigma=10，描述为 5。"
+    },
+    {
+      "index": 8,
+      "sample_id": "online_bin_packing_r2_e138",
+      "at_least_one_specific_correction": false,
+      "gain": "整理出确定公式 -r^2-0.5r 和小 item、空数组、非有限值分支。",
+      "remaining_or_new_issue": "两版均把保持严格 Best Fit 排序的变换说成克服 Best Fit 的泛化缺陷；二次版还说降低二次项影响，父代系数是 0.1，新系数为 1，不能直接作此解释。"
+    },
+    {
+      "index": 9,
+      "sample_id": "online_bin_packing_r2_e232",
+      "at_least_one_specific_correction": false,
+      "gain": "补充 running max、混合阈值与自适应 penalty 的计算。",
+      "remaining_or_new_issue": "两版把 bins.size 当成已打开箱数。评估器传入所有当前可容纳 item 的箱，包括未使用的空箱；该数量不能解释为已开箱数量或当前装箱密度。二次版也未给出父代关键系数差异。"
+    },
+    {
+      "index": 10,
+      "sample_id": "online_bin_packing_r3_e68",
+      "at_least_one_specific_correction": false,
+      "gain": "展开 0.9 与 0.1 两项公式和类型转换。",
+      "remaining_or_new_issue": "二次版强化错误：声称改变严格 Best Fit 决策。实际 s=0.1+0.8/(1+gap)，仍严格偏好最小 gap。"
+    },
+    {
+      "index": 11,
+      "sample_id": "online_bin_packing_r3_e243",
+      "at_least_one_specific_correction": false,
+      "gain": "二次版正确识别子代与父代功能相同，变化仅为注释/说明；去掉 docstring 后 AST 完全一致。",
+      "remaining_or_new_issue": "这属于新增有价值的事实，原版只描述算法，没有明确声称已改变父代，所以单列为识别无功能变化，而不算纠错。"
+    },
+    {
+      "index": 12,
+      "sample_id": "op_aco_r1_e99",
+      "at_least_one_specific_correction": false,
+      "gain": "补充正确的 alpha 可行边密度调节与父代公式变化。",
+      "remaining_or_new_issue": "新增错误尺度解释：父代 d/remaining 无量纲；子代 d*maxlen/remaining 在整体距离放大时随之放大，却被说成提高尺度不变性。实际 slack 也是静态全预算代理。"
+    },
+    {
+      "index": 13,
+      "sample_id": "op_aco_r1_e339",
+      "at_least_one_specific_correction": false,
+      "gain": "主要乘法项、alpha/gamma 范围、prize tilt 改动描述对应代码。",
+      "remaining_or_new_issue": "两版称原返仓因子为 bounded linear，实际为 0.7+0.3*exp(-d/L)；二次版还漏述 h_max<=eps 时整矩阵回退为 1，因此不能无条件说所有不可行边均返回 1e-9。"
+    },
+    {
+      "index": 14,
+      "sample_id": "op_aco_r2_e87",
+      "at_least_one_specific_correction": false,
+      "gain": "从较长前置讨论中提取代码实际采用的 25、1.8、1.5、1.2 四个参数。",
+      "remaining_or_new_issue": "未识别 Dsafe[0,0] 被设为浮点最大值，使 LB 的出仓行全不可行，出仓先验退化为共同 floor；返仓列在当前 OP ACO 中不参与主动终止，不能按摘要解释直接返仓概率。"
+    },
+    {
+      "index": 15,
+      "sample_id": "op_aco_r2_e354",
+      "at_least_one_specific_correction": false,
+      "gain": "准确定位唯一代码差异是 clip 上限 2.5→2.0。",
+      "remaining_or_new_issue": "却未识别该差异不生效：scale_r>=0.5*r_max 保证 ratio_norm<=2。两版返仓列控制终止的叙事也与当前 OP 调用链不符。"
+    },
+    {
+      "index": 16,
+      "sample_id": "op_aco_r3_e107",
+      "at_least_one_specific_correction": false,
+      "gain": "补充实际四项乘法公式、指数变化与非有限检查。",
+      "remaining_or_new_issue": "主体计算有依据；remaining/slack 是输入全预算下的静态余量，不含实际前缀旅行长度。floor 是数值下限，最终可行性由评估器动态 mask 保证。"
+    },
+    {
+      "index": 17,
+      "sample_id": "op_aco_r3_e204",
+      "at_least_one_specific_correction": true,
+      "gain": "前置 Idea 为 top-k efficient prizes/B；二次版改成半径 R=B/2 内的 prize 及分母 d_ij+d_j0，后者与代码吻合。",
+      "remaining_or_new_issue": "关键新叙述仍错：代码的向量赋值没有实现累计和，不能得到半径内全部奖品总和；每对 i,j 还扫描长度 n 的 mask，摘要所谓 O(log n) range query 没覆盖实际 O(n) 扫描。"
+    },
+    {
+      "index": 18,
+      "sample_id": "tsp_construct_r1_e55",
+      "at_least_one_specific_correction": true,
+      "gain": "将原版较大剩余集阶段的 O(n log n) 改成 O(n^2)，给出了实际四项评分。",
+      "remaining_or_new_issue": "纠正仅针对启发式阶段；尾部 bitmask DP 仍是指数代价。摘要未突出阈值由 12 提到 15；“immediate weight dominant”也并非所有 n 都成立。"
+    },
+    {
+      "index": 19,
+      "sample_id": "tsp_construct_r1_e327",
+      "at_least_one_specific_correction": false,
+      "gain": "补充 K=min(24,max(12,N//3))、目标点候选、全局路径状态，以及 DP 10→12、2-opt 8→10。",
+      "remaining_or_new_issue": "主要规则与代码对应；“无显著额外开销”等运行效率判断未由本次核查证明，候选集合裁剪也可能丢掉某些特殊候选。"
+    },
+    {
+      "index": 20,
+      "sample_id": "tsp_construct_r2_e23",
+      "at_least_one_specific_correction": true,
+      "gain": "将原版“最远剩余节点到终点”改成实际候选自身到终点，并写出真实线性进度权重。",
+      "remaining_or_new_issue": "新增父代符号误读：父代 argmin 中减 gamma*(d1+d2) 实际奖励较大的 potential，二次版说奖励较小值；单独把结构项变无量纲也不保证整个分数尺度不变。"
+    },
+    {
+      "index": 21,
+      "sample_id": "tsp_construct_r2_e236",
+      "at_least_one_specific_correction": false,
+      "gain": "正确说明晚期增加第二种 rollout，并取两种完整 rollout 成本的较小值。",
+      "remaining_or_new_issue": "两版均未发现前期 mean_conn 包含 inf，struct_norm 与 scores 全 NaN，np.argmin 选第一个候选。两版还说移除了 max_gap，实际仍使用 max(d_cur)-min(d_cur)。"
+    },
+    {
+      "index": 22,
+      "sample_id": "tsp_construct_r3_e17",
+      "at_least_one_specific_correction": true,
+      "gain": "主要公式中消除了原版未实现的 second-best regret，改为实际平均到其他节点的距离，末段承认退化为组合分数。",
+      "remaining_or_new_issue": "新增权重方向错误：称 n<20 时 gamma 保持 0.8；实际 gamma=0.8*n/20，随 n 下降。标题仍称 regret-adjusted，因果解释有包装痕迹。"
+    },
+    {
+      "index": 23,
+      "sample_id": "tsp_construct_r3_e217",
+      "at_least_one_specific_correction": true,
+      "gain": "校正原版最后伪代码的 axis=0 为实际 axis=1；mu 中 n/5 改为实际 n/4。",
+      "remaining_or_new_issue": "二次版主体公式较贴合；父代仍被称为 static/fixed weights，实际 beta 随 n 变化，这部分比较不准确。"
+    },
+    {
+      "index": 24,
+      "sample_id": "vrptw_construct_r1_e172",
+      "at_least_one_specific_correction": false,
+      "gain": "补充 travel+return、continuation 归一化、urgency 与低容量奖励的具体规则。",
+      "remaining_or_new_issue": "仍把单项归一化说成整体尺度不变；实际同时加 raw travel/wait 与无量纲项。W_CONT 紧窗基础 0.55 后还可加 0.15；服务时间猜测阈值从 2→3 未说明。"
+    },
+    {
+      "index": 25,
+      "sample_id": "vrptw_construct_r1_e202",
+      "at_least_one_specific_correction": false,
+      "gain": "二次版把最终的 continuation 与 urgency 权重条件写了出来。",
+      "remaining_or_new_issue": "新增严重父代比较错误：声称 implementation identical。实际父代 slack_norm>0.8 调小 W_CONT、<0.2 设置 W_URG=.2；子代 <.5 时 W_CONT*=1.3、<.3 时 W_URG*=1.5。"
+    },
+    {
+      "index": 26,
+      "sample_id": "vrptw_construct_r2_e56",
+      "at_least_one_specific_correction": false,
+      "gain": "补充有效距离的精确式子与若干正常参数。",
+      "remaining_or_new_issue": "两版都误述 demand 偏好：argmin 加上归一化的 (2p-1)*load，p>.5 时偏好低需求，p<.5 时偏好高需求。两版都称 quadratic，实际 exponent=1.5；二次版还把正的紧窗惩罚解释成优先紧急客户，实际方向相反。"
+    },
+    {
+      "index": 27,
+      "sample_id": "vrptw_construct_r2_e228",
+      "at_least_one_specific_correction": false,
+      "gain": "补充 efficiency 的 alpha=.55、rank sum、capacity hard filter 与父代变化。",
+      "remaining_or_new_issue": "time_risk 的等待/松弛项会相互作用：arrival<start 时为 wait/(width+1)-wait/width，等待越长该项越小，故不能无条件解释为惩罚更早到达。rank_map 对并列值使用最后名次，最佳不一定是 0。"
+    },
+    {
+      "index": 28,
+      "sample_id": "vrptw_construct_r3_e114",
+      "at_least_one_specific_correction": true,
+      "gain": "把原版声称计算夹角的算法改述为实际 detour=d_current,candidate+d_candidate,depot-d_current,depot。",
+      "remaining_or_new_issue": "二次版仍把加在 argmin 中的紧窗惩罚说成优先紧窗；还把线性 1-clip(slack_ratio) 描述为 inversely proportional/convex-like。"
+    },
+    {
+      "index": 29,
+      "sample_id": "vrptw_construct_r3_e300",
+      "at_least_one_specific_correction": false,
+      "gain": "补充实际五项权重、平均 rank 和父代删除角度/返仓偏置等变化。",
+      "remaining_or_new_issue": "紧迫度 rank 越高，argmin 分数越高，故不是优先紧急客户；“minimum becomes 0 / best always 0”不适用于平均并列 rank，全部相同时 rank=.5，仅对排序等效为常数。"
+    }
+  ]
+}

@@ -1,0 +1,125 @@
+{
+  "6_best_fit": {
+    "sample": "online_bin_packing_r1_e121",
+    "same_argmax_as_best_fit": 1000,
+    "states": 1000
+  },
+  "8_best_fit": {
+    "sample": "online_bin_packing_r2_e138",
+    "same_argmax_as_best_fit": 1000,
+    "states": 1000
+  },
+  "10_best_fit": {
+    "sample": "online_bin_packing_r3_e68",
+    "same_argmax_as_best_fit": 1000,
+    "states": 1000
+  },
+  "11_parent_equivalence": {
+    "ast_equal_ignoring_docstrings": true
+  },
+  "15_inactive_clip": {
+    "identical_parent_child_matrices": 100,
+    "instances": 100
+  },
+  "17_cumulative_assignment": {
+    "implemented": [
+      [
+        2.0,
+        5.0,
+        5.0,
+        7.0
+      ]
+    ],
+    "true_cumsum": [
+      [
+        2.0,
+        5.0,
+        10.0,
+        17.0
+      ]
+    ]
+  },
+  "21_nan_scores": {
+    "candidates": 29,
+    "all_scores_nan": true,
+    "all_structural_inf": true,
+    "chosen": 12,
+    "first_candidate": 12,
+    "chosen_after_reversal": 17,
+    "first_reversed": 17
+  },
+  "17_actual_cumsum": {
+    "equals_true_cumsum": false,
+    "first_row_implemented": [
+      0.0,
+      12.0,
+      8.0,
+      1.0,
+      26.0,
+      21.0
+    ],
+    "first_row_expected": [
+      0.0,
+      12.0,
+      20.0,
+      21.0,
+      47.0,
+      68.0
+    ]
+  },
+  "25_false_identical": {
+    "ast_equal_ignoring_docstrings": false,
+    "slack_norm_example": 0.4,
+    "parent_W_CONT": 0.3,
+    "child_W_CONT": 0.39,
+    "slack_norm_second_example": 0.1,
+    "parent_W_URG": 0.2,
+    "child_W_URG": 0.15
+  },
+  "26_preference_signs": {
+    "slack_ratios": [
+      0.1,
+      0.4
+    ],
+    "urgency_cost": [
+      0.3,
+      0.0
+    ],
+    "load_ratios": [
+      0.2,
+      0.6
+    ],
+    "high_p_load_cost": [
+      0.0,
+      0.2
+    ],
+    "low_p_load_cost": [
+      0.2,
+      0.0
+    ]
+  },
+  "0_row_scaling": {
+    "raw_probabilities": [
+      0.037037037037037035,
+      0.4444444444444444,
+      0.5185185185185185
+    ],
+    "row_normalized_probabilities": [
+      0.03703703703703704,
+      0.4444444444444445,
+      0.5185185185185186
+    ],
+    "scope": "multiplicative ACO weights before additive epsilon, floors and floating point effects"
+  },
+  "12_distance_scaling": {
+    "parent_ratio_original": 0.1,
+    "parent_ratio_scaled_x10": 0.1,
+    "child_ratio_original": 0.4,
+    "child_ratio_scaled_x10": 4.0
+  },
+  "7_sigma": {
+    "item": 10,
+    "implemented_sigma": 10.0,
+    "claimed_sigma": 5
+  }
+}
