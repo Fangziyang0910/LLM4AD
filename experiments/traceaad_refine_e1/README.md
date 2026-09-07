@@ -4,6 +4,8 @@
 
 2026-09-07 冻结批次已完成，详见[E1-A结果](../../docs/experiments/机制实验/2026-09-07-V10.6-Refine局部可迁移性验证/E1-A结果.md)。`report.py` 中的研究判断针对该冻结批次；更换数据时须重新审读，不能沿用这些判断。
 
+E1-A 的后验发现另形成了不消耗生成与正式评价预算的 [E1-A.1 质量条件行为增量检验](../../docs/experiments/机制实验/2026-09-07-V10.6-Refine局部可迁移性验证/E1-A.1实验设计.md)，[实际结果](../../docs/experiments/机制实验/2026-09-07-V10.6-Refine局部可迁移性验证/E1-A.1结果.md)未通过行为增量门槛。其固定参数保存在 `e1a1_config.json`，结果写入同一冻结日志目录及文档目录。
+
 ## 实际执行协议
 
 冻结 15 路 `20260906_215231_revised` 运行的原子 checkpoint 和对应已完成事件。每路截点、状态/事件/配置哈希存于 `experiments/_logs/refine_e1_20260907/snapshot.json`。排除 smoke 和未完成 pending 请求。
@@ -38,6 +40,7 @@ experiments/_logs/refine_e1_20260907/venv/bin/python -m experiments.traceaad_ref
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 .venv/bin/python -m experiments.traceaad_refine_e1.replay
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 .venv/bin/python -m experiments.traceaad_refine_e1.auxiliary
 .venv/bin/python -m experiments.traceaad_refine_e1.report
+.venv/bin/python -m experiments.traceaad_refine_e1.e1a1
 .venv/bin/python -m pytest -q tests/experiments/test_refine_e1.py
 ```
 

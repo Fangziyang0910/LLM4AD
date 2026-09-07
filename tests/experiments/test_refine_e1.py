@@ -1,7 +1,9 @@
 """Checks against self-leakage, future labels, and false zero-distance missingness."""
 import copy
+from collections import defaultdict
 import numpy as np
 
+from experiments.traceaad_refine_e1.e1a1 import kernel_predictions
 from experiments.traceaad_refine_e1.replay import neighborhood,predict,MODELS
 from experiments.traceaad_refine_e1.profile_core import compute_distance_matrix,profile_distance
 
@@ -40,3 +42,16 @@ def test_optimized_dtw_matches_literal_for_prefix_and_nonprefix():
         m=compute_distance_matrix(profiles,prefix_mode=prefix)
         assert np.allclose(m,m.T) and np.allclose(np.diag(m),0)
         assert np.isclose(m[0,1],profile_distance(*profiles),rtol=1e-6)
+
+
+def test_e1a1_joint_kernel_uses_only_supplied_history_and_behavior_identity():
+    nodes={0:{'fitness':0.0},1:{'fitness':0.1},2:{'fitness':0.2}}
+    behavior=np.array([[0.0,0.1,0.9],[0.1,0.0,0.8],[0.9,0.8,0.0]])
+    history=defaultdict(lambda:[0,0],{1:[2,2],2:[2,0]})
+    args=(0,{1,2},history,nodes,behavior,{0:0,1:1,2:2},0.1)
+    q,qb,permuted,available,complete=kernel_predictions(*args,np.random.default_rng(7),permutations=20)
+    assert 0<=q<=1 and 0<=qb<=1 and np.all((0<=permuted)&(permuted<=1))
+    assert available and complete and qb>q  # behavior gives the successful neighbor more weight
+    changed=defaultdict(lambda:[0,0],history)
+    changed[0]=[100,100]  # current-parent outcomes must not enter the supplied visible neighborhood
+    assert kernel_predictions(0,{1,2},changed,nodes,behavior,{0:0,1:1,2:2},0.1,np.random.default_rng(7),20)[1]==qb
