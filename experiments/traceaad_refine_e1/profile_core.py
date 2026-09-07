@@ -9,22 +9,16 @@ trajectory length. Raw artifacts are local-only under ``experiments/_logs``.
 
 from __future__ import annotations
 
-import argparse
 import copy
-import json
 import random
 import signal
 import sys
 import time
-from collections import Counter, defaultdict
-from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Any, Sequence
 
 import numba
 import numpy as np
-import scipy.cluster.hierarchy as sch
-from scipy.spatial.distance import squareform
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -33,6 +27,9 @@ if str(REPO_ROOT) not in sys.path:
 from llm4ad.task.optimization.cvrp_aco.evaluation import (  # noqa: E402
     ACO as CVRPACO,
     CVRPACOEvaluation,
+)
+from llm4ad.task.optimization.generated_data_config import (  # noqa: E402
+    get_generated_task_kwargs,
 )
 from llm4ad.task.optimization.online_bin_packing.generate_weibull_instances import (  # noqa: E402
     generate_weibull_multiscale_dataset,
@@ -80,6 +77,10 @@ DEFAULT_TRAJECTORY_POINTS = {
 }
 THRESHOLDS = tuple(round(value, 2) for value in np.arange(0.05, 0.96, 0.05))
 PROGRAM_RANDOM_SEED = 730_241
+# Historical E1 callers keep the frozen protocol through the function defaults.
+# New population-geometry analyses should request these calibrated settings.
+CALIBRATED_OBP_SCALE = "matched"
+CALIBRATED_ACO_SEED_OFFSETS = (0, 10_000, 20_000, 30_000)
 
 _GLOBAL_TASK: str | None = None
 _GLOBAL_DATA: dict[str, Any] | None = None
@@ -91,19 +92,30 @@ class ProfileError(RuntimeError):
     """A candidate cannot produce a valid evaluator-consistent PSTraj."""
 
 
-def _uniform_trajectory_sample(states: Sequence[Sequence[int]], max_points: int) -> list[list[int]]:
-    if not states:
+def _uniform_trajectory_indices(length: int, max_points: int) -> list[int]:
+    if length <= 0:
         raise ProfileError("empty PSTraj")
-    if len(states) <= max_points:
-        return [list(state) for state in states]
-    indices = np.rint(np.linspace(0, len(states) - 1, max_points)).astype(int)
+    if length <= max_points:
+        return list(range(length))
+    indices = np.rint(np.linspace(0, length - 1, max_points)).astype(int)
     unique_indices = list(dict.fromkeys(int(index) for index in indices))
     if len(unique_indices) != max_points:
         raise AssertionError("trajectory sampling produced duplicate points")
-    return [list(states[index]) for index in unique_indices]
+    return unique_indices
 
 
-def _build_probe_data(task: str, panel: str) -> dict[str, Any]:
+def _uniform_trajectory_sample(states: Sequence[Sequence[int]], max_points: int) -> list[list[int]]:
+    indices = _uniform_trajectory_indices(len(states), max_points)
+    return [list(states[index]) for index in indices]
+
+
+def _build_probe_data(
+    task: str,
+    panel: str,
+    *,
+    obp_scale: str = "compact",
+    aco_seed_offsets: Sequence[int] = (0,),
+) -> dict[str, Any]:
     if panel not in {"A", "B"}:
         raise ValueError(f"unknown probe panel: {panel}")
     seed = 42 if panel == "A" else 43
@@ -144,6 +156,8 @@ def _build_probe_data(task: str, panel: str) -> dict[str, Any]:
                 "ants": evaluator.n_ants,
                 "iterations": evaluator.n_iterations,
                 "aco_seed": evaluator.aco_seed,
+                "aco_seed_offsets": list(aco_seed_offsets),
+                "trajectory_order": "instance-major, seed-offset-minor",
                 "new_op_probe_seed": 20260907 if task == "op_aco" and panel == "B" else None,
             },
         }
@@ -166,13 +180,23 @@ def _build_probe_data(task: str, panel: str) -> dict[str, Any]:
                 "ants": evaluator.n_ants,
                 "iterations": evaluator.n_iterations,
                 "aco_seed": evaluator.aco_seed,
+                "aco_seed_offsets": list(aco_seed_offsets),
+                "trajectory_order": "instance-major, seed-offset-minor",
                 "new_op_probe_seed": 20260907 if task == "op_aco" and panel == "B" else None,
             },
         }
 
     if task == "online_bin_packing":
+        if obp_scale == "compact":
+            dataset_specs = [
+                {"n_instances": 2, "n_items": 256, "capacities": [100, 500]}
+            ]
+        elif obp_scale == "matched":
+            dataset_specs = get_generated_task_kwargs(task, "train")["dataset_specs"]
+        else:
+            raise ValueError(f"unknown OBP probe scale: {obp_scale}")
         dataset = generate_weibull_multiscale_dataset(
-            [{"n_instances": 2, "n_items": 256, "capacities": [100, 500]}],
+            dataset_specs,
             seed=seed,
         )
         return {
@@ -181,7 +205,8 @@ def _build_probe_data(task: str, panel: str) -> dict[str, Any]:
                 "panel": panel,
                 "seed": seed,
                 "instances": 4,
-                "items": 256,
+                "scale": obp_scale,
+                "item_counts": sorted({spec["n_items"] for spec in dataset_specs}),
                 "capacities": [100, 500],
             },
         }
@@ -189,10 +214,23 @@ def _build_probe_data(task: str, panel: str) -> dict[str, Any]:
     raise ValueError(f"unsupported task: {task}")
 
 
-def _init_worker(task: str, panel: str, max_points: int, timeout_seconds: float) -> None:
+def _init_worker(
+    task: str,
+    panel: str,
+    max_points: int,
+    timeout_seconds: float,
+    *,
+    obp_scale: str = "compact",
+    aco_seed_offsets: Sequence[int] = (0,),
+) -> None:
     global _GLOBAL_TASK, _GLOBAL_DATA, _GLOBAL_MAX_POINTS, _GLOBAL_TIMEOUT_SECONDS
     _GLOBAL_TASK = task
-    _GLOBAL_DATA = _build_probe_data(task, panel)
+    _GLOBAL_DATA = _build_probe_data(
+        task,
+        panel,
+        obp_scale=obp_scale,
+        aco_seed_offsets=aco_seed_offsets,
+    )
     _GLOBAL_MAX_POINTS = max_points
     _GLOBAL_TIMEOUT_SECONDS = timeout_seconds
 
@@ -258,7 +296,8 @@ def _profile_obp(function: Any) -> tuple[list[list[list[int]]], float]:
         bins = np.full(int(instance["num_items"]), capacity, dtype=np.int64)
         choices: list[int] = []
         states: list[list[int]] = []
-        for item in items:
+        sample_indices = set(_uniform_trajectory_indices(len(items), _GLOBAL_MAX_POINTS))
+        for item_index, item in enumerate(items):
             valid_indices = np.nonzero((bins - item) >= 0)[0]
             priorities = np.asarray(function(item, bins[valid_indices].copy()))
             if priorities.ndim != 1 or len(priorities) != len(valid_indices):
@@ -268,8 +307,9 @@ def _profile_obp(function: Any) -> tuple[list[list[list[int]]], float]:
             best_bin = int(valid_indices[int(np.argmax(priorities))])
             bins[best_bin] -= int(item)
             choices.append(best_bin)
-            states.append(choices.copy())
-        trajectories.append(_uniform_trajectory_sample(states, _GLOBAL_MAX_POINTS))
+            if item_index in sample_indices:
+                states.append(choices.copy())
+        trajectories.append(states)
         used_bins.append(int(np.count_nonzero(bins != capacity)))
     return trajectories, -float(np.mean(used_bins))
 
@@ -388,37 +428,42 @@ def _profile_op_aco(function: Any) -> tuple[list[list[list[int]]], float]:
     evaluator: OPACOEvaluation = _GLOBAL_DATA["evaluator"]
     trajectories = []
     final_scores = []
-    for probe_index, (instance_index, coordinates) in enumerate(
+    offsets = _GLOBAL_DATA["probe_metadata"]["aco_seed_offsets"]
+    n_instances = len(_GLOBAL_DATA["instances"])
+    for instance_position, (instance_index, coordinates) in enumerate(
         zip(_GLOBAL_DATA["instance_indices"], _GLOBAL_DATA["instances"])
     ):
-        _reset_program_randomness(probe_index)
-        prizes, distances, prior = evaluator._build_prior(coordinates, function)
-        aco = OPACO(
-            prizes,
-            distances,
-            evaluator.max_len,
-            prior,
-            n_ants=evaluator.n_ants,
-            rng=np.random.default_rng(evaluator.aco_seed + instance_index),
-        )
-        best_score = -float("inf")
-        best_route: list[int] | None = None
-        states = []
-        for _ in range(evaluator.n_iterations):
-            solutions = aco._gen_sol()
-            objectives = aco._gen_sol_obj(solutions)
-            iteration_best = int(np.argmax(objectives))
-            iteration_score = float(objectives[iteration_best])
-            if iteration_score > best_score:
-                best_score = iteration_score
-                best_route = _trim_op_route(solutions[:, iteration_best], aco.n)
-            if best_route is None:
-                raise ProfileError("OP-ACO produced no incumbent route")
-            states.append(best_route.copy())
-            aco.alltime_best_obj = max(aco.alltime_best_obj, iteration_score)
-            aco._update_pheromone(solutions.T, objectives)
-        trajectories.append(_uniform_trajectory_sample(states, _GLOBAL_MAX_POINTS))
-        final_scores.append(best_score)
+        for seed_position, seed_offset in enumerate(offsets):
+            _reset_program_randomness(instance_position + seed_position * n_instances)
+            prizes, distances, prior = evaluator._build_prior(coordinates, function)
+            aco = OPACO(
+                prizes,
+                distances,
+                evaluator.max_len,
+                prior,
+                n_ants=evaluator.n_ants,
+                rng=np.random.default_rng(
+                    evaluator.aco_seed + instance_index + seed_offset
+                ),
+            )
+            best_score = -float("inf")
+            best_route: list[int] | None = None
+            states = []
+            for _ in range(evaluator.n_iterations):
+                solutions = aco._gen_sol()
+                objectives = aco._gen_sol_obj(solutions)
+                iteration_best = int(np.argmax(objectives))
+                iteration_score = float(objectives[iteration_best])
+                if iteration_score > best_score:
+                    best_score = iteration_score
+                    best_route = _trim_op_route(solutions[:, iteration_best], aco.n)
+                if best_route is None:
+                    raise ProfileError("OP-ACO produced no incumbent route")
+                states.append(best_route.copy())
+                aco.alltime_best_obj = max(aco.alltime_best_obj, iteration_score)
+                aco._update_pheromone(solutions.T, objectives)
+            trajectories.append(_uniform_trajectory_sample(states, _GLOBAL_MAX_POINTS))
+            final_scores.append(best_score)
     return trajectories, float(np.mean(final_scores))
 
 
@@ -427,37 +472,42 @@ def _profile_cvrp_aco(function: Any) -> tuple[list[list[list[int]]], float]:
     evaluator: CVRPACOEvaluation = _GLOBAL_DATA["evaluator"]
     trajectories = []
     final_costs = []
-    for probe_index, (instance_index, instance) in enumerate(
+    offsets = _GLOBAL_DATA["probe_metadata"]["aco_seed_offsets"]
+    n_instances = len(_GLOBAL_DATA["instances"])
+    for instance_position, (instance_index, instance) in enumerate(
         zip(_GLOBAL_DATA["instance_indices"], _GLOBAL_DATA["instances"])
     ):
-        _reset_program_randomness(probe_index)
-        distances, demands, prior = evaluator._build_prior(instance, function)
-        aco = CVRPACO(
-            distances,
-            demands,
-            prior,
-            evaluator.capacity,
-            n_ants=evaluator.n_ants,
-            rng=np.random.default_rng(evaluator.aco_seed + instance_index),
-        )
-        best_cost = float("inf")
-        best_route: list[int] | None = None
-        states = []
-        for _ in range(evaluator.n_iterations):
-            paths = aco._generate_paths()
-            costs = aco._path_costs(paths)
-            iteration_best = int(np.argmin(costs))
-            iteration_cost = float(costs[iteration_best])
-            if iteration_cost < best_cost:
-                best_cost = iteration_cost
-                best_route = _trim_cvrp_route(paths[:, iteration_best])
-            if best_route is None:
-                raise ProfileError("CVRP-ACO produced no incumbent route")
-            states.append(best_route.copy())
-            aco.lowest_cost = min(aco.lowest_cost, iteration_cost)
-            aco._update_pheromone(paths, costs)
-        trajectories.append(_uniform_trajectory_sample(states, _GLOBAL_MAX_POINTS))
-        final_costs.append(best_cost)
+        for seed_position, seed_offset in enumerate(offsets):
+            _reset_program_randomness(instance_position + seed_position * n_instances)
+            distances, demands, prior = evaluator._build_prior(instance, function)
+            aco = CVRPACO(
+                distances,
+                demands,
+                prior,
+                evaluator.capacity,
+                n_ants=evaluator.n_ants,
+                rng=np.random.default_rng(
+                    evaluator.aco_seed + instance_index + seed_offset
+                ),
+            )
+            best_cost = float("inf")
+            best_route: list[int] | None = None
+            states = []
+            for _ in range(evaluator.n_iterations):
+                paths = aco._generate_paths()
+                costs = aco._path_costs(paths)
+                iteration_best = int(np.argmin(costs))
+                iteration_cost = float(costs[iteration_best])
+                if iteration_cost < best_cost:
+                    best_cost = iteration_cost
+                    best_route = _trim_cvrp_route(paths[:, iteration_best])
+                if best_route is None:
+                    raise ProfileError("CVRP-ACO produced no incumbent route")
+                states.append(best_route.copy())
+                aco.lowest_cost = min(aco.lowest_cost, iteration_cost)
+                aco._update_pheromone(paths, costs)
+            trajectories.append(_uniform_trajectory_sample(states, _GLOBAL_MAX_POINTS))
+            final_costs.append(best_cost)
     return trajectories, -float(np.mean(final_costs))
 
 
@@ -718,5 +768,3 @@ def compute_distance_matrix(
         return np.zeros((len(profiles), len(profiles)), dtype=np.float32)
     states, lengths = _pack_profiles(profiles)
     return _pairwise_pstraj_distance(states, lengths, prefix_mode)
-
-

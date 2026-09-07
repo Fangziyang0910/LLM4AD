@@ -1,6 +1,6 @@
 # BehaveSim
 
-- 论文：*Rethinking Code Similarity for Automated Algorithm Design with LLMs*
+- 论文：[*Rethinking Code Similarity for Automated Algorithm Design with LLMs*](https://arxiv.org/html/2603.02787)
 - 本地论文：`../../../../papers/Rethinking_Code_Similarity_for_Automated_Algorithm_Design/paper.pdf`
 - 官方实现：`../../../../reference_code/BehaveSim/`
 - 会议：ICLR 2026
@@ -59,13 +59,16 @@ FunSearch 集成同时包含初始化聚类、跨岛选例和按行为重新归�
 
 BehaveSim 因而可以作为对**已实现算法思想**的经验近似。在固定 probe、状态表示、实例与起点分布以及随机口径下，相似度高支持把两个候选视为采用相近实际求解策略的工作假设；相似度变化也能帮助识别“意图仍在，但实现已经失真”的候选，以及真正改变了求解路线的改写。这种近似描述的是可观测的实现后行为，不能确认 LLM 的潜在设计意图或完整语义等价；有限 probe 上的行为邻域也不能直接命名为语义算法簇。
 
-BehaveSim 可以补充两个过程信号：
+BehaveSim 可以补充群体和转移层面的过程信号：
 
 - 候选到历史行为的最近距离，用于识别反复生成相同执行行为；
 - 两个候选或父子之间的行为距离，用于描述一次生成跨了多远。
+- archive 的覆盖、拥挤与高质量行为岛，以及窗口内搜索整体的扩散或收缩。
 
 停滞需要同时观察质量进展和行为变化。低行为新颖度可能是有效利用，高行为新颖度也可能只是无效发散。交叉可以用行为距离寻找不同父代，但“距离远”只说明固定 probe 上的执行过程不同；融合价值仍要由同一交叉协议下的近邻、远邻和随机配对实验识别。
 
 本仓库的任务适配、稳定性和历史搜索分析见[BehaveSim 行为度量校正](../../experiments/机制实验/2026-08-26-BehaveSim行为度量校正/协议.md)。
 
-本仓库的校正结果只支持固定 probe 上的执行行为描述和停滞诊断候选信号。它不验证语义算法思想簇，不把行为距离直接用于在线调度，也不把远距离父代自动视为适合交叉；对应的匹配实验见[校正结果](../../experiments/机制实验/2026-08-26-BehaveSim行为度量校正/结果.md)。
+本仓库的校正结果只支持固定 probe 上的执行行为描述与群体几何。它不验证语义算法思想簇，不把行为距离直接用于节点潜力预测或在线调度，也不把远距离父代自动视为适合交叉；对应的匹配实验见[校正结果](../../experiments/机制实验/2026-08-26-BehaveSim行为度量校正/结果.md)。
+
+最新的[群体几何校准结果](../../experiments/机制实验/2026-09-07-BehaveSim群体几何校准/结果.md)显示：OBP 后续需使用 1000/5000-item scale-matched probe；OP 的四随机流画像显著改善但严格门槛略未通过；CVRP 即使四流仍不稳定。TSP、scale-matched OBP、VRPTW 稳定复现了群体层面的 distance–fitness-gap 关系。这个关系不能外推为某个节点下一次 Refine 的成功概率。
