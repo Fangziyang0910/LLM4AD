@@ -17,7 +17,7 @@ LABELS = {
     'online_bin_packing': 'OBP', 'vrptw_construct': 'VRPTW',
 }
 OUTCOMES = ['frontier_gain', 'frontier', 'parent_positive_gain', 'valid', 'parent_signed_gain_valid']
-DOC = ROOT / 'docs/experiments/机制实验/2026-09-07-E2-A-轨迹状态与算子响应'
+DOC = ROOT / 'docs/experiments/机制验证/2026-09-07-E2-A-轨迹状态与算子响应'
 SEED = 20260907
 
 

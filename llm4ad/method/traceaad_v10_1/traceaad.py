@@ -1,6 +1,6 @@
 """TraceAAD V10.1 search engine.
 
-Mechanism: docs/methods/TraceAAD-V10.1完整机制设计.md — fitness-biased
+Mechanism: docs/methods/TraceAAD-V10.1-机制设计.md — fitness-biased
 probabilistic parent allocation, multi-operator expansion,
 trajectory-conditioned generation.
 """

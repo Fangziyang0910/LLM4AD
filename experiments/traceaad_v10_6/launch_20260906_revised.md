@@ -34,4 +34,4 @@
 - [协议核对快照](results/startup_audit_20260906_215231_revised.json)
 - [调度日志](results/launcher_20260906_215231_revised.log)
 - [运行说明](README.md)
-- [机制设计](../../docs/methods/TraceAAD-V10.6完整机制设计.md)
+- [机制设计](../../docs/methods/TraceAAD-V10.6/机制设计.md)

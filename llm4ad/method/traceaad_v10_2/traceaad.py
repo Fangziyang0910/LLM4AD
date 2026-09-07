@@ -1,6 +1,6 @@
 """TraceAAD V10.2 search engine.
 
-Mechanism: docs/methods/TraceAAD-V10.2完整机制设计.md — fitness-only
+Mechanism: docs/methods/TraceAAD-V10.2-机制设计.md — fitness-only
 ESS-Boltzmann parent probabilities corrected by inverse-sqrt selection counts,
 uniform single-operator expansion,
 trajectory-conditioned generation.

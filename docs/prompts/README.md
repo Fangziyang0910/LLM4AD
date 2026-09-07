@@ -2,44 +2,52 @@
 
 各文件记录对应版本的提示词与上下文组织，供比较机制和复现实验。它们面向实验中的算法生成模型，原文里的指令不约束科研协作者。需要精确核对时读取对应版本的 `prompts.py`，实际请求见运行日志。
 
-V10.6 当前采用Idea→Code→独立实现Idea，任务信息统一来自公共说明与模板，详见[实现](../../llm4ad/method/traceaad_v10_6/prompts.py)与[机制设计](../methods/TraceAAD-V10.6完整机制设计.md)。此前单次Code→Summary批次的实际提示以其运行日志为准。
+## 近期实现入口
 
-V10.5 的提示词直接查阅[实现](../../llm4ad/method/traceaad_v10_5/prompts.py)与[机制设计](../methods/TraceAAD-V10.5完整机制设计.md)。下列历史快照按版本排列：
+| 版本 | 提示词来源 | 设计记录 |
+| --- | --- | --- |
+| V10.7 | [实现](../../llm4ad/method/traceaad_v10_7/prompts.py) | [机制设计](../methods/TraceAAD-V10.7-机制设计.md)：单次简短 Idea → 完整 Code；设计页记录为已实现、尚未启动实验 |
+| V10.6 | [实现](../../llm4ad/method/traceaad_v10_6/prompts.py) | [机制设计](../methods/TraceAAD-V10.6/机制设计.md)：Idea → Code → 独立实现 Idea；此前单次 Code → Summary 批次以实际日志为准 |
+| V10.5 | [实现](../../llm4ad/method/traceaad_v10_5/prompts.py) | [机制设计](../methods/TraceAAD-V10.5-机制设计.md) |
 
-- [V1](TraceAAD-V1-Prompt.md)
-- [V2](TraceAAD-V2-Prompt.md)
-- [V3](TraceAAD-V3-Prompt.md)
-- [V4](TraceAAD-V4-Prompt.md)
-- [V5](TraceAAD-V5-Prompt.md)
-- [V6](TraceAAD-V6-Prompt.md)
-- [V7](TraceAAD-V7-Prompt.md)
-- [V8](TraceAAD-V8-Prompt.md)
-- [V8.3](TraceAAD-V8.3-Prompt.md)
-- [V9](TraceAAD-V9-Prompt.md)
-- [V9.1](TraceAAD-V9.1-Prompt.md)
-- [V9.2](TraceAAD-V9.2-Prompt.md)
-- [V9.3](TraceAAD-V9.3-Prompt.md)
-- [V9.4](TraceAAD-V9.4-Prompt.md)
-- [V9.5](TraceAAD-V9.5-Prompt.md)
-- [V9.6](TraceAAD-V9.6-Prompt.md)
-- [V9.7](TraceAAD-V9.7-Prompt.md)
-- [V9.8](TraceAAD-V9.8-Prompt.md)
-- [V9.9](TraceAAD-V9.9-Prompt.md)
-- [V9.10](TraceAAD-V9.10-Prompt.md)
-- [V9.11](TraceAAD-V9.11-Prompt.md)
-- [V9.12](TraceAAD-V9.12-Prompt.md)
-- [V9.13](TraceAAD-V9.13-Prompt.md)
-- [V9.14](TraceAAD-V9.14-Prompt.md)
-- [V9.15](TraceAAD-V9.15-Prompt.md)
-- [V9.16](TraceAAD-V9.16-Prompt.md)
-- [V9.17](TraceAAD-V9.17-Prompt.md)
-- [V9.18](TraceAAD-V9.18-Prompt.md)
-- [V9.19](TraceAAD-V9.19-Prompt.md)
-- [V9.20](TraceAAD-V9.20-Prompt.md)
-- [V9.21](TraceAAD-V9.21-Prompt.md)
-- [V9.22](TraceAAD-V9.22-Prompt.md)
-- [V10](TraceAAD-V10-Prompt.md)
-- [V10.1](TraceAAD-V10.1-Prompt.md)
-- [V10.2](TraceAAD-V10.2-Prompt.md)
-- [V10.3](TraceAAD-V10.3-Prompt.md)
-- [V10.4](TraceAAD-V10.4-Prompt.md)
+## 历史快照
+
+按版本自然顺序排列。快照用于历史比较，不替代对应运行日志中的实际请求。
+
+- [V1](TraceAAD-V1-提示词.md)
+- [V2](TraceAAD-V2-提示词.md)
+- [V3](TraceAAD-V3-提示词.md)
+- [V4](TraceAAD-V4-提示词.md)
+- [V5](TraceAAD-V5-提示词.md)
+- [V6](TraceAAD-V6-提示词.md)
+- [V7](TraceAAD-V7-提示词.md)
+- [V8](TraceAAD-V8-提示词.md)
+- [V8.3](TraceAAD-V8.3-提示词.md)
+- [V9](TraceAAD-V9-提示词.md)
+- [V9.1](TraceAAD-V9.1-提示词.md)
+- [V9.2](TraceAAD-V9.2-提示词.md)
+- [V9.3](TraceAAD-V9.3-提示词.md)
+- [V9.4](TraceAAD-V9.4-提示词.md)
+- [V9.5](TraceAAD-V9.5-提示词.md)
+- [V9.6](TraceAAD-V9.6-提示词.md)
+- [V9.7](TraceAAD-V9.7-提示词.md)
+- [V9.8](TraceAAD-V9.8-提示词.md)
+- [V9.9](TraceAAD-V9.9-提示词.md)
+- [V9.10](TraceAAD-V9.10-提示词.md)
+- [V9.11](TraceAAD-V9.11-提示词.md)
+- [V9.12](TraceAAD-V9.12-提示词.md)
+- [V9.13](TraceAAD-V9.13-提示词.md)
+- [V9.14](TraceAAD-V9.14-提示词.md)
+- [V9.15](TraceAAD-V9.15-提示词.md)
+- [V9.16](TraceAAD-V9.16-提示词.md)
+- [V9.17](TraceAAD-V9.17-提示词.md)
+- [V9.18](TraceAAD-V9.18-提示词.md)
+- [V9.19](TraceAAD-V9.19-提示词.md)
+- [V9.20](TraceAAD-V9.20-提示词.md)
+- [V9.21](TraceAAD-V9.21-提示词.md)
+- [V9.22](TraceAAD-V9.22-提示词.md)
+- [V10](TraceAAD-V10-提示词.md)
+- [V10.1](TraceAAD-V10.1-提示词.md)
+- [V10.2](TraceAAD-V10.2-提示词.md)
+- [V10.3](TraceAAD-V10.3-提示词.md)
+- [V10.4](TraceAAD-V10.4-提示词.md)
