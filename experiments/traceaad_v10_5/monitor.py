@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import subprocess
 import threading
@@ -294,6 +293,27 @@ class MonitorDataEngine:
             if not target:
                 return None
 
+            if not target.get("operator") and target.get("origin_operator"):
+                target["operator"] = target["origin_operator"]
+            if target.get("evaluation_id") is None:
+                events_p = run_dir / "events.jsonl"
+                if events_p.exists():
+                    try:
+                        eval_c = 0
+                        for line in events_p.read_text(encoding="utf-8").splitlines():
+                            if not line.strip():
+                                continue
+                            ev = json.loads(line)
+                            if ev.get("slot_consumed"):
+                                eval_c += 1
+                            if ev.get("node_id") == node_id:
+                                target["evaluation_id"] = eval_c
+                                break
+                    except Exception:
+                        pass
+                if target.get("evaluation_id") is None:
+                    target["evaluation_id"] = target["id"] + 1
+
             ancestors = []
             curr = target
             while curr.get("parent_id") is not None:
@@ -304,7 +324,7 @@ class MonitorDataEngine:
                 ancestors.append(
                     {
                         "id": curr["id"],
-                        "operator": curr.get("operator", "Init"),
+                        "operator": curr.get("operator") or curr.get("origin_operator") or "Init",
                         "fitness": curr.get("fitness"),
                         "idea": (curr.get("idea") or "")[:80],
                     }
@@ -350,6 +370,7 @@ class MonitorDataEngine:
             _stat(run_dir / "tree_state.json"),
             _stat(run_dir / "events.jsonl"),
             _stat(run_dir / "logs" / "summary.json"),
+            _stat(run_dir / "logs" / "run_summary.json"),
         )
 
     def _load_latest_batch_manifest(self, root_dir: Path) -> dict[str, Any] | None:
@@ -636,6 +657,11 @@ class MonitorDataEngine:
         status_counts = {"ok": 0, "eval_failed": 0, "invalid_output": 0}
         recent_timestamps: list[datetime] = []
 
+        node_to_eval: dict[int, int] = {}
+        eval_counter = 0
+        fit_by_id: dict[int, float] = {}
+        running_best_fitness: float | None = None
+
         if events_p.exists():
             try:
                 for line in events_p.read_text(encoding="utf-8").splitlines():
@@ -643,8 +669,15 @@ class MonitorDataEngine:
                         continue
                     try:
                         ev = json.loads(line)
-                        op = ev.get("operator")
-                        req_op = ev.get("requested_operator")
+                        if ev.get("slot_consumed"):
+                            eval_counter += 1
+
+                        nid = ev.get("node_id")
+                        if nid is not None and nid not in node_to_eval:
+                            node_to_eval[nid] = eval_counter if eval_counter > 0 else (nid + 1)
+
+                        op = ev.get("operator") or ev.get("origin_operator")
+                        req_op = ev.get("requested_operator") or op
                         if op in op_counts:
                             op_counts[op] += 1
                         if req_op in req_op_counts:
@@ -658,9 +691,24 @@ class MonitorDataEngine:
                             if p_route in pivot_routes:
                                 pivot_routes[p_route] += 1
 
-                        if ev.get("parent_improved"):
+                        fit = ev.get("fitness")
+                        pid = ev.get("parent_id")
+                        p_imp = ev.get("parent_improved")
+                        f_imp = ev.get("frontier_improved")
+
+                        if fit is not None:
+                            if f_imp is None:
+                                f_imp = (running_best_fitness is None or fit > running_best_fitness)
+                            if running_best_fitness is None or fit > running_best_fitness:
+                                running_best_fitness = fit
+                            if p_imp is None and pid is not None and pid in fit_by_id:
+                                p_imp = (fit > fit_by_id[pid])
+                            if nid is not None:
+                                fit_by_id[nid] = fit
+
+                        if p_imp:
                             parent_improved_count += 1
-                        if ev.get("frontier_improved"):
+                        if f_imp:
                             frontier_improved_count += 1
 
                         if ev.get("llm_seconds") is not None:
@@ -682,15 +730,17 @@ class MonitorDataEngine:
             except Exception:
                 pass
 
-        summary_p = run_dir / "logs" / "summary.json"
         has_finished_summary = False
-        if summary_p.exists():
-            try:
-                s = json.loads(summary_p.read_text(encoding="utf-8"))
-                if s.get("status") == "finished":
-                    has_finished_summary = True
-            except Exception:
-                pass
+        for s_name in ("run_summary.json", "summary.json"):
+            summary_p = run_dir / "logs" / s_name
+            if summary_p.exists():
+                try:
+                    s = json.loads(summary_p.read_text(encoding="utf-8"))
+                    if s.get("status") == "finished":
+                        has_finished_summary = True
+                        break
+                except Exception:
+                    pass
 
         if has_finished_summary or budget_used >= budget:
             status = "finished"
@@ -721,6 +771,13 @@ class MonitorDataEngine:
             elif status == "finished":
                 eta_seconds = 0.0
 
+        for n in nodes:
+            nid = n.get("id")
+            if n.get("evaluation_id") is None:
+                n["evaluation_id"] = node_to_eval.get(nid) or ((nid + 1) if nid is not None else 1)
+            if not n.get("operator") and n.get("origin_operator"):
+                n["operator"] = n["origin_operator"]
+
         best_fitness = None
         breakthroughs: list[dict[str, Any]] = []
 
@@ -740,7 +797,7 @@ class MonitorDataEngine:
                         "fitness": fit,
                         "display": self._format_metric(fit, task_info),
                         "node_id": n.get("id"),
-                        "operator": n.get("operator", "Init"),
+                        "operator": n.get("operator") or n.get("origin_operator") or "Init",
                         "idea": (n.get("idea") or "")[:80],
                     }
                 )
@@ -821,46 +878,60 @@ class MonitorDataEngine:
                 pass
 
         nodes = tree_data.get("nodes", [])
-        best_node = None
-        if nodes:
-            best_node = max(nodes, key=lambda n: n.get("fitness") or float("-inf"))
-
-        nodes_compact = []
-        for n in nodes:
-            nodes_compact.append(
-                {
-                    "id": n.get("id"),
-                    "evaluation_id": n.get("evaluation_id"),
-                    "operator": n.get("operator", "Init"),
-                    "fitness": n.get("fitness"),
-                    "parent_id": n.get("parent_id"),
-                    "donor_id": n.get("donor_id"),
-                    "idea": (n.get("idea") or "")[:120],
-                }
-            )
 
         events_p = run_dir / "events.jsonl"
         recent_events: list[dict[str, Any]] = []
         scatter_points: list[dict[str, Any]] = []
+        node_to_eval: dict[int, int] = {}
+        fit_by_id: dict[int, float] = {}
+        running_best_fitness: float | None = None
 
         if events_p.exists():
             try:
                 lines = events_p.read_text(encoding="utf-8").splitlines()
+                eval_counter = 0
+
                 for i, line in enumerate(lines):
                     if not line.strip():
                         continue
                     try:
                         ev = json.loads(line)
-                        if ev.get("fitness") is not None:
+                        if ev.get("slot_consumed"):
+                            eval_counter += 1
+
+                        fit = ev.get("fitness")
+                        nid = ev.get("node_id")
+                        pid = ev.get("parent_id")
+                        p_imp = ev.get("parent_improved")
+                        f_imp = ev.get("frontier_improved")
+
+                        if nid is not None and nid not in node_to_eval:
+                            node_to_eval[nid] = eval_counter if eval_counter > 0 else (nid + 1)
+
+                        if fit is not None:
+                            if f_imp is None:
+                                f_imp = (running_best_fitness is None or fit > running_best_fitness)
+                            if running_best_fitness is None or fit > running_best_fitness:
+                                running_best_fitness = fit
+                            if p_imp is None and pid is not None and pid in fit_by_id:
+                                p_imp = (fit > fit_by_id[pid])
+                            if nid is not None:
+                                fit_by_id[nid] = fit
+
+                            step_val = ev.get("step")
+                            if step_val is None:
+                                step_val = eval_counter if eval_counter > 0 else i
+
+                            op_val = ev.get("operator") or ev.get("origin_operator") or "Init"
                             scatter_points.append(
                                 {
-                                    "step": ev.get("step", i),
-                                    "fitness": ev.get("fitness"),
-                                    "operator": ev.get("operator", "Init"),
+                                    "step": step_val,
+                                    "fitness": fit,
+                                    "operator": op_val,
                                     "status": ev.get("status", "ok"),
-                                    "node_id": ev.get("node_id"),
-                                    "parent_improved": ev.get("parent_improved"),
-                                    "frontier_improved": ev.get("frontier_improved"),
+                                    "node_id": nid,
+                                    "parent_improved": p_imp,
+                                    "frontier_improved": f_imp,
                                 }
                             )
                     except Exception:
@@ -871,24 +942,35 @@ class MonitorDataEngine:
                         continue
                     try:
                         raw_ev = json.loads(line)
-                        # Extract friendly event record for V10.5
                         p_route = raw_ev.get("selection", {}).get("parent_route")
+                        op_val = raw_ev.get("operator") or raw_ev.get("origin_operator") or "Init"
+                        req_op_val = raw_ev.get("requested_operator") or op_val
+
+                        p_imp = raw_ev.get("parent_improved")
+                        f_imp = raw_ev.get("frontier_improved")
+                        fit = raw_ev.get("fitness")
+                        pid = raw_ev.get("parent_id")
+                        nid = raw_ev.get("node_id")
+
+                        if fit is not None and p_imp is None and pid is not None and pid in fit_by_id:
+                            p_imp = (fit > fit_by_id[pid])
+
                         recent_events.append(
                             {
                                 "candidate_id": raw_ev.get("candidate_id"),
                                 "step": raw_ev.get("step"),
-                                "operator": raw_ev.get("operator", "Init"),
-                                "requested_operator": raw_ev.get("requested_operator"),
+                                "operator": op_val,
+                                "requested_operator": req_op_val,
                                 "parent_route": p_route,
                                 "status": raw_ev.get("status", "ok"),
-                                "fitness": raw_ev.get("fitness"),
-                                "node_id": raw_ev.get("node_id"),
+                                "fitness": fit,
+                                "node_id": nid,
                                 "ts": raw_ev.get("ts"),
                                 "llm_seconds": raw_ev.get("llm_seconds"),
                                 "eval_seconds": raw_ev.get("eval_seconds"),
                                 "prompt_tokens": raw_ev.get("prompt_tokens"),
-                                "parent_improved": raw_ev.get("parent_improved"),
-                                "frontier_improved": raw_ev.get("frontier_improved"),
+                                "parent_improved": p_imp,
+                                "frontier_improved": f_imp,
                                 "reason": raw_ev.get("reason"),
                             }
                         )
@@ -897,6 +979,37 @@ class MonitorDataEngine:
                 recent_events.reverse()
             except Exception:
                 pass
+
+        for n in nodes:
+            nid = n.get("id")
+            if n.get("evaluation_id") is None:
+                n["evaluation_id"] = node_to_eval.get(nid) or ((nid + 1) if nid is not None else 1)
+            if not n.get("operator") and n.get("origin_operator"):
+                n["operator"] = n["origin_operator"]
+
+        best_node = None
+        if nodes:
+            best_node = max(nodes, key=lambda n: n.get("fitness") or float("-inf"))
+            if best_node:
+                if not best_node.get("operator") and best_node.get("origin_operator"):
+                    best_node["operator"] = best_node["origin_operator"]
+                if best_node.get("evaluation_id") is None:
+                    nid = best_node.get("id")
+                    best_node["evaluation_id"] = node_to_eval.get(nid) or ((nid + 1) if nid is not None else 1)
+
+        nodes_compact = []
+        for n in nodes:
+            nodes_compact.append(
+                {
+                    "id": n.get("id"),
+                    "evaluation_id": n.get("evaluation_id"),
+                    "operator": n.get("operator") or n.get("origin_operator") or "Init",
+                    "fitness": n.get("fitness"),
+                    "parent_id": n.get("parent_id"),
+                    "donor_id": n.get("donor_id"),
+                    "idea": (n.get("idea") or "")[:120],
+                }
+            )
 
         return {
             "summary": summary,
