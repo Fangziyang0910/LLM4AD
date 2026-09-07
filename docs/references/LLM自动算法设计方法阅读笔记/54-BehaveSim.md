@@ -72,3 +72,5 @@ BehaveSim 可以补充群体和转移层面的过程信号：
 本仓库的校正结果只支持固定 probe 上的执行行为描述与群体几何。它不验证语义算法思想簇，不把行为距离直接用于节点潜力预测或在线调度，也不把远距离父代自动视为适合交叉；对应的匹配实验见[校正结果](../../experiments/机制实验/2026-08-26-BehaveSim行为度量校正/结果.md)。
 
 最新的[群体几何校准结果](../../experiments/机制实验/2026-09-07-BehaveSim群体几何校准/结果.md)显示：OBP 后续需使用 1000/5000-item scale-matched probe；OP 的四随机流画像显著改善但严格门槛略未通过；CVRP 即使四流仍不稳定。TSP、scale-matched OBP、VRPTW 稳定复现了群体层面的 distance–fitness-gap 关系。这个关系不能外推为某个节点下一次 Refine 的成功概率。
+
+该校准轮主要覆盖历史 Refine parent；后续[全 Archive 群体验证](../../experiments/机制实验/2026-09-07-BehaveSim全Archive群体验证/结果.md)改为从所有有效节点按评价时间直接抽样。TSP、OBP、VRPTW 三个重复仍全部支持群体关系，说明结果不依赖 Refine-parent 选择或 fitness 分层。OP 同向但测量稳定性待确认，CVRP 不通过。
