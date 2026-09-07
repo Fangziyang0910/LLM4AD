@@ -4,7 +4,7 @@
 
 ## 近期开发
 
-- **V10.7**：[机制设计](../docs/methods/TraceAAD-V10.7-机制设计.md)、[运行入口](traceaad_v10_7/README.md)。基于 V10.6，只取消独立的第二次实现 Idea 调用；尚未启动实验。
+- **V10.7**：[机制设计](../docs/methods/TraceAAD-V10.7-机制设计.md)、[运行入口](traceaad_v10_7/README.md)。单次 Idea→Code；默认全档案质量分层采样，保留祖先历史与均匀采样对照；尚未启动正式比较。
 - **E2-B'随机干预**：[实验设计与结果](../docs/experiments/机制验证/2026-09-07-E2-B-Pivot两步选择价值/结果.md)、[复现入口](traceaad_e2_b/README.md)。在development-experienced与fitness-matched fresh固定锚点上比较Refine→Refine和Pivot→Refine；预注册正向门槛未通过。
 - **E2-A机制分析**：[实验设计与结果](../docs/experiments/机制验证/2026-09-07-E2-A-轨迹状态与算子响应/结果.md)、[复现入口](traceaad_e2_a/README.md)。使用E1后的未见V10.6 suffix检验行为轨迹状态与Refine/Pivot响应；不修改在线机制。
 - **V10.6**：[机制设计](../docs/methods/TraceAAD-V10.6/机制设计.md)、[运行与恢复](traceaad_v10_6/README.md)。先生成完整代码再生成实现摘要，父代先行分配；进度读取对应批次 manifest。

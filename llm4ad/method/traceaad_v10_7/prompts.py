@@ -91,3 +91,50 @@ class PromptBuilder(BaseBuilder):
             text, tokens, tuple(node.id for node, _ in events), tuple(reasons),
             self.count(self.render_history(events)) if events else 0,
         )
+
+
+TRAJECTORY_INSTRUCTIONS = {
+    'Init': INSTRUCTIONS['Init'],
+    'Refine': "Build on Algorithm {parent}'s main idea to design an improved version. "
+              'Compare the supplied implementations and adapt useful parts into a coherent algorithm.',
+    'Pivot': 'Use the supplied algorithms and their evaluation results to design an alternative '
+             'main decision method for this task. Select useful parts and implement a complete algorithm.',
+    'Fuse': 'Combine Algorithm {parent} and Algorithm {donor} as the main inputs. '
+            'Use the other supplied algorithms as additional references. Select and adapt compatible '
+            'computations into a coherent algorithm, retaining, replacing or reorganizing parts as useful.',
+}
+TRAJECTORY_TEMPLATE_HASH = hashlib.sha256(
+    (str(TRAJECTORY_INSTRUCTIONS) + OUTPUT).encode()
+).hexdigest()
+
+
+class TrajectoryBuilder(PromptBuilder):
+    @staticmethod
+    def program_text(node, index):
+        return (f'Algorithm {index}\nFitness: {node.fitness}\nIdea: {node.idea}\n'
+                f'Code:\n```python\n{node.code}\n```')
+
+    def trajectory(self, parent, references, operator):
+        nodes = sorted(([parent] if parent is not None else []) + list(references),
+                       key=lambda node: (node.fitness, node.id))
+        donor = max(references, key=lambda node: (node.fitness, -node.id)) if references and operator == 'Fuse' else None
+        executed = 'Refine' if operator == 'Fuse' and donor is None else operator
+        positions = {node.id: index for index, node in enumerate(nodes, 1)}
+        instruction = TRAJECTORY_INSTRUCTIONS[executed].format(
+            parent=positions.get(parent.id) if parent else None,
+            donor=positions.get(donor.id) if donor else None,
+        )
+        blocks = [self.program_text(node, index) for index, node in enumerate(nodes, 1)]
+        parts = [self.task_contract]
+        if blocks:
+            parts.append('# Algorithm Trajectory\n\n' + '\n\n'.join(blocks))
+        parts.extend(['# Algorithm Design Task\n' + instruction, '# Output\n' + OUTPUT])
+        text = '\n\n\n'.join(parts)
+        return text, nodes, donor, executed, blocks
+
+    def fits_references(self, parent, references, operator):
+        text, *_ = self.trajectory(parent, references, operator)
+        return self.count(text, chat=True) <= self.max_tokens
+
+    def fits(self, current, operator, donor=None):
+        return self.fits_references(current, [donor] if donor else [], operator)

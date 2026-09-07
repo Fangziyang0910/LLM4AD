@@ -17,16 +17,25 @@ from llm4ad.method.traceaad_v10_6 import traceaad as v106_traceaad
 from llm4ad.method.traceaad_v10_6.traceaad import (
     OPERATOR_PROBABILITIES, TraceAADV106, joint_parent_distribution,
 )
-from . import prompts
+from . import prompts, sampling
 
 
 class TraceAADV107(TraceAADV106):
     METHOD = 'v107'
 
-    def __init__(self, *, history_tokens=8192, task_name=None, **kwargs):
+    def __init__(self, *, history_tokens=8192, task_name=None,
+                 context_policy='sampled_trajectory_v1', max_context_programs=3, **kwargs):
+        if context_policy not in sampling.CONTEXT_POLICIES:
+            raise ValueError('unknown context policy')
+        if not isinstance(max_context_programs, int) or max_context_programs < 1:
+            raise ValueError('max_context_programs must be a positive integer')
+        self.context_policy = context_policy
+        self.max_context_programs = max_context_programs
         TraceAADV105.__init__(self, history_tokens=history_tokens, **kwargs)
         self.task_contract = prompts.build_task_contract(self.evaluation)
-        self.builder = prompts.PromptBuilder(
+        builder_class = (prompts.PromptBuilder if context_policy == 'ancestor_history'
+                         else prompts.TrajectoryBuilder)
+        self.builder = builder_class(
             self.llm, self.task_contract, max_tokens=self.builder.max_tokens,
             history_tokens=history_tokens, max_events=self.traj_gens,
             lookup=self.tree.nodes.get,
@@ -36,10 +45,12 @@ class TraceAADV107(TraceAADV106):
         )
         self.mechanism.update(
             task_name=task_name, generation=prompts.GENERATION,
+            context_policy=context_policy, max_context_programs=max_context_programs,
+            reference_fit_attempts=sampling.MAX_FIT_ATTEMPTS,
             task_contract_hash=hashlib.sha256(self.task_contract.encode()).hexdigest(),
         )
         for source in [
-            Path(__file__), Path(prompts.__file__),
+            Path(__file__), Path(prompts.__file__), Path(sampling.__file__),
             Path(v106_traceaad.__file__), Path(v106_prompts.__file__),
         ]:
             self.mechanism['source_hashes'][str(source.resolve())] = hashlib.sha256(
@@ -73,15 +84,46 @@ class TraceAADV107(TraceAADV106):
                 parent_route='joint_marginal', parent_probability=marginal[index],
                 parent_count_before=count,
             )
-            if requested == 'Fuse':
+            if requested == 'Fuse' and self.context_policy == 'ancestor_history':
                 donors = self.fitting_donors(parent)
                 if donors:
                     donor = self.rng.choice(donors)
                 else:
                     operator = 'Refine'
                     selection['fallback_reason'] = 'no fitting cross-lineage donor'
-        ancestors = self.tree.ancestors(parent.id) if parent else []
-        prompt = self.builder.build(parent, ancestors, operator, donor)
+        if self.context_policy == 'ancestor_history':
+            ancestors = self.tree.ancestors(parent.id) if parent else []
+            prompt = self.builder.build(parent, ancestors, operator, donor)
+            prompt_text, prompt_tokens = prompt.text, prompt.tokens
+            context = {'history_ids': prompt.history_ids, 'history_tokens': prompt.history_tokens,
+                       'context_omissions': prompt.omissions}
+            template_hash = prompts.TEMPLATE_HASH
+        else:
+            references, context = [], {}
+            if parent is not None:
+                references, context = sampling.sample_references(
+                    self.tree.all_nodes(), parent, self.rng,
+                    limit=self.max_context_programs - 1, policy=self.context_policy,
+                    fits=lambda refs: self.builder.fits_references(parent, refs, requested),
+                )
+            prompt_text, programs, donor, operator, blocks = self.builder.trajectory(
+                parent, references, requested,
+            )
+            prompt_tokens = self.builder.count(prompt_text, chat=True)
+            if prompt_tokens > self.builder.max_tokens:
+                raise ValueError('minimum complete prompt exceeds the model context budget')
+            if requested == 'Fuse' and operator == 'Refine':
+                selection['fallback_reason'] = 'no fitting distinct-code reference'
+            context.update(
+                context_node_ids=[node.id for node in programs],
+                context_program_count=len(programs),
+                context_program_tokens=[self.builder.count(block) for block in blocks],
+                context_parent_index=next((i for i, node in enumerate(programs, 1)
+                                           if node.id == parent.id), None) if parent else None,
+                context_donor_index=next((i for i, node in enumerate(programs, 1)
+                                          if node.id == donor.id), None) if donor else None,
+            )
+            template_hash = prompts.TRAJECTORY_TEMPLATE_HASH
         return {
             'candidate_id': self.completed_attempts + 1, 'phase': 'selected',
             'requested_operator': requested, 'operator': operator,
@@ -91,12 +133,10 @@ class TraceAADV107(TraceAADV106):
             'parent_fitness': parent.fitness if parent else None,
             'donor_fitness': donor.fitness if donor else None,
             'best_before': self.tree.best().fitness if self.tree.nodes else None,
-            'prompt': prompt.text, 'prompt_tokens': prompt.tokens,
-            'prompt_hash': hashlib.sha256(prompt.text.encode()).hexdigest(),
-            'template_hash': prompts.TEMPLATE_HASH,
-            'history_ids': prompt.history_ids,
-            'context_omissions': prompt.omissions,
-            'history_tokens': prompt.history_tokens,
+            'prompt': prompt_text, 'prompt_tokens': prompt_tokens,
+            'prompt_hash': hashlib.sha256(prompt_text.encode()).hexdigest(),
+            'template_hash': template_hash, 'context_policy': self.context_policy,
+            **context,
             'rng_state': list(self.rng.getstate()), 'llm_attempts': 0,
         }
 

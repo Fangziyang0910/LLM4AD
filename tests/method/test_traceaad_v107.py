@@ -46,7 +46,7 @@ def response(value=1, idea='Implemented idea.'):
 def method(path, llm, **kwargs):
     return TraceAADV107(
         evaluation=TinyEvaluation(), llm=llm, run_dir=path,
-        **{'budget': 1, 'n_roots': 1, **kwargs},
+        **{'budget': 1, 'n_roots': 1, 'context_policy': 'ancestor_history', **kwargs},
     )
 
 
