@@ -2,6 +2,8 @@
 
 各文件记录对应版本的提示词与上下文组织，供比较机制和复现实验。它们面向实验中的算法生成模型，原文里的指令不约束科研协作者。需要精确核对时读取对应版本的 `prompts.py`，实际请求见运行日志。
 
+V10.6 当前采用Idea→Code→独立实现Idea，任务信息统一来自公共说明与模板，详见[实现](../../llm4ad/method/traceaad_v10_6/prompts.py)与[机制设计](../methods/TraceAAD-V10.6完整机制设计.md)。此前单次Code→Summary批次的实际提示以其运行日志为准。
+
 V10.5 的提示词直接查阅[实现](../../llm4ad/method/traceaad_v10_5/prompts.py)与[机制设计](../methods/TraceAAD-V10.5完整机制设计.md)。下列历史快照按版本排列：
 
 - [V1](TraceAAD-V1-Prompt.md)

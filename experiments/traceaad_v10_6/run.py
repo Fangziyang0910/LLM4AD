@@ -8,6 +8,7 @@ from pathlib import Path
 from experiments.infra.runner import FORMAL_BUDGET, add_common_run_args, setup_experiment_run
 from llm4ad.method.traceaad_v10_6 import TraceAADV106
 from llm4ad.method.traceaad_v10_6.traceaad import OPERATOR_PROBABILITIES
+from llm4ad.method.traceaad_v10_6.prompts import GENERATION
 
 METHOD = "v106"
 
@@ -37,13 +38,13 @@ def main() -> None:
         args, method=METHOD, method_dir=Path(__file__).resolve().parent,
         resume_file="tree_state.json",
         method_params={**params, 'operator_probabilities': OPERATOR_PROBABILITIES,
-                       'generation': 'single_call_code_then_summary'},
+                       'generation': GENERATION},
         budget_basis=f"{args.budget} actual evaluator calls including initialization and failed evaluations; LLM-only failures consume no evaluation slot",
     )
     method = TraceAADV106(evaluation=ctx.evaluation, llm=ctx.llm, run_dir=ctx.run_dir,
                          seed=args.seed, task_name=args.task, **params)
     try:
-        ctx.run(method.run, header=["v106: Code then Summary; parent-first; R/P/F=0.50/0.15/0.35"])
+        ctx.run(method.run, header=["v106: Idea then Code, independent implementation Idea; parent-first; R/P/F=0.50/0.15/0.35"])
     finally:
         ctx.llm.close()
 

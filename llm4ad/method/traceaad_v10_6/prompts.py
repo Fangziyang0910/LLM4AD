@@ -1,9 +1,10 @@
-"""Bounded implementation summaries and algorithm-facing design instructions."""
+"""Shared task contracts, design-first generation and grounded implementation ideas."""
 
 from dataclasses import dataclass
 import hashlib
 import re
 
+from llm4ad.base import TextFunctionProgramConverter
 from llm4ad.method.traceaad_v10_5.prompts import PromptBuilder as BaseBuilder, formation_events
 
 HISTORY_GUIDANCE = (
@@ -16,73 +17,44 @@ INSTRUCTIONS = {
     'Pivot': 'Design an algorithm for this task using a different main idea from the current\nalgorithm. Use the current algorithm as a reference for developing a promising\nnew approach.',
     'Fuse': 'Design an improved algorithm for this task by combining useful ideas from the\ncurrent and reference algorithms. Choose and adapt the parts that work well\ntogether, aiming to outperform both algorithms.',
 }
-OUTPUT = """Return one complete Python implementation followed by its summary in this format:
+OUTPUT = """First describe your proposed algorithm in one concise paragraph, explaining its
+main decision method and key calculations. Then implement it in this format:
 
+Idea: <design idea>
 ```python
 <complete target implementation, including all required imports and helpers>
-```
-Summary: <implementation summary>
-
+```"""
+SUMMARY_INSTRUCTION = """Explain the algorithm implemented by the final code for the stated task.
+The design idea provides the intended approach; the code operations determine
+the implemented method. Describe its main decision rule, the calculations that
+determine its output, and the important parameters and conditions. Derive each
+preference from the computation and the supplied task contract. State directly
+established effects as facts and expected performance benefits as hypotheses.
 Write approximately 500 words in 2–3 paragraphs, scaled to the implementation's
-complexity. Explain how the algorithm implemented above works, including its main
-idea and the important formulas, parameter values, and steps in the code.
-Explain when its key rules apply."""
-COMPARISON = 'Describe the main changes relative to the current algorithm.'
-TASK_CONTEXTS = {
-    'tsp_construct': """Design a constructive heuristic for the Traveling Salesman Problem, minimizing
-the total length of a tour visiting every node once and returning to its start.
-At each step, the function receives current and destination node IDs, unvisited
-candidate IDs ordered by distance from the current node, and the distance matrix.
-Return one candidate node ID. The framework appends the last remaining node and
-computes the closed-tour length.""",
-    'cvrp_aco': """Design an edge-prior heuristic for Capacitated Vehicle Routing with Ant Colony
-Optimization (ACO), minimizing total route length while serving each customer
-once with routes respecting vehicle capacity and starting and ending at depot 0.
-The function receives pairwise distances, coordinates, demands, and total vehicle
-capacity. It computes one finite (n, n) prior matrix per instance. ACO uses
-pheromone**alpha * prior**beta * visit_mask * capacity_mask as transition weights
-and updates routes and remaining capacity during construction. The evaluator
-applies maximum(prior + 1e-9, 1e-9) before ACO uses the matrix.""",
-    'op_aco': """Design an edge-prior heuristic for the Orienteering Problem with Ant Colony
-Optimization (ACO), maximizing collected prize on a tour starting at depot 0
-and returning within the total travel budget maxlen. The function receives node
-prizes, pairwise distances, and maxlen and computes one finite (n, n) prior matrix
-per instance. ACO combines the prior with pheromone to sample feasible moves,
-updating visited nodes, traveled distance, and return-budget feasibility during
-construction. Relative prior weights affect transition probabilities. The
-evaluator applies maximum(prior + 1e-9, 1e-9) before ACO uses the matrix.""",
-    'online_bin_packing': """Design a priority function for online one-dimensional bin packing, minimizing
-the number of bins used. Each item is placed immediately on arrival. The function
-receives the item size and remaining capacities of currently feasible bins and
-returns a finite floating-point score vector of the same shape. The framework
-places the item in the bin with highest score (argmax). Strictly increasing
-transformations preserve this ordering. Inputs are normally integer-valued;
-use floating-point arrays for calculations involving fractional adjustments.""",
-    'vrptw_construct': """Design a constructive heuristic for Vehicle Routing with Time Windows,
-minimizing total travel cost with capacity and time-window feasibility. Each call
-receives current and depot node IDs, feasible unvisited customer IDs, remaining
-capacity, current time, demands, distances, and time windows. Return a customer
-from the supplied feasible set; while at a customer, returning the depot also
-closes the route. The framework filters customers for capacity, time-window,
-and return-to-depot feasibility and updates time, service, and capacity.""",
-}
-TEMPLATE_HASH = hashlib.sha256((HISTORY_GUIDANCE + str(INSTRUCTIONS) + OUTPUT + COMPARISON + str(TASK_CONTEXTS)).encode()).hexdigest()
+complexity. Return your implementation idea as: Idea: <implementation idea>"""
+COMPARISON = 'Describe the important implementation changes relative to the parent code.'
+GENERATION = 'idea_code_then_implementation_idea'
+TEMPLATE_HASH = hashlib.sha256((HISTORY_GUIDANCE + str(INSTRUCTIONS) + OUTPUT + SUMMARY_INSTRUCTION + COMPARISON).encode()).hexdigest()
 
 
-def build_task_contract(evaluation, task_name=None):
-    module_parts = type(evaluation).__module__.split('.')
-    task_name = task_name or (module_parts[-2] if len(module_parts) > 1 else module_parts[0])
-    description = TASK_CONTEXTS.get(task_name, evaluation.task_description)
-    template = evaluation.template_program.replace(
-        'Design a novel algorithm to select the next node in each step.',
-        'Select the next node for the constructed solution.')
-    runtime = (f'The formal evaluation runtime limit is {evaluation.timeout_seconds} seconds.'
-               if evaluation.timeout_seconds is not None else 'Use an efficient implementation.')
-    return (f'# Task Contract\nDesign an algorithm for the task below by implementing the provided Python function.\n\n'
-            f'{description}\n\nTarget interface:\n```python\n{template.strip()}\n```\n'
-            'Objective: maximize evaluator fitness (higher is better).\n'
-            'Use the information supplied through this interface and produce its specified\n'
-            f'output within the stated runtime limit.\n{runtime}')
+def build_task_contract(evaluation):
+    # Match V9.16: shared description and docstring, with the body left to evolve.
+    template = TextFunctionProgramConverter.text_to_function(evaluation.template_program)
+    template.body = ''
+    return (f'# Task Contract\n{evaluation.task_description.strip()}\n\n'
+            f'Target interface:\n```python\n{str(template).strip()}\n```\n'
+            'Fitness is this task\'s score and higher is better.')
+
+
+def build_summary_prompt(task_contract, design_idea, code, parent=None):
+    parts = [task_contract, '# Design Idea\n' + design_idea]
+    if parent is not None:
+        parts.append(f'# Parent Code\n```python\n{parent.code}\n```')
+    parts.extend([f'# Final Code\n```python\n{code}\n```',
+                  '# Implementation Description\n' + SUMMARY_INSTRUCTION])
+    if parent is not None:
+        parts.append(COMPARISON)
+    return '\n\n'.join(parts)
 
 
 @dataclass(frozen=True)
@@ -150,7 +122,7 @@ class PromptBuilder(BaseBuilder):
         if events:
             parts.append(self.render_history(events))
         parts.append('# Algorithm Design Task\n' + INSTRUCTIONS[operator])
-        parts.append('# Output\n' + OUTPUT + ('\n' + COMPARISON if current else ''))
+        parts.append('# Output\n' + OUTPUT)
         return '\n\n\n'.join(parts)
 
     def fits(self, current, operator, donor=None):

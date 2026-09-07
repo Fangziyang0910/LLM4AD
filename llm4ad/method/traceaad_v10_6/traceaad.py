@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import time
 import traceback
 from datetime import datetime
 
@@ -14,8 +15,8 @@ from llm4ad.method.traceaad_v10_3.traceaad import TraceAADV103, _strip_thinking
 from llm4ad.method.traceaad_v10_5.traceaad import TraceAADV105, OPERATOR_PROBABILITIES, atomic_json, ess, UnknownEvaluation
 from . import prompts
 
-CODE_RE = re.compile(r"\A\s*```(?:python)?[ \t]*\r?\n(.*?)^[ \t]*```[ \t]*(?:\r?\n|\Z)(.*)\Z", re.DOTALL | re.MULTILINE)
-SUMMARY_RE = re.compile(r"\ASummary:\s*(\S.*?)\s*\Z", re.DOTALL)
+CODE_RE = re.compile(r"\A\s*(?:Design )?Idea:\s*(\S.*?)\s*```(?:python)?[ \t]*\r?\n(.*?)^[ \t]*```[ \t]*\s*\Z", re.DOTALL | re.MULTILINE)
+SUMMARY_RE = re.compile(r"\A(?:Implementation )?Idea:\s*(\S.*?)\s*\Z", re.DOTALL)
 
 
 def joint_parent_distribution(p0):
@@ -30,13 +31,13 @@ class TraceAADV106(TraceAADV105):
 
     def __init__(self, *, summary_tokens=1024, history_tokens=8192, task_name=None, **kwargs):
         super().__init__(history_tokens=history_tokens, **kwargs)
-        self.task_contract = prompts.build_task_contract(self.evaluation, task_name)
+        self.task_contract = prompts.build_task_contract(self.evaluation)
         self.builder = prompts.PromptBuilder(self.llm, self.task_contract,
             max_tokens=self.builder.max_tokens, history_tokens=history_tokens, max_events=self.traj_gens,
             summary_tokens=summary_tokens, lookup=self.tree.nodes.get,
             log_count=lambda record: self._append_record(self.run_dir / 'tokenizer_calls.jsonl', record))
         self.mechanism.update(summary_tokens=summary_tokens, task_name=task_name,
-            generation='single_call_code_then_summary',
+            generation=prompts.GENERATION,
             task_contract_hash=hashlib.sha256(self.task_contract.encode()).hexdigest())
         for p in [Path(__file__), Path(prompts.__file__)]:
             self.mechanism['source_hashes'][str(p.resolve())] = hashlib.sha256(p.read_bytes()).hexdigest()
@@ -47,11 +48,9 @@ class TraceAADV106(TraceAADV105):
         match = CODE_RE.fullmatch(_strip_thinking(response))
         if match is None:
             return None
-        code, tail = match.groups()
-        if re.search(r'^\s*```', tail, re.MULTILINE):
+        idea, code = match.groups()
+        if re.search(r'^\s*```', code, re.MULTILINE):
             return None
-        summary = SUMMARY_RE.fullmatch(tail.strip())
-        idea = summary.group(1).strip() if summary and finish_reason != 'length' else ''
         try:
             tree = ast.parse(code)
         except SyntaxError:
@@ -75,6 +74,61 @@ class TraceAADV106(TraceAADV105):
         except (SyntaxError, ValueError):
             return None
         return idea.strip(), canonical, canonical
+
+    def _log_call(self, record):
+        record.setdefault('stage', 'generation')
+        super()._log_call(record)
+
+    def _calibrate_pending(self, parsed):
+        p = self.pending
+        if 'summary_completion' in p:
+            self._log_call(p['summary_completion'])
+        if 'summary_status' in p:
+            return
+        p['design_idea'] = parsed[0]
+        if 'summary_completion' not in p:
+            parent = self.tree.nodes.get(p['parent_id'])
+            prompt = prompts.build_summary_prompt(self.task_contract, parsed[0], parsed[1], parent)
+            tokens = self.builder.count(prompt, chat=True)
+            p.update(summary_prompt=prompt, summary_prompt_tokens=tokens)
+            # Keep complete code and parent context; an oversized description
+            # request leaves the valid candidate available for evaluation.
+            if tokens > self.builder.max_tokens:
+                p.update(implementation_idea='', summary_status='context_exceeded', summary_tokens=0)
+                self._persist_pending()
+                return
+            p['summary_attempts'] = p.get('summary_attempts', 0) + 1
+            self._persist_pending()
+            record = dict(ts=datetime.now().isoformat(timespec='seconds'),
+                call_id=f"{p['candidate_id']}:summary:{p['summary_attempts']}",
+                candidate_id=p['candidate_id'], stage='thought_alignment',
+                operator=p['operator'], requested_operator=p['requested_operator'],
+                prompt=prompt, prompt_tokens=tokens,
+                prompt_hash=hashlib.sha256(prompt.encode()).hexdigest(),
+                template_hash=prompts.TEMPLATE_HASH, sampling=self.mechanism['llm'],
+                max_tokens=self.output_tokens)
+            started = time.time()
+            try:
+                details = self.llm.draw_sample_with_details(prompt, max_tokens=self.output_tokens)
+                record.update(response=details['content'], finish_reason=details.get('finish_reason') or 'unknown',
+                    usage=details.get('usage'), model=details.get('model'), response_id=details.get('response_id'))
+            except Exception:
+                record['error'] = traceback.format_exc()
+            record['seconds'] = time.time() - started
+            p['summary_completion'] = record
+            self._persist_pending()
+            self._log_call(record)
+        record = p['summary_completion']
+        raw = record.get('response')
+        text = _strip_thinking(raw).strip() if isinstance(raw, str) else ''
+        match = SUMMARY_RE.fullmatch(text)
+        finish = record.get('finish_reason')
+        idea = (match.group(1).strip() if match and finish in ['stop', 'unknown']
+                and not re.search(r'^\s*```', text, re.MULTILINE) else '')
+        p.update(implementation_idea=idea,
+                 summary_status='present' if idea else 'truncated' if finish == 'length' else 'unavailable',
+                 summary_tokens=self.builder.count(idea) if idea else 0)
+        self._persist_pending()
 
     def _schedule(self) -> dict:
         parent = donor = None
@@ -130,10 +184,8 @@ class TraceAADV106(TraceAADV105):
         response = p['completion']
         parsed = self.parse_response(response['response'], response['finish_reason'])
         if parsed is not None:
-            p['summary_status'] = ('truncated' if response['finish_reason'] == 'length' else
-                                   'present' if parsed[0] else 'unavailable')
-            p['summary_tokens'] = self.builder.count(parsed[0]) if parsed[0] else 0
-            self._persist_pending()
+            self._calibrate_pending(parsed)
+            parsed = (p['implementation_idea'], parsed[1], parsed[2])
         node = None
         reason = None
         if parsed is None:
@@ -156,12 +208,17 @@ class TraceAADV106(TraceAADV105):
                                      operator=p['operator'], donor_id=p['donor_id'])
         if p['parent_id'] is not None:
             self.step_counter += 1
-        record = {k: v for k, v in p.items() if k not in ['prompt', 'rng_state', 'completion', 'phase', 'outcome']}
+        record = {k: v for k, v in p.items() if k not in [
+            'prompt', 'rng_state', 'completion', 'phase', 'outcome',
+            'summary_prompt', 'summary_completion', 'implementation_idea']}
         record.update(ts=datetime.now().isoformat(timespec="seconds"), step=self.step_counter,
                       status=status, reason=reason, budget_used=self.budget_used,
                       evaluation_id=p.get('outcome', {}).get('evaluation_id'),
                       eval_seconds=p.get('outcome', {}).get('eval_seconds'),
-                      llm_seconds=response['seconds'], node_id=node.id if node else None,
+                      generation_llm_seconds=response['seconds'],
+                      summary_llm_seconds=p.get('summary_completion', {}).get('seconds', 0),
+                      llm_seconds=response['seconds'] + p.get('summary_completion', {}).get('seconds', 0),
+                      node_id=node.id if node else None,
                       fitness=node.fitness if node else None)
         if node is not None and p['parent_id'] is not None:
             record.update(parent_improved=node.fitness > p['parent_fitness'],
@@ -237,5 +294,3 @@ class TraceAADV106(TraceAADV105):
         except Exception:
             self._write_summary("error", error=traceback.format_exc())
             raise
-
-

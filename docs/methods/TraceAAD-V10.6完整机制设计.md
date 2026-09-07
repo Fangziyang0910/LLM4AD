@@ -1,16 +1,18 @@
 # TraceAAD V10.6 完整机制设计
 
-日期：2026-09-06。状态：已实现，87项测试及五任务真实联调通过，15路正式实验已启动。本稿取代[V10.6讨论稿](TraceAAD-V10.6机制讨论稿.md)的首发建议。预算范围采用已确认的“保留V10.5分配，不上线个体潜力预测”。实现入口见[运行说明](../../experiments/traceaad_v10_6/README.md)，实际进度和已发现的摘要语义反例见[启动记录](../../experiments/traceaad_v10_6/launch_20260906.md)。
+日期：2026-09-06。状态：本轮已改为两次调用并恢复公共任务信息，针对性46项、共享接口55项、任务协议89项检查通过，共190项。旧单次调用批次已按用户要求停止并删除运行数据；新批次`20260906_215231_revised`的15路正式实验已启动并确认真实两次调用，见[修订启动记录](../../experiments/traceaad_v10_6/launch_20260906_revised.md)。本稿取代[V10.6讨论稿](TraceAAD-V10.6机制讨论稿.md)的首发建议。预算范围采用已确认的“保留V10.5分配，不上线个体潜力预测”。实现入口见[运行说明](../../experiments/traceaad_v10_6/README.md)，实际进度和已发现的摘要语义反例见[启动记录](../../experiments/traceaad_v10_6/launch_20260906.md)。
+
+公共任务修订：任务描述与模板统一来自公共任务定义，恢复VRPTW为旧基线/V9.16文本，移除V10.6私有任务描述与具体时限注入。两次调用使用相同任务信息。
 
 摘要与算子修订：依据用户进一步要求，摘要目标约500字，单条Prompt上限1024 tokens，历史最多8条、8192 tokens；借鉴BehaveSim的实现与行为案例，对Refine/Pivot/Fuse作有限的决策语义澄清。下文为修订后的唯一推荐配置。
 
-提示词修订：发给生成模型的指令统一采用正向行动表述，每个信息块承担一个职责。任务调用、算子方向和输出格式分别表达；研究诊断与失败案例保留为本文设计依据。
+提示词修订：V10.6方法新增的指令采用正向行动表述；公共任务原文按历史比较版本保留，每个信息块承担一个职责。任务调用、算子方向和输出格式分别表达；研究诊断与失败案例保留为本文设计依据。
 
 生成视角修订：每次调用都是一个自洽的算法设计任务。算子用“沿当前思路改进、尝试不同思路、结合两份算法的有用思路”表达；行为分析术语留在研究解释和确有需要的任务调用说明中。
 
 ## 1. 核心决定与目标
 
-**V10.6采用一次调用先输出完整Code、再输出简短实现摘要；以真实父子关系和评价构成形成历史；预算保留V10.5的质量与次数基座、算子条件分布和逐评价重选。** 为满足先选父后定算子的顺序，用等价联合分布重排抽样，不改变相同可扩展集合和基础权重下的目标概率。新Prompt会改变哪些长程序能够容纳，因此不把整个版本的实际搜索路径称为与V10.5等同。
+**V10.6第一次调用先生成设计Idea、再生成完整Code，第二次调用重新生成实现Idea；以真实父子关系和评价构成形成历史；预算保留V10.5的质量与次数基座、算子条件分布和逐评价重选。** 为满足先选父后定算子的顺序，用等价联合分布重排抽样，不改变相同可扩展集合和基础权重下的目标概率。新Prompt会改变哪些长程序能够容纳，因此不把整个版本的实际搜索路径称为与V10.5等同。
 
 优化目标是在固定真实评价预算下获得更强的最终算法，并确认未知实例与跨规模表现。轨迹首先帮助生成器理解当前实现的形成过程。摘要准确率、局部改善率、谱系数量都不是最终优化目标。
 
@@ -29,9 +31,9 @@
 
 ## 3. 搜索对象、初始化与入档
 
-沿用单父程序树。节点继续保存`id, code, idea, fitness, evaluation_id, parent_id, operator, donor_id`。V10.6的`idea`字段存代码后实现摘要，沿用字段只是兼容存储，不再表示事前计划；渲染标签统一为`Implementation Summary`。
+沿用单父程序树。节点继续保存`id, code, idea, fitness, evaluation_id, parent_id, operator, donor_id`。V10.6的`idea`字段存第二次调用的实现Idea；前置设计Idea保留在请求/响应和候选事件中，渲染标签统一为`Implementation Summary`。
 
-初始化从头生成8个有效根，Init也采用Code→Summary。初始化正式评价计入总预算。生成无效不获得根名额；预算用完仍不足8根时如实报告初始化未完成，不额外补预算。正式比较不从历史赢家热启动。
+初始化从头生成8个有效根，Init也采用Idea→Code→独立实现Idea。初始化正式评价计入总预算。生成无效不获得根名额；预算用完仍不足8根时如实报告初始化未完成，不额外补预算。正式比较不从历史赢家热启动。
 
 每次非初始化迭代只产生一个子代。有限有效fitness的候选全部入档，包括退步、持平和重复代码。Fuse仍以选中的parent作为唯一父节点，donor只记录引用。摘要缺失不影响入档；低分、代码长和“看起来不像Pivot”都不成为额外语义门槛。
 
@@ -80,80 +82,50 @@ P(F\mid n)=\frac{0.35p_0(n)}{m(n)}.
 
 没有合法donor时，将这次Fuse执行为Refine，parent不变，不重抽、不生成第二个候选；记录requested=Fuse、executed=Refine。此时实际R/F比例由可用donor决定；不能声称实际执行比例始终严格50/15/35，也不把缺失Fuse质量转给Pivot。
 
-## 5. 任务描述：把接口作用说清楚
+## 5. 任务描述与模板：统一公共定义
 
-保留任务定义、完整函数接口和原有评价器；V10.6的`Execution Context`简述调用时机、可用输入、输出如何进入决策及框架负责的状态更新。说明取自实际evaluator，采用直接陈述可执行规则的写法。
+共同任务信息只来自 `evaluation.task_description` 和 `evaluation.template_program`。V10.6采用与V9.16一致的目标函数呈现：保留函数签名和docstring，清空示例函数体，交由模型实现。父代与参考算法仍展示代码。
 
-| 任务 | 必须明确的实际调用语义 |
-| --- | --- |
-| TSP construct | 每个构造步骤接收current、destination、未访问候选和距离矩阵，返回候选中的节点ID；当前evaluator给出的候选按距离组织，最后剩余节点由框架接上并计算闭环路长 |
-| CVRP ACO | 每实例利用距离、坐标、需求和总容量计算一次静态边prior；ACO后续以pheromone^alpha × prior^beta × 访问/容量mask形成转移权重，并负责路线及实时容量更新；prior按现有框架作floor处理 |
-| OP ACO | 每实例利用收益、距离和总预算maxlen计算静态边prior；ACO负责访问、已行程和回仓预算可行性的动态更新；目标是收益最大 |
-| OBP | 每件物品到来时，函数接收当前物品大小与可行箱的剩余容量，返回优先级向量，框架按argmax放置；严格单调分数变换保留该次排序 |
-| VRPTW | 每步提供已经过容量、时间窗及回仓可行性检查的客户集合，函数选择其中一个客户；当前节点为客户时，也可返回depot结束路线；时间、服务过程与容量由框架更新 |
+五个公共任务文本以旧基线批次为准；VRPTW已恢复到8月22日使用的文本，其余四任务原本一致。方法层不设置按任务名称选择的描述表，不替换公共模板措辞，不追加仅供V10.6使用的求解器规则或具体评测秒数。评价器、数据与真实超时限制保持原有配置。历史核查见[任务说明与模板一致性](../analysis/机制分析/任务说明与模板历史一致性核查-20260906.md)。
 
-运行限制从对应run的真实配置填入，不新增代码行数、组件数或“必须NumPy单公式”等算法限制。当前模板已经包含部分上述内容，应消除重复叙述；不是把这张表机械叠加到旧描述后。
-
-核对来源：`llm4ad/task/optimization/{tsp_construct,cvrp_aco,op_aco,online_bin_packing,vrptw_construct}/evaluation.py`及各自`template.py`。不改evaluator来迎合新Prompt。
-
-任务公共指令采用以下正向版本，替换旧公共块中的否定式提醒；各任务的描述和接口docstring使用同样表述原则，同时保留真实接口语义：
-
-````text
-# Task Contract
-Design an algorithm for the task below by implementing the provided Python function.
-
-<task objective and concise Execution Context>
-
-Target interface:
-```python
-<template program>
-```
-Objective: maximize evaluator fitness (higher is better).
-Use the information supplied through this interface and produce its specified
-output within the stated runtime limit.
-````
+任务块与方法的算子、历史及输出指令分别承担职责。生成与校准两次调用复用同一任务块；公共原文中既有的表达按历史定义保留，方法新增指令采用正向表达。
 
 ## 6. 生成协议与算子
 
-### 6.1 唯一默认：一次调用Code→Summary
+### 6.1 默认：Idea→Code→独立实现Idea
 
-不增加独立计划或摘要调用，不要求模型输出事前Idea。完整上下文共同用于生成代码和后置摘要。代码输出在先，使摘要可以条件于已经完成的实现；这是可检验的生成假设，不能称为语义保证。
-
-正式输出协议：
+第一次调用接收任务、当前代码、需要时的参考代码与最近形成历史。先用一个简洁自然段说明主要决策方法和关键计算，再输出完整代码：
 
 ````text
-Return one complete Python implementation followed by its summary in this format:
+First describe your proposed algorithm in one concise paragraph, explaining its
+main decision method and key calculations. Then implement it in this format:
 
+Idea: <design idea>
 ```python
 <complete target implementation, including all required imports and helpers>
 ```
-Summary: <implementation summary>
-
-Write approximately 500 words in 2–3 paragraphs, scaled to the implementation's
-complexity. Explain how the algorithm implemented above works, including its main
-idea and the important formulas, parameter values, and steps in the code.
-Explain when its key rules apply.
 ````
 
-提供了Current Algorithm时，在上述摘要要求后追加一句：
+静态检查通过后，第二次调用接收同一公共任务块、本次设计Idea、最终完整子代代码，以及存在时的完整父代代码。原设计Idea是意图参考，最终代码的运算决定实现描述。第二次输入不包含历史摘要、fitness或控制器调度信息。
 
 ```text
-Describe the main changes relative to the current algorithm.
+Explain the algorithm implemented by the final code for the stated task.
+The design idea provides the intended approach; the code operations determine
+the implemented method. Describe its main decision rule, the calculations that
+determine its output, and the important parameters and conditions. Derive each
+preference from the computation and the supplied task contract. State directly
+established effects as facts and expected performance benefits as hypotheses.
+Write approximately 500 words in 2–3 paragraphs, scaled to the implementation's
+complexity. Return your implementation idea as: Idea: <implementation idea>
 ```
 
-初始化直接使用公共摘要要求。生成模型每次收到与实际输入对应的说明；Init/Refine/Pivot/Fuse等调度标记保留在方法实现和日志中，Prompt以本次算法设计要求作为标题和正文。
+有父代时追加：`Describe the important implementation changes relative to the parent code.`
 
-Summary同时包含当前决策机制、关键实现逻辑与本次主要修改。按用户要求以约500字为目标：沿用英文摘要时Prompt写约500 words，中文摘要则约500汉字，分别计量，不将字、词、token按固定比例换算，也不为这一长度修改额外切换生成语言。简单实现可以更短，不凑长度。不新增多个必填输出字段，仍保存为一段Summary文本，允许2–3个自然段。
+第二次调用负责说明而非修改代码。其结果进入节点idea字段和后续历史；前置设计Idea仅保留在过程记录中。两次调用合起来生成一个子代，进行一次正式评价。没有新增语义验收、自动修复、个体潜力分数、edit或RL。
 
-摘要依次说明以下内容，不要求每个程序硬填同样的检查清单：
+后置Idea目标约500 words、2–3段，简单实现可更短；字、词和token分别计量。摘要重点是实际决策方法、影响输出的公式与参数、关键条件及父代变化。可由代码确定的作用写为事实，预期性能收益写为假设。它仍是模型的实现说明，不是经过执行验证的组件因果报告。
 
-1. **决策规则**：可用输入经过什么计算，怎样通过排序、argmin/argmax、采样或分支产生动作或prior。
-2. **决定行为的实现细节**：关键系数及作用、归一化尺度、条件方向、mask、clip/floor、初始化与更新顺序、tie/fallback；只写理解这份实现必要的部分。
-3. **本次修改及其作用条件**：具体改了哪些表达式或逻辑，在什么输入条件下可能改变决策。Fuse交代实际采用的两方元素；Init不作父代比较。
-
-可从代码确定的零值传播、代数抵消、严格单调排序，可以明确描述；依赖未知输入范围的权重支配或分支触发频率必须作条件表述。摘要不是正式行为测量，也不是逐节点语义认证。增加篇幅用于保留必要细节，不扩张为规划、逐行讲解或成功归因。
-
-单条摘要进入后续Prompt的硬上限放宽为1024实际tokens（1K，`summary_tokens=1024`）。长度目标与上下文上限之间留出余量，以减少截断；是否超限以实际tokenizer为准。超过时只保留不超过上限的完整前缀段落，预留省略标记空间；不跳过中间段落拼出新的解释，不截断句子或公式。若第一个完整段落就放不下，则该次Prompt省略此摘要并标记原因。原始完整摘要和response仍存档，不追加压缩调用、不因摘要超长丢弃可评价代码。该上限也适用于根与donor摘要，统一计算一次并缓存。
+单条说明进入后续Prompt的上限为1024实际tokens。超长时保留能容纳的完整前缀段落与省略标记；第一段已超限则该次展示标不可用。原始响应完整留档，不追加压缩调用。根、donor和历史节点采用同一规则。
 
 ### 6.2 四种生成行为
 
@@ -166,7 +138,7 @@ Summary同时包含当前决策机制、关键实现逻辑与本次主要修改�
 | Pivot | 为同一任务设计采用不同主要思路的算法，将当前算法作为参考 |
 | Fuse | 结合当前与参考算法中的有用思路，选择并调整适合共同使用的部分，争取超过两份输入 |
 
-具有形成历史时采用下列说明。质量目标与接口/运行限制由Task Contract表达，此块说明提供的历史是什么，以及它与本次设计算法的关系：
+具有形成历史时采用下列说明。质量目标与接口约定由公共任务块表达，此块说明提供的历史是什么，以及它与本次设计算法的关系：
 
 ```text
 The development history describes how the current algorithm was built and how
@@ -241,34 +213,19 @@ Prompt代码视图沿用现有普通注释过滤，原始候选模块完整保�
 
 记录原始/实际展示的摘要tokens、超长省略原因、历史tokens与保留事件数，用来检查实际上下文是否满足设计，不作为在线奖励。
 
-## 8. 解析、预算与恢复：摘要失败不等于代码失败
+## 8. 解析、预算与恢复
 
-### 8.1 完整代码判定
+第一次响应包含设计Idea及唯一闭合的Python代码块。检查目标函数名、参数接口、AST与compile；完整模块直接存档和评价，保留装饰器、辅助函数及模块级语句。若finish_reason为length但代码围栏已闭合且静态检查通过，仍可进入校准和评价；代码未完成或格式不明确则只记生成失败。
 
-响应应以唯一Python代码块开始，代码围栏必须闭合。沿用目标函数名、参数接口、AST与compile检查；完整模块按原样存档并交给统一SecureEvaluator，不通过函数重构丢掉装饰器、辅助函数、类或模块级语句。存在多个代码块造成候选歧义时不挑一个猜测执行。除已有thinking标记清理外，不将代码前的计划文本兼容为新协议。
+第二次响应采用 `Idea:` 标签。空白、格式错误、非正常结束或length截断均记实现说明不可用；传输失败记录错误，完整候选仍进行正式评价。单条进入历史的1024-token上限不等同于生成输出硬上限，两次调用沿用现有输出预留与精确计数。
 
-解析代码和摘要分开处理。摘要非空并符合后置`Summary:`格式记为present，只说明格式存在，不意味语义验证。缺失或格式不合法记unavailable，不修改代码、不追加LLM修复调用。原始response完整落盘。
+校准请求使用完整父子代码并进行精确计数。若超过完整请求预算，记录 `context_exceeded`，保留候选并将实现说明标为不可用；不截断代码、不把前置计划冒充实现Idea。这个边界单独记入过程数据。
 
-### 8.2 finish_reason的明确变化
+两次调用分别记录stage、call_id、请求、响应、usage、耗时与结束原因。pending先持久化生成响应，再持久化校准响应；恢复时复用已有响应。尚未获得并持久化返回结果的远程调用无法保证恰好一次，恢复只重试未完成阶段。校准传输错误作为一次说明失败记录，不进入自动反复重试循环。
 
-| 状态 | 处理 |
-| --- | --- |
-| 正常结束，完整代码＋摘要 | 正式评价代码，保存摘要 |
-| 正常结束，完整代码但无合格摘要 | 正式评价，摘要标unavailable |
-| length，代码块已经闭合且通过语法和接口检查，截断位于代码块之后 | 正式评价完整代码；整段后置摘要不用，标truncated |
-| length，代码块未闭合，或代码/接口不合法 | 不评价，不补围栏、不自动补代码，重新分配下一次生成 |
-| provider状态unknown | 不伪造stop；按同样完整代码检查，日志保留unknown |
-| 拒绝/内容过滤/传输失败且没有正常可用响应 | 沿用明确失败处理，不作为length情形抢救 |
+沿用V10.5评价提交与收据：每次真实评价计一个slot，包括失败和超时；纯LLM失败不虚构评价。已确认收据不重复执行；提交状态未知时保留unknown reservation并停止该路。连续50次无可评价代码沿用原停止规则。
 
-V10.5是在解析前拒绝所有length；V10.6必须连同这一分支修改，不能只换正则。这里接受的是模型已经明确关闭的完整代码块，不推断被截断的代码本应是什么。通过静态检查仍不保证运行正确，运行结果由正式评价决定。
-
-### 8.3 记账与恢复
-
-- 一次真实evaluator调用占一个slot，包括初始化、失败、非法运行输出和超时；有效有限fitness才能入树。LLM失败和静态解析失败单独计成本，不虚构评价。
-- 摘要提取不发生第二次模型调用。仅摘要不完整不增加代码无效连续计数；连续50次没有可评价代码沿用停止规则。
-- 沿用pending选择、原始响应、evaluation_started和评价收据的持久化。已有响应不重生成，已有评价收据不重评价；同一候选最多发生一次确认的正式评价。
-- 只有提交而无可确认收据时，沿用unknown reservation并停止该路核实，不免费重评，也不宣称完整预算已完成。
-- V10.6使用独立版本号106、协议/hash和目录；不能把V10.5旧Idea原样解释成新摘要，不能在正式旧run上直接恢复为V10.6。
+checkpoint版本仍为106，generation标识改为 `idea_code_then_implementation_idea`，任务与源码指纹同时更新。原单次调用检查点与新协议不兼容，不能将旧run恢复成新配方。旧运行结果和启动记录保留原含义。
 
 ## 9. 完整流程
 
@@ -288,12 +245,14 @@ while budget remains:
 
     build task + current code + optional donor + recent formation events
     checkpoint this selection, exact prompt and post-selection RNG state
-    make one model generation call: complete Code, then Summary
+    make first model call: design Idea, then complete Code
     durably save response and finish metadata
-    extract complete code and independently classify summary availability
+    extract design Idea and validate complete code
     if code is not evaluable:
         log generation failure; checkpoint; reselect
     else:
+        make independent implementation-Idea call using the same task, plan and final code
+        durably save the description response or its failure; classify availability
         submit one formal evaluation using the complete archived module
         persist evaluation receipt; charge one slot
         if fitness is finite and valid:
@@ -309,14 +268,14 @@ return best valid program in the full archive
 | 主比较 | 五任务，每任务3次独立运行，seed=0/1/2；每路1000次真实评价，初始化计入 |
 | 初始化 | 8个有效根，从头生成 |
 | 模型与采样 | 同V10.5正式后端的Qwen3.8-27B配置；temperature=1，top_p=.95，top_k=20，thinking关闭；固定并记录真实权重/量化/服务信息，不仅凭模型别名宣称完全一致 |
-| 输出 | 一次调用Code→Summary；约500字的目标（英文约500 words、中文约500字，分别计量），简单实现可更短；Prompt摘要硬上限1024实际tokens |
+| 输出 | 首次Idea→Code，独立调用生成实现Idea；约500字的目标（英文约500 words、中文约500字，分别计量），简单实现可更短；Prompt摘要硬上限1024实际tokens |
 | 分配 | 第4节的等价父代先行分布；请求R/P/F=.50/.15/.35 |
 | ESS/次数 | fraction=.10，minimum=2，保留并列处理；1/sqrt(c+1) |
 | donor | 合法且可容纳的top-5均匀选；缺失则Fuse转Refine |
 | 历史 | 最近最多8条真实形成边，8192 tokens；Fuse事件展示参考算法quality，IDs与算子代码在日志中追踪 |
 | 上下文 | 32768总上限；16384输出预留；256余量；整事件裁剪 |
 | 评价器 | 原有五任务定义、训练数据、求解设置和各自超时；不改变评价标准 |
-| 额外控制器 | 无新增潜力模型、代表集合或保护预算；无独立summary/critic调用 |
+| 额外控制器 | 无新增潜力模型、代表集合或保护预算；仅新增实现Idea调用，无价值critic |
 
 这些沿用参数和工程限额不是由新数据识别的最优参数。本版不同时引入调参网格。
 
@@ -324,13 +283,13 @@ return best valid program in the full archive
 
 实现时建立独立`traceaad_v10_6`入口，复用V10.5的树、ESS、统一评价、计数、日志和恢复设施。主要变更点明确为：
 
-1. Prompt：补任务调用语义，调整输出顺序、摘要标签与形成事件donor事实；采用第6.2节面向单次算法设计的指令，按当前材料组装历史说明与摘要比较句。
-2. 解析/候选推进：Code→Summary解析；解除摘要对可评价代码的绑定；按第8节处理length。
+1. Prompt：使用公共历史任务说明与模板，移除专用覆盖；采用Idea→Code及独立实现Idea协议；采用第6.2节面向单次算法设计的指令，按当前材料组装历史说明与摘要比较句。
+2. 解析/候选推进：两次调用分别解析与持久化；解除实现Idea对可评价代码的绑定；按第8节处理length及恢复。
 3. 调度：父先行的等价联合抽样；日志记录实际边际和条件概率。
 4. 上下文：1024-token摘要完整段落视图、8192-token历史区；辅助摘要可移除，最低可容纳性只依赖完整代码和必要协议。
 5. 版本/运行：106 checkpoint、机制指纹、独立run与批次入口。不能仅改METHOD字符串而继承硬编码105的加载校验。
 
-实现采用独立版本目录，复用现有评价器与基础设施，保持正在运行的旧版源指纹稳定。设计阶段结束后，按用户授权依次完成实现核对、必要测试、真实服务联调和15路正式实验启动。
+实现采用独立版本目录，复用现有评价器与基础设施，本轮修改后旧检查点因协议和指纹差异拒绝按新配置恢复。实现与本地验证后，用户另行授权停止旧批次、删除旧数据并启动新批次；此次正式启动已完成，未混用旧检查点。
 
 落地后的必要验证按真实风险组织，复用现有测试设施：
 
@@ -344,6 +303,6 @@ return best valid program in the full archive
 
 ## 12. 当前仍需诚实保留的边界
 
-单次代码后摘要可能仍然描述错误；这是本版要尝试改善的生成行为，未升级为行为验证。质量分配仍可能不给低分结构足够的后续机会；本版没有解决多步潜力识别。ESS随档案增长、节点ID次数重置也仍有局限。
+独立生成的实现Idea可能仍然描述错误；这是本版要尝试改善的生成行为，未升级为行为验证。质量分配仍可能不给低分结构足够的后续机会；本版没有解决多步潜力识别。ESS随档案增长、节点ID次数重置也仍有局限。
 
-选择这些边界，是为了先实现一条明确的改进链：**完成实现 → 描述实际代码 → 保存匹配的形成历史 → 辅助下一次改进 → 用完整搜索终局决定保留。** 如果用户要求本版同时解决退步节点的开发机会，需要先讨论接受哪种明确的探索规则，不能偷偷用不受支持的潜力估计补齐。
+选择这些边界，是为了先实现一条明确的改进链：**明确设计 → 完成实现 → 重新描述实际代码 → 保存匹配的形成历史 → 辅助下一次改进 → 用完整搜索终局决定保留。** 如果用户要求本版同时解决退步节点的开发机会，需要先讨论接受哪种明确的探索规则，不能偷偷用不受支持的潜力估计补齐。

@@ -1,0 +1,1272 @@
+{
+  "reference_commit": "a144f601",
+  "scope": "first recorded request per baseline formal run; source reconstruction for V9.16",
+  "tasks": {
+    "tsp_construct": {
+      "historical": {
+        "template_program": "\nimport numpy as np\ndef select_next_node(current_node: int, destination_node: int, unvisited_nodes: np.ndarray, distance_matrix: np.ndarray) -> int:\n    \"\"\"\n    Design a novel algorithm to select the next node in each step.\n\n    Args:\n    current_node: ID of the current node.\n    destination_node: ID of the destination node.\n    unvisited_nodes: Array of IDs of unvisited nodes.\n    distance_matrix: Distance matrix of nodes.\n\n    Return:\n    ID of the next node to visit.\n    \"\"\"\n    next_node = unvisited_nodes[0]\n\n    return next_node\n",
+        "task_description": "The Traveling Salesman Problem asks for a shortest tour that visits each node once and returns to the start. Instances are generated from node coordinates, but the constructive heuristic does not receive coordinates. At each step it receives the current node id, the destination/start node id, an array of unvisited candidate node ids, and the pairwise distance matrix, and must return the id of the next node to visit. Help me design a novel algorithm to select the next node in each step."
+      },
+      "current": {
+        "template_program": "\nimport numpy as np\ndef select_next_node(current_node: int, destination_node: int, unvisited_nodes: np.ndarray, distance_matrix: np.ndarray) -> int:\n    \"\"\"\n    Design a novel algorithm to select the next node in each step.\n\n    Args:\n    current_node: ID of the current node.\n    destination_node: ID of the destination node.\n    unvisited_nodes: Array of IDs of unvisited nodes.\n    distance_matrix: Distance matrix of nodes.\n\n    Return:\n    ID of the next node to visit.\n    \"\"\"\n    next_node = unvisited_nodes[0]\n\n    return next_node\n",
+        "task_description": "The Traveling Salesman Problem asks for a shortest tour that visits each node once and returns to the start. Instances are generated from node coordinates, but the constructive heuristic does not receive coordinates. At each step it receives the current node id, the destination/start node id, an array of unvisited candidate node ids, and the pairwise distance matrix, and must return the id of the next node to visit. Help me design a novel algorithm to select the next node in each step."
+      },
+      "description_unchanged": true,
+      "template_unchanged": true
+    },
+    "cvrp_aco": {
+      "historical": {
+        "template_program": "\nimport numpy as np\n\n\ndef heuristics(\n        distance_matrix: np.ndarray,\n        coordinates: np.ndarray,\n        demands: np.ndarray,\n        capacity: int,\n) -> np.ndarray:\n    \"\"\"Return edge desirability values for CVRP ant colony optimization.\n\n    Args:\n        distance_matrix: Pairwise Euclidean distances with shape (n, n).\n        coordinates: Node coordinates with shape (n, 2). Node 0 is the depot.\n        demands: Node demands with shape (n,). The depot demand is zero.\n        capacity: Capacity shared by all vehicles.\n\n    Returns:\n        An (n, n) edge-prior matrix. Larger values make an edge more likely\n        to be sampled. Values at or below zero are treated as 1e-9.\n    \"\"\"\n    return 1.0 / distance_matrix\n",
+        "task_description": "Design an edge-prior heuristic for Ant Colony Optimization (ACO) on the\nCapacitated Vehicle Routing Problem (CVRP). A solution consists of routes that\nstart and end at depot node 0, visit every customer exactly once, and never\nexceed vehicle capacity. ACO combines the returned heuristic matrix with its\npheromone matrix to sample feasible moves. The objective is to minimize the\nbest total route length found across all ants and iterations.\n\nThe function receives the pairwise distance matrix, node coordinates, customer\ndemands, and vehicle capacity. It must return a finite matrix with the same\nshape as the distance matrix. Larger entries indicate more promising directed\nedges. Use efficient NumPy operations because the function is evaluated many\ntimes."
+      },
+      "current": {
+        "template_program": "\nimport numpy as np\n\n\ndef heuristics(\n        distance_matrix: np.ndarray,\n        coordinates: np.ndarray,\n        demands: np.ndarray,\n        capacity: int,\n) -> np.ndarray:\n    \"\"\"Return edge desirability values for CVRP ant colony optimization.\n\n    Args:\n        distance_matrix: Pairwise Euclidean distances with shape (n, n).\n        coordinates: Node coordinates with shape (n, 2). Node 0 is the depot.\n        demands: Node demands with shape (n,). The depot demand is zero.\n        capacity: Capacity shared by all vehicles.\n\n    Returns:\n        An (n, n) edge-prior matrix. Larger values make an edge more likely\n        to be sampled. Values at or below zero are treated as 1e-9.\n    \"\"\"\n    return 1.0 / distance_matrix\n",
+        "task_description": "Design an edge-prior heuristic for Ant Colony Optimization (ACO) on the\nCapacitated Vehicle Routing Problem (CVRP). A solution consists of routes that\nstart and end at depot node 0, visit every customer exactly once, and never\nexceed vehicle capacity. ACO combines the returned heuristic matrix with its\npheromone matrix to sample feasible moves. The objective is to minimize the\nbest total route length found across all ants and iterations.\n\nThe function receives the pairwise distance matrix, node coordinates, customer\ndemands, and vehicle capacity. It must return a finite matrix with the same\nshape as the distance matrix. Larger entries indicate more promising directed\nedges. Use efficient NumPy operations because the function is evaluated many\ntimes."
+      },
+      "description_unchanged": true,
+      "template_unchanged": true
+    },
+    "op_aco": {
+      "historical": {
+        "template_program": "\nimport numpy as np\n\n\ndef heuristics(\n        prize: np.ndarray,\n        distance: np.ndarray,\n        maxlen: float,\n) -> np.ndarray:\n    \"\"\"Return edge desirability values for OP ant colony optimization.\n\n    Args:\n        prize: Node prizes with shape (n,). Node 0 is the depot.\n        distance: Pairwise Euclidean distances with shape (n, n).\n            Diagonal entries are large sentinels so self-loops are unused.\n        maxlen: Maximum allowed tour length (return-to-depot constrained).\n\n    Returns:\n        An (n, n) edge-prior matrix. Larger values make an edge more likely\n        to be sampled. Values at or below zero are treated as 1e-9.\n    \"\"\"\n    return prize[np.newaxis, :] / distance\n",
+        "task_description": "Design an edge-prior heuristic for Ant Colony Optimization (ACO) on the\nOrienteering Problem (OP). A tour starts at depot node 0, collects prizes at\nvisited nodes, and must return to the depot without exceeding the travel\nbudget ``maxlen``. The objective is to maximize the total collected prize.\n\nACO combines the returned heuristic matrix with its pheromone matrix to sample\nfeasible moves. The function receives node prizes, the pairwise distance\nmatrix, and ``maxlen``. It must return a finite matrix with the same shape as\nthe distance matrix. Larger entries indicate more promising directed edges.\nUse efficient NumPy operations because the function is evaluated many times."
+      },
+      "current": {
+        "template_program": "\nimport numpy as np\n\n\ndef heuristics(\n        prize: np.ndarray,\n        distance: np.ndarray,\n        maxlen: float,\n) -> np.ndarray:\n    \"\"\"Return edge desirability values for OP ant colony optimization.\n\n    Args:\n        prize: Node prizes with shape (n,). Node 0 is the depot.\n        distance: Pairwise Euclidean distances with shape (n, n).\n            Diagonal entries are large sentinels so self-loops are unused.\n        maxlen: Maximum allowed tour length (return-to-depot constrained).\n\n    Returns:\n        An (n, n) edge-prior matrix. Larger values make an edge more likely\n        to be sampled. Values at or below zero are treated as 1e-9.\n    \"\"\"\n    return prize[np.newaxis, :] / distance\n",
+        "task_description": "Design an edge-prior heuristic for Ant Colony Optimization (ACO) on the\nOrienteering Problem (OP). A tour starts at depot node 0, collects prizes at\nvisited nodes, and must return to the depot without exceeding the travel\nbudget ``maxlen``. The objective is to maximize the total collected prize.\n\nACO combines the returned heuristic matrix with its pheromone matrix to sample\nfeasible moves. The function receives node prizes, the pairwise distance\nmatrix, and ``maxlen``. It must return a finite matrix with the same shape as\nthe distance matrix. Larger entries indicate more promising directed edges.\nUse efficient NumPy operations because the function is evaluated many times."
+      },
+      "description_unchanged": true,
+      "template_unchanged": true
+    },
+    "online_bin_packing": {
+      "historical": {
+        "template_program": "\nimport numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    return item - bins\n",
+        "task_description": "Implement a priority function for online one-dimensional bin packing. Items arrive one by one and must be placed immediately into a bin with enough remaining capacity. The function receives the item size and an array of remaining capacities of currently feasible bins, and must return a priority score for each feasible bin. The item is placed into the bin with the highest priority. The objective is to minimize the number of bins used. The item sizes and remaining capacities are integer-valued, so the input array normally has an integer dtype. Return a finite floating-point array of the same shape; cast integer-derived arrays before adding floating-point bonuses or penalties."
+      },
+      "current": {
+        "template_program": "\nimport numpy as np\n\ndef priority(item: float, bins: np.ndarray) -> np.ndarray:\n    \"\"\"Returns priority with which we want to add item to each bin.\n    Args:\n        item: Size of item to be added to the bin.\n        bins: Array of capacities for each bin.\n    Return:\n        Array of same size as bins with priority score of each bin.\n    \"\"\"\n    return item - bins\n",
+        "task_description": "Implement a priority function for online one-dimensional bin packing. Items arrive one by one and must be placed immediately into a bin with enough remaining capacity. The function receives the item size and an array of remaining capacities of currently feasible bins, and must return a priority score for each feasible bin. The item is placed into the bin with the highest priority. The objective is to minimize the number of bins used. The item sizes and remaining capacities are integer-valued, so the input array normally has an integer dtype. Return a finite floating-point array of the same shape; cast integer-derived arrays before adding floating-point bonuses or penalties."
+      },
+      "description_unchanged": true,
+      "template_unchanged": true
+    },
+    "vrptw_construct": {
+      "historical": {
+        "template_program": "\nimport numpy as np\n\ndef select_next_node(current_node: int, depot: int, unvisited_nodes: np.ndarray, rest_capacity: float, current_time: float,\n                        demands: np.ndarray, distance_matrix: np.ndarray, time_windows: np.ndarray) -> int:\n    \"\"\"Design a novel algorithm to select the next node in each step.\n    Args:\n        current_node: ID of the current node.\n        depot: ID of the depot.\n        unvisited_nodes: Array of feasible unvisited node IDs under capacity and time-window constraints.\n        rest_capacity: Remaining vehicle capacity before selecting the next node.\n        current_time: Current time on the active route.\n        demands: Demand of each node.\n        distance_matrix: Pairwise distance matrix.\n        time_windows: Time window of each node.\n    Return:\n        ID of the next node to visit, or depot to start a new route.\n    \"\"\"\n    next_node = unvisited_nodes[0]\n    return next_node\n",
+        "task_description": "Design a constructive heuristic for Vehicle Routing with Time Windows (VRPTW). Routes must respect vehicle capacity and customer time windows while minimizing total travel cost. At each step the heuristic receives the current node, depot id, feasible unvisited customers, remaining capacity, current time, demands, distance matrix, and time windows, and must return the next customer id or the depot. Help me design an algorithm to select the next node in each step."
+      },
+      "current": {
+        "template_program": "\nimport numpy as np\n\ndef select_next_node(current_node: int, depot: int, unvisited_nodes: np.ndarray, rest_capacity: float, current_time: float,\n                        demands: np.ndarray, distance_matrix: np.ndarray, time_windows: np.ndarray) -> int:\n    \"\"\"Design a novel algorithm to select the next node in each step.\n    Args:\n        current_node: ID of the current node.\n        depot: ID of the depot.\n        unvisited_nodes: Array of feasible unvisited node IDs under capacity and time-window constraints; the returned customer must be chosen from this array.\n        rest_capacity: Remaining vehicle capacity before selecting the next node.\n        current_time: Current time on the active route.\n        demands: Demand of each node.\n        distance_matrix: Pairwise distance matrix.\n        time_windows: Time window of each node.\n    Return:\n        One node ID chosen from unvisited_nodes, or depot to close the current route (only when current_node != depot).\n    \"\"\"\n    next_node = unvisited_nodes[0]\n    return next_node\n",
+        "task_description": "Design a constructive heuristic for Vehicle Routing with Time Windows (VRPTW). Routes must respect vehicle capacity and customer time windows while minimizing total travel cost. At each step the heuristic receives the current node, depot id, feasible unvisited customers, remaining capacity, current time, demands, distance matrix, and time windows, and must return one customer id from the feasible set, or the depot to close the current route (never while already at the depot). Help me design an algorithm to select the next node in each step."
+      },
+      "description_unchanged": false,
+      "template_unchanged": false
+    }
+  },
+  "baseline_requests": [
+    {
+      "method": "eoh",
+      "task": "tsp_construct",
+      "path": "experiments/eoh/results/tsp_construct/20260824_rerun_tsp_eoh_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "593c0ad8535a1708f1eb9efb8662b0f0d8247d7ac6b983ddde3ce4fe22b448bf"
+    },
+    {
+      "method": "eoh",
+      "task": "tsp_construct",
+      "path": "experiments/eoh/results/tsp_construct/20260824_rerun_tsp_eoh_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "593c0ad8535a1708f1eb9efb8662b0f0d8247d7ac6b983ddde3ce4fe22b448bf"
+    },
+    {
+      "method": "eoh",
+      "task": "tsp_construct",
+      "path": "experiments/eoh/results/tsp_construct/20260824_rerun_tsp_eoh_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "593c0ad8535a1708f1eb9efb8662b0f0d8247d7ac6b983ddde3ce4fe22b448bf"
+    },
+    {
+      "method": "reevo",
+      "task": "tsp_construct",
+      "path": "experiments/reevo/results/tsp_construct/20260824_rerun_tsp_reevo_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "b9e2b26e5f2c0649ccd105a556791a868302bee06eee4e9362d3310f30054a24"
+    },
+    {
+      "method": "reevo",
+      "task": "tsp_construct",
+      "path": "experiments/reevo/results/tsp_construct/20260824_rerun_tsp_reevo_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "b9e2b26e5f2c0649ccd105a556791a868302bee06eee4e9362d3310f30054a24"
+    },
+    {
+      "method": "reevo",
+      "task": "tsp_construct",
+      "path": "experiments/reevo/results/tsp_construct/20260824_rerun_tsp_reevo_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "b9e2b26e5f2c0649ccd105a556791a868302bee06eee4e9362d3310f30054a24"
+    },
+    {
+      "method": "mcts_ahd",
+      "task": "tsp_construct",
+      "path": "experiments/mcts_ahd/results/tsp_construct/20260824_rerun_tsp_mcts_ahd_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "1457d057ab86a33ac98919873407d84975319ba3c371827dd62b87d54dbcdd45"
+    },
+    {
+      "method": "mcts_ahd",
+      "task": "tsp_construct",
+      "path": "experiments/mcts_ahd/results/tsp_construct/20260824_rerun_tsp_mcts_ahd_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "1457d057ab86a33ac98919873407d84975319ba3c371827dd62b87d54dbcdd45"
+    },
+    {
+      "method": "mcts_ahd",
+      "task": "tsp_construct",
+      "path": "experiments/mcts_ahd/results/tsp_construct/20260824_rerun_tsp_mcts_ahd_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "1457d057ab86a33ac98919873407d84975319ba3c371827dd62b87d54dbcdd45"
+    },
+    {
+      "method": "pathwise",
+      "task": "tsp_construct",
+      "path": "experiments/pathwise/results/tsp_construct/20260824_rerun_tsp_pathwise_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "initialization",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "b537b56697bf7dbc2215151a73246cc9125e3dd253b5ffdaa7ffc853c35e0606"
+    },
+    {
+      "method": "pathwise",
+      "task": "tsp_construct",
+      "path": "experiments/pathwise/results/tsp_construct/20260824_rerun_tsp_pathwise_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "initialization",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "b537b56697bf7dbc2215151a73246cc9125e3dd253b5ffdaa7ffc853c35e0606"
+    },
+    {
+      "method": "pathwise",
+      "task": "tsp_construct",
+      "path": "experiments/pathwise/results/tsp_construct/20260824_rerun_tsp_pathwise_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "initialization",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "b537b56697bf7dbc2215151a73246cc9125e3dd253b5ffdaa7ffc853c35e0606"
+    },
+    {
+      "method": "calm",
+      "task": "tsp_construct",
+      "path": "experiments/calm/results/tsp_construct/20260824_rerun_tsp_calm_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": false,
+      "prompt_sha256": "0d37ddfa913285497f5f9bc295129d2e8eb47cc00ecdeb299d0e54738418e04c",
+      "historical_full_template_first_matching_line": null,
+      "template_search_requests_read": 414
+    },
+    {
+      "method": "calm",
+      "task": "tsp_construct",
+      "path": "experiments/calm/results/tsp_construct/20260824_rerun_tsp_calm_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": false,
+      "prompt_sha256": "50f3a06c0865fda6baf127f8174adb4d92e2f5d845e508d5b0d0edd5d423ab92",
+      "historical_full_template_first_matching_line": null,
+      "template_search_requests_read": 735
+    },
+    {
+      "method": "calm",
+      "task": "tsp_construct",
+      "path": "experiments/calm/results/tsp_construct/20260824_rerun_tsp_calm_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": false,
+      "prompt_sha256": "6420cdaa353989ac62cb7be5efaa846f9a0f21be939bd18cd84cf1b82d6f373b",
+      "historical_full_template_first_matching_line": null,
+      "template_search_requests_read": 765
+    },
+    {
+      "method": "eoh",
+      "task": "cvrp_aco",
+      "path": "experiments/eoh/results/cvrp_aco/20260824_rerun_cvrp_eoh_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "26905a2ad35ad7088a99f7fb520950d092eff903b96f50666d8de757a1bb2487"
+    },
+    {
+      "method": "eoh",
+      "task": "cvrp_aco",
+      "path": "experiments/eoh/results/cvrp_aco/20260824_rerun_cvrp_eoh_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "26905a2ad35ad7088a99f7fb520950d092eff903b96f50666d8de757a1bb2487"
+    },
+    {
+      "method": "eoh",
+      "task": "cvrp_aco",
+      "path": "experiments/eoh/results/cvrp_aco/20260824_rerun_cvrp_eoh_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "26905a2ad35ad7088a99f7fb520950d092eff903b96f50666d8de757a1bb2487"
+    },
+    {
+      "method": "reevo",
+      "task": "cvrp_aco",
+      "path": "experiments/reevo/results/cvrp_aco/20260824_rerun_cvrp_reevo_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "e7bc02971eba4af28fcaf1db0b4fc596cf141efbb7ab6fac66f08fb6e8cafac3"
+    },
+    {
+      "method": "reevo",
+      "task": "cvrp_aco",
+      "path": "experiments/reevo/results/cvrp_aco/20260824_rerun_cvrp_reevo_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "e7bc02971eba4af28fcaf1db0b4fc596cf141efbb7ab6fac66f08fb6e8cafac3"
+    },
+    {
+      "method": "reevo",
+      "task": "cvrp_aco",
+      "path": "experiments/reevo/results/cvrp_aco/20260824_rerun_cvrp_reevo_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "e7bc02971eba4af28fcaf1db0b4fc596cf141efbb7ab6fac66f08fb6e8cafac3"
+    },
+    {
+      "method": "mcts_ahd",
+      "task": "cvrp_aco",
+      "path": "experiments/mcts_ahd/results/cvrp_aco/20260824_rerun_cvrp_mcts_ahd_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "133281083263e0c427d8e44c7843141a5f3fa4e13ccc3a727b8a41ad331d5da3"
+    },
+    {
+      "method": "mcts_ahd",
+      "task": "cvrp_aco",
+      "path": "experiments/mcts_ahd/results/cvrp_aco/20260824_rerun_cvrp_mcts_ahd_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "133281083263e0c427d8e44c7843141a5f3fa4e13ccc3a727b8a41ad331d5da3"
+    },
+    {
+      "method": "mcts_ahd",
+      "task": "cvrp_aco",
+      "path": "experiments/mcts_ahd/results/cvrp_aco/20260824_rerun_cvrp_mcts_ahd_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "133281083263e0c427d8e44c7843141a5f3fa4e13ccc3a727b8a41ad331d5da3"
+    },
+    {
+      "method": "pathwise",
+      "task": "cvrp_aco",
+      "path": "experiments/pathwise/results/cvrp_aco/20260824_rerun_cvrp_pathwise_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "initialization",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "562f9ac8ebab9759c6de5d60f4d956c7c0a3f03ad0a737cd37fd141b0c4832d3"
+    },
+    {
+      "method": "pathwise",
+      "task": "cvrp_aco",
+      "path": "experiments/pathwise/results/cvrp_aco/20260824_rerun_cvrp_pathwise_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "initialization",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "562f9ac8ebab9759c6de5d60f4d956c7c0a3f03ad0a737cd37fd141b0c4832d3"
+    },
+    {
+      "method": "pathwise",
+      "task": "cvrp_aco",
+      "path": "experiments/pathwise/results/cvrp_aco/20260824_rerun_cvrp_pathwise_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "initialization",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "562f9ac8ebab9759c6de5d60f4d956c7c0a3f03ad0a737cd37fd141b0c4832d3"
+    },
+    {
+      "method": "calm",
+      "task": "cvrp_aco",
+      "path": "experiments/calm/results/cvrp_aco/20260824_rerun_cvrp_calm_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": false,
+      "prompt_sha256": "1980d937a8b20f1437cdf9823d9f052a6d5474c4c5176caf05b81765ed4e4232",
+      "historical_full_template_first_matching_line": null,
+      "template_search_requests_read": 512
+    },
+    {
+      "method": "calm",
+      "task": "cvrp_aco",
+      "path": "experiments/calm/results/cvrp_aco/20260824_rerun_cvrp_calm_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": false,
+      "prompt_sha256": "ad6a8daaee30f9de7d621915746cbdef2ad186ad0b6a02da65bdb0d76b8e70e5",
+      "historical_full_template_first_matching_line": null,
+      "template_search_requests_read": 812
+    },
+    {
+      "method": "calm",
+      "task": "cvrp_aco",
+      "path": "experiments/calm/results/cvrp_aco/20260824_rerun_cvrp_calm_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": false,
+      "prompt_sha256": "ad6a8daaee30f9de7d621915746cbdef2ad186ad0b6a02da65bdb0d76b8e70e5",
+      "historical_full_template_first_matching_line": null,
+      "template_search_requests_read": 528
+    },
+    {
+      "method": "eoh",
+      "task": "op_aco",
+      "path": "experiments/eoh/results/op_aco/20260824_rerun_op_eoh_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "da9aafa6c3623e5a4bc0a4488b92025f1bd4de7875e3316dd1532da48f5c03c5"
+    },
+    {
+      "method": "eoh",
+      "task": "op_aco",
+      "path": "experiments/eoh/results/op_aco/20260824_rerun_op_eoh_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "da9aafa6c3623e5a4bc0a4488b92025f1bd4de7875e3316dd1532da48f5c03c5"
+    },
+    {
+      "method": "eoh",
+      "task": "op_aco",
+      "path": "experiments/eoh/results/op_aco/20260824_rerun_op_eoh_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "da9aafa6c3623e5a4bc0a4488b92025f1bd4de7875e3316dd1532da48f5c03c5"
+    },
+    {
+      "method": "reevo",
+      "task": "op_aco",
+      "path": "experiments/reevo/results/op_aco/20260824_rerun_op_reevo_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "31039df1ec7d9187411b3602aab90bbd34f9a97703d3aac2c5913b0207dcab26"
+    },
+    {
+      "method": "reevo",
+      "task": "op_aco",
+      "path": "experiments/reevo/results/op_aco/20260824_rerun_op_reevo_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "31039df1ec7d9187411b3602aab90bbd34f9a97703d3aac2c5913b0207dcab26"
+    },
+    {
+      "method": "reevo",
+      "task": "op_aco",
+      "path": "experiments/reevo/results/op_aco/20260824_rerun_op_reevo_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "31039df1ec7d9187411b3602aab90bbd34f9a97703d3aac2c5913b0207dcab26"
+    },
+    {
+      "method": "mcts_ahd",
+      "task": "op_aco",
+      "path": "experiments/mcts_ahd/results/op_aco/20260824_rerun_op_mcts_ahd_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "f55fb3e2a1e0a6e981861f289f999cdb9cb1af7a95e596e01c556c87410f6c1b"
+    },
+    {
+      "method": "mcts_ahd",
+      "task": "op_aco",
+      "path": "experiments/mcts_ahd/results/op_aco/20260824_rerun_op_mcts_ahd_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "f55fb3e2a1e0a6e981861f289f999cdb9cb1af7a95e596e01c556c87410f6c1b"
+    },
+    {
+      "method": "mcts_ahd",
+      "task": "op_aco",
+      "path": "experiments/mcts_ahd/results/op_aco/20260824_rerun_op_mcts_ahd_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "f55fb3e2a1e0a6e981861f289f999cdb9cb1af7a95e596e01c556c87410f6c1b"
+    },
+    {
+      "method": "pathwise",
+      "task": "op_aco",
+      "path": "experiments/pathwise/results/op_aco/20260824_rerun_op_pathwise_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "initialization",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "222a3ce086bfdacad180214bb00e48251fa691027372a61c3424e678c8fc1df7"
+    },
+    {
+      "method": "pathwise",
+      "task": "op_aco",
+      "path": "experiments/pathwise/results/op_aco/20260824_rerun_op_pathwise_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "initialization",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "222a3ce086bfdacad180214bb00e48251fa691027372a61c3424e678c8fc1df7"
+    },
+    {
+      "method": "pathwise",
+      "task": "op_aco",
+      "path": "experiments/pathwise/results/op_aco/20260824_rerun_op_pathwise_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "initialization",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "222a3ce086bfdacad180214bb00e48251fa691027372a61c3424e678c8fc1df7"
+    },
+    {
+      "method": "calm",
+      "task": "op_aco",
+      "path": "experiments/calm/results/op_aco/20260824_rerun_op_calm_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": false,
+      "prompt_sha256": "3e82969b0f0eb1ae7d6803be360ba971c395bef31bb2bb0d2dd3c1da4a46335e",
+      "historical_full_template_first_matching_line": null,
+      "template_search_requests_read": 642
+    },
+    {
+      "method": "calm",
+      "task": "op_aco",
+      "path": "experiments/calm/results/op_aco/20260824_rerun_op_calm_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": false,
+      "prompt_sha256": "52b066c3791153fd3ced24a60ef9cb216ff7be4d93a0059f924dd98a83995077",
+      "historical_full_template_first_matching_line": null,
+      "template_search_requests_read": 681
+    },
+    {
+      "method": "calm",
+      "task": "op_aco",
+      "path": "experiments/calm/results/op_aco/20260824_rerun_op_calm_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": false,
+      "prompt_sha256": "b14aeffd9ef74fe3a734ec99e50c67cc9c61f06f729a1914b81fd5d25d18d514",
+      "historical_full_template_first_matching_line": null,
+      "template_search_requests_read": 633
+    },
+    {
+      "method": "eoh",
+      "task": "online_bin_packing",
+      "path": "experiments/eoh/results/online_bin_packing/20260824_rerun_obp_eoh_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "5ead467f47acde313409f46c4a678b51be5456776f3e92706d195be66c8c3d7b"
+    },
+    {
+      "method": "eoh",
+      "task": "online_bin_packing",
+      "path": "experiments/eoh/results/online_bin_packing/20260824_rerun_obp_eoh_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "5ead467f47acde313409f46c4a678b51be5456776f3e92706d195be66c8c3d7b"
+    },
+    {
+      "method": "eoh",
+      "task": "online_bin_packing",
+      "path": "experiments/eoh/results/online_bin_packing/20260824_rerun_obp_eoh_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "5ead467f47acde313409f46c4a678b51be5456776f3e92706d195be66c8c3d7b"
+    },
+    {
+      "method": "reevo",
+      "task": "online_bin_packing",
+      "path": "experiments/reevo/results/online_bin_packing/20260824_rerun_obp_reevo_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "8a2d391d9b127206360cd3fe1b9188e83d5f9df6722943c94341fab9b611b0f0"
+    },
+    {
+      "method": "reevo",
+      "task": "online_bin_packing",
+      "path": "experiments/reevo/results/online_bin_packing/20260824_rerun_obp_reevo_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "8a2d391d9b127206360cd3fe1b9188e83d5f9df6722943c94341fab9b611b0f0"
+    },
+    {
+      "method": "reevo",
+      "task": "online_bin_packing",
+      "path": "experiments/reevo/results/online_bin_packing/20260824_rerun_obp_reevo_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "8a2d391d9b127206360cd3fe1b9188e83d5f9df6722943c94341fab9b611b0f0"
+    },
+    {
+      "method": "mcts_ahd",
+      "task": "online_bin_packing",
+      "path": "experiments/mcts_ahd/results/online_bin_packing/20260824_rerun_obp_mcts_ahd_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "e9cda5aab408985e9863010b232d4037fbfa44b3fb418d4b9bfd1d4565c42b3c"
+    },
+    {
+      "method": "mcts_ahd",
+      "task": "online_bin_packing",
+      "path": "experiments/mcts_ahd/results/online_bin_packing/20260824_rerun_obp_mcts_ahd_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "e9cda5aab408985e9863010b232d4037fbfa44b3fb418d4b9bfd1d4565c42b3c"
+    },
+    {
+      "method": "mcts_ahd",
+      "task": "online_bin_packing",
+      "path": "experiments/mcts_ahd/results/online_bin_packing/20260824_rerun_obp_mcts_ahd_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "e9cda5aab408985e9863010b232d4037fbfa44b3fb418d4b9bfd1d4565c42b3c"
+    },
+    {
+      "method": "pathwise",
+      "task": "online_bin_packing",
+      "path": "experiments/pathwise/results/online_bin_packing/20260824_rerun_obp_pathwise_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "initialization",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "50f281d5af6e699d4f7183bdee6fcdc06278f9e432a98ffb92ce5fd05d38fb4b"
+    },
+    {
+      "method": "pathwise",
+      "task": "online_bin_packing",
+      "path": "experiments/pathwise/results/online_bin_packing/20260824_rerun_obp_pathwise_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "initialization",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "50f281d5af6e699d4f7183bdee6fcdc06278f9e432a98ffb92ce5fd05d38fb4b"
+    },
+    {
+      "method": "pathwise",
+      "task": "online_bin_packing",
+      "path": "experiments/pathwise/results/online_bin_packing/20260824_rerun_obp_pathwise_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "initialization",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": true,
+      "prompt_sha256": "50f281d5af6e699d4f7183bdee6fcdc06278f9e432a98ffb92ce5fd05d38fb4b"
+    },
+    {
+      "method": "calm",
+      "task": "online_bin_packing",
+      "path": "experiments/calm/results/online_bin_packing/20260824_rerun_obp_calm_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": false,
+      "prompt_sha256": "ebad0ed9d22711f0ef04a4d04de68b27c97de41c7f8af54adb00bee472fc77dc",
+      "historical_full_template_first_matching_line": null,
+      "template_search_requests_read": 805
+    },
+    {
+      "method": "calm",
+      "task": "online_bin_packing",
+      "path": "experiments/calm/results/online_bin_packing/20260824_rerun_obp_calm_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": false,
+      "prompt_sha256": "7cd0763cb3c98dd523f7377461b1d2d98046fdf8b0fedf8087c21a8ea7560341",
+      "historical_full_template_first_matching_line": null,
+      "template_search_requests_read": 950
+    },
+    {
+      "method": "calm",
+      "task": "online_bin_packing",
+      "path": "experiments/calm/results/online_bin_packing/20260824_rerun_obp_calm_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "historical_docstring_present": false,
+      "prompt_sha256": "96c3e97a53a6f68454075f2f6268d837ff843a65cf864db5f0d925ea994d6e28",
+      "historical_full_template_first_matching_line": null,
+      "template_search_requests_read": 870
+    },
+    {
+      "method": "eoh",
+      "task": "vrptw_construct",
+      "path": "experiments/eoh/results/vrptw_construct/20260822_142500_vrptw_eoh_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": false,
+      "historical_docstring_present": true,
+      "prompt_sha256": "0147dc91a09811446b7b1f7d7db09d4dba608ed213e20d1fe7ace12c2f5e555d"
+    },
+    {
+      "method": "eoh",
+      "task": "vrptw_construct",
+      "path": "experiments/eoh/results/vrptw_construct/20260822_142500_vrptw_eoh_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": false,
+      "historical_docstring_present": true,
+      "prompt_sha256": "0147dc91a09811446b7b1f7d7db09d4dba608ed213e20d1fe7ace12c2f5e555d"
+    },
+    {
+      "method": "eoh",
+      "task": "vrptw_construct",
+      "path": "experiments/eoh/results/vrptw_construct/20260822_142500_vrptw_eoh_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": false,
+      "historical_docstring_present": true,
+      "prompt_sha256": "0147dc91a09811446b7b1f7d7db09d4dba608ed213e20d1fe7ace12c2f5e555d"
+    },
+    {
+      "method": "reevo",
+      "task": "vrptw_construct",
+      "path": "experiments/reevo/results/vrptw_construct/20260822_142500_vrptw_reevo_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": false,
+      "historical_docstring_present": true,
+      "prompt_sha256": "eb01267252d60137f573a00af95c0927b87f1064d06855037537b8306111fcfe"
+    },
+    {
+      "method": "reevo",
+      "task": "vrptw_construct",
+      "path": "experiments/reevo/results/vrptw_construct/20260822_142500_vrptw_reevo_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": false,
+      "historical_docstring_present": true,
+      "prompt_sha256": "eb01267252d60137f573a00af95c0927b87f1064d06855037537b8306111fcfe"
+    },
+    {
+      "method": "reevo",
+      "task": "vrptw_construct",
+      "path": "experiments/reevo/results/vrptw_construct/20260822_142500_vrptw_reevo_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": false,
+      "historical_docstring_present": true,
+      "prompt_sha256": "eb01267252d60137f573a00af95c0927b87f1064d06855037537b8306111fcfe"
+    },
+    {
+      "method": "mcts_ahd",
+      "task": "vrptw_construct",
+      "path": "experiments/mcts_ahd/results/vrptw_construct/20260822_142500_vrptw_mcts_ahd_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": false,
+      "historical_docstring_present": true,
+      "prompt_sha256": "f24a646d5fdb0f4549834b3d3ed44039916edefc927de6f603ac92339b639581"
+    },
+    {
+      "method": "mcts_ahd",
+      "task": "vrptw_construct",
+      "path": "experiments/mcts_ahd/results/vrptw_construct/20260822_142500_vrptw_mcts_ahd_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": false,
+      "historical_docstring_present": true,
+      "prompt_sha256": "f24a646d5fdb0f4549834b3d3ed44039916edefc927de6f603ac92339b639581"
+    },
+    {
+      "method": "mcts_ahd",
+      "task": "vrptw_construct",
+      "path": "experiments/mcts_ahd/results/vrptw_construct/20260822_142500_vrptw_mcts_ahd_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": false,
+      "historical_docstring_present": true,
+      "prompt_sha256": "f24a646d5fdb0f4549834b3d3ed44039916edefc927de6f603ac92339b639581"
+    },
+    {
+      "method": "pathwise",
+      "task": "vrptw_construct",
+      "path": "experiments/pathwise/results/vrptw_construct/20260822_142500_vrptw_pathwise_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "initialization",
+      "historical_description_present": true,
+      "current_description_present": false,
+      "historical_docstring_present": true,
+      "prompt_sha256": "ddcb227fa2d3fb091b73e39cd250c6c9fd0e6a37e080349e39b33a18db333994"
+    },
+    {
+      "method": "pathwise",
+      "task": "vrptw_construct",
+      "path": "experiments/pathwise/results/vrptw_construct/20260822_142500_vrptw_pathwise_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "initialization",
+      "historical_description_present": true,
+      "current_description_present": false,
+      "historical_docstring_present": true,
+      "prompt_sha256": "ddcb227fa2d3fb091b73e39cd250c6c9fd0e6a37e080349e39b33a18db333994"
+    },
+    {
+      "method": "pathwise",
+      "task": "vrptw_construct",
+      "path": "experiments/pathwise/results/vrptw_construct/20260822_142500_vrptw_pathwise_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "initialization",
+      "historical_description_present": true,
+      "current_description_present": false,
+      "historical_docstring_present": true,
+      "prompt_sha256": "ddcb227fa2d3fb091b73e39cd250c6c9fd0e6a37e080349e39b33a18db333994"
+    },
+    {
+      "method": "calm",
+      "task": "vrptw_construct",
+      "path": "experiments/calm/results/vrptw_construct/20260822_142500_vrptw_calm_rep1/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": false,
+      "historical_docstring_present": false,
+      "prompt_sha256": "94180067ab6373d4b46582546231d89ca379e4088a65a877e48b60b94865abe6",
+      "historical_full_template_first_matching_line": null,
+      "template_search_requests_read": 436
+    },
+    {
+      "method": "calm",
+      "task": "vrptw_construct",
+      "path": "experiments/calm/results/vrptw_construct/20260822_142500_vrptw_calm_rep2/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": false,
+      "historical_docstring_present": false,
+      "prompt_sha256": "59c2b1904f3db153d24f9b1b45ae8283798a972d9430fc9b509090053dcaf154",
+      "historical_full_template_first_matching_line": null,
+      "template_search_requests_read": 476
+    },
+    {
+      "method": "calm",
+      "task": "vrptw_construct",
+      "path": "experiments/calm/results/vrptw_construct/20260822_142500_vrptw_calm_rep3/logs/llm_calls.jsonl",
+      "line": 1,
+      "stage": "generate",
+      "historical_description_present": true,
+      "current_description_present": false,
+      "historical_docstring_present": false,
+      "prompt_sha256": "a4958f247cfef612ee31cee157446b672293d363c44785f73077bf716d9047e7",
+      "historical_full_template_first_matching_line": null,
+      "template_search_requests_read": 536
+    }
+  ],
+  "v106_requests": [
+    {
+      "path": "experiments/traceaad_v10_6/results/tsp_construct/20260906_formal_tsp_v106_rep1/llm_calls.jsonl",
+      "task": "tsp_construct",
+      "historical_description_present": false,
+      "current_description_present": false,
+      "runtime_limit_present": true
+    },
+    {
+      "path": "experiments/traceaad_v10_6/results/tsp_construct/20260906_formal_tsp_v106_rep2/llm_calls.jsonl",
+      "task": "tsp_construct",
+      "historical_description_present": false,
+      "current_description_present": false,
+      "runtime_limit_present": true
+    },
+    {
+      "path": "experiments/traceaad_v10_6/results/tsp_construct/20260906_formal_tsp_v106_rep3/llm_calls.jsonl",
+      "task": "tsp_construct",
+      "historical_description_present": false,
+      "current_description_present": false,
+      "runtime_limit_present": true
+    },
+    {
+      "path": "experiments/traceaad_v10_6/results/cvrp_aco/20260906_formal_cvrp_v106_rep1/llm_calls.jsonl",
+      "task": "cvrp_aco",
+      "historical_description_present": false,
+      "current_description_present": false,
+      "runtime_limit_present": true
+    },
+    {
+      "path": "experiments/traceaad_v10_6/results/cvrp_aco/20260906_formal_cvrp_v106_rep2/llm_calls.jsonl",
+      "task": "cvrp_aco",
+      "historical_description_present": false,
+      "current_description_present": false,
+      "runtime_limit_present": true
+    },
+    {
+      "path": "experiments/traceaad_v10_6/results/cvrp_aco/20260906_formal_cvrp_v106_rep3/llm_calls.jsonl",
+      "task": "cvrp_aco",
+      "historical_description_present": false,
+      "current_description_present": false,
+      "runtime_limit_present": true
+    },
+    {
+      "path": "experiments/traceaad_v10_6/results/op_aco/20260906_formal_op_v106_rep1/llm_calls.jsonl",
+      "task": "op_aco",
+      "historical_description_present": false,
+      "current_description_present": false,
+      "runtime_limit_present": true
+    },
+    {
+      "path": "experiments/traceaad_v10_6/results/op_aco/20260906_formal_op_v106_rep2/llm_calls.jsonl",
+      "task": "op_aco",
+      "historical_description_present": false,
+      "current_description_present": false,
+      "runtime_limit_present": true
+    },
+    {
+      "path": "experiments/traceaad_v10_6/results/op_aco/20260906_formal_op_v106_rep3/llm_calls.jsonl",
+      "task": "op_aco",
+      "historical_description_present": false,
+      "current_description_present": false,
+      "runtime_limit_present": true
+    },
+    {
+      "path": "experiments/traceaad_v10_6/results/online_bin_packing/20260906_formal_obp_v106_rep1/llm_calls.jsonl",
+      "task": "online_bin_packing",
+      "historical_description_present": false,
+      "current_description_present": false,
+      "runtime_limit_present": true
+    },
+    {
+      "path": "experiments/traceaad_v10_6/results/online_bin_packing/20260906_formal_obp_v106_rep2/llm_calls.jsonl",
+      "task": "online_bin_packing",
+      "historical_description_present": false,
+      "current_description_present": false,
+      "runtime_limit_present": true
+    },
+    {
+      "path": "experiments/traceaad_v10_6/results/online_bin_packing/20260906_formal_obp_v106_rep3/llm_calls.jsonl",
+      "task": "online_bin_packing",
+      "historical_description_present": false,
+      "current_description_present": false,
+      "runtime_limit_present": true
+    },
+    {
+      "path": "experiments/traceaad_v10_6/results/vrptw_construct/20260906_formal_vrptw_v106_rep1/llm_calls.jsonl",
+      "task": "vrptw_construct",
+      "historical_description_present": false,
+      "current_description_present": false,
+      "runtime_limit_present": true
+    },
+    {
+      "path": "experiments/traceaad_v10_6/results/vrptw_construct/20260906_formal_vrptw_v106_rep2/llm_calls.jsonl",
+      "task": "vrptw_construct",
+      "historical_description_present": false,
+      "current_description_present": false,
+      "runtime_limit_present": true
+    },
+    {
+      "path": "experiments/traceaad_v10_6/results/vrptw_construct/20260906_formal_vrptw_v106_rep3/llm_calls.jsonl",
+      "task": "vrptw_construct",
+      "historical_description_present": false,
+      "current_description_present": false,
+      "runtime_limit_present": true
+    }
+  ],
+  "v104_v105_requests": [
+    {
+      "version": "10.4",
+      "task": "tsp_construct",
+      "path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep1/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.4",
+      "task": "tsp_construct",
+      "path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep2/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.4",
+      "task": "tsp_construct",
+      "path": "experiments/traceaad_v10_4/results/tsp_construct/20260904b_tsp_v104_rep3/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.4",
+      "task": "cvrp_aco",
+      "path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep1/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.4",
+      "task": "cvrp_aco",
+      "path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep2/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.4",
+      "task": "cvrp_aco",
+      "path": "experiments/traceaad_v10_4/results/cvrp_aco/20260904b_cvrp_v104_rep3/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.4",
+      "task": "op_aco",
+      "path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep1/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.4",
+      "task": "op_aco",
+      "path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep2/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.4",
+      "task": "op_aco",
+      "path": "experiments/traceaad_v10_4/results/op_aco/20260904b_op_v104_rep3/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.4",
+      "task": "online_bin_packing",
+      "path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep1/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.4",
+      "task": "online_bin_packing",
+      "path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep2/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.4",
+      "task": "online_bin_packing",
+      "path": "experiments/traceaad_v10_4/results/online_bin_packing/20260904b_obp_v104_rep3/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.4",
+      "task": "vrptw_construct",
+      "path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep1/llm_calls.jsonl",
+      "historical_description_present": false,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.4",
+      "task": "vrptw_construct",
+      "path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep2/llm_calls.jsonl",
+      "historical_description_present": false,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.4",
+      "task": "vrptw_construct",
+      "path": "experiments/traceaad_v10_4/results/vrptw_construct/20260904b_vrptw_v104_rep3/llm_calls.jsonl",
+      "historical_description_present": false,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.5",
+      "task": "tsp_construct",
+      "path": "experiments/traceaad_v10_5/results/tsp_construct/20260905_tsp_v105_rep1/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.5",
+      "task": "tsp_construct",
+      "path": "experiments/traceaad_v10_5/results/tsp_construct/20260905_tsp_v105_rep2/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.5",
+      "task": "tsp_construct",
+      "path": "experiments/traceaad_v10_5/results/tsp_construct/20260905_tsp_v105_rep3/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.5",
+      "task": "cvrp_aco",
+      "path": "experiments/traceaad_v10_5/results/cvrp_aco/20260905_cvrp_v105_rep1/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.5",
+      "task": "cvrp_aco",
+      "path": "experiments/traceaad_v10_5/results/cvrp_aco/20260905_cvrp_v105_rep2/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.5",
+      "task": "cvrp_aco",
+      "path": "experiments/traceaad_v10_5/results/cvrp_aco/20260905_cvrp_v105_rep3/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.5",
+      "task": "op_aco",
+      "path": "experiments/traceaad_v10_5/results/op_aco/20260905_op_v105_rep1/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.5",
+      "task": "op_aco",
+      "path": "experiments/traceaad_v10_5/results/op_aco/20260905_op_v105_rep2/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.5",
+      "task": "op_aco",
+      "path": "experiments/traceaad_v10_5/results/op_aco/20260905_op_v105_rep3/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.5",
+      "task": "online_bin_packing",
+      "path": "experiments/traceaad_v10_5/results/online_bin_packing/20260905_obp_v105_rep1/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.5",
+      "task": "online_bin_packing",
+      "path": "experiments/traceaad_v10_5/results/online_bin_packing/20260905_obp_v105_rep2/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.5",
+      "task": "online_bin_packing",
+      "path": "experiments/traceaad_v10_5/results/online_bin_packing/20260905_obp_v105_rep3/llm_calls.jsonl",
+      "historical_description_present": true,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.5",
+      "task": "vrptw_construct",
+      "path": "experiments/traceaad_v10_5/results/vrptw_construct/20260905_vrptw_v105_rep1/llm_calls.jsonl",
+      "historical_description_present": false,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.5",
+      "task": "vrptw_construct",
+      "path": "experiments/traceaad_v10_5/results/vrptw_construct/20260905_vrptw_v105_rep2/llm_calls.jsonl",
+      "historical_description_present": false,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    },
+    {
+      "version": "10.5",
+      "task": "vrptw_construct",
+      "path": "experiments/traceaad_v10_5/results/vrptw_construct/20260905_vrptw_v105_rep3/llm_calls.jsonl",
+      "historical_description_present": false,
+      "current_description_present": true,
+      "runtime_limit_present": false
+    }
+  ]
+}
