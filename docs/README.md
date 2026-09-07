@@ -8,6 +8,7 @@
 | --- | --- |
 | 查技能来源与安装状态 | [技能安装分类](skills.md) |
 | 理解研究问题 | [研究认识](knowledge/研究认识.md) |
+| 记录与推敲新构想 | [构想与假设](ideas/) |
 | 推敲生成与搜索机制 | [生成上下文经验](knowledge/生成上下文经验.md)、[预算分配经验](knowledge/预算分配经验.md)、[机制尝试](knowledge/TraceAAD机制尝试.md) |
 | 继续近期方法开发 | [V10.6 机制设计](methods/TraceAAD-V10.6完整机制设计.md)、[实现与运行](../experiments/traceaad_v10_6/README.md)；前版见[V10.5 机制设计](methods/TraceAAD-V10.5完整机制设计.md) |
 | 运行实验、确认配置 | [实验导航](../experiments/README.md) |
@@ -21,7 +22,7 @@
 
 ## 文档怎样使用和维护
 
-`knowledge/` 沉淀可复用的认识，`methods/` 记录版本设计，`experiments/` 与 `analysis/` 解释实验，`references/` 保存阅读笔记，`reports/` 面向论文和汇报，`worklog/` 记录过程。
+`ideas/` 孵化新构想与研究假设，`knowledge/` 沉淀可复用的认识，`methods/` 记录版本设计，`experiments/` 与 `analysis/` 解释实验，`references/` 保存阅读笔记，`reports/` 面向论文和汇报，`worklog/` 记录过程。
 
 历史文档保留当时的参数和判断；其中的“当前”“必须”等措辞只适用于该文档的版本和任务。提示词原文供分析实验模型使用，不是给科研协作者的指令。设计与运行不一致时，结合对应代码和运行配置判断原因。
 
