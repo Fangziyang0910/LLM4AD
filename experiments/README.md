@@ -4,6 +4,7 @@
 
 ## 近期开发
 
+- **E2-A机制分析**：[实验设计与结果](../docs/experiments/机制实验/2026-09-07-E2-A-轨迹状态与算子响应/结果.md)、[复现入口](traceaad_e2_a/README.md)。使用E1后的未见V10.6 suffix检验行为轨迹状态与Refine/Pivot响应；不修改在线机制。
 - **V10.6**：[机制设计](../docs/methods/TraceAAD-V10.6完整机制设计.md)、[运行与恢复](traceaad_v10_6/README.md)。先生成完整代码再生成实现摘要，父代先行分配；进度读取对应批次 manifest。
 - **V10.5**：[机制设计](../docs/methods/TraceAAD-V10.5完整机制设计.md)、[运行与恢复](traceaad_v10_5/README.md)、[启动记录](traceaad_v10_5/launch_20260905.md)。从批次 manifest 查看实际进度。
 - **V10.4**：[机制设计](../docs/methods/TraceAAD-V10.4完整机制设计.md)，运行入口 `traceaad_v10_4/run.py`、`launch.py`。
