@@ -74,7 +74,7 @@
 
 ## 1. Lineage landscape
 
-记作 \(G_L\)。
+记作 $G_L$。
 
 现有 BehaveSim 每个 run 只抽取了 32 或 128 个候选，很多候选的直接父代没有被抽中。因此不能只保留抽样节点之间的直接父子边，否则图会人为变得极稀疏。
 
@@ -89,15 +89,15 @@
 
 ## 2. BehaveSim landscape
 
-记作 \(G_B\)。
+记作 $G_B$。
 
-对每个候选连接 BehaveSim 距离最近的前 \(k\) 个候选，形成无向语义近邻图。
+对每个候选连接 BehaveSim 距离最近的前 $k$ 个候选，形成无向语义近邻图。
 
 主设置建议：
 
-\[
+$$
 k=\max\left(2,\left\lceil0.05(n-1)\right\rceil\right).
-\]
+$$
 
 也就是连接最近的约 5% 候选。额外用 2.5% 和 10% 做简单稳定性检查。
 
@@ -113,9 +113,9 @@ k=\max\left(2,\left\lceil0.05(n-1)\right\rceil\right).
 
 每个任务保留原始 fitness，同时在 run 内转换为“越大越好”的标准化值：
 
-\[
+$$
 z_i=\frac{f_i-\mu_f}{\sigma_f}.
-\]
+$$
 
 所有跨任务图使用标准化 fitness，任务内结果同时报告原始值。
 
@@ -131,7 +131,7 @@ z_i=\frac{f_i-\mu_f}{\sigma_f}.
 | 不同 lineage 落入同一语义簇的比例 | 搜索路线是否重复发现相同策略 |
 | 同一 lineage 跨越的语义簇数 | 单一路线是否真正改变策略 |
 
-因为 kNN 图的边数由 \(k\) 决定，不要把图密度作为主要发现。
+因为 kNN 图的边数由 $k$ 决定，不要把图密度作为主要发现。
 
 ## B. Fitness landscape 结构
 
@@ -139,21 +139,21 @@ z_i=\frac{f_i-\mu_f}{\sigma_f}.
 
 计算 BehaveSim 近邻之间的平均 fitness 差：
 
-\[
+$$
 L_B=\frac{1}{|E_B|}\sum_{(i,j)\in E_B}|z_i-z_j|.
-\]
+$$
 
-然后从所有非近邻候选对中抽取相同数量的随机对，计算 \(L_R\)。
+然后从所有非近邻候选对中抽取相同数量的随机对，计算 $L_R$。
 
 主要结果是：
 
-\[
+$$
 \Delta L=L_R-L_B.
-\]
+$$
 
-- \(\Delta L>0\)：语义近邻的 fitness 更接近，行为 landscape 较平滑；
-- \(\Delta L\approx0\)：BehaveSim 邻域没有形成 fitness 局部结构；
-- \(\Delta L<0\)：语义近邻反而更崎岖。
+- $\Delta L>0$：语义近邻的 fitness 更接近，行为 landscape 较平滑；
+- $\Delta L\approx0$：BehaveSim 邻域没有形成 fitness 局部结构；
+- $\Delta L<0$：语义近邻反而更崎岖。
 
 ### 2. 到最优算法的距离
 
@@ -164,11 +164,11 @@ L_B=\frac{1}{|E_B|}\sum_{(i,j)\in E_B}|z_i-z_j|.
 
 画出：
 
-\[
+$$
 d_B(A_i,A^\star)
 \quad\text{vs.}\quad
 f(A^\star)-f(A_i).
-\]
+$$
 
 如果距离越近、fitness gap 越小，说明最优算法周围存在语义 funnel。
 

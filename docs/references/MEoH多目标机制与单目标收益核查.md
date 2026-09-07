@@ -29,10 +29,10 @@
 
 它进入**选父概率与种群生存**。对于最小化目标，令 `i ≺ j` 表示 i Pareto 支配 j；只有至少一个严格更好、其余不差时才成立。论文定义：
 
-\[
+$$
 v_j=-\sum_{i\ne j}\mathbf 1[i\prec j]\operatorname{Sim}_{AST}(i,j),\qquad
 p_j=\frac{\exp(v_j)}{\sum_k\exp(v_k)}.
-\]
+$$
 
 `Sim_AST` 是代码 AST 匹配子树比例。论文所谓 dissimilarity 在这里用的是**负相似度**，不是 `1-Sim`；不能混淆符号。种群按 `v` 降序截断，选父用 softmax；主文“概率正比于 score”的简述应以附录明确算法为准。[§4.2、附录 A](/home/fang/code/LLM4AD/papers/MEoH/MEoH.tex:263)、[选父与生存伪代码](/home/fang/code/LLM4AD/papers/MEoH/MEoH.tex:501)。
 

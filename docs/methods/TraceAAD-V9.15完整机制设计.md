@@ -202,7 +202,7 @@ $$
 | **初生保护 $B(a, o)$** | 父代质量 $q(p)$、Refine 次数 $n_R$、任务尺度 $s_t$ | 初生 Explore 节点 | 给 Explore 新节点有界限、快衰减的生存宽限 |
 | **轨迹延续 $C_{\text{traj}}(a)$** | 祖先增益历史 $\Delta q$、头顶空间 $h(a)$ | 成长型上升分支 | 识别稳定上升期轨迹并追加投资；逼近最优时自然归零 (Investment) |
 | **算子调度 $\pi(o \mid \mathcal{H})$** | 停滞步数 $n_{\text{stag}}$ | 全局生成意图 | 动态平衡深挖与跨盆地结构重探索节奏 (Intent Modulation) |
-| **ESS 广度控制** | 候选池规模 $|\mathcal{T}_t|$ | 采样分布锐度 | 维持前 10% 候选池的稳定竞争广度，废除人工 UCB 加分 (Concentration Control) |
+| **ESS 广度控制** | 候选池规模 $\vert\mathcal{T}_t\vert$ | 采样分布锐度 | 维持前 10% 候选池的稳定竞争广度，废除人工 UCB 加分 (Concentration Control) |
 
 ### 5.2 核心超参数基准
 

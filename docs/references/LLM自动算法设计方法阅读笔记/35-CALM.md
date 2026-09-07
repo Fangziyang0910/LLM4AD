@@ -4,9 +4,9 @@
 
 ## 1. 核心问题与方法
 
-CALM 的主张不是单纯管理上下文，而是在进化式 AHD 中让“算法”和“LLM”共同更新。种群中每条启发式保存 idea、code、performance；每轮先选一个可行算子生成 prompt (q)，再从本地策略 \(\pi_\theta\) 采样 G 个 response，解析并评估后形成 prompt–response–performance triples。可行候选进入种群，奖励则用于 GRPO 在线更新 \(\pi_\theta\)，最终返回 best-so-far。论文用 INT4 Qwen2.5-7B-Instruct，只微调 1.15% 权重（§`sec:experiment`）。
+CALM 的主张不是单纯管理上下文，而是在进化式 AHD 中让“算法”和“LLM”共同更新。种群中每条启发式保存 idea、code、performance；每轮先选一个可行算子生成 prompt (q)，再从本地策略 $\pi_\theta$ 采样 G 个 response，解析并评估后形成 prompt–response–performance triples。可行候选进入种群，奖励则用于 GRPO 在线更新 $\pi_\theta$，最终返回 best-so-far。论文用 INT4 Qwen2.5-7B-Instruct，只微调 1.15% 权重（§`sec:experiment`）。
 
-该闭环有两层指导。verbal guidance 是 prompt/种群层：初始化；injection 用已保存的组件摘要注入新组件；replacement 按三类指令重写局部；crossover 一半按性能、另一半以 idea-token 新颖性配对；simplification 消除反复改写造成的冗余。发生停滞时，collapse 只保留初始 seed 与当前最好启发式再重启种群，触发由 \(c_n\delta_0\) 的增长概率和硬上限 C 决定。numerical guidance 是 GRPO：不可行输出按缺 idea、缺 code、格式错误、运行/超时、随机性给层级负奖励；可行输出相对 prompt 中最优父代计分，复制已有性能被惩罚、退化按相对差距惩罚、超越父代得到正奖励。
+该闭环有两层指导。verbal guidance 是 prompt/种群层：初始化；injection 用已保存的组件摘要注入新组件；replacement 按三类指令重写局部；crossover 一半按性能、另一半以 idea-token 新颖性配对；simplification 消除反复改写造成的冗余。发生停滞时，collapse 只保留初始 seed 与当前最好启发式再重启种群，触发由 $c_n\delta_0$ 的增长概率和硬上限 C 决定。numerical guidance 是 GRPO：不可行输出按缺 idea、缺 code、格式错误、运行/超时、随机性给层级负奖励；可行输出相对 prompt 中最优父代计分，复制已有性能被惩罚、退化按相对差距惩罚、超越父代得到正奖励。
 
 ## 2. 论文宣称的机制贡献（逐项）
 
@@ -22,7 +22,7 @@ CALM 的主张不是单纯管理上下文，而是在进化式 AHD 中让“算�
 |完整 CALM 的端到端性能|Tables `tab:obp`、`tab:tsp`、`tab:cvrp_op`，均三次运行平均|直接支持（整法有效性）|匹配协议下的整法比较直接支持完整 CALM 方案在所测基准上的端到端有效性；不能顺带给任何单一机制分配全部功劳（需结合消融表）。|
 |GRPO 是该配方的关键部分|Table `tab:ablation` 的 `local, w/o GRPO`，OBP 1.78%、OP 19.89%，相对 CALM local w/ GRPO 的 0.71%、17.41% 是表中最大退化|部分支持|这是同一本地模型配方中关闭 GRPO 的直接对照；仍随 GRPO 一起去除了在线参数更新，不能分离优化器与训练数据闭环。|
 |提出的相对/复制惩罚 reward 优于两种替代|Table `tab:ablation` 的 `rew∈{0.5r_rand,1}` 与 `rew=performance`|部分支持|两变体保持不可行惩罚，但同时移除了复制惩罚/改变质量归因；支持完整 reward 设计优于这两种替代，不能逐项证明每个 reward term。|
-|collapse 有益且触发过早有害|Table `tab:ablation` 的 `w/o Collapse` 与四组 \(\delta_0,C\)；§Discussion “Impact of collapse”|部分支持|无 collapse 和参数敏感性均有同任务数值；最严格的 \(0.005,15\) 明显退化，说明不是“越频繁越好”。|
+|collapse 有益且触发过早有害|Table `tab:ablation` 的 `w/o Collapse` 与四组 $\delta_0,C$；§Discussion “Impact of collapse”|部分支持|无 collapse 和参数敏感性均有同任务数值；最严格的 $0.005,15$ 明显退化，说明不是“越频繁越好”。|
 |各 verbal operator 及多样性交叉有贡献|Table `tab:ablation` 的 `w/o diversity`、`w/o crossover`、`w/o injection`、`w/o replacement`、`w/o simplification`|部分支持|它逐个移除五个操作/选择规则，在 OBP、OP 上均劣于完整 CALM；删除算子也改变了可行动作空间，故不等同于独立语义原理的普遍证明。|
 |GRPO 训练过程中赶超 API 基线|Fig. `fig:training-curve`|间接支持|三次平均 best-heuristic 曲线是过程证据；它与表中消融共同支持训练有效，但不能替代受控组件结论。|
 
