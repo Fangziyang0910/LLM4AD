@@ -1,107 +1,34 @@
-"""V10.6 task, operator, and history prompts with one Idea-and-Code output."""
+"""V10.7 task-specific evidence prompts with one Idea-and-Code output."""
 
-from dataclasses import dataclass
 import hashlib
+import io
+import re
+import tokenize
 
-from llm4ad.method.traceaad_v10_5.prompts import PromptBuilder as BaseBuilder, formation_events
+from llm4ad.method.traceaad_v10_5.prompts import PromptBuilder as BaseBuilder
 from llm4ad.method.traceaad_v10_6.prompts import (
-    HISTORY_GUIDANCE, INSTRUCTIONS, OUTPUT, build_task_contract,
+    INSTRUCTIONS, OUTPUT as BASE_OUTPUT, build_task_contract,
 )
 
-GENERATION = 'idea_code_single_call'
-TEMPLATE_HASH = hashlib.sha256(
-    (HISTORY_GUIDANCE + str(INSTRUCTIONS) + OUTPUT).encode()
-).hexdigest()
-
-
-@dataclass(frozen=True)
-class Prompt:
-    text: str
-    tokens: int
-    history_ids: tuple[int, ...]
-    omissions: tuple[str, ...]
-    history_tokens: int
-
-
-class PromptBuilder(BaseBuilder):
-    def __init__(self, *args, lookup=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.lookup = lookup or (lambda _: None)
-
-    def render_history(self, events):
-        lines = ['# Development History', HISTORY_GUIDANCE]
-        for index, (child, parent) in enumerate(events, 1):
-            donor = self.lookup(child.donor_id) if child.donor_id is not None else None
-            text = f'Step {index}\nPrevious version fitness: {parent.fitness}\n'
-            if donor is not None:
-                text += f'Reference algorithm fitness: {donor.fitness}\n'
-            text += f'Resulting version fitness: {child.fitness}\nIdea: {child.idea}'
-            lines.append(text)
-        return '\n\n'.join(lines)
-
-    def assemble(self, current, operator, donor, events, omitted=None):
-        omitted = omitted or set()
-        parts = [self.task_contract]
-        for title, node, show_idea in [
-            ('Current Algorithm', current, current is not None and current.parent_id is None),
-            ('Reference Algorithm', donor, True),
-        ]:
-            if node is None:
-                continue
-            text = f'# {title}\nFitness: {node.fitness}\n\n```python\n{self._code(node)}\n```'
-            if show_idea and node.id not in omitted:
-                text += '\nIdea: ' + node.idea
-            parts.append(text)
-        if events:
-            parts.append(self.render_history(events))
-        parts.append('# Algorithm Design Task\n' + INSTRUCTIONS[operator])
-        parts.append('# Output\n' + OUTPUT)
-        return '\n\n\n'.join(parts)
-
-    def fits(self, current, operator, donor=None):
-        omitted = {node.id for node in [current, donor] if node is not None}
-        return self.count(
-            self.assemble(current, operator, donor, [], omitted), chat=True
-        ) <= self.max_tokens
-
-    def build(self, current, ancestors, operator, donor=None):
-        events = formation_events(current, ancestors, self.max_events)
-        reasons, omitted = [], set()
-        while events and self.count(self.render_history(events)) > self.history_tokens:
-            reasons.append(f'history_budget:{events.pop(0)[0].id}')
-        while True:
-            text = self.assemble(current, operator, donor, events, omitted)
-            tokens = self.count(text, chat=True)
-            if tokens <= self.max_tokens:
-                break
-            if events:
-                reasons.append(f'context_budget:{events.pop(0)[0].id}')
-                continue
-            candidate = next(
-                (node for node in [donor, current]
-                 if node is not None and node.id not in omitted
-                 and (node is donor or node.parent_id is None)),
-                None,
-            )
-            if candidate is None:
-                raise ValueError('minimum complete prompt exceeds the model context budget')
-            omitted.add(candidate.id)
-            reasons.append(f'context_idea:{candidate.id}')
-        return Prompt(
-            text, tokens, tuple(node.id for node, _ in events), tuple(reasons),
-            self.count(self.render_history(events)) if events else 0,
-        )
+GENERATION = 'idea_code_single_call_self_contained_v1'
+TEMPORARY_REFERENCE_RE = re.compile(r'(?i)\bAlgorithm\s+\d+\b|算法\s*\d+')
+OUTPUT = BASE_OUTPUT + (
+    '\nThe Idea must stand on its own: state this algorithm\'s main decision rule and key '
+    'computation without referring to Algorithm numbers or temporary display positions.'
+)
 
 
 TRAJECTORY_INSTRUCTIONS = {
     'Init': INSTRUCTIONS['Init'],
-    'Refine': "Build on Algorithm {parent}'s main idea to design an improved version. "
-              'Compare the supplied implementations and adapt useful parts into a coherent algorithm.',
-    'Pivot': 'Use the supplied algorithms and their evaluation results to design an alternative '
-             'main decision method for this task. Select useful parts and implement a complete algorithm.',
-    'Fuse': 'Combine Algorithm {parent} and Algorithm {donor} as the main inputs. '
-            'Use the other supplied algorithms as additional references. Select and adapt compatible '
-            'computations into a coherent algorithm, retaining, replacing or reorganizing parts as useful.',
+    'Refine': "Use Algorithm {parent} as the design base and test one main improvement hypothesis. "
+              'Use the supplied contrast to judge what should change, while preserving unrelated '
+              'effective computation unless the hypothesis requires a supporting change.',
+    'Pivot': 'Use Algorithm {parent} as the comparison baseline, but do not inherit it by default. '
+             'Design a competitive alternative main decision method, making a substantive decision '
+             'change rather than a cosmetic formula rewrite.',
+    'Fuse': 'Use Algorithm {parent} as the design base and Algorithm {donor} as the transfer source. '
+            'Adapt compatible computation into one coherent algorithm and aim to improve on the best '
+            'input. Other supplied material is contrast evidence, not another required parent.',
 }
 TRAJECTORY_OUTPUT = OUTPUT + '\nKeep the Idea within 100 words.'
 IDEA_TOKENS = 256
@@ -110,47 +37,87 @@ TRAJECTORY_TEMPLATE_HASH = hashlib.sha256(
 ).hexdigest()
 
 
-class TrajectoryBuilder(PromptBuilder):
+class TrajectoryBuilder(BaseBuilder):
     def idea_view(self, node):
         if not hasattr(self, '_idea_views'):
             self._idea_views = {}
         if node.id not in self._idea_views:
-            self._idea_views[node.id] = (node.idea if self.count(node.idea) <= IDEA_TOKENS else '')
+            if TEMPORARY_REFERENCE_RE.search(node.idea):
+                self._idea_views[node.id] = ('', 'temporary_algorithm_reference')
+            elif self.count(node.idea) > IDEA_TOKENS:
+                self._idea_views[node.id] = ('', 'idea_token_limit')
+            else:
+                self._idea_views[node.id] = (node.idea, None)
         return self._idea_views[node.id]
 
-    def program_text(self, node, index, omit_idea=False):
-        idea = '' if omit_idea else self.idea_view(node)
-        return (f'Algorithm {index}\nFitness: {node.fitness}\nIdea: {idea}\n'
-                f'Code:\n```python\n{node.code}\n```')
+    def code_view(self, node):
+        if not hasattr(self, '_code_views'):
+            self._code_views = {}
+        if node.id not in self._code_views:
+            removed = 0
+            try:
+                tokens = []
+                for token in tokenize.generate_tokens(io.StringIO(node.code).readline):
+                    if token.type == tokenize.COMMENT and TEMPORARY_REFERENCE_RE.search(token.string):
+                        token = tokenize.TokenInfo(token.type, '', token.start, token.end, token.line)
+                        removed += 1
+                    tokens.append(token)
+                view = tokenize.untokenize(tokens)
+            except (IndentationError, tokenize.TokenError):
+                view, removed = node.code, 0
+            self._code_views[node.id] = view, removed
+        return self._code_views[node.id]
 
-    def trajectory(self, parent, references, operator):
+    def program_text(self, node, index, role, omit_idea=False):
+        idea, idea_reason = self.idea_view(node)
+        omissions = []
+        if omit_idea and idea:
+            idea, idea_reason = '', 'context_budget'
+        if idea_reason:
+            omissions.append({'node_id': node.id, 'kind': 'idea', 'reason': idea_reason})
+        code, removed_comments = self.code_view(node)
+        if removed_comments:
+            omissions.append({
+                'node_id': node.id, 'kind': 'code_comment',
+                'reason': 'temporary_algorithm_reference', 'count': removed_comments,
+            })
+        return (f'Algorithm {index}\nRole: {role}\nFitness: {node.fitness}\nIdea: {idea}\n'
+                f'Code:\n```python\n{code}\n```'), omissions
+
+    def trajectory(self, parent, references, operator, donor=None, roles=None):
         nodes = sorted(([parent] if parent is not None else []) + list(references),
                        key=lambda node: (node.fitness, node.id))
-        donor = max(references, key=lambda node: (node.fitness, -node.id)) if references and operator == 'Fuse' else None
         executed = 'Refine' if operator == 'Fuse' and donor is None else operator
         positions = {node.id: index for index, node in enumerate(nodes, 1)}
+        roles = roles or {}
         instruction = TRAJECTORY_INSTRUCTIONS[executed].format(
             parent=positions.get(parent.id) if parent else None,
             donor=positions.get(donor.id) if donor else None,
         )
-        blocks = [self.program_text(node, index) for index, node in enumerate(nodes, 1)]
+        def render(omit_idea=False):
+            rendered = [self.program_text(
+                node, index, roles.get(node.id, 'evidence_reference'), omit_idea,
+            ) for index, node in enumerate(nodes, 1)]
+            return [item[0] for item in rendered], [entry for item in rendered for entry in item[1]]
+        blocks, omissions = render()
         def assemble():
             parts = [self.task_contract]
             if blocks:
-                parts.append('# Algorithm Trajectory\n\n' + '\n\n'.join(blocks))
+                parts.append('# Design Evidence\n\n' + '\n\n'.join(blocks))
             parts.extend(['# Algorithm Design Task\n' + instruction, '# Output\n' + TRAJECTORY_OUTPUT])
             return '\n\n\n'.join(parts)
         text = assemble()
         if self.count(text, chat=True) > self.max_tokens:
             # Auxiliary design prose must not exclude otherwise fitting code.
-            blocks = [self.program_text(node, index, omit_idea=True)
-                      for index, node in enumerate(nodes, 1)]
+            blocks, omissions = render(omit_idea=True)
             text = assemble()
-        return text, nodes, donor, executed, blocks
+        return text, nodes, donor, executed, blocks, omissions
 
-    def fits_references(self, parent, references, operator):
-        text, *_ = self.trajectory(parent, references, operator)
+    def fits_references(self, parent, references, operator, donor=None, roles=None):
+        text, *_ = self.trajectory(parent, references, operator, donor, roles)
         return self.count(text, chat=True) <= self.max_tokens
 
     def fits(self, current, operator, donor=None):
-        return self.fits_references(current, [donor] if donor else [], operator)
+        return self.fits_references(
+            current, [donor] if donor else [], operator, donor,
+        )

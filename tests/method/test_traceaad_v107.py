@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from llm4ad.base import Evaluation
 from llm4ad.method.traceaad_v10_5.traceaad import read_journal
-from llm4ad.method.traceaad_v10_7.prompts import PromptBuilder
+from llm4ad.method.traceaad_v10_7.prompts import TrajectoryBuilder
 from llm4ad.method.traceaad_v10_7.traceaad import TraceAADV107
 
 
@@ -46,8 +48,19 @@ def response(value=1, idea='Implemented idea.'):
 def method(path, llm, **kwargs):
     return TraceAADV107(
         evaluation=TinyEvaluation(), llm=llm, run_dir=path,
-        **{'budget': 1, 'n_roots': 1, 'context_policy': 'ancestor_history', **kwargs},
+        **{'budget': 1, 'n_roots': 1, **kwargs},
     )
+
+
+def test_prompt_requests_only_idea_and_code():
+    builder = TrajectoryBuilder(
+        FakeLLM(), 'TASK', max_tokens=1000, history_tokens=8, max_events=0,
+    )
+    text, _, _, _, _, _ = builder.trajectory(None, [], 'Init')
+    assert 'Idea:' in text and '```python' in text
+    assert 'Implementation Summary' not in text
+    assert 'approximately 500 words' not in text
+    assert 'without referring to Algorithm numbers' in text
 
 
 def test_one_call_stores_idea_and_removes_second_call_fields(tmp_path):
@@ -60,7 +73,8 @@ def test_one_call_stores_idea_and_removes_second_call_fields(tmp_path):
     assert runner.tree.best().idea == 'Return the constant seven.'
     state = json.loads(runner.state_path.read_text())
     assert state['version'] == 107
-    assert state['mechanism']['generation'] == 'idea_code_single_call'
+    assert state['mechanism']['generation'] == 'idea_code_single_call_self_contained_v1'
+    assert state['mechanism']['context_policy'] == 'task_evidence_v1'
     assert 'summary_tokens' not in state['mechanism']
 
     call = read_journal(runner.llm_calls_path)[0]
@@ -89,6 +103,11 @@ def test_next_prompt_uses_first_call_idea_and_v106_history_shape(tmp_path):
     assert [node.idea for node in runner.tree.all_nodes()] == ['Root idea.', 'Child idea.']
 
 
+def test_max_context_programs_is_bounded(tmp_path):
+    with pytest.raises(ValueError, match='max_context_programs'):
+        method(tmp_path, FakeLLM(), max_context_programs=4)
+
+
 def test_closed_idea_and_code_at_length_limit_are_still_evaluated(tmp_path):
     llm = FakeLLM({'content': response(3), 'finish_reason': 'length'})
     runner = method(tmp_path, llm)
@@ -96,13 +115,3 @@ def test_closed_idea_and_code_at_length_limit_are_still_evaluated(tmp_path):
 
     assert runner.tree.best().fitness == 3
     assert len(llm.calls) == len(read_journal(runner.evaluations_path)) == 1
-
-
-def test_prompt_requests_only_idea_and_code():
-    builder = PromptBuilder(
-        FakeLLM(), 'TASK', max_tokens=1000, history_tokens=8192, max_events=8,
-    )
-    prompt = builder.build(None, [], 'Init')
-    assert 'Idea: <design idea>' in prompt.text
-    assert 'Implementation Summary' not in prompt.text
-    assert 'approximately 500 words' not in prompt.text

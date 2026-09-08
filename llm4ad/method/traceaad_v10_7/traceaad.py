@@ -1,4 +1,4 @@
-"""V10.7 removes V10.6's independent implementation-Idea call."""
+"""V10.7 organizes archived evidence by the requested design task."""
 
 from __future__ import annotations
 
@@ -25,28 +25,25 @@ class TraceAADV107(TraceAADV106):
     METHOD = 'v107'
 
     def __init__(self, *, history_tokens=8192, task_name=None,
-                 context_policy='sampled_trajectory_v1', max_context_programs=3, **kwargs):
-        if context_policy not in sampling.CONTEXT_POLICIES:
-            raise ValueError('unknown context policy')
-        if not isinstance(max_context_programs, int) or max_context_programs < 1:
-            raise ValueError('max_context_programs must be a positive integer')
-        self.context_policy = context_policy
+                 max_context_programs=3, **kwargs):
+        if not isinstance(max_context_programs, int) or not 1 <= max_context_programs <= 3:
+            raise ValueError('max_context_programs must be 1, 2 or 3')
         self.max_context_programs = max_context_programs
         TraceAADV105.__init__(self, history_tokens=history_tokens, **kwargs)
+        self.implementation_attempt_counts = {}
+        self.generation_condition_counts = {}
         self.task_contract = prompts.build_task_contract(self.evaluation)
-        builder_class = (prompts.PromptBuilder if context_policy == 'ancestor_history'
-                         else prompts.TrajectoryBuilder)
-        self.builder = builder_class(
+        self.builder = prompts.TrajectoryBuilder(
             self.llm, self.task_contract, max_tokens=self.builder.max_tokens,
             history_tokens=history_tokens, max_events=self.traj_gens,
-            lookup=self.tree.nodes.get,
             log_count=lambda record: self._append_record(
                 self.run_dir / 'tokenizer_calls.jsonl', record
             ),
         )
         self.mechanism.update(
             task_name=task_name, generation=prompts.GENERATION,
-            context_policy=context_policy, max_context_programs=max_context_programs,
+            context_policy=sampling.CONTEXT_POLICY,
+            max_context_programs=max_context_programs,
             reference_fit_attempts=sampling.MAX_FIT_ATTEMPTS,
             task_contract_hash=hashlib.sha256(self.task_contract.encode()).hexdigest(),
         )
@@ -60,6 +57,19 @@ class TraceAADV107(TraceAADV106):
 
     def _log_call(self, record):
         TraceAADV105._log_call(self, record)
+
+    @staticmethod
+    def _code_hash(node):
+        return hashlib.sha256(node.code.encode()).hexdigest() if node is not None else None
+
+    @staticmethod
+    def _roles(parent, references, operator, donor=None, extra=None):
+        roles = {parent.id: ('comparison_baseline' if operator == 'Pivot' else 'design_base')}
+        roles.update({node.id: 'evidence_reference' for node in references})
+        roles.update({int(node_id): role for node_id, role in (extra or {}).items()})
+        if donor is not None:
+            roles[donor.id] = 'transfer_source'
+        return roles
 
     def _schedule(self):
         scheduling_started = time.monotonic()
@@ -87,50 +97,61 @@ class TraceAADV107(TraceAADV106):
                 parent_route='joint_marginal', parent_probability=marginal[index],
                 parent_count_before=count,
             )
-            if requested == 'Fuse' and self.context_policy == 'ancestor_history':
-                donors = self.fitting_donors(parent)
-                if donors:
-                    donor = self.rng.choice(donors)
-                else:
-                    operator = 'Refine'
-                    selection['fallback_reason'] = 'no fitting cross-lineage donor'
-        if self.context_policy == 'ancestor_history':
-            ancestors = self.tree.ancestors(parent.id) if parent else []
-            prompt = self.builder.build(parent, ancestors, operator, donor)
-            prompt_text, prompt_tokens = prompt.text, prompt.tokens
-            context = {'history_ids': prompt.history_ids, 'history_tokens': prompt.history_tokens,
-                       'context_omissions': prompt.omissions}
-            template_hash = prompts.TEMPLATE_HASH
-        else:
-            references, context = [], {}
-            sampling_started = time.monotonic()
-            if parent is not None:
-                references, context = sampling.sample_references(
-                    self.tree.all_nodes(), parent, self.rng,
-                    limit=self.max_context_programs - 1, policy=self.context_policy,
-                    fits=lambda refs: self.builder.fits_references(parent, refs, requested),
+        references, context = [], {}
+        roles = {}
+        sampling_started = time.monotonic()
+        if parent is not None:
+            def fits(refs, proposed_donor, extra_roles):
+                prompt_roles = self._roles(
+                    parent, refs, requested, proposed_donor, extra_roles,
                 )
-            prompt_text, programs, donor, operator, blocks = self.builder.trajectory(
-                parent, references, requested,
+                return self.builder.fits_references(
+                    parent, refs, requested, proposed_donor, prompt_roles,
+                )
+            references, donor, context = sampling.sample_task_evidence(
+                self.tree.all_nodes(), parent, self.rng, operator=requested,
+                limit=self.max_context_programs - 1, fits=fits,
             )
-            prompt_tokens = self.builder.count(prompt_text, chat=True)
-            if prompt_tokens > self.builder.max_tokens:
-                raise ValueError('minimum complete prompt exceeds the model context budget')
-            if requested == 'Fuse' and operator == 'Refine':
-                selection['fallback_reason'] = 'no fitting distinct-code reference'
-            context.update(
-                sampling_seconds=time.monotonic() - sampling_started,
-                context_node_ids=[node.id for node in programs],
-                context_program_count=len(programs),
-                context_program_tokens=[self.builder.count(block) for block in blocks],
-                context_parent_index=next((i for i, node in enumerate(programs, 1)
-                                           if node.id == parent.id), None) if parent else None,
-                context_donor_index=next((i for i, node in enumerate(programs, 1)
-                                          if node.id == donor.id), None) if donor else None,
+            roles = self._roles(
+                parent, references, requested, donor, context.get('reference_roles'),
             )
-            template_hash = prompts.TRAJECTORY_TEMPLATE_HASH
+        prompt_text, programs, donor, operator, blocks, view_omissions = self.builder.trajectory(
+            parent, references, requested, donor, roles,
+        )
+        prompt_tokens = self.builder.count(prompt_text, chat=True)
+        if prompt_tokens > self.builder.max_tokens:
+            raise ValueError('minimum complete prompt exceeds the model context budget')
+        if requested == 'Fuse' and operator == 'Refine':
+            selection['fallback_reason'] = 'no fitting distinct-code reference'
+        context.update(
+            sampling_seconds=time.monotonic() - sampling_started,
+            context_node_ids=[node.id for node in programs],
+            context_program_count=len(programs),
+            context_program_tokens=[self.builder.count(block) for block in blocks],
+            context_program_roles=[roles.get(node.id, 'evidence_reference') for node in programs],
+            context_parent_index=next((i for i, node in enumerate(programs, 1)
+                                       if node.id == parent.id), None) if parent else None,
+            context_donor_index=next((i for i, node in enumerate(programs, 1)
+                                      if node.id == donor.id), None) if donor else None,
+            context_view_omissions=view_omissions,
+        )
+        template_hash = prompts.TRAJECTORY_TEMPLATE_HASH
+        context_nodes = programs
+        parent_code_hash = self._code_hash(parent)
+        context.update(
+            context_best_fitness=max((node.fitness for node in context_nodes), default=None),
+            parent_code_hash=parent_code_hash,
+            donor_code_hash=self._code_hash(donor),
+            context_code_hashes=[self._code_hash(node) for node in context_nodes],
+        )
         context.update(scheduling_seconds=time.monotonic() - scheduling_started,
                        tokenizer_requests=len(self.builder._counts) - counts_before)
+        prompt_hash = hashlib.sha256(prompt_text.encode()).hexdigest()
+        parent_attempt_before = self.implementation_attempt_counts.get(parent_code_hash, 0)
+        if parent_code_hash is not None:
+            self.implementation_attempt_counts[parent_code_hash] = parent_attempt_before + 1
+        prompt_repeat_before = self.generation_condition_counts.get(prompt_hash, 0)
+        self.generation_condition_counts[prompt_hash] = prompt_repeat_before + 1
         return {
             'candidate_id': self.completed_attempts + 1, 'phase': 'selected',
             'requested_operator': requested, 'operator': operator,
@@ -141,8 +162,11 @@ class TraceAADV107(TraceAADV106):
             'donor_fitness': donor.fitness if donor else None,
             'best_before': self.tree.best().fitness if self.tree.nodes else None,
             'prompt': prompt_text, 'prompt_tokens': prompt_tokens,
-            'prompt_hash': hashlib.sha256(prompt_text.encode()).hexdigest(),
-            'template_hash': template_hash, 'context_policy': self.context_policy,
+            'prompt_hash': prompt_hash,
+            'parent_implementation_attempt_before': parent_attempt_before,
+            'prompt_repeat_before': prompt_repeat_before,
+            'template_hash': template_hash,
+            'context_policy': sampling.CONTEXT_POLICY,
             **context,
             'rng_state': list(self.rng.getstate()), 'llm_attempts': 0,
         }
@@ -194,12 +218,16 @@ class TraceAADV107(TraceAADV106):
             llm_seconds=response['seconds'], node_id=node.id if node else None,
             fitness=node.fitness if node else None,
         )
+        if parsed is not None:
+            record['code_hash'] = hashlib.sha256(parsed[1].encode()).hexdigest()
         if node is not None and pending['parent_id'] is not None:
             record.update(
                 parent_improved=node.fitness > pending['parent_fitness'],
                 frontier_improved=node.fitness > pending['best_before'],
+                context_improved=node.fitness > pending['context_best_fitness'],
                 parent_delta=node.fitness - pending['parent_fitness'],
                 frontier_delta=node.fitness - pending['best_before'],
+                context_delta=node.fitness - pending['context_best_fitness'],
             )
             if pending['donor_id'] is not None:
                 baseline = max(pending['parent_fitness'], pending['donor_fitness'])
@@ -220,6 +248,8 @@ class TraceAADV107(TraceAADV106):
             'version': 107, 'mechanism': self.mechanism, 'started_at': self.started_at,
             'nodes': self.tree.to_state(), 'rng_state': list(self.rng.getstate()),
             'parent_selection_counts': self.parent_selection_counts,
+            'implementation_attempt_counts': self.implementation_attempt_counts,
+            'generation_condition_counts': self.generation_condition_counts,
             'step_counter': self.step_counter, 'batch_counter': self.step_counter,
             'budget_used': self.budget_used, 'completed_attempts': self.completed_attempts,
             'invalid_streak': self._invalid_streak,
@@ -230,6 +260,8 @@ class TraceAADV107(TraceAADV106):
         if state.get('version') != 107 or state.get('mechanism') != self.mechanism:
             raise ValueError('checkpoint mechanism/source/backend differs from this V10.7 configuration')
         TraceAADV103._load_state(self)
+        self.implementation_attempt_counts = state['implementation_attempt_counts']
+        self.generation_condition_counts = state['generation_condition_counts']
         self.completed_attempts = state['completed_attempts']
         self._invalid_streak = state['invalid_streak']
         if self.pending_path.exists():
@@ -246,6 +278,14 @@ class TraceAADV107(TraceAADV106):
                 self.parent_selection_counts[pending['parent_id']] = (
                     pending['selection']['parent_count_before'] + 1
                 )
+            parent_hash = pending['parent_code_hash']
+            if parent_hash is not None:
+                self.implementation_attempt_counts[parent_hash] = (
+                    pending['parent_implementation_attempt_before'] + 1
+                )
+            self.generation_condition_counts[pending['prompt_hash']] = (
+                pending['prompt_repeat_before'] + 1
+            )
 
     def run(self) -> None:
         self.run_dir.mkdir(parents=True, exist_ok=True)

@@ -1,9 +1,14 @@
-"""Sample complete archived records; scores define coverage, not algorithm classes."""
+"""Select complete archived records for a concrete algorithm-design task."""
 
+import ast
+from functools import lru_cache
 import math
 
-CONTEXT_POLICIES = ('ancestor_history', 'uniform_trajectory_v1', 'sampled_trajectory_v1')
 MAX_FIT_ATTEMPTS = 32
+
+#: The only context mechanism. Kept as an explicit identity in checkpoints,
+#: events and manifests; retired policies are not valid values.
+CONTEXT_POLICY = 'task_evidence_v1'
 
 
 def quality_layers(nodes):
@@ -26,54 +31,125 @@ def quality_layers(nodes):
     }, [lower, upper]
 
 
-def sample_references(nodes, parent, rng, *, limit, policy, fits):
-    if limit == 0:
-        return [], {'quality_boundaries': [], 'reference_layers': {},
-                    'reference_fit_rejections': [], 'reference_attempts': [],
-                    'reference_shortfall': 0}
+@lru_cache(maxsize=None)
+def structure_signature(code):
+    """A conservative control-structure hint, never a semantic identity claim."""
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return None
+    structural = (
+        ast.FunctionDef, ast.AsyncFunctionDef, ast.For, ast.AsyncFor, ast.While,
+        ast.If, ast.Try, ast.With, ast.AsyncWith, ast.Match, ast.ListComp,
+        ast.SetComp, ast.DictComp, ast.GeneratorExp,
+    )
+    return tuple(type(item).__name__ for item in ast.walk(tree) if isinstance(item, structural))
+
+
+def _unique_candidates(nodes, parent, rng):
     groups = {}
     for node in nodes:
         if math.isfinite(node.fitness) and node.code != parent.code:
             groups.setdefault(node.code, []).append(node)
-    # Choose one intact observation per exact code, without best-score bias.
-    candidates = [rng.choice(records) for records in groups.values()]
-    rejected = []
-    layers, boundaries = quality_layers(candidates)
-    remaining = {}
+    # Keep Idea, Code and fitness from one real record; never splice duplicates.
+    return [rng.choice(records) for records in groups.values()]
+
+
+def _layered_order(candidates, rng):
+    layers, _ = quality_layers(candidates)
+    pools = {}
     for node in candidates:
-        remaining.setdefault(layers[node.id], []).append(node)
-    selected, used, attempts = [], set(), []
-    for _ in range(limit):
-        layer = None
-        for _ in range(MAX_FIT_ATTEMPTS):
-            available = [layer for layer, pool in remaining.items() if pool]
-            if not available:
-                break
-            if policy == 'sampled_trajectory_v1':
-                if layer is None or not remaining[layer]:
-                    layer = rng.choice([item for item in available if item not in used] or available)
-                pool = remaining[layer]
-                node = pool.pop(rng.randrange(len(pool)))
-            else:
-                node = rng.choice([node for pool in remaining.values() for node in pool])
-                layer = layers[node.id]
-                remaining[layer].remove(node)
-            accepted = fits([*selected, node])
-            if not accepted:
-                rejected.append(node.id)
-            attempts.append({'node_id': node.id, 'layer': layer, 'accepted': accepted})
+        pools.setdefault(layers[node.id], []).append(node)
+    for pool in pools.values():
+        rng.shuffle(pool)
+    names = list(pools)
+    rng.shuffle(names)
+    return [node for name in names for node in pools[name]]
+
+
+def sample_task_evidence(nodes, parent, rng, *, operator, limit, fits):
+    """Choose role-specific evidence, with at most two references.
+
+    ``fits`` receives ``(references, donor, roles)``. Structural signatures only
+    prioritize alternatives; they never declare two algorithms equivalent.
+    """
+    desired = min(limit, 2 if operator == 'Fuse' else 1)
+    empty = {
+        'quality_boundaries': [], 'reference_layers': {}, 'reference_roles': {},
+        'reference_fit_rejections': [], 'reference_attempts': [],
+        'reference_shortfall': desired,
+    }
+    if desired == 0:
+        return [], None, empty
+
+    candidates = _unique_candidates(nodes, parent, rng)
+    if not candidates:
+        return [], None, empty
+    all_layers, boundaries = quality_layers(candidates)
+    parent_signature = structure_signature(parent.code)
+    different = [node for node in candidates
+                 if structure_signature(node.code) != parent_signature]
+    similar = [node for node in candidates if node not in different]
+    selected, donor, rejected, attempts, roles = [], None, [], [], {}
+
+    def try_nodes(ordered, role, donor_candidate=False, attempt_start=None):
+        nonlocal donor
+        attempt_start = len(attempts) if attempt_start is None else attempt_start
+        remaining_attempts = MAX_FIT_ATTEMPTS - (len(attempts) - attempt_start)
+        for node in ordered[:remaining_attempts]:
+            proposed = [*selected, node]
+            proposed_donor = node if donor_candidate else donor
+            proposed_roles = {**roles, node.id: role}
+            accepted = fits(proposed, proposed_donor, proposed_roles)
+            attempts.append({
+                'node_id': node.id, 'layer': all_layers[node.id],
+                'role': role, 'accepted': accepted,
+            })
             if accepted:
                 selected.append(node)
-                used.add(layer)
-                break
-        else:
-            break
-        if not any(remaining.values()):
-            break
-    return selected, {
+                roles[node.id] = role
+                if donor_candidate:
+                    donor = node
+                return True
+            rejected.append(node.id)
+        return False
+
+    if operator == 'Refine':
+        attempt_start = len(attempts)
+        adjacent = [node for node in candidates
+                    if node.id == parent.parent_id or node.parent_id == parent.id]
+        rng.shuffle(adjacent)
+        accepted = try_nodes(adjacent, 'formation_contrast', attempt_start=attempt_start)
+        if not accepted:
+            remaining = [node for node in candidates if node not in adjacent]
+            ordered = _layered_order(remaining, rng)
+            try_nodes(ordered, 'archive_contrast', attempt_start=attempt_start)
+    elif operator == 'Pivot':
+        preferred = _layered_order(different, rng)
+        fallback = _layered_order(similar, rng)
+        try_nodes([*preferred, *fallback], 'alternative_reference')
+    elif operator == 'Fuse':
+        # Quality is the primary donor condition; structural difference only
+        # breaks the order within the same global quality layer.
+        donor_order = []
+        for layer in ('high', 'middle', 'low'):
+            for group in (different, similar):
+                pool = [node for node in group if all_layers[node.id] == layer]
+                rng.shuffle(pool)
+                donor_order.extend(pool)
+        if try_nodes(donor_order, 'transfer_source', donor_candidate=True) \
+                and desired > 1:
+            remaining = [node for node in candidates if node.id != donor.id]
+            ordered = _layered_order(remaining, rng)
+            try_nodes(ordered, 'auxiliary_contrast')
+    else:
+        raise ValueError(f'unsupported operator: {operator}')
+
+    return selected, donor, {
         'quality_boundaries': boundaries,
-        'reference_layers': {str(node.id): layers[node.id] for node in selected},
+        'reference_layers': {str(node.id): all_layers[node.id] for node in selected},
+        'reference_roles': {str(node_id): role for node_id, role in roles.items()},
         'reference_fit_rejections': rejected,
         'reference_attempts': attempts,
-        'reference_shortfall': limit - len(selected),
+        'reference_shortfall': desired - len(selected),
     }

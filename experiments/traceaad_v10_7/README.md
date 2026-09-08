@@ -1,20 +1,18 @@
-# TraceAAD V10.7
+# TraceAAD V10.7 / V10.7R
 
-正式批次 `20260907_bounded_formal` 已启动 15 路；修复、48 次真实 smoke 及启动核查见[启动记录](launch_20260907.md)。
+正式批次 `20260907_bounded_formal` 使用的是原 V10.7 `sampled_trajectory_v1`；其修复、48 次真实 smoke 及启动核查见[冻结启动记录](launch_20260907.md)，结果不应归到新的默认配置。
 
-V10.7 用一次调用生成 `Idea → Code`，默认从全档案质量分层采样参考，与选中底座组成最多三份完整程序的上下文。原祖先历史作为基线模式保留。
+当前默认配置为 [V10.7R](../../docs/methods/TraceAAD-V10.7R-机制设计.md)：仍用一次调用生成 `Idea → Code`，但先确定 Refine、Pivot 或 Fuse 所需的证据角色，再从全档案选择材料。原 V10.7 设计与已有实验身份见[冻结机制页](../../docs/methods/TraceAAD-V10.7-机制设计.md)。
 
-搜索树、8 根初始化、父代联合分布、R/P/F 请求比例 0.50/0.15/0.35、公共任务信息与真实评价预算沿用基线。新模式的 Fuse donor 是已采参考中 fitness 最高的程序，允许同血缘；没有不同代码且能容纳的参考时回退 Refine。
+搜索树、8 根初始化、父代联合分布、R/P/F 请求比例 0.50/0.15/0.35、公共任务信息与真实评价预算沿用基线。V10.7R 不增加第二次校准、成功接力、行为探针或额外评价。
 
-| `--context-policy` | 上下文 |
-| --- | --- |
-| `ancestor_history` | 原 V10.7 祖先历史，继续使用 `--traj-gens`、`--history-tokens` 与 `--donor-topk` |
-| `uniform_trajectory_v1` | 全档案去重后均匀抽参考 |
-| `sampled_trajectory_v1`（默认） | 全档案去重后按质量分层抽参考 |
+上下文只有一种机制：先确定 Refine、Pivot 或 Fuse 所需的证据角色，再从全档案选择材料。旧的 `ancestor_history`、`uniform_trajectory_v1`、`sampled_trajectory_v1` 已删除（`sampled_trajectory_v1` 仍是冻结批次 `20260907_bounded_formal` 的运行配置，其实现以提交 `ac6f4b9c` 为准）。
 
-两个采样模式共用相同程序格式、按内部 fitness 从低到高的排序及算子指令，只改变参考抽样概率。`--max-context-programs=3` 包含底座；可用材料少或上下文不足时减少数量。原始归档代码完整展示，Idea 视图最多 256 tokens，超长整段省略，容量紧张时还可省略 Idea。原始 Idea 留档；输出要求不超过 100 words。总输入默认上限 16128 tokens，不叠加祖先历史区。Init 尚无底座时保持从头生成，不采参考。
+V10.7R 的 Refine 优先展示一份与底座相邻的真实形成对照；Pivot 优先展示控制结构不同的替代参考；Fuse 先按全局质量层选择迁移主参考，同层内优先控制结构不同的候选，再补一份跨质量对照。Refine 和 Pivot 不强行填满三份程序。没有能容纳的 donor 时 Fuse 回退 Refine。
 
-同代码随机选一条完整评价记录；直接在全部去重候选上以线性插值的 1/3、2/3 分位数划分 low/middle/high，边界相等归较低层，同分总在同层。先均匀抽非空层，再均匀抽程序，第二份优先其它层。只对抽中的程序做精确组合容量检查，每个位置最多无放回尝试 32 次。
+`--max-context-programs=3` 包含底座；可用材料少或上下文不足时减少数量。Idea 视图最多 256 tokens，超长整段省略；出现 `Algorithm N` 或 `算法 N` 临时编号的历史 Idea 也整段省略。匹配该模式的 Python 注释只从提示视图移除，字符串、可执行代码与原始档案不变。输出 Idea 不超过 100 words，并须独立说明主要决策和关键计算。总输入默认上限 16128 tokens，不叠加祖先历史区。Init 尚无底座时保持从头生成，不采参考。
+
+同代码随机选一条完整评价记录。质量层使用线性插值的 1/3、2/3 分位数，边界相等归较低层，同分总在同层。只对候选组合做精确容量检查，每个参考槽位最多无放回尝试 32 次。
 
 单路运行示例：
 
@@ -32,13 +30,13 @@ uv run python -m experiments.traceaad_v10_7.run \
 uv run python -m experiments.traceaad_v10_7.launch --dry-run
 ```
 
-运行对照时分别指定上述三个 `--context-policy`，并使用不同 `--run-name`（单路）或 `--batch` 和 `--session-prefix`（批量）。批量入口会把模式与最大程序数传到每路命令，并拒绝用不同配置恢复同一 manifest。检查点严格校验源码与机制配置；旧检查点不按新语义恢复。
+运行新批次时使用不同 `--run-name`（单路）或 `--batch` 和 `--session-prefix`（批量）。批量入口会把最大程序数传到每路命令。检查点严格校验源码、生成协议与机制配置；旧源码生成的检查点不按新语义恢复，旧策略批次只能用冻结代码续跑。
 
 每路仍写入 `run_config.json`、`tree_state.json`、`pending_candidate.json`、`llm_calls.jsonl`、`events.jsonl`、`evaluations.jsonl`、`tokenizer_calls.jsonl` 和 `logs/run_summary.json`。`llm_calls.jsonl` 每个候选只有生成调用；不再记录 `thought_alignment` 阶段。事件不再包含摘要状态、摘要 token、独立摘要调用及分拆耗时字段，`llm_seconds` 表示唯一生成调用耗时。
 
-采样模式记录 `context_policy`、按展示顺序的 `context_node_ids`、实际程序数、各程序 tokens、父代/donor 的展示位置、质量边界与层、容量拒绝、抽取过程及不足数量。`prompt_tokens` 是完整 chat 输入的精确计数。来源 ID 只进入日志；Prompt 仅包含任务、程序材料、角色与输出指令。参考曝光不增加父代选择次数。采样结果、原 Prompt 和 RNG 状态在发出请求前一起持久化，恢复不重新采样。
+采样记录按展示顺序的节点、代码哈希、角色、tokens、父代/donor 位置、质量层、容量拒绝、视图省略和参考不足。事件同时记录 `parent_delta`、`context_delta`、`frontier_delta`，以及同一父代代码和完全相同 Prompt 此前的尝试次数。参考曝光不增加父代选择次数。采样结果、原 Prompt、RNG 和计数前值在请求前一起持久化，恢复不重新采样。
 
-容量失败后在当前质量层无放回重试，层耗尽才换层，每个槽位总计最多 32 次。已删除全档案精确预筛。记录 sampling_seconds、scheduling_seconds 和 tokenizer_requests（缓存未命中的计数接口调用数，不含底层 HTTP 重试）；结合 llm_seconds、eval_seconds 和 tokenizer_calls.jsonl 分析成本。`--max-context-programs=1` 直接跳过参考采样。
+已删除全档案精确 token 预筛。记录 sampling_seconds、scheduling_seconds 和 tokenizer_requests（缓存未命中的计数接口调用数，不含底层 HTTP 重试）；结合 llm_seconds、eval_seconds 和 tokenizer_calls.jsonl 分析成本。`--max-context-programs=1` 直接跳过参考采样。
 
 验证命令：
 
