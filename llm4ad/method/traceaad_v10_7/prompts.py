@@ -103,15 +103,24 @@ TRAJECTORY_INSTRUCTIONS = {
             'Use the other supplied algorithms as additional references. Select and adapt compatible '
             'computations into a coherent algorithm, retaining, replacing or reorganizing parts as useful.',
 }
+TRAJECTORY_OUTPUT = OUTPUT + '\nKeep the Idea within 100 words.'
+IDEA_TOKENS = 256
 TRAJECTORY_TEMPLATE_HASH = hashlib.sha256(
-    (str(TRAJECTORY_INSTRUCTIONS) + OUTPUT).encode()
+    (str(TRAJECTORY_INSTRUCTIONS) + TRAJECTORY_OUTPUT + str(IDEA_TOKENS)).encode()
 ).hexdigest()
 
 
 class TrajectoryBuilder(PromptBuilder):
-    @staticmethod
-    def program_text(node, index):
-        return (f'Algorithm {index}\nFitness: {node.fitness}\nIdea: {node.idea}\n'
+    def idea_view(self, node):
+        if not hasattr(self, '_idea_views'):
+            self._idea_views = {}
+        if node.id not in self._idea_views:
+            self._idea_views[node.id] = (node.idea if self.count(node.idea) <= IDEA_TOKENS else '')
+        return self._idea_views[node.id]
+
+    def program_text(self, node, index, omit_idea=False):
+        idea = '' if omit_idea else self.idea_view(node)
+        return (f'Algorithm {index}\nFitness: {node.fitness}\nIdea: {idea}\n'
                 f'Code:\n```python\n{node.code}\n```')
 
     def trajectory(self, parent, references, operator):
@@ -125,11 +134,18 @@ class TrajectoryBuilder(PromptBuilder):
             donor=positions.get(donor.id) if donor else None,
         )
         blocks = [self.program_text(node, index) for index, node in enumerate(nodes, 1)]
-        parts = [self.task_contract]
-        if blocks:
-            parts.append('# Algorithm Trajectory\n\n' + '\n\n'.join(blocks))
-        parts.extend(['# Algorithm Design Task\n' + instruction, '# Output\n' + OUTPUT])
-        text = '\n\n\n'.join(parts)
+        def assemble():
+            parts = [self.task_contract]
+            if blocks:
+                parts.append('# Algorithm Trajectory\n\n' + '\n\n'.join(blocks))
+            parts.extend(['# Algorithm Design Task\n' + instruction, '# Output\n' + TRAJECTORY_OUTPUT])
+            return '\n\n\n'.join(parts)
+        text = assemble()
+        if self.count(text, chat=True) > self.max_tokens:
+            # Auxiliary design prose must not exclude otherwise fitting code.
+            blocks = [self.program_text(node, index, omit_idea=True)
+                      for index, node in enumerate(nodes, 1)]
+            text = assemble()
         return text, nodes, donor, executed, blocks
 
     def fits_references(self, parent, references, operator):

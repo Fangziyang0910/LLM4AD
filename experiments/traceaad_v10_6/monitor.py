@@ -10,7 +10,7 @@ Features:
 - Real-time progress across all 15 runs (5 tasks x 3 repeats)
 - Dynamic tmux session detection with windowed velocity blending
 - Individual run inspector (code, implementation summaries, lineages, recent event stream)
-- Multi-version switcher support (V10.6, V10.5, V10.4, V10.3, V10.2, V10.1)
+- Multi-version switcher support (V10.7, V10.6, V10.5, V10.4, V10.3, V10.2, V10.1)
 
 Usage:
     uv run python -m experiments.traceaad_v10_6.monitor [--port 8765] [--host 0.0.0.0]
@@ -82,13 +82,21 @@ TASK_MAP = {t["key"]: t for t in TASKS_METADATA}
 REP_RE = re.compile(r"_rep(\d+)$")
 
 KNOWN_VERSIONS = {
+    "v10_7": {
+        "id": "v10_7",
+        "name": "TraceAAD V10.7 (最新版本)",
+        "badge": "V10.7",
+        "default_prefix": "v107",
+        "path": REPO_ROOT / "experiments" / "traceaad_v10_7" / "results",
+        "is_latest": True,
+    },
     "v10_6": {
         "id": "v10_6",
-        "name": "TraceAAD V10.6 (当前运行)",
+        "name": "TraceAAD V10.6",
         "badge": "V10.6",
         "default_prefix": "v106",
         "path": REPO_ROOT / "experiments" / "traceaad_v10_6" / "results",
-        "is_latest": True,
+        "is_latest": False,
     },
     "v10_5": {
         "id": "v10_5",
@@ -189,7 +197,9 @@ class MonitorDataEngine:
         default_version: str = "v10_6",
         default_session_prefix: str = "v106",
     ):
-        self.default_results_root = results_root or DEFAULT_RESULTS_ROOT
+        self.default_results_root = results_root or KNOWN_VERSIONS.get(
+            default_version, {}
+        ).get("path", DEFAULT_RESULTS_ROOT)
         self.default_version = default_version
         self.default_session_prefix = default_session_prefix
 
@@ -308,7 +318,7 @@ class MonitorDataEngine:
                             if ev.get("slot_consumed"):
                                 eval_c += 1
                             if ev.get("node_id") == node_id:
-                                target["evaluation_id"] = eval_c
+                                target["evaluation_id"] = ev.get("evaluation_id") or eval_c
                                 break
                     except Exception:
                         pass
@@ -684,7 +694,7 @@ class MonitorDataEngine:
 
                         nid = ev.get("node_id")
                         if nid is not None and nid not in node_to_eval:
-                            node_to_eval[nid] = eval_counter if eval_counter > 0 else (nid + 1)
+                            node_to_eval[nid] = ev.get("evaluation_id") or (eval_counter if eval_counter > 0 else (nid + 1))
 
                         op = ev.get("operator") or ev.get("origin_operator")
                         req_op = ev.get("requested_operator") or op
@@ -928,7 +938,7 @@ class MonitorDataEngine:
                         f_imp = ev.get("frontier_improved")
 
                         if nid is not None and nid not in node_to_eval:
-                            node_to_eval[nid] = eval_counter if eval_counter > 0 else (nid + 1)
+                            node_to_eval[nid] = ev.get("evaluation_id") or (eval_counter if eval_counter > 0 else (nid + 1))
 
                         if fit is not None:
                             if f_imp is None:
@@ -940,7 +950,9 @@ class MonitorDataEngine:
                             if nid is not None:
                                 fit_by_id[nid] = fit
 
-                            step_val = ev.get("step")
+                            step_val = ev.get("evaluation_id")
+                            if step_val is None:
+                                step_val = ev.get("step")
                             if step_val is None:
                                 step_val = eval_counter if eval_counter > 0 else i
 
@@ -1162,8 +1174,8 @@ def main() -> None:
     parser.add_argument(
         "--results-dir",
         type=Path,
-        default=DEFAULT_RESULTS_ROOT,
-        help="Path to results directory",
+        default=None,
+        help="Path to results directory (defaults to the selected version)",
     )
     parser.add_argument(
         "--version",
@@ -1199,7 +1211,7 @@ def main() -> None:
     server = ThreadingHTTPServer(server_address, handler_class)
 
     print("===========================================================", flush=True)
-    print("🚀 TraceAAD V10.6 训练实验可视化监控已启动", flush=True)
+    print(f"🚀 TraceAAD {engine._resolve_version_meta(None)[3]} 训练实验可视化监控已启动", flush=True)
     print(f"📡 本地访问地址: http://127.0.0.1:{args.port}", flush=True)
     print(f"🌐 远程访问地址: http://{args.host}:{args.port}", flush=True)
     print("===========================================================", flush=True)

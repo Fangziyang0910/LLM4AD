@@ -38,17 +38,9 @@ def sample_references(nodes, parent, rng, *, limit, policy, fits):
     # Choose one intact observation per exact code, without best-score bias.
     candidates = [rng.choice(records) for records in groups.values()]
     rejected = []
-    eligible = []
-    # ponytail: exact prefilter is O(archive size) tokenizer requests per new
-    # parent; use a server batch-tokenization API if this dominates runtime.
-    for node in candidates:
-        if fits([node]):
-            eligible.append(node)
-        else:
-            rejected.append(node.id)
-    layers, boundaries = quality_layers(eligible)
+    layers, boundaries = quality_layers(candidates)
     remaining = {}
-    for node in eligible:
+    for node in candidates:
         remaining.setdefault(layers[node.id], []).append(node)
     selected, used, attempts = [], set(), []
     for _ in range(limit):
@@ -67,6 +59,8 @@ def sample_references(nodes, parent, rng, *, limit, policy, fits):
                 layer = layers[node.id]
                 remaining[layer].remove(node)
             accepted = fits([*selected, node])
+            if not accepted:
+                rejected.append(node.id)
             attempts.append({'node_id': node.id, 'layer': layer, 'accepted': accepted})
             if accepted:
                 selected.append(node)

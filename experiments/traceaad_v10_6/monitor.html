@@ -881,7 +881,7 @@ table.feed-table td {
             <span>血统回溯: 根节点</span>
           </div>
 
-          <div style="font-weight: 600; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">💡 实现摘要 (Implementation Summary)</div>
+          <div id="idea-label" style="font-weight: 600; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">💡 算法思路 / 实现摘要</div>
           <div class="idea-quote" id="idea-text">请在左侧点击任一突破里程碑或查看最新最佳算法。</div>
 
           <div class="code-container">
@@ -1436,13 +1436,19 @@ function renderInspector() {
     <span class="mono" style="color: var(--text-faint); font-size: 12px;">速率: ${summary.speed_formatted}</span>
   `;
 
-  // Render V10.6 / V10.5 mechanism metrics
+  // Render mechanism metrics for the selected version.
   const telem = summary.v106_telemetry || summary.v105_telemetry || {};
   document.getElementById("v105-llm-time").textContent = telem.avg_llm_seconds ? `${telem.avg_llm_seconds}s` : "–";
   document.getElementById("v105-eval-time").textContent = telem.avg_eval_seconds ? `${telem.avg_eval_seconds}s` : "–";
   document.getElementById("v105-improve-count").textContent = `${telem.parent_improved_count || 0} 次 / ${telem.frontier_improved_count || 0} 次`;
   
-  if (telem.avg_summary_tokens !== undefined && telem.avg_summary_tokens !== null) {
+  document.getElementById("idea-label").textContent = currentVersion === "v10_7"
+    ? "💡 生成思路 (Idea)" : "💡 实现摘要 (Implementation Summary)";
+  if (currentVersion === "v10_7") {
+    document.getElementById("v105-route-label").textContent = "输入均长 (Tokens)";
+    document.getElementById("v105-pivot-route").textContent = telem.avg_prompt_tokens != null
+      ? `${telem.avg_prompt_tokens} tok` : "–";
+  } else if (telem.avg_summary_tokens !== undefined && telem.avg_summary_tokens !== null) {
     const lbl = document.getElementById("v105-route-label");
     if (lbl) lbl.textContent = "实现摘要均长 (Tokens)";
     document.getElementById("v105-pivot-route").textContent = `${telem.avg_summary_tokens} tok`;
@@ -1630,4 +1636,3 @@ loadVersions().then(() => {
 </script>
 </body>
 </html>
-

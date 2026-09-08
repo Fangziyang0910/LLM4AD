@@ -103,8 +103,10 @@ def test_capacity_preserves_full_base_and_reduces_material_count():
     text, _, donor, executed, _ = b.trajectory(parent, refs, 'Fuse')
     assert executed == 'Refine' and donor is None and parent.code in text
     assert b.count(text, chat=True) <= b.max_tokens
-    parent.idea += ' too long' * 1000
-    assert not b.fits(parent, 'Refine')
+    long_parent = node(2, 1)
+    long_parent.idea = ' too long' * 1000
+    assert b.fits(long_parent, 'Refine')
+    assert long_parent.idea not in b.trajectory(long_parent, [], 'Refine')[0]
 
 
 def test_bounded_pair_retries_and_unique_attempts():
@@ -123,6 +125,24 @@ def test_zero_references_does_not_tokenize_or_consume_rng():
     refs, _ = sample_references([node(0, 0), node(1, 1)], node(0, 0), rng,
                                 limit=0, policy='sampled_trajectory_v1', fits=forbidden)
     assert refs == [] and rng.getstate() == before
+
+
+def test_large_archive_never_prefilters_all_candidates():
+    nodes = [node(i, i) for i in range(1000)]
+    calls = []
+    refs, _ = sample(nodes, nodes[0], fits=lambda refs: calls.append(refs) or False)
+    assert refs == [] and len(calls) <= 64
+
+
+def test_short_idea_is_omitted_if_only_code_fits():
+    b = builder()
+    parent = node(0, 1)
+    parent.idea = 'design ' * 200
+    full = b.trajectory(parent, [], 'Refine')[0]
+    b.max_tokens = b.count(full, chat=True) - 150
+    text = b.trajectory(parent, [], 'Refine')[0]
+    assert parent.code in text and parent.idea not in text
+    assert b.fits(parent, 'Refine')
 
 
 def test_failed_pair_retries_same_layer_before_switching():

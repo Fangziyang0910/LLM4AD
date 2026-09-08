@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start the TraceAAD v10.6 real-time web monitor in a detached tmux session.
+# Start the TraceAAD multi-version real-time web monitor in a detached tmux session.
 # Usage:
 #   ./start_monitor.sh [PORT] [--foreground] [--restart]
 
@@ -63,21 +63,21 @@ if command -v fuser >/dev/null 2>&1; then
     fi
 fi
 
-CMD="uv run python -m experiments.traceaad_v10_6.monitor --port ${PORT}"
+CMD="uv run python -m experiments.traceaad_v10_6.monitor --version v10_7 --port ${PORT}"
 
 if [ "$FOREGROUND" -eq 1 ]; then
     echo "Starting monitor in foreground on port ${PORT}..."
     exec ${CMD}
 fi
 
-echo "Starting TraceAAD V10.6 monitor in background tmux session: ${SESSION_NAME} (port ${PORT})..."
+echo "Starting TraceAAD V10.7 monitor in background tmux session: ${SESSION_NAME} (port ${PORT})..."
 tmux new-session -d -s "${SESSION_NAME}" "${CMD}"
 
 # Wait a moment and check status
 sleep 2
 if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
     echo "=========================================================="
-    echo "🚀 TraceAAD V10.6 可视化监控启动成功!"
+    echo "🚀 TraceAAD V10.7 可视化监控启动成功!"
     echo "  Web UI: http://127.0.0.1:${PORT}"
     echo "  Attach: tmux attach -t ${SESSION_NAME}"
     echo "  Stop:   tmux kill-session -t ${SESSION_NAME}"

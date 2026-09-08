@@ -1,0 +1,1819 @@
+{
+  "captured_at": "2026-09-08T08:11:03.808140+08:00",
+  "runs": [
+    {
+      "version": "v106",
+      "task": "tsp_construct",
+      "repeat": 1,
+      "backend": "server3",
+      "run_dir": "experiments/traceaad_v10_6/results/tsp_construct/20260906_215231_revised_tsp_v106_rep1",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-06T21:53:05",
+      "finished_at": null,
+      "budget_used": 645,
+      "completed_attempts": 884,
+      "valid_nodes": 278,
+      "status_counts": {
+        "ok": 278,
+        "eval_failed": 367,
+        "invalid_output": 239
+      },
+      "failure_reasons": {
+        "runtime_error": 102,
+        "timeout": 260,
+        "invalid_code_or_signature": 239,
+        "invalid_result": 5
+      },
+      "best": -5.816405203780095,
+      "best_root": -7.1103281812331725,
+      "last_frontier_gain_eval": 398,
+      "frontier_gains": 9,
+      "exact_unique_codes": 278,
+      "distinct_fitness": 262,
+      "top_fitness_count": 1,
+      "pending": {
+        "candidate_id": 885,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 72.4
+      },
+      "latest_event_ts": "2026-09-08T08:09:51",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "n_instance": 16,
+        "problem_size": 50,
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 20
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8000/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v106",
+      "task": "cvrp_aco",
+      "repeat": 1,
+      "backend": "server3b",
+      "run_dir": "experiments/traceaad_v10_6/results/cvrp_aco/20260906_215231_revised_cvrp_v106_rep1",
+      "manifest_status": "finished",
+      "summary_status": "finished",
+      "session_alive": false,
+      "launch_attempts": 1,
+      "started_at": "2026-09-06T21:53:04",
+      "finished_at": "2026-09-08T04:38:41",
+      "budget_used": 1000,
+      "completed_attempts": 1293,
+      "valid_nodes": 969,
+      "status_counts": {
+        "ok": 969,
+        "invalid_output": 293,
+        "eval_failed": 31
+      },
+      "failure_reasons": {
+        "invalid_code_or_signature": 293,
+        "runtime_error": 31
+      },
+      "best": -9.326517457757536,
+      "best_root": -17.357573218308882,
+      "last_frontier_gain_eval": 981,
+      "frontier_gains": 36,
+      "exact_unique_codes": 969,
+      "distinct_fitness": 938,
+      "top_fitness_count": 1,
+      "pending": null,
+      "latest_event_ts": "2026-09-08T04:38:40",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "aco_seed": 1234,
+        "n_ants": 30,
+        "n_iterations": 100,
+        "n_workers": 4,
+        "split": "train",
+        "timeout_seconds": 120
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8001/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v106",
+      "task": "op_aco",
+      "repeat": 1,
+      "backend": "server1",
+      "run_dir": "experiments/traceaad_v10_6/results/op_aco/20260906_215231_revised_op_v106_rep1",
+      "manifest_status": "finished",
+      "summary_status": "finished",
+      "session_alive": false,
+      "launch_attempts": 1,
+      "started_at": "2026-09-06T21:53:04",
+      "finished_at": "2026-09-08T06:34:58",
+      "budget_used": 1000,
+      "completed_attempts": 1219,
+      "valid_nodes": 957,
+      "status_counts": {
+        "eval_failed": 43,
+        "ok": 957,
+        "invalid_output": 219
+      },
+      "failure_reasons": {
+        "runtime_error": 43,
+        "invalid_code_or_signature": 219
+      },
+      "best": 14.491999999999999,
+      "best_root": 12.968,
+      "last_frontier_gain_eval": 633,
+      "frontier_gains": 11,
+      "exact_unique_codes": 957,
+      "distinct_fitness": 582,
+      "top_fitness_count": 45,
+      "pending": null,
+      "latest_event_ts": "2026-09-08T06:34:58",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "aco_seed": 1234,
+        "n_ants": 20,
+        "n_iterations": 50,
+        "n_workers": 4,
+        "split": "train",
+        "timeout_seconds": 60
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.8:8080/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v106",
+      "task": "online_bin_packing",
+      "repeat": 1,
+      "backend": "server3",
+      "run_dir": "experiments/traceaad_v10_6/results/online_bin_packing/20260906_215231_revised_obp_v106_rep1",
+      "manifest_status": "finished",
+      "summary_status": "finished",
+      "session_alive": false,
+      "launch_attempts": 1,
+      "started_at": "2026-09-06T21:53:04",
+      "finished_at": "2026-09-07T20:39:14",
+      "budget_used": 1000,
+      "completed_attempts": 1158,
+      "valid_nodes": 999,
+      "status_counts": {
+        "ok": 999,
+        "invalid_output": 158,
+        "eval_failed": 1
+      },
+      "failure_reasons": {
+        "invalid_code_or_signature": 158,
+        "runtime_error": 1
+      },
+      "best": -725.5,
+      "best_root": -744.5,
+      "last_frontier_gain_eval": 844,
+      "frontier_gains": 10,
+      "exact_unique_codes": 999,
+      "distinct_fitness": 192,
+      "top_fitness_count": 8,
+      "pending": null,
+      "latest_event_ts": "2026-09-07T20:39:14",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "dataset_specs": [
+          {
+            "capacities": [
+              100,
+              500
+            ],
+            "n_instances": 1,
+            "n_items": 1000
+          },
+          {
+            "capacities": [
+              100,
+              500
+            ],
+            "n_instances": 1,
+            "n_items": 5000
+          }
+        ],
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 30
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8000/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v106",
+      "task": "vrptw_construct",
+      "repeat": 1,
+      "backend": "server3b",
+      "run_dir": "experiments/traceaad_v10_6/results/vrptw_construct/20260906_215231_revised_vrptw_v106_rep1",
+      "manifest_status": "finished",
+      "summary_status": "finished",
+      "session_alive": false,
+      "launch_attempts": 1,
+      "started_at": "2026-09-06T21:53:04",
+      "finished_at": "2026-09-08T01:20:12",
+      "budget_used": 1000,
+      "completed_attempts": 1087,
+      "valid_nodes": 938,
+      "status_counts": {
+        "ok": 938,
+        "invalid_output": 87,
+        "eval_failed": 62
+      },
+      "failure_reasons": {
+        "invalid_code_or_signature": 87,
+        "runtime_error": 40,
+        "invalid_result": 21,
+        "timeout": 1
+      },
+      "best": -18.860567140037126,
+      "best_root": -21.3565563925522,
+      "last_frontier_gain_eval": 319,
+      "frontier_gains": 13,
+      "exact_unique_codes": 937,
+      "distinct_fitness": 819,
+      "top_fitness_count": 1,
+      "pending": null,
+      "latest_event_ts": "2026-09-08T01:20:12",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "n_instance": 16,
+        "problem_size": 50,
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 30
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8001/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v106",
+      "task": "tsp_construct",
+      "repeat": 2,
+      "backend": "server1",
+      "run_dir": "experiments/traceaad_v10_6/results/tsp_construct/20260906_215231_revised_tsp_v106_rep2",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-06T21:53:05",
+      "finished_at": null,
+      "budget_used": 897,
+      "completed_attempts": 1117,
+      "valid_nodes": 618,
+      "status_counts": {
+        "ok": 618,
+        "eval_failed": 279,
+        "invalid_output": 220
+      },
+      "failure_reasons": {
+        "runtime_error": 45,
+        "invalid_code_or_signature": 220,
+        "timeout": 234
+      },
+      "best": -5.933332920891285,
+      "best_root": -7.04868835198929,
+      "last_frontier_gain_eval": 640,
+      "frontier_gains": 20,
+      "exact_unique_codes": 618,
+      "distinct_fitness": 577,
+      "top_fitness_count": 3,
+      "pending": {
+        "candidate_id": 1118,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 18.8
+      },
+      "latest_event_ts": "2026-09-08T08:10:44",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "n_instance": 16,
+        "problem_size": 50,
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 20
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.8:8080/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v106",
+      "task": "cvrp_aco",
+      "repeat": 2,
+      "backend": "server3",
+      "run_dir": "experiments/traceaad_v10_6/results/cvrp_aco/20260906_215231_revised_cvrp_v106_rep2",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-06T21:53:05",
+      "finished_at": null,
+      "budget_used": 964,
+      "completed_attempts": 1315,
+      "valid_nodes": 904,
+      "status_counts": {
+        "ok": 904,
+        "invalid_output": 351,
+        "eval_failed": 60
+      },
+      "failure_reasons": {
+        "invalid_code_or_signature": 351,
+        "runtime_error": 60
+      },
+      "best": -9.162249935769793,
+      "best_root": -11.817923050203785,
+      "last_frontier_gain_eval": 390,
+      "frontier_gains": 13,
+      "exact_unique_codes": 904,
+      "distinct_fitness": 799,
+      "top_fitness_count": 20,
+      "pending": {
+        "candidate_id": 1316,
+        "phase": "evaluating",
+        "llm_attempts": 1,
+        "summary_attempts": 1,
+        "age_seconds": 51.1
+      },
+      "latest_event_ts": "2026-09-08T08:08:50",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "aco_seed": 1234,
+        "n_ants": 30,
+        "n_iterations": 100,
+        "n_workers": 4,
+        "split": "train",
+        "timeout_seconds": 120
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8000/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v106",
+      "task": "op_aco",
+      "repeat": 2,
+      "backend": "server3b",
+      "run_dir": "experiments/traceaad_v10_6/results/op_aco/20260906_215231_revised_op_v106_rep2",
+      "manifest_status": "finished",
+      "summary_status": "finished",
+      "session_alive": false,
+      "launch_attempts": 1,
+      "started_at": "2026-09-06T21:53:04",
+      "finished_at": "2026-09-08T04:14:40",
+      "budget_used": 1000,
+      "completed_attempts": 1236,
+      "valid_nodes": 942,
+      "status_counts": {
+        "ok": 942,
+        "invalid_output": 236,
+        "eval_failed": 58
+      },
+      "failure_reasons": {
+        "invalid_code_or_signature": 236,
+        "runtime_error": 58
+      },
+      "best": 14.817999999999998,
+      "best_root": 12.734,
+      "last_frontier_gain_eval": 620,
+      "frontier_gains": 17,
+      "exact_unique_codes": 942,
+      "distinct_fitness": 563,
+      "top_fitness_count": 33,
+      "pending": null,
+      "latest_event_ts": "2026-09-08T04:14:40",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "aco_seed": 1234,
+        "n_ants": 20,
+        "n_iterations": 50,
+        "n_workers": 4,
+        "split": "train",
+        "timeout_seconds": 60
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8001/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v106",
+      "task": "online_bin_packing",
+      "repeat": 2,
+      "backend": "local",
+      "run_dir": "experiments/traceaad_v10_6/results/online_bin_packing/20260906_215231_revised_obp_v106_rep2",
+      "manifest_status": "finished",
+      "summary_status": "finished",
+      "session_alive": false,
+      "launch_attempts": 1,
+      "started_at": "2026-09-06T21:53:04",
+      "finished_at": "2026-09-07T21:05:00",
+      "budget_used": 1000,
+      "completed_attempts": 1555,
+      "valid_nodes": 992,
+      "status_counts": {
+        "ok": 992,
+        "invalid_output": 555,
+        "eval_failed": 8
+      },
+      "failure_reasons": {
+        "invalid_code_or_signature": 555,
+        "runtime_error": 8
+      },
+      "best": -725.0,
+      "best_root": -744.5,
+      "last_frontier_gain_eval": 239,
+      "frontier_gains": 4,
+      "exact_unique_codes": 992,
+      "distinct_fitness": 171,
+      "top_fitness_count": 104,
+      "pending": null,
+      "latest_event_ts": "2026-09-07T21:04:59",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "dataset_specs": [
+          {
+            "capacities": [
+              100,
+              500
+            ],
+            "n_instances": 1,
+            "n_items": 1000
+          },
+          {
+            "capacities": [
+              100,
+              500
+            ],
+            "n_instances": 1,
+            "n_items": 5000
+          }
+        ],
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 30
+      },
+      "llm": {
+        "model": "Qwen3.8-27B",
+        "base_url": "http://127.0.0.1:8001/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v106",
+      "task": "vrptw_construct",
+      "repeat": 2,
+      "backend": "server3",
+      "run_dir": "experiments/traceaad_v10_6/results/vrptw_construct/20260906_215231_revised_vrptw_v106_rep2",
+      "manifest_status": "finished",
+      "summary_status": "finished",
+      "session_alive": false,
+      "launch_attempts": 1,
+      "started_at": "2026-09-06T21:53:05",
+      "finished_at": "2026-09-08T02:50:40",
+      "budget_used": 1000,
+      "completed_attempts": 1120,
+      "valid_nodes": 970,
+      "status_counts": {
+        "ok": 970,
+        "eval_failed": 30,
+        "invalid_output": 120
+      },
+      "failure_reasons": {
+        "invalid_result": 13,
+        "invalid_code_or_signature": 120,
+        "runtime_error": 16,
+        "timeout": 1
+      },
+      "best": -19.01878937525685,
+      "best_root": -22.698596596840076,
+      "last_frontier_gain_eval": 762,
+      "frontier_gains": 24,
+      "exact_unique_codes": 970,
+      "distinct_fitness": 919,
+      "top_fitness_count": 7,
+      "pending": null,
+      "latest_event_ts": "2026-09-08T02:50:40",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "n_instance": 16,
+        "problem_size": 50,
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 30
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8000/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v106",
+      "task": "tsp_construct",
+      "repeat": 3,
+      "backend": "server3b",
+      "run_dir": "experiments/traceaad_v10_6/results/tsp_construct/20260906_215231_revised_tsp_v106_rep3",
+      "manifest_status": "finished",
+      "summary_status": "finished",
+      "session_alive": false,
+      "launch_attempts": 1,
+      "started_at": "2026-09-06T21:53:04",
+      "finished_at": "2026-09-08T06:28:17",
+      "budget_used": 1000,
+      "completed_attempts": 1252,
+      "valid_nodes": 744,
+      "status_counts": {
+        "ok": 744,
+        "invalid_output": 252,
+        "eval_failed": 256
+      },
+      "failure_reasons": {
+        "invalid_code_or_signature": 252,
+        "invalid_result": 3,
+        "runtime_error": 64,
+        "timeout": 188,
+        "exec_error": 1
+      },
+      "best": -5.871918704540345,
+      "best_root": -6.820211505568105,
+      "last_frontier_gain_eval": 627,
+      "frontier_gains": 12,
+      "exact_unique_codes": 744,
+      "distinct_fitness": 690,
+      "top_fitness_count": 1,
+      "pending": null,
+      "latest_event_ts": "2026-09-08T06:28:17",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "n_instance": 16,
+        "problem_size": 50,
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 20
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8001/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v106",
+      "task": "cvrp_aco",
+      "repeat": 3,
+      "backend": "server1",
+      "run_dir": "experiments/traceaad_v10_6/results/cvrp_aco/20260906_215231_revised_cvrp_v106_rep3",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-06T21:53:05",
+      "finished_at": null,
+      "budget_used": 916,
+      "completed_attempts": 1241,
+      "valid_nodes": 875,
+      "status_counts": {
+        "ok": 875,
+        "eval_failed": 41,
+        "invalid_output": 325
+      },
+      "failure_reasons": {
+        "runtime_error": 41,
+        "invalid_code_or_signature": 325
+      },
+      "best": -9.152685776959656,
+      "best_root": -12.630952231363855,
+      "last_frontier_gain_eval": 368,
+      "frontier_gains": 9,
+      "exact_unique_codes": 875,
+      "distinct_fitness": 752,
+      "top_fitness_count": 23,
+      "pending": {
+        "candidate_id": 1242,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 1.1
+      },
+      "latest_event_ts": "2026-09-08T08:11:02",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "aco_seed": 1234,
+        "n_ants": 30,
+        "n_iterations": 100,
+        "n_workers": 4,
+        "split": "train",
+        "timeout_seconds": 120
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.8:8080/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v106",
+      "task": "op_aco",
+      "repeat": 3,
+      "backend": "server3",
+      "run_dir": "experiments/traceaad_v10_6/results/op_aco/20260906_215231_revised_op_v106_rep3",
+      "manifest_status": "finished",
+      "summary_status": "finished",
+      "session_alive": false,
+      "launch_attempts": 1,
+      "started_at": "2026-09-06T21:53:04",
+      "finished_at": "2026-09-08T02:58:02",
+      "budget_used": 1000,
+      "completed_attempts": 1229,
+      "valid_nodes": 975,
+      "status_counts": {
+        "ok": 975,
+        "eval_failed": 25,
+        "invalid_output": 229
+      },
+      "failure_reasons": {
+        "runtime_error": 25,
+        "invalid_code_or_signature": 229
+      },
+      "best": 14.324000000000002,
+      "best_root": 13.038,
+      "last_frontier_gain_eval": 325,
+      "frontier_gains": 6,
+      "exact_unique_codes": 975,
+      "distinct_fitness": 555,
+      "top_fitness_count": 65,
+      "pending": null,
+      "latest_event_ts": "2026-09-08T02:58:01",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "aco_seed": 1234,
+        "n_ants": 20,
+        "n_iterations": 50,
+        "n_workers": 4,
+        "split": "train",
+        "timeout_seconds": 60
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8000/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v106",
+      "task": "online_bin_packing",
+      "repeat": 3,
+      "backend": "server3b",
+      "run_dir": "experiments/traceaad_v10_6/results/online_bin_packing/20260906_215231_revised_obp_v106_rep3",
+      "manifest_status": "finished",
+      "summary_status": "finished",
+      "session_alive": false,
+      "launch_attempts": 1,
+      "started_at": "2026-09-06T21:53:05",
+      "finished_at": "2026-09-07T18:47:20",
+      "budget_used": 1000,
+      "completed_attempts": 1154,
+      "valid_nodes": 992,
+      "status_counts": {
+        "ok": 992,
+        "invalid_output": 154,
+        "eval_failed": 8
+      },
+      "failure_reasons": {
+        "invalid_code_or_signature": 154,
+        "runtime_error": 8
+      },
+      "best": -726.75,
+      "best_root": -744.5,
+      "last_frontier_gain_eval": 952,
+      "frontier_gains": 13,
+      "exact_unique_codes": 991,
+      "distinct_fitness": 170,
+      "top_fitness_count": 1,
+      "pending": null,
+      "latest_event_ts": "2026-09-07T18:47:20",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "dataset_specs": [
+          {
+            "capacities": [
+              100,
+              500
+            ],
+            "n_instances": 1,
+            "n_items": 1000
+          },
+          {
+            "capacities": [
+              100,
+              500
+            ],
+            "n_instances": 1,
+            "n_items": 5000
+          }
+        ],
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 30
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8001/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v106",
+      "task": "vrptw_construct",
+      "repeat": 3,
+      "backend": "server1",
+      "run_dir": "experiments/traceaad_v10_6/results/vrptw_construct/20260906_215231_revised_vrptw_v106_rep3",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-06T21:53:05",
+      "finished_at": null,
+      "budget_used": 902,
+      "completed_attempts": 1051,
+      "valid_nodes": 837,
+      "status_counts": {
+        "ok": 837,
+        "invalid_output": 149,
+        "eval_failed": 65
+      },
+      "failure_reasons": {
+        "invalid_code_or_signature": 149,
+        "runtime_error": 56,
+        "invalid_result": 8,
+        "timeout": 1
+      },
+      "best": -20.497691602655692,
+      "best_root": -22.973432988162934,
+      "last_frontier_gain_eval": 886,
+      "frontier_gains": 14,
+      "exact_unique_codes": 837,
+      "distinct_fitness": 808,
+      "top_fitness_count": 1,
+      "pending": {
+        "candidate_id": 1052,
+        "phase": "responded",
+        "llm_attempts": 1,
+        "summary_attempts": 1,
+        "age_seconds": 19.8
+      },
+      "latest_event_ts": "2026-09-08T08:09:30",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "n_instance": 16,
+        "problem_size": 50,
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 30
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.8:8080/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v107",
+      "task": "tsp_construct",
+      "repeat": 1,
+      "backend": "local",
+      "run_dir": "experiments/traceaad_v10_7/results/tsp_construct/20260907_bounded_formal_tsp_v107_rep1",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-07T23:40:32",
+      "finished_at": null,
+      "budget_used": 454,
+      "completed_attempts": 464,
+      "valid_nodes": 406,
+      "status_counts": {
+        "ok": 406,
+        "eval_failed": 48,
+        "invalid_output": 10
+      },
+      "failure_reasons": {
+        "runtime_error": 4,
+        "invalid_code_or_signature": 10,
+        "timeout": 44
+      },
+      "best": -6.53389371585012,
+      "best_root": -6.820211505568105,
+      "last_frontier_gain_eval": 290,
+      "frontier_gains": 8,
+      "exact_unique_codes": 401,
+      "distinct_fitness": 188,
+      "top_fitness_count": 45,
+      "pending": {
+        "candidate_id": 465,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 5.0
+      },
+      "latest_event_ts": "2026-09-08T08:10:58",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "n_instance": 16,
+        "problem_size": 50,
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 20
+      },
+      "llm": {
+        "model": "Qwen3.8-27B",
+        "base_url": "http://127.0.0.1:8001/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v107",
+      "task": "cvrp_aco",
+      "repeat": 1,
+      "backend": "server3",
+      "run_dir": "experiments/traceaad_v10_7/results/cvrp_aco/20260907_bounded_formal_cvrp_v107_rep1",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-07T23:40:30",
+      "finished_at": null,
+      "budget_used": 343,
+      "completed_attempts": 344,
+      "valid_nodes": 322,
+      "status_counts": {
+        "ok": 322,
+        "invalid_output": 1,
+        "eval_failed": 21
+      },
+      "failure_reasons": {
+        "invalid_code_or_signature": 1,
+        "runtime_error": 21
+      },
+      "best": -9.451654424752203,
+      "best_root": -12.737387302250124,
+      "last_frontier_gain_eval": 288,
+      "frontier_gains": 15,
+      "exact_unique_codes": 319,
+      "distinct_fitness": 289,
+      "top_fitness_count": 2,
+      "pending": {
+        "candidate_id": 345,
+        "phase": "evaluating",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 17.8
+      },
+      "latest_event_ts": "2026-09-08T08:09:23",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "aco_seed": 1234,
+        "n_ants": 30,
+        "n_iterations": 100,
+        "n_workers": 4,
+        "split": "train",
+        "timeout_seconds": 120
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8000/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v107",
+      "task": "op_aco",
+      "repeat": 1,
+      "backend": "server3b",
+      "run_dir": "experiments/traceaad_v10_7/results/op_aco/20260907_bounded_formal_op_v107_rep1",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-07T23:40:30",
+      "finished_at": null,
+      "budget_used": 492,
+      "completed_attempts": 492,
+      "valid_nodes": 486,
+      "status_counts": {
+        "ok": 486,
+        "eval_failed": 6
+      },
+      "failure_reasons": {
+        "runtime_error": 6
+      },
+      "best": 14.486,
+      "best_root": 12.845999999999998,
+      "last_frontier_gain_eval": 131,
+      "frontier_gains": 8,
+      "exact_unique_codes": 480,
+      "distinct_fitness": 179,
+      "top_fitness_count": 99,
+      "pending": {
+        "candidate_id": 493,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 29.5
+      },
+      "latest_event_ts": "2026-09-08T08:10:33",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "aco_seed": 1234,
+        "n_ants": 20,
+        "n_iterations": 50,
+        "n_workers": 4,
+        "split": "train",
+        "timeout_seconds": 60
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8001/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v107",
+      "task": "online_bin_packing",
+      "repeat": 1,
+      "backend": "server3",
+      "run_dir": "experiments/traceaad_v10_7/results/online_bin_packing/20260907_bounded_formal_obp_v107_rep1",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-07T23:40:31",
+      "finished_at": null,
+      "budget_used": 921,
+      "completed_attempts": 923,
+      "valid_nodes": 917,
+      "status_counts": {
+        "ok": 917,
+        "invalid_output": 2,
+        "eval_failed": 4
+      },
+      "failure_reasons": {
+        "invalid_code_or_signature": 2,
+        "runtime_error": 4
+      },
+      "best": -728.25,
+      "best_root": -744.5,
+      "last_frontier_gain_eval": 743,
+      "frontier_gains": 3,
+      "exact_unique_codes": 900,
+      "distinct_fitness": 116,
+      "top_fitness_count": 2,
+      "pending": {
+        "candidate_id": 924,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 0
+      },
+      "latest_event_ts": "2026-09-08T08:11:06",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "dataset_specs": [
+          {
+            "capacities": [
+              100,
+              500
+            ],
+            "n_instances": 1,
+            "n_items": 1000
+          },
+          {
+            "capacities": [
+              100,
+              500
+            ],
+            "n_instances": 1,
+            "n_items": 5000
+          }
+        ],
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 30
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8000/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v107",
+      "task": "vrptw_construct",
+      "repeat": 1,
+      "backend": "server3b",
+      "run_dir": "experiments/traceaad_v10_7/results/vrptw_construct/20260907_bounded_formal_vrptw_v107_rep1",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-07T23:40:32",
+      "finished_at": null,
+      "budget_used": 463,
+      "completed_attempts": 466,
+      "valid_nodes": 457,
+      "status_counts": {
+        "ok": 457,
+        "eval_failed": 6,
+        "invalid_output": 3
+      },
+      "failure_reasons": {
+        "invalid_result": 2,
+        "invalid_code_or_signature": 3,
+        "runtime_error": 4
+      },
+      "best": -20.438223235676475,
+      "best_root": -22.698596596840076,
+      "last_frontier_gain_eval": 444,
+      "frontier_gains": 14,
+      "exact_unique_codes": 454,
+      "distinct_fitness": 394,
+      "top_fitness_count": 1,
+      "pending": {
+        "candidate_id": 467,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 26.1
+      },
+      "latest_event_ts": "2026-09-08T08:10:37",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "n_instance": 16,
+        "problem_size": 50,
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 30
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8001/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v107",
+      "task": "tsp_construct",
+      "repeat": 2,
+      "backend": "server3",
+      "run_dir": "experiments/traceaad_v10_7/results/tsp_construct/20260907_bounded_formal_tsp_v107_rep2",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-07T23:40:32",
+      "finished_at": null,
+      "budget_used": 621,
+      "completed_attempts": 625,
+      "valid_nodes": 617,
+      "status_counts": {
+        "ok": 617,
+        "eval_failed": 4,
+        "invalid_output": 4
+      },
+      "failure_reasons": {
+        "runtime_error": 4,
+        "invalid_code_or_signature": 4
+      },
+      "best": -6.8239686184057184,
+      "best_root": -7.178999203709081,
+      "last_frontier_gain_eval": 68,
+      "frontier_gains": 3,
+      "exact_unique_codes": 615,
+      "distinct_fitness": 296,
+      "top_fitness_count": 298,
+      "pending": {
+        "candidate_id": 626,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 6.8
+      },
+      "latest_event_ts": "2026-09-08T08:10:56",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "n_instance": 16,
+        "problem_size": 50,
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 20
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8000/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v107",
+      "task": "cvrp_aco",
+      "repeat": 2,
+      "backend": "local",
+      "run_dir": "experiments/traceaad_v10_7/results/cvrp_aco/20260907_bounded_formal_cvrp_v107_rep2",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-07T23:40:31",
+      "finished_at": null,
+      "budget_used": 353,
+      "completed_attempts": 354,
+      "valid_nodes": 351,
+      "status_counts": {
+        "ok": 351,
+        "eval_failed": 2,
+        "invalid_output": 1
+      },
+      "failure_reasons": {
+        "runtime_error": 2,
+        "invalid_code_or_signature": 1
+      },
+      "best": -9.46316822312945,
+      "best_root": -13.835640604793852,
+      "last_frontier_gain_eval": 345,
+      "frontier_gains": 18,
+      "exact_unique_codes": 349,
+      "distinct_fitness": 317,
+      "top_fitness_count": 1,
+      "pending": {
+        "candidate_id": 355,
+        "phase": "evaluating",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 54.7
+      },
+      "latest_event_ts": "2026-09-08T08:09:21",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "aco_seed": 1234,
+        "n_ants": 30,
+        "n_iterations": 100,
+        "n_workers": 4,
+        "split": "train",
+        "timeout_seconds": 120
+      },
+      "llm": {
+        "model": "Qwen3.8-27B",
+        "base_url": "http://127.0.0.1:8001/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v107",
+      "task": "op_aco",
+      "repeat": 2,
+      "backend": "server1",
+      "run_dir": "experiments/traceaad_v10_7/results/op_aco/20260907_bounded_formal_op_v107_rep2",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-07T23:40:30",
+      "finished_at": null,
+      "budget_used": 518,
+      "completed_attempts": 520,
+      "valid_nodes": 513,
+      "status_counts": {
+        "ok": 513,
+        "invalid_output": 2,
+        "eval_failed": 5
+      },
+      "failure_reasons": {
+        "invalid_code_or_signature": 2,
+        "runtime_error": 5
+      },
+      "best": 14.679999999999998,
+      "best_root": 12.734,
+      "last_frontier_gain_eval": 476,
+      "frontier_gains": 9,
+      "exact_unique_codes": 511,
+      "distinct_fitness": 234,
+      "top_fitness_count": 1,
+      "pending": {
+        "candidate_id": 521,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 25.4
+      },
+      "latest_event_ts": "2026-09-08T08:10:38",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "aco_seed": 1234,
+        "n_ants": 20,
+        "n_iterations": 50,
+        "n_workers": 4,
+        "split": "train",
+        "timeout_seconds": 60
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.8:8080/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v107",
+      "task": "online_bin_packing",
+      "repeat": 2,
+      "backend": "server3b",
+      "run_dir": "experiments/traceaad_v10_7/results/online_bin_packing/20260907_bounded_formal_obp_v107_rep2",
+      "manifest_status": "finished",
+      "summary_status": "finished",
+      "session_alive": false,
+      "launch_attempts": 1,
+      "started_at": "2026-09-07T23:40:31",
+      "finished_at": "2026-09-08T05:34:35",
+      "budget_used": 1000,
+      "completed_attempts": 1001,
+      "valid_nodes": 997,
+      "status_counts": {
+        "ok": 997,
+        "eval_failed": 3,
+        "invalid_output": 1
+      },
+      "failure_reasons": {
+        "runtime_error": 2,
+        "timeout": 1,
+        "invalid_code_or_signature": 1
+      },
+      "best": -744.5,
+      "best_root": -744.5,
+      "last_frontier_gain_eval": 1,
+      "frontier_gains": 0,
+      "exact_unique_codes": 913,
+      "distinct_fitness": 9,
+      "top_fitness_count": 977,
+      "pending": null,
+      "latest_event_ts": "2026-09-08T05:34:35",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "dataset_specs": [
+          {
+            "capacities": [
+              100,
+              500
+            ],
+            "n_instances": 1,
+            "n_items": 1000
+          },
+          {
+            "capacities": [
+              100,
+              500
+            ],
+            "n_instances": 1,
+            "n_items": 5000
+          }
+        ],
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 30
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8001/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v107",
+      "task": "vrptw_construct",
+      "repeat": 2,
+      "backend": "server3",
+      "run_dir": "experiments/traceaad_v10_7/results/vrptw_construct/20260907_bounded_formal_vrptw_v107_rep2",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-07T23:40:32",
+      "finished_at": null,
+      "budget_used": 569,
+      "completed_attempts": 572,
+      "valid_nodes": 555,
+      "status_counts": {
+        "eval_failed": 14,
+        "ok": 555,
+        "invalid_output": 3
+      },
+      "failure_reasons": {
+        "invalid_result": 2,
+        "runtime_error": 12,
+        "invalid_code_or_signature": 3
+      },
+      "best": -20.540543328644052,
+      "best_root": -21.169550682225346,
+      "last_frontier_gain_eval": 352,
+      "frontier_gains": 7,
+      "exact_unique_codes": 550,
+      "distinct_fitness": 442,
+      "top_fitness_count": 13,
+      "pending": {
+        "candidate_id": 573,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 1.0
+      },
+      "latest_event_ts": "2026-09-08T08:11:02",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "n_instance": 16,
+        "problem_size": 50,
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 30
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8000/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v107",
+      "task": "tsp_construct",
+      "repeat": 3,
+      "backend": "server3b",
+      "run_dir": "experiments/traceaad_v10_7/results/tsp_construct/20260907_bounded_formal_tsp_v107_rep3",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-07T23:40:32",
+      "finished_at": null,
+      "budget_used": 697,
+      "completed_attempts": 698,
+      "valid_nodes": 666,
+      "status_counts": {
+        "invalid_output": 1,
+        "ok": 666,
+        "eval_failed": 31
+      },
+      "failure_reasons": {
+        "invalid_code_or_signature": 1,
+        "runtime_error": 9,
+        "invalid_result": 1,
+        "timeout": 21
+      },
+      "best": -6.685090878796045,
+      "best_root": -6.820211505568105,
+      "last_frontier_gain_eval": 398,
+      "frontier_gains": 4,
+      "exact_unique_codes": 657,
+      "distinct_fitness": 344,
+      "top_fitness_count": 141,
+      "pending": {
+        "candidate_id": 699,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 27.1
+      },
+      "latest_event_ts": "2026-09-08T08:10:36",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "n_instance": 16,
+        "problem_size": 50,
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 20
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8001/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v107",
+      "task": "cvrp_aco",
+      "repeat": 3,
+      "backend": "server1",
+      "run_dir": "experiments/traceaad_v10_7/results/cvrp_aco/20260907_bounded_formal_cvrp_v107_rep3",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-07T23:40:31",
+      "finished_at": null,
+      "budget_used": 329,
+      "completed_attempts": 329,
+      "valid_nodes": 296,
+      "status_counts": {
+        "ok": 296,
+        "eval_failed": 33
+      },
+      "failure_reasons": {
+        "runtime_error": 33
+      },
+      "best": -9.118983113840901,
+      "best_root": -12.603320285314163,
+      "last_frontier_gain_eval": 140,
+      "frontier_gains": 9,
+      "exact_unique_codes": 294,
+      "distinct_fitness": 275,
+      "top_fitness_count": 1,
+      "pending": {
+        "candidate_id": 330,
+        "phase": "evaluating",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 38.5
+      },
+      "latest_event_ts": "2026-09-08T08:09:18",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "aco_seed": 1234,
+        "n_ants": 30,
+        "n_iterations": 100,
+        "n_workers": 4,
+        "split": "train",
+        "timeout_seconds": 120
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.8:8080/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v107",
+      "task": "op_aco",
+      "repeat": 3,
+      "backend": "server3",
+      "run_dir": "experiments/traceaad_v10_7/results/op_aco/20260907_bounded_formal_op_v107_rep3",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-07T23:40:30",
+      "finished_at": null,
+      "budget_used": 392,
+      "completed_attempts": 392,
+      "valid_nodes": 384,
+      "status_counts": {
+        "ok": 384,
+        "eval_failed": 8
+      },
+      "failure_reasons": {
+        "runtime_error": 8
+      },
+      "best": 14.294,
+      "best_root": 12.734,
+      "last_frontier_gain_eval": 260,
+      "frontier_gains": 7,
+      "exact_unique_codes": 377,
+      "distinct_fitness": 167,
+      "top_fitness_count": 6,
+      "pending": {
+        "candidate_id": 393,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 36.6
+      },
+      "latest_event_ts": "2026-09-08T08:10:26",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "aco_seed": 1234,
+        "n_ants": 20,
+        "n_iterations": 50,
+        "n_workers": 4,
+        "split": "train",
+        "timeout_seconds": 60
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8000/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v107",
+      "task": "online_bin_packing",
+      "repeat": 3,
+      "backend": "local",
+      "run_dir": "experiments/traceaad_v10_7/results/online_bin_packing/20260907_bounded_formal_obp_v107_rep3",
+      "manifest_status": "finished",
+      "summary_status": "finished",
+      "session_alive": false,
+      "launch_attempts": 1,
+      "started_at": "2026-09-07T23:40:30",
+      "finished_at": "2026-09-08T07:26:56",
+      "budget_used": 1000,
+      "completed_attempts": 1000,
+      "valid_nodes": 1000,
+      "status_counts": {
+        "ok": 1000
+      },
+      "failure_reasons": {},
+      "best": -744.5,
+      "best_root": -744.5,
+      "last_frontier_gain_eval": 1,
+      "frontier_gains": 0,
+      "exact_unique_codes": 946,
+      "distinct_fitness": 5,
+      "top_fitness_count": 995,
+      "pending": null,
+      "latest_event_ts": "2026-09-08T07:26:56",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "dataset_specs": [
+          {
+            "capacities": [
+              100,
+              500
+            ],
+            "n_instances": 1,
+            "n_items": 1000
+          },
+          {
+            "capacities": [
+              100,
+              500
+            ],
+            "n_instances": 1,
+            "n_items": 5000
+          }
+        ],
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 30
+      },
+      "llm": {
+        "model": "Qwen3.8-27B",
+        "base_url": "http://127.0.0.1:8001/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    },
+    {
+      "version": "v107",
+      "task": "vrptw_construct",
+      "repeat": 3,
+      "backend": "server3b",
+      "run_dir": "experiments/traceaad_v10_7/results/vrptw_construct/20260907_bounded_formal_vrptw_v107_rep3",
+      "manifest_status": "running",
+      "summary_status": null,
+      "session_alive": true,
+      "launch_attempts": 1,
+      "started_at": "2026-09-07T23:40:32",
+      "finished_at": null,
+      "budget_used": 618,
+      "completed_attempts": 622,
+      "valid_nodes": 606,
+      "status_counts": {
+        "ok": 606,
+        "eval_failed": 12,
+        "invalid_output": 4
+      },
+      "failure_reasons": {
+        "runtime_error": 9,
+        "invalid_result": 3,
+        "invalid_code_or_signature": 4
+      },
+      "best": -20.528990869547894,
+      "best_root": -21.443300379938325,
+      "last_frontier_gain_eval": 444,
+      "frontier_gains": 8,
+      "exact_unique_codes": 597,
+      "distinct_fitness": 387,
+      "top_fitness_count": 1,
+      "pending": {
+        "candidate_id": 623,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_attempts": null,
+        "age_seconds": 21.3
+      },
+      "latest_event_ts": "2026-09-08T08:10:42",
+      "source_drift": [],
+      "integrity_issues": [],
+      "task_eval": {
+        "n_instance": 16,
+        "problem_size": 50,
+        "seed": 2024,
+        "split": "train",
+        "timeout_seconds": 30
+      },
+      "llm": {
+        "model": "qwen3.8-27b-awq",
+        "base_url": "http://222.201.145.6:8001/v1",
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "enable_thinking": false,
+        "extra_body": {
+          "top_k": 20
+        }
+      }
+    }
+  ]
+}

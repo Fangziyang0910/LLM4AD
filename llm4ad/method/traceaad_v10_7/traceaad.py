@@ -7,6 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 import traceback
+import time
 
 from llm4ad.method.traceaad_v10_3.traceaad import TraceAADV103
 from llm4ad.method.traceaad_v10_5.traceaad import (
@@ -61,6 +62,8 @@ class TraceAADV107(TraceAADV106):
         TraceAADV105._log_call(self, record)
 
     def _schedule(self):
+        scheduling_started = time.monotonic()
+        counts_before = len(self.builder._counts)
         parent = donor = None
         selection = {}
         requested = operator = 'Init'
@@ -100,6 +103,7 @@ class TraceAADV107(TraceAADV106):
             template_hash = prompts.TEMPLATE_HASH
         else:
             references, context = [], {}
+            sampling_started = time.monotonic()
             if parent is not None:
                 references, context = sampling.sample_references(
                     self.tree.all_nodes(), parent, self.rng,
@@ -115,6 +119,7 @@ class TraceAADV107(TraceAADV106):
             if requested == 'Fuse' and operator == 'Refine':
                 selection['fallback_reason'] = 'no fitting distinct-code reference'
             context.update(
+                sampling_seconds=time.monotonic() - sampling_started,
                 context_node_ids=[node.id for node in programs],
                 context_program_count=len(programs),
                 context_program_tokens=[self.builder.count(block) for block in blocks],
@@ -124,6 +129,8 @@ class TraceAADV107(TraceAADV106):
                                           if node.id == donor.id), None) if donor else None,
             )
             template_hash = prompts.TRAJECTORY_TEMPLATE_HASH
+        context.update(scheduling_seconds=time.monotonic() - scheduling_started,
+                       tokenizer_requests=len(self.builder._counts) - counts_before)
         return {
             'candidate_id': self.completed_attempts + 1, 'phase': 'selected',
             'requested_operator': requested, 'operator': operator,

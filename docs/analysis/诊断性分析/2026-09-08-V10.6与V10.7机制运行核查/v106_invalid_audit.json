@@ -1,0 +1,768 @@
+[
+  {
+    "run": "20260906_215231_revised_tsp_v106_rep1",
+    "reasons": {
+      "None": 278,
+      "runtime_error": 102,
+      "timeout": 260,
+      "invalid_code_or_signature": 239,
+      "invalid_result": 5
+    },
+    "invalid_categories": {
+      "output_format": 227,
+      "multiple_code_blocks": 3,
+      "syntax": 8,
+      "missing_or_multiple_target": 1
+    },
+    "format_flags": {
+      "one_complete_syntax_signature_valid_block": 182,
+      "noncanonical_prefix": 187,
+      "multiple_blocks": 3,
+      "no_closed_code_block": 44,
+      "text_after_code": 1
+    },
+    "examples": {
+      "output_format": {
+        "candidate_id": 23,
+        "start": "## Idea\n\nThe proposed algorithm fuses the **exact dynamic programming** from the current solution (which is optimal for small sub-problems) with the **2-step lookahead and destinat",
+        "end": "w_dest * dest_dist\n    \n    min_idx = np.argmin(scores)\n    return int(unvisited_nodes[min_idx])\n```"
+      },
+      "multiple_code_blocks": {
+        "candidate_id": 55,
+        "start": "Idea: The algorithm employs a \"Lookahead Insertion\" heuristic that estimates the regret of visiting a candidate node now versus saving it for later. For each candidate node $u$, we",
+        "end": " + dest_weight * d_dest\n    \n    min_idx = np.argmin(scores)\n    return unvisited_nodes[min_idx]\n```"
+      },
+      "syntax": {
+        "candidate_id": 110,
+        "start": "Idea: The current algorithm fails on large instances because it relies on a greedy Nearest-Neighbor (NN) lookahead, which is computationally cheap but often yields poor tour estima",
+        "end": "t\n                best_candidate = cand_node\n                \n        return int(best_candidate)\n```"
+      },
+      "missing_or_multiple_target": {
+        "candidate_id": 315,
+        "start": "Idea: The current algorithm relies on a \"Lookahead Simulation\" (constructing a full path via NN + 2-opt for candidates). A fundamentally different approach is **Geometric Angular C",
+        "end": "xt_m(current_node, destination_node, unvisited_nodes, distance_matrix, M=8, tail_estimator=None)\n```"
+      }
+    },
+    "unavailable": []
+  },
+  {
+    "run": "20260906_215231_revised_cvrp_v106_rep1",
+    "reasons": {
+      "None": 969,
+      "invalid_code_or_signature": 293,
+      "runtime_error": 31
+    },
+    "invalid_categories": {
+      "output_format": 290,
+      "syntax": 2,
+      "multiple_code_blocks": 1
+    },
+    "format_flags": {
+      "one_complete_syntax_signature_valid_block": 289,
+      "noncanonical_prefix": 288,
+      "text_after_code": 6,
+      "multiple_blocks": 1,
+      "no_closed_code_block": 1
+    },
+    "examples": {
+      "output_format": {
+        "candidate_id": 9,
+        "start": "## Idea\n\nMy heuristic combines **geometric proximity**, **radial sweep continuity**, **load-awareness**, and **demand-bucketing** into a single edge-prior matrix.\n\n1. **Base proxim",
+        "end": "p(log_mean) + eps)\n        H = np.maximum(H, eps)\n        np.fill_diagonal(H, 0.0)\n\n    return H\n```"
+      },
+      "syntax": {
+        "candidate_id": 26,
+        "start": "Idea: Keep the inverse-distance prior and mutual-kNN skeleton, but replace the crude geometric depot heuristics and exponential long-edge penalty with explicit demand-aware route c",
+        "end": "s, posinf=1.0, neginf=eps)\n    H = np.maximum(H, eps)\n    np.fill_diagonal(H, 0.0)\n\n    return H\n```"
+      },
+      "multiple_code_blocks": {
+        "candidate_id": 335,
+        "start": "Idea: Replace the current static \"local skeleton + angular sector + demand-start\" heuristic with a **dynamic, load-aware** edge prior computed on the fly. The heuristic no longer r",
+        "end": "s, posinf=1e9, neginf=eps)\n    H = np.maximum(H, eps)\n    np.fill_diagonal(H, 0.0)\n\n    return H\n```"
+      }
+    },
+    "unavailable": []
+  },
+  {
+    "run": "20260906_215231_revised_op_v106_rep1",
+    "reasons": {
+      "runtime_error": 43,
+      "None": 957,
+      "invalid_code_or_signature": 219
+    },
+    "invalid_categories": {
+      "output_format": 214,
+      "signature": 1,
+      "multiple_code_blocks": 4
+    },
+    "format_flags": {
+      "no_closed_code_block": 5,
+      "one_complete_syntax_signature_valid_block": 205,
+      "noncanonical_prefix": 209,
+      "multiple_blocks": 8,
+      "text_after_code": 2
+    },
+    "examples": {
+      "output_format": {
+        "candidate_id": 8,
+        "start": "Idea: The heuristic estimates the expected \"net benefit\" of traversing an edge $(i, j)$ by considering the prize collected at node $j$ relative to the cost of moving to $j$ and the",
+        "end": "itive prizes, but just in case)\n    np.clip(raw_eta, 0, np.inf, out=raw_eta)\n    \n    return raw_eta"
+      },
+      "signature": {
+        "candidate_id": 143,
+        "start": "Idea: Build on the current edge-prior formulation (prize/distance base heuristic with a location-aware exponential budget penalty), but fix its two main weaknesses: (1) the heurist",
+        "end": " h = np.nan_to_num(h, nan=0.0, posinf=0.0, neginf=0.0)\n    h = np.maximum(h, 1e-9)\n\n    return h\n```",
+        "expected": [
+          [],
+          [
+            "prize",
+            "distance",
+            "maxlen"
+          ],
+          [],
+          null,
+          null
+        ],
+        "actual": [
+          [],
+          [
+            "prize",
+            "distance",
+            "maxlen",
+            "current_path",
+            "spent",
+            "visited_mask"
+          ],
+          [],
+          null,
+          null
+        ]
+      },
+      "multiple_code_blocks": {
+        "candidate_id": 225,
+        "start": "Idea: The current algorithm performs well by using a prize-to-power-distance base heuristic ($p_j / d_{ij}^{1.2}$) and an adaptive exponential tightness penalty. To improve perform",
+        "end": " h / max_h\n    else:\n        h = np.ones_like(h) * eps\n\n    h = np.maximum(h, eps)\n\n    return h\n```"
+      }
+    },
+    "unavailable": [
+      {
+        "candidate_id": 1073,
+        "start": "Idea: The implemented heuristic constructs an edge desirability matrix for Ant Colony Optimization on the Orienteering Problem by combining a prize-to-distance baseline with an adaptive, prize-aware slack penalty, locality tiebreakers, and soft reach",
+        "end": "   else:\n        h = np.full((n, n), 1.0, dtype=float)\n\n    h = np.maximum(h, 1e-9)\n    return h\n```",
+        "finish": "stop",
+        "node_id": 841
+      }
+    ]
+  },
+  {
+    "run": "20260906_215231_revised_obp_v106_rep1",
+    "reasons": {
+      "None": 999,
+      "invalid_code_or_signature": 158,
+      "runtime_error": 1
+    },
+    "invalid_categories": {
+      "output_format": 134,
+      "multiple_code_blocks": 22,
+      "syntax": 2
+    },
+    "format_flags": {
+      "one_complete_syntax_signature_valid_block": 130,
+      "noncanonical_prefix": 130,
+      "multiple_blocks": 23,
+      "text_after_code": 2,
+      "no_closed_code_block": 3
+    },
+    "examples": {
+      "output_format": {
+        "candidate_id": 16,
+        "start": "Looking at the current and reference algorithms, both reduce to Best-Fit (highest priority = smallest leftover) and score -744.5. The key insight: strict best-fit fragments bins, l",
+        "end": "ore, nan=0.0, posinf=1e6, neginf=-1e6)\n    score = np.clip(score, -1e10, 1e10)\n\n    return score\n```"
+      },
+      "multiple_code_blocks": {
+        "candidate_id": 23,
+        "start": "Idea: The core strategy remains \"Best Fit\" (selecting the bin with the smallest residual capacity after placing the item), as both the current and reference algorithms essentially ",
+        "end": " issues\n    score = np.nan_to_num(score, nan=0.0, posinf=1e9, neginf=-1e9)\n    \n    return score\n```"
+      },
+      "syntax": {
+        "candidate_id": 593,
+        "start": "Idea: Instead of using a composite scoring function with multiple tuned terms (Gaussian bonus, dead-zone penalty, etc.), I propose a simpler \"Best Fit with Fragmentation Threshold\"",
+        "end": "itize\n    score = np.nan_to_num(score, nan=0.0, posinf=1e10, neginf=-1e10)\n    \n    return score\n```"
+      }
+    },
+    "unavailable": []
+  },
+  {
+    "run": "20260906_215231_revised_vrptw_v106_rep1",
+    "reasons": {
+      "None": 938,
+      "invalid_code_or_signature": 87,
+      "runtime_error": 40,
+      "invalid_result": 21,
+      "timeout": 1
+    },
+    "invalid_categories": {
+      "output_format": 80,
+      "syntax": 6,
+      "multiple_code_blocks": 1
+    },
+    "format_flags": {
+      "one_complete_syntax_signature_valid_block": 77,
+      "noncanonical_prefix": 78,
+      "multiple_blocks": 2,
+      "no_closed_code_block": 2,
+      "text_after_code": 1
+    },
+    "examples": {
+      "output_format": {
+        "candidate_id": 15,
+        "start": "## Design Idea\n\nThe proposed algorithm combines the strengths of both approaches by using a multi-criteria scoring function that balances proximity (distance minimization), tempora",
+        "end": "  best_node = node\n    \n    if best_node is None:\n        return depot\n    \n    return best_node\n```"
+      },
+      "syntax": {
+        "candidate_id": 333,
+        "start": "Idea: The proposed algorithm abandons the additive scoring of the current heuristic (which sums savings, waiting, and continuation costs) in favor of a **Geometric Clustering and \"",
+        "end": "nerally good.\n        \n    best_idx = int(np.argmin(score))\n    return int(candidates[best_idx])\n```"
+      },
+      "multiple_code_blocks": {
+        "candidate_id": 548,
+        "start": "Idea: The current algorithm uses a simple additive greedy score. My proposed algorithm shifts to a **Nearest Neighbor with Dynamic Slack Prioritization (NNS-DS)** strategy, which a",
+        "end": "est_cost:\n            best_cost = total_score\n            best_node = node\n\n    return best_node\n```"
+      }
+    },
+    "unavailable": []
+  },
+  {
+    "run": "20260906_215231_revised_tsp_v106_rep2",
+    "reasons": {
+      "None": 618,
+      "runtime_error": 45,
+      "invalid_code_or_signature": 220,
+      "timeout": 234
+    },
+    "invalid_categories": {
+      "syntax": 4,
+      "output_format": 214,
+      "multiple_code_blocks": 2
+    },
+    "format_flags": {
+      "one_complete_syntax_signature_valid_block": 194,
+      "noncanonical_prefix": 196,
+      "no_closed_code_block": 18,
+      "multiple_blocks": 3
+    },
+    "examples": {
+      "syntax": {
+        "candidate_id": 33,
+        "start": "Idea: The proposed algorithm employs a **Composite Adaptive Heuristic** that synthesizes the stability of nearest-neighbor (NN) logic with a strong look-ahead connectivity penalty ",
+        "end": "ize=m)\n    scores += noise\n\n    min_idx = np.argmin(scores)\n\n    return int(candidates[min_idx])\n```"
+      },
+      "output_format": {
+        "candidate_id": 34,
+        "start": "Looking at both algorithms, the reference's scale-invariant potential (normalized by avg_d), deterministic behavior, and power-based progress scheduling are clearly superior (highe",
+        "end": "* d_dest - gamma * structural\n\n    min_idx = int(np.argmin(scores))\n    return int(idx[min_idx])\n```"
+      },
+      "multiple_code_blocks": {
+        "candidate_id": 515,
+        "start": "Idea: Instead of simulating a forward tour to predict future costs (rollouts) or using regret-based ambiguity measures, I employ a **Dynamic Insertion Cost Minimization** heuristic",
+        "end": "   best_score = total_cost\n            best_node = node_i\n            \n    return int(best_node)\n```"
+      }
+    },
+    "unavailable": []
+  },
+  {
+    "run": "20260906_215231_revised_cvrp_v106_rep2",
+    "reasons": {
+      "None": 904,
+      "invalid_code_or_signature": 351,
+      "runtime_error": 60
+    },
+    "invalid_categories": {
+      "output_format": 349,
+      "syntax": 2
+    },
+    "format_flags": {
+      "one_complete_syntax_signature_valid_block": 347,
+      "noncanonical_prefix": 348,
+      "text_after_code": 7,
+      "multiple_blocks": 1
+    },
+    "examples": {
+      "output_format": {
+        "candidate_id": 23,
+        "start": "Looking at the history, fitness has been oscillating around -10.6 to -11.0. The current version's depot-centric \"fill factor\" compatibility peaked at -10.58. The key insight from C",
+        "end": "heuristic = np.minimum(final_heuristic, 1e6)  # guard against blowups\n    return final_heuristic\n```"
+      },
+      "syntax": {
+        "candidate_id": 132,
+        "start": "Idea: Build a spatially-aware, capacity-aware \"route-feasibility\" prior. Core insight: good CVRP tours move to neighbors that (1) are short, (2) are on the local convex hull of the",
+        "end": "\n    final = np.where(final > 0, final, 1e-9)\n    np.fill_diagonal(final, 0.0)\n\n    return final\n```"
+      }
+    },
+    "unavailable": [
+      {
+        "candidate_id": 417,
+        "start": "Idea: The final implementation constructs an edge desirability matrix for CVRP by multiplying a geometric proximity gate with a bounded, multi-factor modulation term. The proximity gate is derived from the inverse square of the pairwise Euclidean dis",
+        "end": ".5) and smaller weights (0.3, 0.2, 0.15) to keep the modulation bounded and let pheromones dominate.",
+        "finish": "stop",
+        "node_id": 296
+      }
+    ]
+  },
+  {
+    "run": "20260906_215231_revised_op_v106_rep2",
+    "reasons": {
+      "None": 942,
+      "invalid_code_or_signature": 236,
+      "runtime_error": 58
+    },
+    "invalid_categories": {
+      "syntax": 1,
+      "output_format": 234,
+      "signature": 1
+    },
+    "format_flags": {
+      "one_complete_syntax_signature_valid_block": 230,
+      "noncanonical_prefix": 230,
+      "text_after_code": 5,
+      "no_closed_code_block": 3,
+      "multiple_blocks": 1
+    },
+    "examples": {
+      "syntax": {
+        "candidate_id": 17,
+        "start": "Idea: The heuristic will be refined to strictly enforce budget feasibility using a tighter return-to-depot constraint ($d_{ij} + d_{j0} \\le maxlen$) which is mathematically correct",
+        "end": "r, \n    # but we should return positive values.\n    H = np.clip(H, 1e-9, None)\n    \n    return H\n```"
+      },
+      "output_format": {
+        "candidate_id": 29,
+        "start": "Looking at the current algorithm, I can identify a few areas for improvement: (1) the feasibility lower bound is loose (it ignores the path already traveled to reach node `i`), whi",
+        "end": ".fill_diagonal(H, 0.0)\n    H = np.clip(H, 1e-9, 1.0)\n    np.fill_diagonal(H, 1e-9)\n\n    return H\n```"
+      },
+      "signature": {
+        "candidate_id": 132,
+        "start": "Idea: The current algorithm uses a static, pre-computed heuristic matrix that approximates budget feasibility using only pairwise distances (e.g., $d_{i0} + d_{ij} + d_{j0} \\le max",
+        "end": "Clean up non-finite values\n    H = np.where(np.isfinite(H) & (H > 0), H, 1e-9)\n    \n    return H\n```",
+        "expected": [
+          [],
+          [
+            "prize",
+            "distance",
+            "maxlen"
+          ],
+          [],
+          null,
+          null
+        ],
+        "actual": [
+          [],
+          [
+            "prize",
+            "distance",
+            "maxlen",
+            "current_node",
+            "path",
+            "current_cost"
+          ],
+          [],
+          null,
+          null
+        ]
+      }
+    },
+    "unavailable": [
+      {
+        "candidate_id": 470,
+        "start": "Idea: The implementation computes a directed edge-prior matrix where entries represent the heuristic desirability of moving from node `i` to node `j`. For intermediate transitions (where `j != 0`), the score is the product of three components: a priz",
+        "end": ".fill_diagonal(H, 0.0)\n    H = np.clip(H, 1e-9, 1.0)\n    np.fill_diagonal(H, 1e-9)\n\n    return H\n```",
+        "finish": "stop",
+        "node_id": 353
+      }
+    ]
+  },
+  {
+    "run": "20260906_215231_revised_obp_v106_rep2",
+    "reasons": {
+      "None": 992,
+      "invalid_code_or_signature": 555,
+      "runtime_error": 8
+    },
+    "invalid_categories": {
+      "multiple_code_blocks": 74,
+      "output_format": 478,
+      "syntax": 2,
+      "missing_or_multiple_target": 1
+    },
+    "format_flags": {
+      "multiple_blocks": 88,
+      "one_complete_syntax_signature_valid_block": 460,
+      "noncanonical_prefix": 475,
+      "text_after_code": 9,
+      "no_closed_code_block": 2
+    },
+    "examples": {
+      "multiple_code_blocks": {
+        "candidate_id": 9,
+        "start": "Idea: The current algorithm uses a strict Best Fit heuristic (`-remaining`), which is deterministic but lacks any tie-breaking mechanism or preference for preserving large empty bi",
+        "end": "p.float64)\n    \n    # Worst Fit: Prefer bins with the most remaining space\n    return bins_float\n```"
+      },
+      "output_format": {
+        "candidate_id": 15,
+        "start": "## Idea\n\nBoth current and reference algorithms essentially implement a \"Best Fit\" (minimize remaining slack) strategy. The reference is slightly cleaner, while the current algorith",
+        "end": " capacity bins\n    size_bonus = 1.0 / (bins_float + 1.0)\n\n    return primary + 0.01 * size_bonus\n```"
+      },
+      "syntax": {
+        "candidate_id": 1088,
+        "start": "Idea: The current algorithm uses a \"dead-zone\" penalty based on the expected item size, which is a heuristic for fragmentation. I will replace this with a more principled approach ",
+        "end": "       \n        # Return\n        pri = np.where(np.isfinite(pri), pri, -1e9)\n        return pri\n\n```"
+      },
+      "missing_or_multiple_target": {
+        "candidate_id": 1348,
+        "start": "Idea: The goal is to improve upon the baseline Best-Fit strategy by using a \"Best Fit with Gap Reuse\" approach. Standard Best Fit minimizes slack, which often creates tiny, unusabl",
+        "end": "break\n\n    priorities = np.where(np.isfinite(priorities), priorities, 0.0)\n    return priorities\n```"
+      }
+    },
+    "unavailable": []
+  },
+  {
+    "run": "20260906_215231_revised_vrptw_v106_rep2",
+    "reasons": {
+      "None": 970,
+      "invalid_result": 13,
+      "invalid_code_or_signature": 120,
+      "runtime_error": 16,
+      "timeout": 1
+    },
+    "invalid_categories": {
+      "output_format": 110,
+      "signature": 1,
+      "syntax": 7,
+      "multiple_code_blocks": 2
+    },
+    "format_flags": {
+      "one_complete_syntax_signature_valid_block": 108,
+      "noncanonical_prefix": 108,
+      "multiple_blocks": 3,
+      "text_after_code": 2,
+      "no_closed_code_block": 1
+    },
+    "examples": {
+      "output_format": {
+        "candidate_id": 11,
+        "start": "## Idea\n\nMy algorithm improves upon the current best approach (pure nearest-neighbor with wait penalty) by integrating two critical missing components: (1) **time-window urgency pr",
+        "end": "= np.argmin(total_scores)\n    next_node = feasible_candidates[min_idx]\n    \n    return next_node\n```"
+      },
+      "signature": {
+        "candidate_id": 23,
+        "start": "Idea: Improve the greedy construction by (1) using a cheaper and better lookahead that estimates the true \"exit\" cost via the min of (distance to nearest remaining customer, distan",
+        "end": "        best_node = c\n\n    if best_node == -1:\n        return int(dep)\n    return int(best_node)\n```",
+        "expected": [
+          [],
+          [
+            "current_node",
+            "depot",
+            "unvisited_nodes",
+            "rest_capacity",
+            "current_time",
+            "demands",
+            "distance_matrix",
+            "time_windows"
+          ],
+          [],
+          null,
+          null
+        ],
+        "actual": [
+          [],
+          [
+            "current_node",
+            "depot",
+            "unvisited_nodes",
+            "rest_capacity",
+            "demands",
+            "distance_matrix",
+            "time_windows"
+          ],
+          [],
+          null,
+          null
+        ]
+      },
+      "syntax": {
+        "candidate_id": 82,
+        "start": "Idea: The core improvement shifts from an additive weighted sum (which mixes incomparable units of distance and time) to a normalized multi-objective score where every component is",
+        "end": "tric = min(metrics, key=lambda x: x['effective_score'])\n    \n    return int(best_metric['node'])\n```"
+      },
+      "multiple_code_blocks": {
+        "candidate_id": 227,
+        "start": "Idea: The current algorithm uses a composite score that combines immediate travel distance, waiting time, savings, and various risk penalties. While robust, the composite nature ca",
+        "end": "            best_node = node\n\n    if best_node == -1:\n        return depot\n\n    return best_node\n```"
+      }
+    },
+    "unavailable": []
+  },
+  {
+    "run": "20260906_215231_revised_tsp_v106_rep3",
+    "reasons": {
+      "None": 744,
+      "invalid_code_or_signature": 252,
+      "invalid_result": 3,
+      "runtime_error": 64,
+      "timeout": 188,
+      "exec_error": 1
+    },
+    "invalid_categories": {
+      "output_format": 235,
+      "syntax": 15,
+      "multiple_code_blocks": 2
+    },
+    "format_flags": {
+      "one_complete_syntax_signature_valid_block": 207,
+      "noncanonical_prefix": 211,
+      "multiple_blocks": 4,
+      "no_closed_code_block": 23,
+      "text_after_code": 1
+    },
+    "examples": {
+      "output_format": {
+        "candidate_id": 19,
+        "start": "Looking at both algorithms, the reference's equal-weighting of forward and backward distances (effectively α=1.0, minimizing detour) outperformed the current's α=1/n, which starts ",
+        "end": " d_current + w * d_dest\n\n    min_idx = np.argmin(costs)\n    return int(unvisited_nodes[min_idx])\n```"
+      },
+      "syntax": {
+        "candidate_id": 49,
+        "start": "Idea: A phase-aware hybrid that borrows the reference's scale-invariant centrality (density) signal and its smooth, decaying regret/destination weights, but augments them with a *f",
+        "end": "  order = np.lexsort((tied_ids, tied_dest))\n        idx = tied[order[0]]\n    return int(un[idx])\n```"
+      },
+      "multiple_code_blocks": {
+        "candidate_id": 717,
+        "start": "Idea: The current algorithm suffers from two main weaknesses: (1) the scoring formula subtracts local connectivity ($L_{norm}$), which inadvertently penalizes nodes that are well-c",
+        "end": "  if best_node == -1:\n        best_node = int(unvisited[top_K_indices[0]])\n\n    return best_node\n```"
+      }
+    },
+    "unavailable": [
+      {
+        "candidate_id": 1183,
+        "start": "The implemented algorithm determines the next node in a traveling salesman tour by combining immediate proximity, destination bias, and structural cohesion into a composite heuristic score, followed by a rigorous local search verification for the top",
+        "end": "local search intensity, making the adaptive pass limits critical for performance on large instances.",
+        "finish": "stop",
+        "node_id": null
+      }
+    ]
+  },
+  {
+    "run": "20260906_215231_revised_cvrp_v106_rep3",
+    "reasons": {
+      "None": 875,
+      "runtime_error": 41,
+      "invalid_code_or_signature": 325
+    },
+    "invalid_categories": {
+      "output_format": 324,
+      "syntax": 1
+    },
+    "format_flags": {
+      "one_complete_syntax_signature_valid_block": 323,
+      "noncanonical_prefix": 323,
+      "text_after_code": 5,
+      "multiple_blocks": 1
+    },
+    "examples": {
+      "output_format": {
+        "candidate_id": 26,
+        "start": "Looking at the history, the key insight is that the **directional continuity** (sweep routing) should be based on *local* direction (vector from current node to next), not the glob",
+        "end": "= np.where(np.isfinite(H), H, floor_val)\n    H = np.where(H > 0, H, floor_val)\n    \n    return H\n```"
+      },
+      "syntax": {
+        "candidate_id": 1052,
+        "start": "Idea: Instead of the current approach which relies on a static global geometry (depot-centric inverse-cubic distance and angular sweep), this new algorithm uses a **local neighborh",
+        "end": "um(H, 1e-9)\n    \n    # Ensure finite\n    H = np.where(np.isfinite(H), H, 1e-9)\n    \n    return H\n```"
+      }
+    },
+    "unavailable": []
+  },
+  {
+    "run": "20260906_215231_revised_op_v106_rep3",
+    "reasons": {
+      "None": 975,
+      "runtime_error": 25,
+      "invalid_code_or_signature": 229
+    },
+    "invalid_categories": {
+      "output_format": 223,
+      "signature": 1,
+      "syntax": 3,
+      "multiple_code_blocks": 2
+    },
+    "format_flags": {
+      "one_complete_syntax_signature_valid_block": 219,
+      "noncanonical_prefix": 220,
+      "no_closed_code_block": 2,
+      "multiple_blocks": 4,
+      "text_after_code": 7
+    },
+    "examples": {
+      "output_format": {
+        "candidate_id": 14,
+        "start": "## Design Idea\n\nMy heuristic blends the reference algorithm's **hard feasibility mask** (which reliably prunes edges that can never appear in any valid tour) with the current algor",
+        "end": "# simpler: re-apply the feasible mask directly.\n    h = np.where(feasible, h, EPS)\n\n    return h\n```"
+      },
+      "signature": {
+        "candidate_id": 259,
+        "start": "Idea: Improve the budget-awareness of the edge prior by recognizing that the heuristic is applied dynamically as the ant constructs its path. The previous version estimated the rem",
+        "end": ".max(h)\n    if max_h > 1e-9:\n        h = h / max_h\n        h = np.maximum(h, 1e-9)\n\n    return h\n```",
+        "expected": [
+          [],
+          [
+            "prize",
+            "distance",
+            "maxlen"
+          ],
+          [],
+          null,
+          null
+        ],
+        "actual": [
+          [],
+          [
+            "prize",
+            "distance",
+            "maxlen",
+            "cur_len"
+          ],
+          [],
+          null,
+          null
+        ]
+      },
+      "syntax": {
+        "candidate_id": 516,
+        "start": "Idea: Combine the reference's softer proximity (exponent 0.5) and looser budget slack (exponent 0.4) that favor aggressive budget utilization, with a mild \"opportunity-cost\" penalt",
+        "end": " max_h\n        h = np.maximum(h, 1e-9)\n    else:\n        h = np.full((n, n), 1e-9)\n\n    return h\n```"
+      },
+      "multiple_code_blocks": {
+        "candidate_id": 798,
+        "start": "Idea: The current algorithm (Fitness: 14.324) relies on a static, multiplicative heuristic combining prize efficiency, distance penalty, budget slack, and directional bias. The mai",
+        "end": "max(h))\n    if max_h > 1e-9:\n        h = h / max_h\n        h = np.maximum(h, 1e-9)\n\n    return h\n```"
+      }
+    },
+    "unavailable": []
+  },
+  {
+    "run": "20260906_215231_revised_obp_v106_rep3",
+    "reasons": {
+      "None": 992,
+      "invalid_code_or_signature": 154,
+      "runtime_error": 8
+    },
+    "invalid_categories": {
+      "multiple_code_blocks": 23,
+      "output_format": 125,
+      "syntax": 6
+    },
+    "format_flags": {
+      "multiple_blocks": 25,
+      "one_complete_syntax_signature_valid_block": 122,
+      "noncanonical_prefix": 123,
+      "text_after_code": 2,
+      "no_closed_code_block": 1
+    },
+    "examples": {
+      "multiple_code_blocks": {
+        "candidate_id": 18,
+        "start": "Idea: The current Best-Fit heuristic is a strong baseline, but it lacks awareness of the item's magnitude relative to the bin's capacity, which can lead to poor packing when items ",
+        "end": "avoid fragmenting large spaces\n    scores = -remaining_after + 0.1 * bins\n    \n    return scores\n```"
+      },
+      "output_format": {
+        "candidate_id": 21,
+        "start": "The improved algorithm retains Best-Fit as the primary decision rule (prioritize the smallest feasible remaining capacity) but augments it with a subtle tie-breaking mechanism to b",
+        "end": "feasible_mask] = -bins_float[feasible_mask]\n    \n    # Return finite array\n    return priorities\n```"
+      },
+      "syntax": {
+        "candidate_id": 155,
+        "start": "Idea: The core strategy remains Best Fit (minimizing leftover space), but we refine the scoring to better handle fragmentation and tie-breaking. Specifically, we introduce a \"waste",
+        "end": "sign back to full array\n    priorities[feasible] = current_priorities\n    \n    return priorities\n```"
+      }
+    },
+    "unavailable": []
+  },
+  {
+    "run": "20260906_215231_revised_vrptw_v106_rep3",
+    "reasons": {
+      "None": 837,
+      "invalid_code_or_signature": 149,
+      "runtime_error": 56,
+      "invalid_result": 8,
+      "timeout": 1
+    },
+    "invalid_categories": {
+      "output_format": 140,
+      "syntax": 6,
+      "multiple_code_blocks": 1,
+      "signature": 2
+    },
+    "format_flags": {
+      "one_complete_syntax_signature_valid_block": 135,
+      "noncanonical_prefix": 135,
+      "text_after_code": 2,
+      "no_closed_code_block": 4,
+      "multiple_blocks": 2
+    },
+    "examples": {
+      "output_format": {
+        "candidate_id": 14,
+        "start": "## Idea\n\nI propose a hybrid constructive heuristic that unifies the **feasibility-preserving lookahead (regret)** mechanism of the current algorithm with the **multi-criteria scori",
+        "end": "   w_cap * ben_cap)\n    \n    best_idx = np.argmax(total_benefit)\n    return candidates[best_idx]\n```"
+      },
+      "syntax": {
+        "candidate_id": 227,
+        "start": "Idea: Combine the reference's spatial/angular cluster-awareness with the current algorithm's vectorized regret and 2-step lookahead, but correct the regret to use the *minimum* cos",
+        "end": "t pick the min score.\n    \n    best_idx = ranked[0]\n    \n    return int(candidate_ids[best_idx])\n```"
+      },
+      "multiple_code_blocks": {
+        "candidate_id": 504,
+        "start": "Idea: Build on the reference's strong global score (direct distance + cheap 2-step lookahead + regret + angular + urgency + adaptive return-to-depot) but replace the reference's ex",
+        "end": "   best_cost = refined_score\n            best_idx = idx\n\n    return int(candidate_ids[best_idx])\n```"
+      },
+      "signature": {
+        "candidate_id": 540,
+        "start": "Idea: The current approach uses a multi-component weighted sum with rank normalization and 1-step regret. I propose a different main idea: **Dynamic Neighborhood Clustering with Ad",
+        "end": " norm_returns)\n    \n    min_idx = np.argmin(scores)\n    return int(feasible_candidates[min_idx])\n```",
+        "expected": [
+          [],
+          [
+            "current_node",
+            "depot",
+            "unvisited_nodes",
+            "rest_capacity",
+            "current_time",
+            "demands",
+            "distance_matrix",
+            "time_windows"
+          ],
+          [],
+          null,
+          null
+        ],
+        "actual": [
+          [],
+          [
+            "current_node",
+            "depot",
+            "unvisited_nodes",
+            "rest_capacity",
+            "current_time",
+            "demands",
+            "distance_matrix",
+            "time_windows",
+            "route"
+          ],
+          [],
+          null,
+          null
+        ]
+      }
+    },
+    "unavailable": []
+  }
+]

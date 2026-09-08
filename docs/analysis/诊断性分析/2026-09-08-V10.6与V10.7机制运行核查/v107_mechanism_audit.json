@@ -1,0 +1,1423 @@
+[
+  {
+    "run": "20260907_bounded_formal_tsp_v107_rep1",
+    "snapshot_attempts": 463,
+    "budget_used": 453,
+    "nodes": 405,
+    "snapshot_ts": "2026-09-08T08:09:49",
+    "events": 463,
+    "llm_calls": 463,
+    "call_counts_distribution": {
+      "1": 463
+    },
+    "issues": [],
+    "counts": {
+      "programs_0": 8,
+      "programs_3": 455,
+      "layer_low": 309,
+      "layer_high": 304,
+      "same_layer_pair": 0,
+      "shortfall": 0,
+      "fit_rejections": 0,
+      "ancestor_reference": 63,
+      "nonancestor_reference": 847,
+      "fuse_requested": 149,
+      "layer_middle": 297
+    },
+    "quantile_exact_checks": 80,
+    "idea_words": {
+      "n": 405,
+      "mean": 102.8641975308642,
+      "median": 100,
+      "p95": 126,
+      "max": 554
+    },
+    "ideas_over_100_words": 190,
+    "omitted_idea_blocks": 22,
+    "prompt_blocks": 1365,
+    "prompt_tokens": {
+      "n": 455,
+      "mean": 4368.079120879121,
+      "median": 4316,
+      "p95": 6120,
+      "max": 7956
+    },
+    "cost": {
+      "first100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.38,
+          "median": 6.0,
+          "p95": 8,
+          "max": 29
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.2013721383898519,
+          "median": 0.1926143664168194,
+          "p95": 0.34751914511434734,
+          "max": 0.646032476099208
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.44524936415022237,
+          "median": 0.4213679259410128,
+          "p95": 0.7596069069113582,
+          "max": 1.4822214778978378
+        }
+      },
+      "last100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 5.1,
+          "median": 6.0,
+          "p95": 7,
+          "max": 8
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.20404588552191855,
+          "median": 0.19587397400755435,
+          "p95": 0.3138602471444756,
+          "max": 0.6161787249147892
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.37855814253678544,
+          "median": 0.3661745444405824,
+          "p95": 0.631369287148118,
+          "max": 1.0683928539510816
+        }
+      }
+    },
+    "schedule_total_seconds": 191.27843837626278,
+    "llm_total_seconds": 28609.092272996902,
+    "evaluation_total_seconds": 1707.9879949092865
+  },
+  {
+    "run": "20260907_bounded_formal_cvrp_v107_rep1",
+    "snapshot_attempts": 344,
+    "budget_used": 343,
+    "nodes": 322,
+    "snapshot_ts": "2026-09-08T08:09:23",
+    "events": 344,
+    "llm_calls": 344,
+    "call_counts_distribution": {
+      "1": 344
+    },
+    "issues": [],
+    "counts": {
+      "programs_0": 9,
+      "programs_3": 335,
+      "layer_low": 228,
+      "layer_high": 228,
+      "same_layer_pair": 0,
+      "shortfall": 0,
+      "fit_rejections": 0,
+      "ancestor_reference": 40,
+      "nonancestor_reference": 630,
+      "fuse_requested": 111,
+      "layer_middle": 214
+    },
+    "quantile_exact_checks": 98,
+    "idea_words": {
+      "n": 322,
+      "mean": 83.59006211180125,
+      "median": 83.0,
+      "p95": 110,
+      "max": 127
+    },
+    "ideas_over_100_words": 41,
+    "omitted_idea_blocks": 0,
+    "prompt_blocks": 1005,
+    "prompt_tokens": {
+      "n": 335,
+      "mean": 3981.8835820895524,
+      "median": 3976,
+      "p95": 4748,
+      "max": 5726
+    },
+    "cost": {
+      "first100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.24,
+          "median": 6.0,
+          "p95": 8,
+          "max": 29
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.06432512726634741,
+          "median": 0.06212668551597744,
+          "p95": 0.08781802002340555,
+          "max": 0.11707297596149147
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.15677048229146748,
+          "median": 0.14837676100432873,
+          "p95": 0.21992055303417146,
+          "max": 0.6242469300050288
+        }
+      },
+      "last100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 5.96,
+          "median": 6.0,
+          "p95": 7,
+          "max": 8
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.07777355247875675,
+          "median": 0.0782642678823322,
+          "p95": 0.1020689089782536,
+          "max": 0.10959151689894497
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.17792743689613416,
+          "median": 0.17721001291647553,
+          "p95": 0.2383631879929453,
+          "max": 0.28476465307176113
+        }
+      }
+    },
+    "schedule_total_seconds": 55.028512134216726,
+    "llm_total_seconds": 17437.614495038986,
+    "evaluation_total_seconds": 13008.83321762085
+  },
+  {
+    "run": "20260907_bounded_formal_op_v107_rep1",
+    "snapshot_attempts": 492,
+    "budget_used": 492,
+    "nodes": 486,
+    "snapshot_ts": "2026-09-08T08:10:33",
+    "events": 492,
+    "llm_calls": 492,
+    "call_counts_distribution": {
+      "1": 492
+    },
+    "issues": [],
+    "counts": {
+      "programs_0": 8,
+      "programs_3": 484,
+      "layer_low": 333,
+      "layer_middle": 328,
+      "same_layer_pair": 0,
+      "shortfall": 0,
+      "fit_rejections": 0,
+      "ancestor_reference": 51,
+      "nonancestor_reference": 917,
+      "fuse_requested": 182,
+      "layer_high": 307
+    },
+    "quantile_exact_checks": 308,
+    "idea_words": {
+      "n": 486,
+      "mean": 93.69753086419753,
+      "median": 94.0,
+      "p95": 116,
+      "max": 176
+    },
+    "ideas_over_100_words": 144,
+    "omitted_idea_blocks": 7,
+    "prompt_blocks": 1452,
+    "prompt_tokens": {
+      "n": 484,
+      "mean": 4551.909090909091,
+      "median": 4529.5,
+      "p95": 5417,
+      "max": 6592
+    },
+    "cost": {
+      "first100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.45,
+          "median": 6.0,
+          "p95": 8,
+          "max": 29
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.0681280979514122,
+          "median": 0.06411707948427647,
+          "p95": 0.09460640815086663,
+          "max": 0.10182675998657942
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.1670815822482109,
+          "median": 0.16468227899167687,
+          "p95": 0.2207706798799336,
+          "max": 0.5833411000203341
+        }
+      },
+      "last100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 5.99,
+          "median": 6.0,
+          "p95": 7,
+          "max": 8
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.08471053916262462,
+          "median": 0.08646504301577806,
+          "p95": 0.1082687508314848,
+          "max": 0.11614841315895319
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.1939318888215348,
+          "median": 0.18844517145771533,
+          "p95": 0.2642058979254216,
+          "max": 0.307889356976375
+        }
+      }
+    },
+    "schedule_total_seconds": 86.25163804739714,
+    "llm_total_seconds": 22733.448570728302,
+    "evaluation_total_seconds": 7733.849881887436
+  },
+  {
+    "run": "20260907_bounded_formal_obp_v107_rep1",
+    "snapshot_attempts": 922,
+    "budget_used": 920,
+    "nodes": 916,
+    "snapshot_ts": "2026-09-08T08:10:35",
+    "events": 922,
+    "llm_calls": 922,
+    "call_counts_distribution": {
+      "1": 922
+    },
+    "issues": [],
+    "counts": {
+      "programs_0": 8,
+      "programs_3": 914,
+      "layer_low": 1003,
+      "same_layer_pair": 190,
+      "shortfall": 0,
+      "fit_rejections": 0,
+      "ancestor_reference": 43,
+      "nonancestor_reference": 1785,
+      "fuse_requested": 334,
+      "layer_high": 631,
+      "layer_middle": 194
+    },
+    "quantile_exact_checks": 44,
+    "idea_words": {
+      "n": 916,
+      "mean": 87.43558951965065,
+      "median": 87.0,
+      "p95": 113,
+      "max": 133
+    },
+    "ideas_over_100_words": 194,
+    "omitted_idea_blocks": 0,
+    "prompt_blocks": 2742,
+    "prompt_tokens": {
+      "n": 914,
+      "mean": 2416.9474835886213,
+      "median": 2376.0,
+      "p95": 3243,
+      "max": 4199
+    },
+    "cost": {
+      "first100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.72,
+          "median": 7.0,
+          "p95": 8,
+          "max": 29
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.04846662655239925,
+          "median": 0.04555277596227825,
+          "p95": 0.0664296590257436,
+          "max": 0.11470698285847902
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.1463370384182781,
+          "median": 0.12739560345653445,
+          "p95": 0.20309264585375786,
+          "max": 1.1498727118596435
+        }
+      },
+      "last100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.03,
+          "median": 6.0,
+          "p95": 8,
+          "max": 8
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.06276278681121766,
+          "median": 0.06058611103799194,
+          "p95": 0.084594015032053,
+          "max": 0.10929145105183125
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.17754280775785447,
+          "median": 0.17769870616029948,
+          "p95": 0.24208924709819257,
+          "max": 0.27057854807935655
+        }
+      }
+    },
+    "schedule_total_seconds": 149.06143426080234,
+    "llm_total_seconds": 27381.92261862755,
+    "evaluation_total_seconds": 2966.003895998001
+  },
+  {
+    "run": "20260907_bounded_formal_vrptw_v107_rep1",
+    "snapshot_attempts": 466,
+    "budget_used": 463,
+    "nodes": 457,
+    "snapshot_ts": "2026-09-08T08:10:37",
+    "events": 466,
+    "llm_calls": 466,
+    "call_counts_distribution": {
+      "1": 466
+    },
+    "issues": [],
+    "counts": {
+      "programs_0": 9,
+      "programs_3": 457,
+      "layer_low": 288,
+      "layer_high": 301,
+      "same_layer_pair": 0,
+      "shortfall": 0,
+      "fit_rejections": 0,
+      "ancestor_reference": 64,
+      "nonancestor_reference": 850,
+      "fuse_requested": 150,
+      "layer_middle": 325
+    },
+    "quantile_exact_checks": 66,
+    "idea_words": {
+      "n": 457,
+      "mean": 98.97811816192561,
+      "median": 99,
+      "p95": 124,
+      "max": 159
+    },
+    "ideas_over_100_words": 208,
+    "omitted_idea_blocks": 0,
+    "prompt_blocks": 1371,
+    "prompt_tokens": {
+      "n": 457,
+      "mean": 6056.411378555798,
+      "median": 6116,
+      "p95": 7561,
+      "max": 8438
+    },
+    "cost": {
+      "first100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.35,
+          "median": 6.0,
+          "p95": 8,
+          "max": 29
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.07774264842271805,
+          "median": 0.07606510899495333,
+          "p95": 0.10532006993889809,
+          "max": 0.11665338394232094
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.1836866003042087,
+          "median": 0.18150074244476855,
+          "p95": 0.2453527299221605,
+          "max": 0.5158189670182765
+        }
+      },
+      "last100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 5.96,
+          "median": 6.0,
+          "p95": 7,
+          "max": 8
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.1042214795970358,
+          "median": 0.10763761005364358,
+          "p95": 0.12845084303990006,
+          "max": 0.1592145119793713
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.2291048553469591,
+          "median": 0.2305523146642372,
+          "p95": 0.287356830900535,
+          "max": 0.3372743730433285
+        }
+      }
+    },
+    "schedule_total_seconds": 94.81645217118785,
+    "llm_total_seconds": 29821.60697364807,
+    "evaluation_total_seconds": 632.0761249065399
+  },
+  {
+    "run": "20260907_bounded_formal_tsp_v107_rep2",
+    "snapshot_attempts": 625,
+    "budget_used": 621,
+    "nodes": 617,
+    "snapshot_ts": "2026-09-08T08:10:56",
+    "events": 625,
+    "llm_calls": 625,
+    "call_counts_distribution": {
+      "1": 625
+    },
+    "issues": [],
+    "counts": {
+      "programs_0": 8,
+      "programs_3": 617,
+      "layer_low": 569,
+      "layer_high": 105,
+      "same_layer_pair": 0,
+      "shortfall": 0,
+      "fit_rejections": 0,
+      "ancestor_reference": 29,
+      "nonancestor_reference": 1205,
+      "fuse_requested": 202,
+      "layer_middle": 560
+    },
+    "quantile_exact_checks": 28,
+    "idea_words": {
+      "n": 617,
+      "mean": 93.2998379254457,
+      "median": 93,
+      "p95": 117,
+      "max": 180
+    },
+    "ideas_over_100_words": 170,
+    "omitted_idea_blocks": 6,
+    "prompt_blocks": 1851,
+    "prompt_tokens": {
+      "n": 617,
+      "mean": 3814.8168557536465,
+      "median": 3768,
+      "p95": 4869,
+      "max": 6442
+    },
+    "cost": {
+      "first100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.28,
+          "median": 6.0,
+          "p95": 8,
+          "max": 29
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.06099866084055975,
+          "median": 0.05897967447526753,
+          "p95": 0.08410227205604315,
+          "max": 0.11383655900135636
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.15446318019879982,
+          "median": 0.14874913438688964,
+          "p95": 0.2215689818840474,
+          "max": 0.5606370279565454
+        }
+      },
+      "last100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.11,
+          "median": 6.0,
+          "p95": 8,
+          "max": 8
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.07645397091750056,
+          "median": 0.07802442740648985,
+          "p95": 0.09941957495175302,
+          "max": 0.10514761507511139
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.1900302803958766,
+          "median": 0.19275919697247446,
+          "p95": 0.26154717011377215,
+          "max": 0.2961858198978007
+        }
+      }
+    },
+    "schedule_total_seconds": 108.15057948045433,
+    "llm_total_seconds": 30124.970124959946,
+    "evaluation_total_seconds": 317.4127459526062
+  },
+  {
+    "run": "20260907_bounded_formal_cvrp_v107_rep2",
+    "snapshot_attempts": 354,
+    "budget_used": 353,
+    "nodes": 351,
+    "snapshot_ts": "2026-09-08T08:09:21",
+    "events": 354,
+    "llm_calls": 354,
+    "call_counts_distribution": {
+      "1": 354
+    },
+    "issues": [],
+    "counts": {
+      "programs_0": 8,
+      "programs_3": 346,
+      "layer_middle": 240,
+      "layer_high": 240,
+      "same_layer_pair": 0,
+      "shortfall": 0,
+      "fit_rejections": 0,
+      "ancestor_reference": 52,
+      "nonancestor_reference": 640,
+      "fuse_requested": 130,
+      "layer_low": 212
+    },
+    "quantile_exact_checks": 85,
+    "idea_words": {
+      "n": 351,
+      "mean": 93.14529914529915,
+      "median": 92,
+      "p95": 116,
+      "max": 232
+    },
+    "ideas_over_100_words": 109,
+    "omitted_idea_blocks": 3,
+    "prompt_blocks": 1038,
+    "prompt_tokens": {
+      "n": 346,
+      "mean": 4126.78612716763,
+      "median": 4096.0,
+      "p95": 4847,
+      "max": 5288
+    },
+    "cost": {
+      "first100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.49,
+          "median": 6.0,
+          "p95": 8,
+          "max": 29
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.1797691903915256,
+          "median": 0.1751752010313794,
+          "p95": 0.2807920118793845,
+          "max": 0.4026439660228789
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.39005572319962084,
+          "median": 0.3888257279759273,
+          "p95": 0.5622975470032543,
+          "max": 1.06330457306467
+        }
+      },
+      "last100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.2,
+          "median": 6.0,
+          "p95": 8,
+          "max": 8
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.15215924703516065,
+          "median": 0.15159993304405361,
+          "p95": 0.21492361510172486,
+          "max": 0.26895346981473267
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.33248311940347774,
+          "median": 0.34142419102136046,
+          "p95": 0.4703394079115242,
+          "max": 0.5396443929057568
+        }
+      }
+    },
+    "schedule_total_seconds": 123.48502513254061,
+    "llm_total_seconds": 16670.24615240097,
+    "evaluation_total_seconds": 13705.158348083496
+  },
+  {
+    "run": "20260907_bounded_formal_op_v107_rep2",
+    "snapshot_attempts": 520,
+    "budget_used": 518,
+    "nodes": 513,
+    "snapshot_ts": "2026-09-08T08:10:38",
+    "events": 520,
+    "llm_calls": 520,
+    "call_counts_distribution": {
+      "1": 520
+    },
+    "issues": [],
+    "counts": {
+      "programs_0": 10,
+      "programs_3": 510,
+      "layer_low": 356,
+      "layer_middle": 351,
+      "same_layer_pair": 0,
+      "shortfall": 0,
+      "fit_rejections": 0,
+      "ancestor_reference": 62,
+      "nonancestor_reference": 958,
+      "fuse_requested": 182,
+      "layer_high": 313
+    },
+    "quantile_exact_checks": 115,
+    "idea_words": {
+      "n": 513,
+      "mean": 89.73489278752437,
+      "median": 89,
+      "p95": 114,
+      "max": 297
+    },
+    "ideas_over_100_words": 96,
+    "omitted_idea_blocks": 24,
+    "prompt_blocks": 1530,
+    "prompt_tokens": {
+      "n": 510,
+      "mean": 3330.6960784313724,
+      "median": 3246.5,
+      "p95": 4276,
+      "max": 6513
+    },
+    "cost": {
+      "first100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.35,
+          "median": 6.0,
+          "p95": 8,
+          "max": 29
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.0455180512717925,
+          "median": 0.04393738252110779,
+          "p95": 0.05979046504944563,
+          "max": 0.09512913785874844
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.12407300302293152,
+          "median": 0.11722538445610553,
+          "p95": 0.18429539585486054,
+          "max": 0.49466021708212793
+        }
+      },
+      "last100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.07,
+          "median": 6.0,
+          "p95": 7,
+          "max": 8
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.04677845197264105,
+          "median": 0.04713042045477778,
+          "p95": 0.05520674190483987,
+          "max": 0.06083784997463226
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.13483670766465367,
+          "median": 0.13030831911601126,
+          "p95": 0.1750493107829243,
+          "max": 0.2235897530335933
+        }
+      }
+    },
+    "schedule_total_seconds": 64.49630874139257,
+    "llm_total_seconds": 22047.888221025467,
+    "evaluation_total_seconds": 8444.083009719849
+  },
+  {
+    "run": "20260907_bounded_formal_obp_v107_rep2",
+    "snapshot_attempts": 1001,
+    "budget_used": 1000,
+    "nodes": 997,
+    "snapshot_ts": "2026-09-08T05:34:35",
+    "events": 1001,
+    "llm_calls": 1001,
+    "call_counts_distribution": {
+      "1": 1001
+    },
+    "issues": [],
+    "counts": {
+      "programs_0": 9,
+      "programs_3": 992,
+      "layer_low": 1984,
+      "same_layer_pair": 992,
+      "shortfall": 0,
+      "fit_rejections": 0,
+      "ancestor_reference": 30,
+      "nonancestor_reference": 1954,
+      "fuse_requested": 356
+    },
+    "quantile_exact_checks": 41,
+    "idea_words": {
+      "n": 997,
+      "mean": 94.93681043129388,
+      "median": 93,
+      "p95": 122,
+      "max": 1233
+    },
+    "ideas_over_100_words": 322,
+    "omitted_idea_blocks": 11,
+    "prompt_blocks": 2976,
+    "prompt_tokens": {
+      "n": 992,
+      "mean": 2051.7147177419356,
+      "median": 1986.0,
+      "p95": 2567,
+      "max": 4081
+    },
+    "cost": {
+      "first100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.74,
+          "median": 7.0,
+          "p95": 8,
+          "max": 29
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.05191612437367439,
+          "median": 0.048973417025990784,
+          "p95": 0.07605432602576911,
+          "max": 0.09893130208365619
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.14661095553310588,
+          "median": 0.14026670705061406,
+          "p95": 0.21428879792802036,
+          "max": 0.4750764211639762
+        }
+      },
+      "last100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.42,
+          "median": 6.0,
+          "p95": 8,
+          "max": 8
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.051175508017186074,
+          "median": 0.049743719515390694,
+          "p95": 0.06706910999491811,
+          "max": 0.10007113590836525
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.1519613760896027,
+          "median": 0.15398356306832284,
+          "p95": 0.21799911698326468,
+          "max": 0.24615369411185384
+        }
+      }
+    },
+    "schedule_total_seconds": 150.35507741384208,
+    "llm_total_seconds": 18940.079223155975,
+    "evaluation_total_seconds": 2033.487411737442
+  },
+  {
+    "run": "20260907_bounded_formal_vrptw_v107_rep2",
+    "snapshot_attempts": 571,
+    "budget_used": 568,
+    "nodes": 554,
+    "snapshot_ts": "2026-09-08T08:10:22",
+    "events": 571,
+    "llm_calls": 571,
+    "call_counts_distribution": {
+      "1": 571
+    },
+    "issues": [],
+    "counts": {
+      "programs_0": 11,
+      "programs_3": 560,
+      "layer_low": 390,
+      "layer_high": 377,
+      "same_layer_pair": 0,
+      "shortfall": 0,
+      "fit_rejections": 0,
+      "ancestor_reference": 31,
+      "nonancestor_reference": 1089,
+      "fuse_requested": 210,
+      "layer_middle": 353
+    },
+    "quantile_exact_checks": 207,
+    "idea_words": {
+      "n": 554,
+      "mean": 100.03971119133574,
+      "median": 99.0,
+      "p95": 123,
+      "max": 152
+    },
+    "ideas_over_100_words": 265,
+    "omitted_idea_blocks": 0,
+    "prompt_blocks": 1680,
+    "prompt_tokens": {
+      "n": 560,
+      "mean": 4311.726785714286,
+      "median": 4179.5,
+      "p95": 5850,
+      "max": 7042
+    },
+    "cost": {
+      "first100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.34,
+          "median": 6.0,
+          "p95": 8,
+          "max": 29
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.07303426010301337,
+          "median": 0.0710145200137049,
+          "p95": 0.11412578588351607,
+          "max": 0.14172119996510446
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.18068865947891027,
+          "median": 0.17298693594057113,
+          "p95": 0.25064232014119625,
+          "max": 0.5612122029997408
+        }
+      },
+      "last100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6,
+          "median": 6.0,
+          "p95": 7,
+          "max": 8
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.08058979237452149,
+          "median": 0.08129016950260848,
+          "p95": 0.1072323399130255,
+          "max": 0.13380447798408568
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.1950917801214382,
+          "median": 0.19336185709107667,
+          "p95": 0.2561350439209491,
+          "max": 0.2885737179312855
+        }
+      }
+    },
+    "schedule_total_seconds": 103.3117377103772,
+    "llm_total_seconds": 30120.571143865585,
+    "evaluation_total_seconds": 298.33972430229187
+  },
+  {
+    "run": "20260907_bounded_formal_tsp_v107_rep3",
+    "snapshot_attempts": 698,
+    "budget_used": 697,
+    "nodes": 666,
+    "snapshot_ts": "2026-09-08T08:10:36",
+    "events": 698,
+    "llm_calls": 698,
+    "call_counts_distribution": {
+      "1": 698
+    },
+    "issues": [],
+    "counts": {
+      "programs_0": 9,
+      "programs_3": 689,
+      "layer_middle": 455,
+      "layer_high": 454,
+      "same_layer_pair": 0,
+      "shortfall": 0,
+      "fit_rejections": 0,
+      "ancestor_reference": 42,
+      "nonancestor_reference": 1336,
+      "fuse_requested": 235,
+      "layer_low": 469
+    },
+    "quantile_exact_checks": 157,
+    "idea_words": {
+      "n": 666,
+      "mean": 95.88438438438439,
+      "median": 95.0,
+      "p95": 120,
+      "max": 143
+    },
+    "ideas_over_100_words": 236,
+    "omitted_idea_blocks": 0,
+    "prompt_blocks": 2067,
+    "prompt_tokens": {
+      "n": 689,
+      "mean": 4020.9361393323657,
+      "median": 3982,
+      "p95": 5332,
+      "max": 6648
+    },
+    "cost": {
+      "first100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.13,
+          "median": 6.0,
+          "p95": 7,
+          "max": 29
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.061780091570690275,
+          "median": 0.0590974735096097,
+          "p95": 0.09005246916785836,
+          "max": 0.11366828996688128
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.15562274972209708,
+          "median": 0.15133188536856323,
+          "p95": 0.2087395670823753,
+          "max": 0.5344679171685129
+        }
+      },
+      "last100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.16,
+          "median": 6.0,
+          "p95": 8,
+          "max": 8
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.08394108281238005,
+          "median": 0.08328093041200191,
+          "p95": 0.11343317688442767,
+          "max": 0.1242791130207479
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.20350825168425218,
+          "median": 0.20133192744106054,
+          "p95": 0.2965665271040052,
+          "max": 0.3605581459123641
+        }
+      }
+    },
+    "schedule_total_seconds": 123.84300882881507,
+    "llm_total_seconds": 29062.370532274246,
+    "evaluation_total_seconds": 1333.6768963336945
+  },
+  {
+    "run": "20260907_bounded_formal_cvrp_v107_rep3",
+    "snapshot_attempts": 329,
+    "budget_used": 329,
+    "nodes": 296,
+    "snapshot_ts": "2026-09-08T08:09:18",
+    "events": 329,
+    "llm_calls": 329,
+    "call_counts_distribution": {
+      "1": 329
+    },
+    "issues": [],
+    "counts": {
+      "programs_0": 9,
+      "programs_3": 320,
+      "layer_low": 212,
+      "layer_middle": 211,
+      "same_layer_pair": 0,
+      "shortfall": 0,
+      "fit_rejections": 0,
+      "ancestor_reference": 51,
+      "nonancestor_reference": 589,
+      "fuse_requested": 104,
+      "layer_high": 217
+    },
+    "quantile_exact_checks": 239,
+    "idea_words": {
+      "n": 296,
+      "mean": 84.38513513513513,
+      "median": 85.0,
+      "p95": 106,
+      "max": 243
+    },
+    "ideas_over_100_words": 34,
+    "omitted_idea_blocks": 13,
+    "prompt_blocks": 960,
+    "prompt_tokens": {
+      "n": 320,
+      "mean": 4291.328125,
+      "median": 4344.5,
+      "p95": 5271,
+      "max": 5906
+    },
+    "cost": {
+      "first100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.38,
+          "median": 6.0,
+          "p95": 8,
+          "max": 29
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.04599425165681168,
+          "median": 0.04521539947018027,
+          "p95": 0.05921282293274999,
+          "max": 0.06464745500124991
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.1229688941477798,
+          "median": 0.11897940351627767,
+          "p95": 0.16355611803010106,
+          "max": 0.4791487769689411
+        }
+      },
+      "last100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 5.74,
+          "median": 6.0,
+          "p95": 7,
+          "max": 8
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.05322238558204845,
+          "median": 0.05283605353906751,
+          "p95": 0.06227879109792411,
+          "max": 0.09076454606838524
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.12970445208018647,
+          "median": 0.13433132588397712,
+          "p95": 0.16916563408449292,
+          "max": 0.19007198186591268
+        }
+      }
+    },
+    "schedule_total_seconds": 39.77651969459839,
+    "llm_total_seconds": 18873.678965568542,
+    "evaluation_total_seconds": 11585.038073539734
+  },
+  {
+    "run": "20260907_bounded_formal_op_v107_rep3",
+    "snapshot_attempts": 392,
+    "budget_used": 392,
+    "nodes": 384,
+    "snapshot_ts": "2026-09-08T08:10:26",
+    "events": 392,
+    "llm_calls": 392,
+    "call_counts_distribution": {
+      "1": 392
+    },
+    "issues": [],
+    "counts": {
+      "programs_0": 9,
+      "programs_3": 383,
+      "layer_middle": 265,
+      "layer_high": 251,
+      "same_layer_pair": 0,
+      "shortfall": 0,
+      "fit_rejections": 0,
+      "ancestor_reference": 51,
+      "nonancestor_reference": 715,
+      "fuse_requested": 110,
+      "layer_low": 250
+    },
+    "quantile_exact_checks": 98,
+    "idea_words": {
+      "n": 384,
+      "mean": 86.109375,
+      "median": 85.0,
+      "p95": 110,
+      "max": 158
+    },
+    "ideas_over_100_words": 55,
+    "omitted_idea_blocks": 0,
+    "prompt_blocks": 1149,
+    "prompt_tokens": {
+      "n": 383,
+      "mean": 5031.339425587467,
+      "median": 5023,
+      "p95": 6130,
+      "max": 6995
+    },
+    "cost": {
+      "first100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.4,
+          "median": 6.0,
+          "p95": 8,
+          "max": 29
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.07647056562593207,
+          "median": 0.0762234025169164,
+          "p95": 0.10470537608489394,
+          "max": 0.13411606987938285
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.18455240118084476,
+          "median": 0.17483628750778735,
+          "p95": 0.26183919003233314,
+          "max": 0.7239283609669656
+        }
+      },
+      "last100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 5.92,
+          "median": 6.0,
+          "p95": 7,
+          "max": 8
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.08479723329655826,
+          "median": 0.08451241988223046,
+          "p95": 0.10947426897473633,
+          "max": 0.11921375500969589
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.19340074758976697,
+          "median": 0.19400851940736175,
+          "p95": 0.256416356889531,
+          "max": 0.29032310796901584
+        }
+      }
+    },
+    "schedule_total_seconds": 71.26295926817693,
+    "llm_total_seconds": 24145.137320280075,
+    "evaluation_total_seconds": 6340.452310562134
+  },
+  {
+    "run": "20260907_bounded_formal_obp_v107_rep3",
+    "snapshot_attempts": 1000,
+    "budget_used": 1000,
+    "nodes": 1000,
+    "snapshot_ts": "2026-09-08T07:26:56",
+    "events": 1000,
+    "llm_calls": 1000,
+    "call_counts_distribution": {
+      "1": 1000
+    },
+    "issues": [],
+    "counts": {
+      "programs_0": 8,
+      "programs_3": 992,
+      "layer_low": 1984,
+      "same_layer_pair": 992,
+      "shortfall": 0,
+      "fit_rejections": 0,
+      "ancestor_reference": 25,
+      "nonancestor_reference": 1959,
+      "fuse_requested": 376
+    },
+    "quantile_exact_checks": 60,
+    "idea_words": {
+      "n": 1000,
+      "mean": 104.237,
+      "median": 101.0,
+      "p95": 127,
+      "max": 1818
+    },
+    "ideas_over_100_words": 520,
+    "omitted_idea_blocks": 11,
+    "prompt_blocks": 2976,
+    "prompt_tokens": {
+      "n": 992,
+      "mean": 2184.6129032258063,
+      "median": 2162.5,
+      "p95": 2569,
+      "max": 4241
+    },
+    "cost": {
+      "first100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.65,
+          "median": 6.0,
+          "p95": 8,
+          "max": 29
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.1829537605168298,
+          "median": 0.17269972700159997,
+          "p95": 0.36751950695179403,
+          "max": 0.5556645481847227
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.4104059389210306,
+          "median": 0.3761913049966097,
+          "p95": 1.0817674410063773,
+          "max": 1.3223115638829768
+        }
+      },
+      "last100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.45,
+          "median": 6.0,
+          "p95": 8,
+          "max": 8
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.15485463574063033,
+          "median": 0.1680286400951445,
+          "p95": 0.23538113804534078,
+          "max": 0.25054621999152005
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.355493081449531,
+          "median": 0.3791542381513864,
+          "p95": 0.5322355991229415,
+          "max": 0.6543607718776911
+        }
+      }
+    },
+    "schedule_total_seconds": 397.0382393260952,
+    "llm_total_seconds": 25111.254499912262,
+    "evaluation_total_seconds": 2359.336329936981
+  },
+  {
+    "run": "20260907_bounded_formal_vrptw_v107_rep3",
+    "snapshot_attempts": 622,
+    "budget_used": 618,
+    "nodes": 606,
+    "snapshot_ts": "2026-09-08T08:10:42",
+    "events": 622,
+    "llm_calls": 622,
+    "call_counts_distribution": {
+      "1": 622
+    },
+    "issues": [],
+    "counts": {
+      "programs_0": 8,
+      "programs_3": 614,
+      "layer_low": 405,
+      "layer_middle": 417,
+      "same_layer_pair": 0,
+      "shortfall": 0,
+      "fit_rejections": 0,
+      "ancestor_reference": 45,
+      "nonancestor_reference": 1183,
+      "fuse_requested": 223,
+      "layer_high": 406
+    },
+    "quantile_exact_checks": 74,
+    "idea_words": {
+      "n": 606,
+      "mean": 102.77227722772277,
+      "median": 103.0,
+      "p95": 126,
+      "max": 171
+    },
+    "ideas_over_100_words": 344,
+    "omitted_idea_blocks": 0,
+    "prompt_blocks": 1842,
+    "prompt_tokens": {
+      "n": 614,
+      "mean": 4826.657980456026,
+      "median": 4821.0,
+      "p95": 5801,
+      "max": 6451
+    },
+    "cost": {
+      "first100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.18,
+          "median": 6.0,
+          "p95": 7,
+          "max": 29
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.07326669924892486,
+          "median": 0.07250308862421662,
+          "p95": 0.10241420613601804,
+          "max": 0.1123518068343401
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.1759021371230483,
+          "median": 0.1720019239000976,
+          "p95": 0.24891953892074525,
+          "max": 0.5427809529937804
+        }
+      },
+      "last100": {
+        "tokenizer_requests": {
+          "n": 100,
+          "mean": 6.05,
+          "median": 6.0,
+          "p95": 7,
+          "max": 8
+        },
+        "sampling_seconds": {
+          "n": 100,
+          "mean": 0.09179818018339575,
+          "median": 0.09019519749563187,
+          "p95": 0.11715036910027266,
+          "max": 0.13734533498063684
+        },
+        "scheduling_seconds": {
+          "n": 100,
+          "mean": 0.21730170149123296,
+          "median": 0.2174034113995731,
+          "p95": 0.28698199708014727,
+          "max": 0.33434069505892694
+        }
+      }
+    },
+    "schedule_total_seconds": 119.47643949044868,
+    "llm_total_seconds": 29898.967069149017,
+    "evaluation_total_seconds": 514.2919733524323
+  }
+]

@@ -1,0 +1,4676 @@
+{
+  "snapshot_time": "2026-09-08T08:11:15.439988",
+  "runs": [
+    {
+      "run": "20260906_215231_revised_tsp_v106_rep1",
+      "task": "tsp_construct",
+      "repeat": 1,
+      "cutoff": 884,
+      "budget": 645,
+      "nodes": 278,
+      "roots": 8,
+      "best": -5.816405203780095,
+      "last_event": "2026-09-08T08:09:51",
+      "statuses": {
+        "ok": 278,
+        "eval_failed": 367,
+        "invalid_output": 239
+      },
+      "summary_status": {
+        "present": 645,
+        "absent": 239
+      },
+      "requested": {
+        "Init": 9,
+        "Fuse": 291,
+        "Refine": 459,
+        "Pivot": 125
+      },
+      "metrics": {
+        "history_total": 6506,
+        "history_nonempty": 862,
+        "history_max": 8,
+        "prompt_max": 11944,
+        "summary_token_max": 952,
+        "eval_seconds": 7573.6750547885895,
+        "generation_llm_seconds": 99177.30171275139,
+        "summary_llm_seconds": 16436.02602314949,
+        "fuse_fallback": 0
+      },
+      "summary_views": {
+        "present": 6810
+      },
+      "omissions": {},
+      "calls": {
+        "generation": {
+          "calls": 884,
+          "seconds": 99177.30171275139,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 7304230,
+          "completion_tokens": 2651934,
+          "total_tokens": 9956164
+        },
+        "thought_alignment": {
+          "calls": 645,
+          "seconds": 16436.02602314949,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 3630605,
+          "completion_tokens": 412959,
+          "total_tokens": 4043564
+        }
+      },
+      "errors": [],
+      "error_count": 0,
+      "samples": [
+        {
+          "candidate_id": 6,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 619,
+          "summary_prompt_tokens": 3334
+        },
+        {
+          "candidate_id": 13,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 591,
+          "summary_prompt_tokens": 3220
+        },
+        {
+          "candidate_id": 14,
+          "status": "eval_failed",
+          "reason": "timeout",
+          "summary_status": "present",
+          "summary_tokens": 800,
+          "summary_prompt_tokens": 3696
+        },
+        {
+          "candidate_id": 18,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 575,
+          "summary_prompt_tokens": 6396
+        },
+        {
+          "candidate_id": 19,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 540,
+          "summary_prompt_tokens": 6002
+        },
+        {
+          "candidate_id": 22,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 729,
+          "summary_prompt_tokens": 6587
+        },
+        {
+          "candidate_id": 23,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 26,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 674,
+          "summary_prompt_tokens": 5631
+        },
+        {
+          "candidate_id": 29,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 31,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 36,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 939,
+          "summary_prompt_tokens": 5798
+        },
+        {
+          "candidate_id": 38,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 776,
+          "summary_prompt_tokens": 7040
+        },
+        {
+          "candidate_id": 40,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 600,
+          "summary_prompt_tokens": 4247
+        },
+        {
+          "candidate_id": 41,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 730,
+          "summary_prompt_tokens": 6286
+        },
+        {
+          "candidate_id": 42,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 43,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 44,
+          "status": "eval_failed",
+          "reason": "timeout",
+          "summary_status": "present",
+          "summary_tokens": 811,
+          "summary_prompt_tokens": 6407
+        },
+        {
+          "candidate_id": 53,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 646,
+          "summary_prompt_tokens": 3917
+        },
+        {
+          "candidate_id": 54,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 55,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 57,
+          "status": "eval_failed",
+          "reason": "timeout",
+          "summary_status": "present",
+          "summary_tokens": 763,
+          "summary_prompt_tokens": 4740
+        },
+        {
+          "candidate_id": 58,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 59,
+          "status": "eval_failed",
+          "reason": "timeout",
+          "summary_status": "present",
+          "summary_tokens": 558,
+          "summary_prompt_tokens": 5763
+        },
+        {
+          "candidate_id": 61,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 708,
+          "summary_prompt_tokens": 4268
+        },
+        {
+          "candidate_id": 64,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 66,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 67,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 68,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 536,
+          "summary_prompt_tokens": 4661
+        },
+        {
+          "candidate_id": 69,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 70,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 678,
+          "summary_prompt_tokens": 4556
+        }
+      ],
+      "pending": {
+        "candidate_id": 885,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_status": null
+      },
+      "source_drift": []
+    },
+    {
+      "run": "20260906_215231_revised_cvrp_v106_rep1",
+      "task": "cvrp_aco",
+      "repeat": 1,
+      "cutoff": 1293,
+      "budget": 1000,
+      "nodes": 969,
+      "roots": 8,
+      "best": -9.326517457757536,
+      "last_event": "2026-09-08T04:38:40",
+      "statuses": {
+        "ok": 969,
+        "invalid_output": 293,
+        "eval_failed": 31
+      },
+      "summary_status": {
+        "present": 1000,
+        "absent": 293
+      },
+      "requested": {
+        "Init": 8,
+        "Fuse": 436,
+        "Refine": 664,
+        "Pivot": 185
+      },
+      "metrics": {
+        "history_total": 9989,
+        "history_nonempty": 1276,
+        "history_max": 8,
+        "prompt_max": 10987,
+        "summary_token_max": 1061,
+        "eval_seconds": 17588.037833213806,
+        "generation_llm_seconds": 70586.33753085136,
+        "summary_llm_seconds": 22144.236253499985,
+        "fuse_fallback": 0
+      },
+      "summary_views": {
+        "present": 10392,
+        "prefix": 42
+      },
+      "omissions": {
+        "summary_prefix": 42
+      },
+      "calls": {
+        "generation": {
+          "calls": 1293,
+          "seconds": 70586.33753085136,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 11021109,
+          "completion_tokens": 2236804,
+          "total_tokens": 13257913
+        },
+        "thought_alignment": {
+          "calls": 1000,
+          "seconds": 22144.236253499985,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 3679272,
+          "completion_tokens": 710951,
+          "total_tokens": 4390223
+        }
+      },
+      "errors": [],
+      "error_count": 0,
+      "samples": [
+        {
+          "candidate_id": 9,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 12,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 582,
+          "summary_prompt_tokens": 3847
+        },
+        {
+          "candidate_id": 17,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 731,
+          "summary_prompt_tokens": 3836
+        },
+        {
+          "candidate_id": 18,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 737,
+          "summary_prompt_tokens": 2981
+        },
+        {
+          "candidate_id": 22,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 854,
+          "summary_prompt_tokens": 3692
+        },
+        {
+          "candidate_id": 26,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 27,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 34,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 779,
+          "summary_prompt_tokens": 3682
+        },
+        {
+          "candidate_id": 37,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 38,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 39,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 41,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 582,
+          "summary_prompt_tokens": 3214
+        },
+        {
+          "candidate_id": 42,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 63,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 67,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 69,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 547,
+          "summary_prompt_tokens": 2861
+        },
+        {
+          "candidate_id": 71,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 76,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 770,
+          "summary_prompt_tokens": 3477
+        },
+        {
+          "candidate_id": 79,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 657,
+          "summary_prompt_tokens": 4133
+        },
+        {
+          "candidate_id": 86,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 98,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 99,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 100,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 635,
+          "summary_prompt_tokens": 4219
+        },
+        {
+          "candidate_id": 109,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 119,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 120,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 126,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 127,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 128,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 131,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        }
+      ],
+      "pending": null,
+      "source_drift": []
+    },
+    {
+      "run": "20260906_215231_revised_op_v106_rep1",
+      "task": "op_aco",
+      "repeat": 1,
+      "cutoff": 1219,
+      "budget": 1000,
+      "nodes": 957,
+      "roots": 8,
+      "best": 14.491999999999999,
+      "last_event": "2026-09-08T06:34:58",
+      "statuses": {
+        "eval_failed": 43,
+        "ok": 957,
+        "invalid_output": 219
+      },
+      "summary_status": {
+        "present": 999,
+        "absent": 219,
+        "unavailable": 1
+      },
+      "requested": {
+        "Init": 11,
+        "Fuse": 410,
+        "Refine": 627,
+        "Pivot": 171
+      },
+      "metrics": {
+        "history_total": 9079,
+        "history_nonempty": 1200,
+        "history_max": 8,
+        "prompt_max": 10276,
+        "summary_token_max": 1109,
+        "eval_seconds": 7503.6216340065,
+        "generation_llm_seconds": 80713.51244688034,
+        "summary_llm_seconds": 29193.13223361969,
+        "fuse_fallback": 0
+      },
+      "summary_views": {
+        "present": 9476,
+        "prefix": 17,
+        "unavailable": 4
+      },
+      "omissions": {
+        "summary_prefix": 17
+      },
+      "calls": {
+        "generation": {
+          "calls": 1219,
+          "seconds": 80713.51244688034,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 9260073,
+          "completion_tokens": 1991537,
+          "total_tokens": 11251610
+        },
+        "thought_alignment": {
+          "calls": 1000,
+          "seconds": 29193.13223361969,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 3320113,
+          "completion_tokens": 730771,
+          "total_tokens": 4050884
+        }
+      },
+      "errors": [],
+      "error_count": 0,
+      "samples": [
+        {
+          "candidate_id": 1,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 657,
+          "summary_prompt_tokens": 2025
+        },
+        {
+          "candidate_id": 8,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 10,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 13,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 18,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 42,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 46,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 58,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 59,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 64,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 70,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 73,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 76,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 86,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 105,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 120,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 124,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 129,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 132,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 137,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 138,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 143,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 146,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 152,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 156,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 169,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 182,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 183,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 667,
+          "summary_prompt_tokens": 2990
+        },
+        {
+          "candidate_id": 189,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 190,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        }
+      ],
+      "pending": null,
+      "source_drift": []
+    },
+    {
+      "run": "20260906_215231_revised_obp_v106_rep1",
+      "task": "online_bin_packing",
+      "repeat": 1,
+      "cutoff": 1158,
+      "budget": 1000,
+      "nodes": 999,
+      "roots": 8,
+      "best": -725.5,
+      "last_event": "2026-09-07T20:39:14",
+      "statuses": {
+        "ok": 999,
+        "invalid_output": 158,
+        "eval_failed": 1
+      },
+      "summary_status": {
+        "present": 1000,
+        "absent": 158
+      },
+      "requested": {
+        "Init": 8,
+        "Fuse": 391,
+        "Refine": 590,
+        "Pivot": 169
+      },
+      "metrics": {
+        "history_total": 7380,
+        "history_nonempty": 1115,
+        "history_max": 8,
+        "prompt_max": 8554,
+        "summary_token_max": 1498,
+        "eval_seconds": 1535.2683589458466,
+        "generation_llm_seconds": 54647.71018862724,
+        "summary_llm_seconds": 25463.922598600388,
+        "fuse_fallback": 0
+      },
+      "summary_views": {
+        "present": 7792,
+        "prefix": 14
+      },
+      "omissions": {
+        "summary_prefix": 14
+      },
+      "calls": {
+        "generation": {
+          "calls": 1158,
+          "seconds": 54647.71018862724,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 6667473,
+          "completion_tokens": 1454125,
+          "total_tokens": 8121598
+        },
+        "thought_alignment": {
+          "calls": 1000,
+          "seconds": 25463.922598600388,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 2266724,
+          "completion_tokens": 695913,
+          "total_tokens": 2962637
+        }
+      },
+      "errors": [],
+      "error_count": 0,
+      "samples": [
+        {
+          "candidate_id": 16,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 17,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 22,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 23,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 30,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 41,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 48,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 56,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 62,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 68,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 69,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 75,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 79,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 80,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 91,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 92,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 95,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 101,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 108,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 112,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 117,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 121,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 134,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 137,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 145,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 153,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 161,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 164,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 166,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 193,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        }
+      ],
+      "pending": null,
+      "source_drift": []
+    },
+    {
+      "run": "20260906_215231_revised_vrptw_v106_rep1",
+      "task": "vrptw_construct",
+      "repeat": 1,
+      "cutoff": 1087,
+      "budget": 1000,
+      "nodes": 938,
+      "roots": 8,
+      "best": -18.860567140037126,
+      "last_event": "2026-09-08T01:20:12",
+      "statuses": {
+        "ok": 938,
+        "invalid_output": 87,
+        "eval_failed": 62
+      },
+      "summary_status": {
+        "present": 1000,
+        "absent": 87
+      },
+      "requested": {
+        "Init": 8,
+        "Fuse": 371,
+        "Refine": 553,
+        "Pivot": 155
+      },
+      "metrics": {
+        "history_total": 8143,
+        "history_nonempty": 1058,
+        "history_max": 8,
+        "prompt_max": 11025,
+        "summary_token_max": 2179,
+        "eval_seconds": 261.3960769176483,
+        "generation_llm_seconds": 77397.55254149437,
+        "summary_llm_seconds": 20815.184462547302,
+        "fuse_fallback": 0
+      },
+      "summary_views": {
+        "present": 8525,
+        "prefix": 10
+      },
+      "omissions": {
+        "summary_prefix": 10
+      },
+      "calls": {
+        "generation": {
+          "calls": 1087,
+          "seconds": 77397.55254149437,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 8978510,
+          "completion_tokens": 2513086,
+          "total_tokens": 11491596
+        },
+        "thought_alignment": {
+          "calls": 1000,
+          "seconds": 20815.184462547302,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 4651468,
+          "completion_tokens": 654498,
+          "total_tokens": 5305966
+        }
+      },
+      "errors": [],
+      "error_count": 0,
+      "samples": [
+        {
+          "candidate_id": 15,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 18,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 657,
+          "summary_prompt_tokens": 4105
+        },
+        {
+          "candidate_id": 32,
+          "status": "eval_failed",
+          "reason": "invalid_result",
+          "summary_status": "present",
+          "summary_tokens": 705,
+          "summary_prompt_tokens": 2629
+        },
+        {
+          "candidate_id": 33,
+          "status": "eval_failed",
+          "reason": "invalid_result",
+          "summary_status": "present",
+          "summary_tokens": 629,
+          "summary_prompt_tokens": 4254
+        },
+        {
+          "candidate_id": 40,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 43,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 71,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 80,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 98,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 103,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 113,
+          "status": "eval_failed",
+          "reason": "invalid_result",
+          "summary_status": "present",
+          "summary_tokens": 580,
+          "summary_prompt_tokens": 5723
+        },
+        {
+          "candidate_id": 115,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 132,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 572,
+          "summary_prompt_tokens": 3950
+        },
+        {
+          "candidate_id": 141,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 142,
+          "status": "eval_failed",
+          "reason": "invalid_result",
+          "summary_status": "present",
+          "summary_tokens": 495,
+          "summary_prompt_tokens": 4004
+        },
+        {
+          "candidate_id": 144,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 657,
+          "summary_prompt_tokens": 6978
+        },
+        {
+          "candidate_id": 149,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 161,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 193,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 207,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 209,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 630,
+          "summary_prompt_tokens": 4328
+        },
+        {
+          "candidate_id": 213,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 683,
+          "summary_prompt_tokens": 5086
+        },
+        {
+          "candidate_id": 237,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 676,
+          "summary_prompt_tokens": 4984
+        },
+        {
+          "candidate_id": 245,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 249,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 251,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 260,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 964,
+          "summary_prompt_tokens": 4652
+        },
+        {
+          "candidate_id": 266,
+          "status": "eval_failed",
+          "reason": "invalid_result",
+          "summary_status": "present",
+          "summary_tokens": 583,
+          "summary_prompt_tokens": 4829
+        },
+        {
+          "candidate_id": 270,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 274,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        }
+      ],
+      "pending": null,
+      "source_drift": []
+    },
+    {
+      "run": "20260906_215231_revised_tsp_v106_rep2",
+      "task": "tsp_construct",
+      "repeat": 2,
+      "cutoff": 1117,
+      "budget": 897,
+      "nodes": 618,
+      "roots": 8,
+      "best": -5.933332920891285,
+      "last_event": "2026-09-08T08:10:44",
+      "statuses": {
+        "ok": 618,
+        "eval_failed": 279,
+        "invalid_output": 220
+      },
+      "summary_status": {
+        "present": 897,
+        "absent": 220
+      },
+      "requested": {
+        "Init": 8,
+        "Fuse": 383,
+        "Refine": 545,
+        "Pivot": 181
+      },
+      "metrics": {
+        "history_total": 7795,
+        "history_nonempty": 1084,
+        "history_max": 8,
+        "prompt_max": 10702,
+        "summary_token_max": 1145,
+        "eval_seconds": 7234.65518951416,
+        "generation_llm_seconds": 90634.73814940453,
+        "summary_llm_seconds": 25310.238211393356,
+        "fuse_fallback": 0
+      },
+      "summary_views": {
+        "present": 8007,
+        "prefix": 196
+      },
+      "omissions": {
+        "summary_prefix": 196
+      },
+      "calls": {
+        "generation": {
+          "calls": 1117,
+          "seconds": 90634.73814940453,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 8316161,
+          "completion_tokens": 2259465,
+          "total_tokens": 10575626
+        },
+        "thought_alignment": {
+          "calls": 897,
+          "seconds": 25310.238211393356,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 3474897,
+          "completion_tokens": 621379,
+          "total_tokens": 4096276
+        }
+      },
+      "errors": [],
+      "error_count": 0,
+      "samples": [
+        {
+          "candidate_id": 25,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 748,
+          "summary_prompt_tokens": 5329
+        },
+        {
+          "candidate_id": 33,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 34,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 42,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 46,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 54,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 717,
+          "summary_prompt_tokens": 2286
+        },
+        {
+          "candidate_id": 56,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 63,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 77,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 83,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 84,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 676,
+          "summary_prompt_tokens": 3110
+        },
+        {
+          "candidate_id": 91,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 830,
+          "summary_prompt_tokens": 2490
+        },
+        {
+          "candidate_id": 95,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 681,
+          "summary_prompt_tokens": 3868
+        },
+        {
+          "candidate_id": 99,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 110,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 724,
+          "summary_prompt_tokens": 4156
+        },
+        {
+          "candidate_id": 115,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 116,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 124,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 128,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 133,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 138,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 147,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 801,
+          "summary_prompt_tokens": 4155
+        },
+        {
+          "candidate_id": 149,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 154,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 157,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 765,
+          "summary_prompt_tokens": 3006
+        },
+        {
+          "candidate_id": 167,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 171,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 172,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 175,
+          "status": "eval_failed",
+          "reason": "timeout",
+          "summary_status": "present",
+          "summary_tokens": 614,
+          "summary_prompt_tokens": 6938
+        },
+        {
+          "candidate_id": 176,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        }
+      ],
+      "pending": {
+        "candidate_id": 1118,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_status": null
+      },
+      "source_drift": []
+    },
+    {
+      "run": "20260906_215231_revised_cvrp_v106_rep2",
+      "task": "cvrp_aco",
+      "repeat": 2,
+      "cutoff": 1315,
+      "budget": 964,
+      "nodes": 904,
+      "roots": 8,
+      "best": -9.162249935769793,
+      "last_event": "2026-09-08T08:08:50",
+      "statuses": {
+        "ok": 904,
+        "invalid_output": 351,
+        "eval_failed": 60
+      },
+      "summary_status": {
+        "present": 963,
+        "absent": 351,
+        "unavailable": 1
+      },
+      "requested": {
+        "Init": 8,
+        "Fuse": 450,
+        "Refine": 649,
+        "Pivot": 208
+      },
+      "metrics": {
+        "history_total": 9591,
+        "history_nonempty": 1304,
+        "history_max": 8,
+        "prompt_max": 10089,
+        "summary_token_max": 1127,
+        "eval_seconds": 17416.1989030838,
+        "generation_llm_seconds": 79975.89693880081,
+        "summary_llm_seconds": 25555.876981973648,
+        "fuse_fallback": 0
+      },
+      "summary_views": {
+        "present": 10017,
+        "prefix": 27
+      },
+      "omissions": {
+        "summary_prefix": 27
+      },
+      "calls": {
+        "generation": {
+          "calls": 1315,
+          "seconds": 79975.89693880081,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 10010617,
+          "completion_tokens": 2104313,
+          "total_tokens": 12114930
+        },
+        "thought_alignment": {
+          "calls": 964,
+          "seconds": 25555.876981973648,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 3314559,
+          "completion_tokens": 675631,
+          "total_tokens": 3990190
+        }
+      },
+      "errors": [],
+      "error_count": 0,
+      "samples": [
+        {
+          "candidate_id": 23,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 24,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 29,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 30,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 41,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 44,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 716,
+          "summary_prompt_tokens": 3418
+        },
+        {
+          "candidate_id": 45,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 50,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 52,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 54,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 556,
+          "summary_prompt_tokens": 2724
+        },
+        {
+          "candidate_id": 56,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 665,
+          "summary_prompt_tokens": 3572
+        },
+        {
+          "candidate_id": 58,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 60,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 62,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 720,
+          "summary_prompt_tokens": 3636
+        },
+        {
+          "candidate_id": 76,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 492,
+          "summary_prompt_tokens": 3527
+        },
+        {
+          "candidate_id": 80,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 81,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 84,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 89,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 91,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 92,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 95,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 101,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 105,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 776,
+          "summary_prompt_tokens": 3099
+        },
+        {
+          "candidate_id": 109,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 728,
+          "summary_prompt_tokens": 3964
+        },
+        {
+          "candidate_id": 110,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 112,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 115,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 758,
+          "summary_prompt_tokens": 3707
+        },
+        {
+          "candidate_id": 118,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 594,
+          "summary_prompt_tokens": 3699
+        },
+        {
+          "candidate_id": 119,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        }
+      ],
+      "pending": {
+        "candidate_id": 1316,
+        "phase": "evaluating",
+        "llm_attempts": 1,
+        "summary_status": "present"
+      },
+      "source_drift": []
+    },
+    {
+      "run": "20260906_215231_revised_op_v106_rep2",
+      "task": "op_aco",
+      "repeat": 2,
+      "cutoff": 1236,
+      "budget": 1000,
+      "nodes": 942,
+      "roots": 8,
+      "best": 14.817999999999998,
+      "last_event": "2026-09-08T04:14:40",
+      "statuses": {
+        "ok": 942,
+        "invalid_output": 236,
+        "eval_failed": 58
+      },
+      "summary_status": {
+        "present": 999,
+        "absent": 236,
+        "unavailable": 1
+      },
+      "requested": {
+        "Init": 8,
+        "Fuse": 413,
+        "Refine": 608,
+        "Pivot": 207
+      },
+      "metrics": {
+        "history_total": 9575,
+        "history_nonempty": 1224,
+        "history_max": 8,
+        "prompt_max": 11388,
+        "summary_token_max": 1105,
+        "eval_seconds": 7239.253711938858,
+        "generation_llm_seconds": 78299.3167104721,
+        "summary_llm_seconds": 23367.89906811714,
+        "fuse_fallback": 0
+      },
+      "summary_views": {
+        "present": 9926,
+        "prefix": 66
+      },
+      "omissions": {
+        "summary_prefix": 66
+      },
+      "calls": {
+        "generation": {
+          "calls": 1236,
+          "seconds": 78299.3167104721,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 10871906,
+          "completion_tokens": 2502389,
+          "total_tokens": 13374295
+        },
+        "thought_alignment": {
+          "calls": 1000,
+          "seconds": 23367.89906811714,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 4160129,
+          "completion_tokens": 740201,
+          "total_tokens": 4900330
+        }
+      },
+      "errors": [],
+      "error_count": 0,
+      "samples": [
+        {
+          "candidate_id": 17,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 29,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 32,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 36,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 38,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 610,
+          "summary_prompt_tokens": 3947
+        },
+        {
+          "candidate_id": 41,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 914,
+          "summary_prompt_tokens": 3450
+        },
+        {
+          "candidate_id": 44,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 49,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 54,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 802,
+          "summary_prompt_tokens": 3597
+        },
+        {
+          "candidate_id": 71,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 74,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 78,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 79,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 81,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 83,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 84,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 85,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 86,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 87,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 834,
+          "summary_prompt_tokens": 5719
+        },
+        {
+          "candidate_id": 93,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 853,
+          "summary_prompt_tokens": 4702
+        },
+        {
+          "candidate_id": 97,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 98,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 102,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 105,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 106,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 121,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 127,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 130,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 131,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 132,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        }
+      ],
+      "pending": null,
+      "source_drift": []
+    },
+    {
+      "run": "20260906_215231_revised_obp_v106_rep2",
+      "task": "online_bin_packing",
+      "repeat": 2,
+      "cutoff": 1555,
+      "budget": 1000,
+      "nodes": 992,
+      "roots": 8,
+      "best": -725.0,
+      "last_event": "2026-09-07T21:04:59",
+      "statuses": {
+        "ok": 992,
+        "invalid_output": 555,
+        "eval_failed": 8
+      },
+      "summary_status": {
+        "present": 1000,
+        "absent": 555
+      },
+      "requested": {
+        "Init": 8,
+        "Fuse": 538,
+        "Refine": 757,
+        "Pivot": 252
+      },
+      "metrics": {
+        "history_total": 9501,
+        "history_nonempty": 1512,
+        "history_max": 8,
+        "prompt_max": 8241,
+        "summary_token_max": 2310,
+        "eval_seconds": 759.2728924751282,
+        "generation_llm_seconds": 65571.03008437157,
+        "summary_llm_seconds": 16820.99126815796,
+        "fuse_fallback": 0
+      },
+      "summary_views": {
+        "present": 9846,
+        "prefix": 228
+      },
+      "omissions": {
+        "summary_prefix": 228
+      },
+      "calls": {
+        "generation": {
+          "calls": 1555,
+          "seconds": 65571.03008437157,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 8635634,
+          "completion_tokens": 2649336,
+          "total_tokens": 11284970
+        },
+        "thought_alignment": {
+          "calls": 1000,
+          "seconds": 16820.99126815796,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 2854431,
+          "completion_tokens": 667979,
+          "total_tokens": 3522410
+        }
+      },
+      "errors": [],
+      "error_count": 0,
+      "samples": [
+        {
+          "candidate_id": 9,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 14,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 15,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 20,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 22,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 24,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 31,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 32,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 35,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 41,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 46,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 48,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 49,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 60,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 61,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 63,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 65,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 72,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 76,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 79,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 80,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 96,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 97,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 98,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 99,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 104,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 106,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 121,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 123,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 125,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        }
+      ],
+      "pending": null,
+      "source_drift": []
+    },
+    {
+      "run": "20260906_215231_revised_vrptw_v106_rep2",
+      "task": "vrptw_construct",
+      "repeat": 2,
+      "cutoff": 1120,
+      "budget": 1000,
+      "nodes": 970,
+      "roots": 8,
+      "best": -19.01878937525685,
+      "last_event": "2026-09-08T02:50:40",
+      "statuses": {
+        "ok": 970,
+        "eval_failed": 30,
+        "invalid_output": 120
+      },
+      "summary_status": {
+        "present": 1000,
+        "absent": 120
+      },
+      "requested": {
+        "Init": 8,
+        "Fuse": 384,
+        "Refine": 551,
+        "Pivot": 177
+      },
+      "metrics": {
+        "history_total": 8568,
+        "history_nonempty": 1103,
+        "history_max": 8,
+        "prompt_max": 10757,
+        "summary_token_max": 1258,
+        "eval_seconds": 420.8622786998749,
+        "generation_llm_seconds": 78444.91088914871,
+        "summary_llm_seconds": 24997.41044306755,
+        "fuse_fallback": 0
+      },
+      "summary_views": {
+        "present": 8961
+      },
+      "omissions": {},
+      "calls": {
+        "generation": {
+          "calls": 1120,
+          "seconds": 78444.91088914871,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 8912231,
+          "completion_tokens": 2092282,
+          "total_tokens": 11004513
+        },
+        "thought_alignment": {
+          "calls": 1000,
+          "seconds": 24997.41044306755,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 3885078,
+          "completion_tokens": 654257,
+          "total_tokens": 4539335
+        }
+      },
+      "errors": [],
+      "error_count": 0,
+      "samples": [
+        {
+          "candidate_id": 10,
+          "status": "eval_failed",
+          "reason": "invalid_result",
+          "summary_status": "present",
+          "summary_tokens": 659,
+          "summary_prompt_tokens": 2729
+        },
+        {
+          "candidate_id": 11,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 23,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 39,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 46,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 56,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 709,
+          "summary_prompt_tokens": 4144
+        },
+        {
+          "candidate_id": 60,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 66,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 71,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 72,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 73,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 75,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 82,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 83,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 86,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 96,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 98,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 116,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 123,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 128,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 132,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 134,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 137,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 139,
+          "status": "eval_failed",
+          "reason": "invalid_result",
+          "summary_status": "present",
+          "summary_tokens": 573,
+          "summary_prompt_tokens": 3774
+        },
+        {
+          "candidate_id": 144,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 147,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 593,
+          "summary_prompt_tokens": 2708
+        },
+        {
+          "candidate_id": 163,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 166,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 168,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 171,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 911,
+          "summary_prompt_tokens": 2922
+        }
+      ],
+      "pending": null,
+      "source_drift": []
+    },
+    {
+      "run": "20260906_215231_revised_tsp_v106_rep3",
+      "task": "tsp_construct",
+      "repeat": 3,
+      "cutoff": 1252,
+      "budget": 1000,
+      "nodes": 744,
+      "roots": 8,
+      "best": -5.871918704540345,
+      "last_event": "2026-09-08T06:28:17",
+      "statuses": {
+        "ok": 744,
+        "invalid_output": 252,
+        "eval_failed": 256
+      },
+      "summary_status": {
+        "present": 999,
+        "absent": 252,
+        "unavailable": 1
+      },
+      "requested": {
+        "Init": 8,
+        "Fuse": 459,
+        "Refine": 614,
+        "Pivot": 171
+      },
+      "metrics": {
+        "history_total": 8356,
+        "history_nonempty": 1215,
+        "history_max": 8,
+        "prompt_max": 12285,
+        "summary_token_max": 1296,
+        "eval_seconds": 6906.388628005981,
+        "generation_llm_seconds": 87673.86752104759,
+        "summary_llm_seconds": 22330.16335463524,
+        "fuse_fallback": 0
+      },
+      "summary_views": {
+        "present": 8807,
+        "prefix": 37
+      },
+      "omissions": {
+        "summary_prefix": 37
+      },
+      "calls": {
+        "generation": {
+          "calls": 1252,
+          "seconds": 87673.86752104759,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 9939066,
+          "completion_tokens": 2831827,
+          "total_tokens": 12770893
+        },
+        "thought_alignment": {
+          "calls": 1000,
+          "seconds": 22330.16335463524,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 4340655,
+          "completion_tokens": 701741,
+          "total_tokens": 5042396
+        }
+      },
+      "errors": [],
+      "error_count": 0,
+      "samples": [
+        {
+          "candidate_id": 19,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 27,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 33,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 37,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 45,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 46,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 49,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 54,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 56,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 58,
+          "status": "eval_failed",
+          "reason": "invalid_result",
+          "summary_status": "present",
+          "summary_tokens": 773,
+          "summary_prompt_tokens": 4523
+        },
+        {
+          "candidate_id": 61,
+          "status": "eval_failed",
+          "reason": "invalid_result",
+          "summary_status": "present",
+          "summary_tokens": 761,
+          "summary_prompt_tokens": 3016
+        },
+        {
+          "candidate_id": 63,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 70,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 86,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 87,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 88,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 96,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 108,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 827,
+          "summary_prompt_tokens": 2395
+        },
+        {
+          "candidate_id": 112,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 115,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 121,
+          "status": "eval_failed",
+          "reason": "invalid_result",
+          "summary_status": "present",
+          "summary_tokens": 760,
+          "summary_prompt_tokens": 5267
+        },
+        {
+          "candidate_id": 136,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 138,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 140,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 141,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 627,
+          "summary_prompt_tokens": 2346
+        },
+        {
+          "candidate_id": 143,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 144,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 765,
+          "summary_prompt_tokens": 2324
+        },
+        {
+          "candidate_id": 151,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 781,
+          "summary_prompt_tokens": 2443
+        },
+        {
+          "candidate_id": 159,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 171,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 708,
+          "summary_prompt_tokens": 2343
+        }
+      ],
+      "pending": null,
+      "source_drift": []
+    },
+    {
+      "run": "20260906_215231_revised_cvrp_v106_rep3",
+      "task": "cvrp_aco",
+      "repeat": 3,
+      "cutoff": 1241,
+      "budget": 916,
+      "nodes": 875,
+      "roots": 8,
+      "best": -9.152685776959656,
+      "last_event": "2026-09-08T08:11:02",
+      "statuses": {
+        "ok": 875,
+        "eval_failed": 41,
+        "invalid_output": 325
+      },
+      "summary_status": {
+        "present": 916,
+        "absent": 325
+      },
+      "requested": {
+        "Init": 8,
+        "Fuse": 453,
+        "Refine": 609,
+        "Pivot": 171
+      },
+      "metrics": {
+        "history_total": 9445,
+        "history_nonempty": 1222,
+        "history_max": 8,
+        "prompt_max": 10430,
+        "summary_token_max": 1087,
+        "eval_seconds": 17435.77014374733,
+        "generation_llm_seconds": 80360.60705924034,
+        "summary_llm_seconds": 25373.431137561798,
+        "fuse_fallback": 0
+      },
+      "summary_views": {
+        "present": 9908,
+        "prefix": 1
+      },
+      "omissions": {
+        "summary_prefix": 1
+      },
+      "calls": {
+        "generation": {
+          "calls": 1241,
+          "seconds": 80360.60705924034,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 9995750,
+          "completion_tokens": 1972105,
+          "total_tokens": 11967855
+        },
+        "thought_alignment": {
+          "calls": 916,
+          "seconds": 25373.431137561798,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 3148170,
+          "completion_tokens": 633312,
+          "total_tokens": 3781482
+        }
+      },
+      "errors": [],
+      "error_count": 0,
+      "samples": [
+        {
+          "candidate_id": 16,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 644,
+          "summary_prompt_tokens": 3887
+        },
+        {
+          "candidate_id": 26,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 38,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 47,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 52,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 563,
+          "summary_prompt_tokens": 4074
+        },
+        {
+          "candidate_id": 62,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 757,
+          "summary_prompt_tokens": 3101
+        },
+        {
+          "candidate_id": 64,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 379,
+          "summary_prompt_tokens": 4685
+        },
+        {
+          "candidate_id": 65,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 70,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 76,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 79,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 80,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 82,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 86,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 87,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 90,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 92,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 93,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 656,
+          "summary_prompt_tokens": 2624
+        },
+        {
+          "candidate_id": 96,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 97,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 98,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 108,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 110,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 115,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 118,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 124,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 126,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 131,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 593,
+          "summary_prompt_tokens": 3451
+        },
+        {
+          "candidate_id": 134,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 135,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        }
+      ],
+      "pending": {
+        "candidate_id": 1242,
+        "phase": "selected",
+        "llm_attempts": 1,
+        "summary_status": null
+      },
+      "source_drift": []
+    },
+    {
+      "run": "20260906_215231_revised_op_v106_rep3",
+      "task": "op_aco",
+      "repeat": 3,
+      "cutoff": 1229,
+      "budget": 1000,
+      "nodes": 975,
+      "roots": 8,
+      "best": 14.324000000000002,
+      "last_event": "2026-09-08T02:58:01",
+      "statuses": {
+        "ok": 975,
+        "eval_failed": 25,
+        "invalid_output": 229
+      },
+      "summary_status": {
+        "present": 1000,
+        "absent": 229
+      },
+      "requested": {
+        "Init": 8,
+        "Fuse": 441,
+        "Refine": 602,
+        "Pivot": 178
+      },
+      "metrics": {
+        "history_total": 9083,
+        "history_nonempty": 1206,
+        "history_max": 8,
+        "prompt_max": 9451,
+        "summary_token_max": 1217,
+        "eval_seconds": 6917.491224050522,
+        "generation_llm_seconds": 70839.4386844635,
+        "summary_llm_seconds": 26588.76816058159,
+        "fuse_fallback": 0
+      },
+      "summary_views": {
+        "present": 9534,
+        "prefix": 5
+      },
+      "omissions": {
+        "summary_prefix": 5
+      },
+      "calls": {
+        "generation": {
+          "calls": 1229,
+          "seconds": 70839.4386844635,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 9222514,
+          "completion_tokens": 1862041,
+          "total_tokens": 11084555
+        },
+        "thought_alignment": {
+          "calls": 1000,
+          "seconds": 26588.76816058159,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 3045409,
+          "completion_tokens": 712087,
+          "total_tokens": 3757496
+        }
+      },
+      "errors": [],
+      "error_count": 0,
+      "samples": [
+        {
+          "candidate_id": 10,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 670,
+          "summary_prompt_tokens": 4210
+        },
+        {
+          "candidate_id": 14,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 17,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 38,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 42,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 43,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 52,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 54,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 689,
+          "summary_prompt_tokens": 3162
+        },
+        {
+          "candidate_id": 56,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 62,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 64,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 69,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 70,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 74,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 76,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 93,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 101,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 104,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 702,
+          "summary_prompt_tokens": 2808
+        },
+        {
+          "candidate_id": 107,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 108,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 115,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 122,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 129,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 132,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 133,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 654,
+          "summary_prompt_tokens": 2857
+        },
+        {
+          "candidate_id": 134,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 137,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 752,
+          "summary_prompt_tokens": 5102
+        },
+        {
+          "candidate_id": 140,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 144,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 151,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        }
+      ],
+      "pending": null,
+      "source_drift": []
+    },
+    {
+      "run": "20260906_215231_revised_obp_v106_rep3",
+      "task": "online_bin_packing",
+      "repeat": 3,
+      "cutoff": 1154,
+      "budget": 1000,
+      "nodes": 992,
+      "roots": 8,
+      "best": -726.75,
+      "last_event": "2026-09-07T18:47:20",
+      "statuses": {
+        "ok": 992,
+        "invalid_output": 154,
+        "eval_failed": 8
+      },
+      "summary_status": {
+        "present": 1000,
+        "absent": 154
+      },
+      "requested": {
+        "Init": 8,
+        "Fuse": 417,
+        "Refine": 561,
+        "Pivot": 168
+      },
+      "metrics": {
+        "history_total": 7897,
+        "history_nonempty": 1112,
+        "history_max": 8,
+        "prompt_max": 8613,
+        "summary_token_max": 1389,
+        "eval_seconds": 1567.0511922836304,
+        "generation_llm_seconds": 52947.75782299042,
+        "summary_llm_seconds": 20414.86533689499,
+        "fuse_fallback": 0
+      },
+      "summary_views": {
+        "present": 8346,
+        "prefix": 2
+      },
+      "omissions": {
+        "summary_prefix": 2
+      },
+      "calls": {
+        "generation": {
+          "calls": 1154,
+          "seconds": 52947.75782299042,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 7145142,
+          "completion_tokens": 1705258,
+          "total_tokens": 8850400
+        },
+        "thought_alignment": {
+          "calls": 1000,
+          "seconds": 20414.86533689499,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 2584362,
+          "completion_tokens": 670528,
+          "total_tokens": 3254890
+        }
+      },
+      "errors": [],
+      "error_count": 0,
+      "samples": [
+        {
+          "candidate_id": 18,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 21,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 22,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 26,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 32,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 40,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 44,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 48,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 49,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 55,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 62,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 65,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 68,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 73,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 77,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 81,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 87,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 88,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 89,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 98,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 107,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 127,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 145,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 154,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 155,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 164,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 168,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 174,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 180,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 181,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        }
+      ],
+      "pending": null,
+      "source_drift": []
+    },
+    {
+      "run": "20260906_215231_revised_vrptw_v106_rep3",
+      "task": "vrptw_construct",
+      "repeat": 3,
+      "cutoff": 1051,
+      "budget": 902,
+      "nodes": 837,
+      "roots": 8,
+      "best": -20.497691602655692,
+      "last_event": "2026-09-08T08:09:30",
+      "statuses": {
+        "ok": 837,
+        "invalid_output": 149,
+        "eval_failed": 65
+      },
+      "summary_status": {
+        "present": 902,
+        "absent": 149
+      },
+      "requested": {
+        "Init": 8,
+        "Fuse": 396,
+        "Refine": 490,
+        "Pivot": 157
+      },
+      "metrics": {
+        "history_total": 6833,
+        "history_nonempty": 1033,
+        "history_max": 8,
+        "prompt_max": 12049,
+        "summary_token_max": 1500,
+        "eval_seconds": 717.6159341335297,
+        "generation_llm_seconds": 97841.36117124557,
+        "summary_llm_seconds": 24516.556238412857,
+        "fuse_fallback": 0
+      },
+      "summary_views": {
+        "present": 7239
+      },
+      "omissions": {},
+      "calls": {
+        "generation": {
+          "calls": 1051,
+          "seconds": 97841.36117124557,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 8029600,
+          "completion_tokens": 2467651,
+          "total_tokens": 10497251
+        },
+        "thought_alignment": {
+          "calls": 902,
+          "seconds": 24516.556238412857,
+          "errors": 0,
+          "length": 0,
+          "prompt_tokens": 4319649,
+          "completion_tokens": 589729,
+          "total_tokens": 4909378
+        }
+      },
+      "errors": [],
+      "error_count": 0,
+      "samples": [
+        {
+          "candidate_id": 14,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 25,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 36,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 707,
+          "summary_prompt_tokens": 2387
+        },
+        {
+          "candidate_id": 73,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 834,
+          "summary_prompt_tokens": 3983
+        },
+        {
+          "candidate_id": 81,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 82,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 83,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 84,
+          "status": "eval_failed",
+          "reason": "invalid_result",
+          "summary_status": "present",
+          "summary_tokens": 689,
+          "summary_prompt_tokens": 3615
+        },
+        {
+          "candidate_id": 90,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 679,
+          "summary_prompt_tokens": 3548
+        },
+        {
+          "candidate_id": 105,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 115,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 116,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 123,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 132,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 135,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 565,
+          "summary_prompt_tokens": 5195
+        },
+        {
+          "candidate_id": 144,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 148,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 735,
+          "summary_prompt_tokens": 3898
+        },
+        {
+          "candidate_id": 156,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 157,
+          "status": "eval_failed",
+          "reason": "invalid_result",
+          "summary_status": "present",
+          "summary_tokens": 787,
+          "summary_prompt_tokens": 3405
+        },
+        {
+          "candidate_id": 173,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 174,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 559,
+          "summary_prompt_tokens": 4369
+        },
+        {
+          "candidate_id": 177,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 585,
+          "summary_prompt_tokens": 6300
+        },
+        {
+          "candidate_id": 185,
+          "status": "eval_failed",
+          "reason": "runtime_error",
+          "summary_status": "present",
+          "summary_tokens": 701,
+          "summary_prompt_tokens": 3612
+        },
+        {
+          "candidate_id": 192,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 193,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 227,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 228,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 229,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 236,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        },
+        {
+          "candidate_id": 250,
+          "status": "invalid_output",
+          "reason": "invalid_code_or_signature",
+          "summary_status": null,
+          "summary_tokens": null,
+          "summary_prompt_tokens": null
+        }
+      ],
+      "pending": {
+        "candidate_id": 1052,
+        "phase": "responded",
+        "llm_attempts": 1,
+        "summary_status": null
+      },
+      "source_drift": []
+    }
+  ]
+}
