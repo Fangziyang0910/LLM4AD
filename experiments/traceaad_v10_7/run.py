@@ -37,15 +37,16 @@ def main() -> None:
     }
     # Fixed, not configurable: the trajectory path never renders ancestor
     # history, and the donor shortlist belongs to the retired ancestor mode.
-    # traj_gens/donor_topk only satisfy the inherited constructor; the V10.7R
-    # mechanism records them under inherited_unused, not as live parameters.
-    # Values match the parent default (traj_gens) and the established budget.
-    params.update(traj_gens=8, donor_topk=5, history_tokens=8192)
+    # traj_gens/donor_topk/history_tokens only satisfy the inherited
+    # constructor; they travel to the constructor but are recorded under
+    # inherited_unused in run_config, never as live method parameters.
+    compat = {'traj_gens': 8, 'donor_topk': 5, 'history_tokens': 8192}
     ctx = setup_experiment_run(
         args, method=METHOD, method_dir=Path(__file__).resolve().parent,
         resume_file='tree_state.json',
         method_params={
-            **params, 'operator_probabilities': OPERATOR_PROBABILITIES,
+            **params, 'inherited_unused': dict(compat),
+            'operator_probabilities': OPERATOR_PROBABILITIES,
             'generation': GENERATION, 'context_policy': CONTEXT_POLICY,
             'structure_preference': STRUCTURE_PREFERENCE,
         },
@@ -56,7 +57,7 @@ def main() -> None:
     )
     method = TraceAADV107(
         evaluation=ctx.evaluation, llm=ctx.llm, run_dir=ctx.run_dir,
-        seed=args.seed, task_name=args.task, **params,
+        seed=args.seed, task_name=args.task, **params, **compat,
     )
     try:
         ctx.run(method.run, header=[

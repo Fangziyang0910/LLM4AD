@@ -10,7 +10,7 @@
 
 V10.7R 的 Refine 按固定优先级尝试形成边、同算子子代、异算子子代三池证据，只展示直接生成关系的方向、历史算子和 fitness 变化；没有直接关系时只看底座且不提 contrast。Pivot 按质量层等概率基础分布、Fuse 按 fitness 秩加权选择唯一参考，两者只乘以至多 `(1+0.25)` 的结构差异加成，所有合格候选保留正概率。Fuse 不再补第三份对照，没有能容纳的 donor 时回退 Refine。程序块按固定语义角色小节呈现（无 `Algorithm N`、无 fitness 排序），历史 Idea 改称 `Design note` 并声明以代码为准；只有直接边配关系段，archive reference 不配。
 
-`--max-context-programs=2` 包含底座；可用材料少或上下文不足时减少数量。Idea 视图最多 256 tokens，超长整段省略；出现 `Algorithm N`、`Algorithm #N`、`Alg N`、`Alg #N` 或 `算法 N` 临时编号的历史 Idea 也整段省略。参考证据代码的注释 token 从提示视图全部删除（docstring 保留），Design Base 暂保留。匹配临时编号模式的 Python 注释只从提示视图移除，字符串、可执行代码与原始档案不变。输出是严格的两段契约：一段 100 words 内的自足 Idea 加一个代码块，不允许其它内容。总输入默认上限 16128 tokens，不叠加祖先历史区。Init 尚无底座时保持从头生成，不采参考。
+`--max-context-programs=2` 包含底座；可用材料少或上下文不足时减少数量。Idea 视图最多 256 tokens，超长整段省略；出现 `Algorithm N`、`Algorithm #N`、`Alg N`、`Alg #N` 或 `算法 N` 临时编号的历史 Idea 也整段省略，引用临时提示角色（Design Base、Transfer Source 等）的 Idea 同样只入档不再展示。历史 Idea 先压成单段纯文本再展示，旧文本里的伪小节不改变 Prompt 结构。参考证据代码的注释 token 从提示视图全部删除（docstring 保留），Design Base 暂保留。匹配临时编号模式的 Python 注释只从提示视图移除，字符串、可执行代码与原始档案不变。输出是严格的两段契约：一段 100 words 内的自足 Idea 加一个代码块，不允许其它内容。总输入默认上限 16128 tokens，不叠加祖先历史区。Init 尚无底座时保持从头生成，不采参考。
 
 Refine 先按真实关系分池、再在池内对同代码记录随机保留一条；Pivot/Fuse 才在全档案按代码去重。质量层使用线性插值的 1/3、2/3 分位数，边界相等归较低层，同分总在同层。只对候选组合做精确容量检查，每个参考槽位最多无放回尝试 32 次。
 

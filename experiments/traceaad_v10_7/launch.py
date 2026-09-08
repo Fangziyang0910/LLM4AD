@@ -72,8 +72,8 @@ def main() -> None:
     parser.add_argument('--max-attempts', type=int, default=5)
     parser.add_argument('--max-context-programs', type=int, default=2)
     args = parser.parse_args()
-    if args.interval < 1 or args.max_attempts < 1 or not 1 <= args.max_context_programs <= 3:
-        parser.error('interval and max-attempts must be positive; max-context-programs must be 1, 2 or 3')
+    if args.interval < 1 or args.max_attempts < 1 or not 1 <= args.max_context_programs <= 2:
+        parser.error('interval and max-attempts must be positive; max-context-programs must be 1 or 2')
     RESULTS_ROOT.mkdir(parents=True, exist_ok=True)
     manifest = RESULTS_ROOT / f'batch_{args.batch}.json'
     with manifest.with_suffix('.lock').open('w') as lock:

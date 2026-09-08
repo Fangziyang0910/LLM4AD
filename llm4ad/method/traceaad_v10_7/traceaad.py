@@ -25,9 +25,11 @@ class TraceAADV107(TraceAADV106):
     METHOD = 'v107r'
 
     def __init__(self, *, history_tokens=8192, task_name=None,
-                 max_context_programs=3, **kwargs):
-        if not isinstance(max_context_programs, int) or not 1 <= max_context_programs <= 3:
-            raise ValueError('max_context_programs must be 1, 2 or 3')
+                 max_context_programs=2, **kwargs):
+        # Only 1 or 2: the sampler serves at most one reference, so 3 has no
+        # distinct behavior and must not become a phantom configuration axis.
+        if not isinstance(max_context_programs, int) or not 1 <= max_context_programs <= 2:
+            raise ValueError('max_context_programs must be 1 or 2')
         self.max_context_programs = max_context_programs
         TraceAADV105.__init__(self, history_tokens=history_tokens, **kwargs)
         self.implementation_attempt_counts = {}
@@ -48,13 +50,15 @@ class TraceAADV107(TraceAADV106):
             structure_preference=sampling.STRUCTURE_PREFERENCE,
             task_contract_hash=hashlib.sha256(self.task_contract.encode()).hexdigest(),
         )
-        # donor_topk/traj_gens only satisfy the inherited constructor and feed
-        # history rendering the V10.7R path never calls. They are not mechanism
-        # parameters: relabel them so future analysis cannot mistake them for
-        # live controls. history_tokens stays: it still sizes the builder.
+        # donor_topk/traj_gens/history_tokens only satisfy the inherited
+        # constructor and feed history rendering the V10.7R path never calls
+        # (TrajectoryBuilder overrides trajectory/fits without reading
+        # history_tokens). They are not mechanism parameters: relabel them so
+        # future analysis cannot mistake them for live controls.
         self.mechanism['inherited_unused'] = {
             key: self.mechanism.pop(key)
-            for key in ('donor_topk', 'traj_gens') if key in self.mechanism
+            for key in ('donor_topk', 'traj_gens', 'history_tokens')
+            if key in self.mechanism
         }
         for source in [
             Path(__file__), Path(prompts.__file__), Path(sampling.__file__),

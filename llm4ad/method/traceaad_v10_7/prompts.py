@@ -12,6 +12,14 @@ GENERATION = 'idea_code_single_call_self_contained_v1'
 TEMPORARY_REFERENCE_RE = re.compile(
     r'(?i)\b(?:Algorithm|Alg\.?)\s*#?\s*\d+\b|算法\s*#?\s*\d+'
 )
+#: Temporary prompt role titles. A generated Idea that cites one of these is
+#: not self-contained: the next prompt may show no such role, exactly the
+#: Algorithm-N misreference failure in a new form. Such ideas are evaluated
+#: and archived normally but omitted from future prompt views.
+TEMPORARY_ROLE_RE = re.compile(
+    r'(?i)\b(?:Design Base|Comparison Baseline|Formation Evidence|'
+    r'Development Evidence|Alternative Reference|Transfer Source)\b'
+)
 #: Strict output contract. The parser only accepts a response that starts with
 #: "Idea:" followed by a single python block, so the prompt must not invite
 #: any preamble, analysis paragraph, or additional code block.
@@ -21,8 +29,9 @@ OUTPUT = (
     'decision rule and key computation>\n'
     '```python\n<complete implementation>\n```\n\n'
     'Do not add headings, analysis, explanations, or additional code blocks. '
-    'The Idea must stand on its own: state this algorithm\'s main decision rule and key '
-    'computation without referring to Algorithm numbers or temporary display positions.'
+    'The Idea must describe only the resulting algorithm itself: state its main '
+    'decision rule and key computation without referring to input programs, '
+    'prompt roles, provenance, or temporary display labels.'
 )
 
 
@@ -37,13 +46,18 @@ TRAJECTORY_INSTRUCTIONS = {
                   'Leave unrelated parts unchanged unless the hypothesis requires otherwise.',
     'Pivot': 'Design a competitive alternative main decision method for the task. '
              'Use the Comparison Baseline only as a comparison point, not as a template '
-             'to inherit. Reuse shared utilities when useful, but the main decision '
-             'criterion must be substantively different, not a cosmetic formula rewrite.',
-    'Fuse': 'Design one coherent algorithm that uses useful computation from the Transfer '
-            'Source to improve the Design Base. Aim to outperform the better input. '
-            'Do not combine components merely because both are present.',
+             'to inherit. The Alternative Reference is one implemented example of a '
+             'different approach: use it only when it suggests a competitive decision '
+             'mechanism, not as a template that must be copied. Reuse shared utilities '
+             'when useful, but the main decision criterion must be substantively '
+             'different, not a cosmetic formula rewrite.',
+    'Fuse': 'Design one coherent algorithm that improves the Design Base using the '
+            'Transfer Source as a candidate source of mechanisms. Adapt only '
+            'computations whose role appears relevant to improving the Design Base; '
+            'do not force a combination merely because both inputs are present. '
+            'Aim to outperform the better input.',
 }
-TRAJECTORY_OUTPUT = OUTPUT + '\nKeep the Idea within 100 words.'
+TRAJECTORY_OUTPUT = OUTPUT
 IDEA_TOKENS = 256
 #: Shown once above the evidence blocks: archived prose is unverified, code decides.
 DESIGN_NOTE_LINE = (
@@ -72,17 +86,32 @@ ROLE_TITLES = {
 }
 
 
+def _flatten_design_note(text):
+    """Collapse archived prose to one plain-text paragraph for prompt display.
+
+    Archived ideas may carry newlines or markdown headings left by earlier
+    generations. As unverified metadata they must not reshape the prompt, so
+    a stale '# Output' line can never read as a new section. The archive
+    itself is untouched; only the prompt view is flattened.
+    """
+    lines = [line.lstrip('#').strip() for line in text.splitlines()]
+    return ' '.join(' '.join(lines).split())
+
+
 class TrajectoryBuilder(BaseBuilder):
     def idea_view(self, node):
         if not hasattr(self, '_idea_views'):
             self._idea_views = {}
         if node.id not in self._idea_views:
-            if TEMPORARY_REFERENCE_RE.search(node.idea):
+            view = _flatten_design_note(node.idea)
+            if TEMPORARY_REFERENCE_RE.search(view):
                 self._idea_views[node.id] = ('', 'temporary_algorithm_reference')
-            elif self.count(node.idea) > IDEA_TOKENS:
+            elif TEMPORARY_ROLE_RE.search(view):
+                self._idea_views[node.id] = ('', 'temporary_role_reference')
+            elif self.count(view) > IDEA_TOKENS:
                 self._idea_views[node.id] = ('', 'idea_token_limit')
             else:
-                self._idea_views[node.id] = (node.idea, None)
+                self._idea_views[node.id] = (view, None)
         return self._idea_views[node.id]
 
     def code_view(self, node, strip_comments=False):
@@ -91,18 +120,21 @@ class TrajectoryBuilder(BaseBuilder):
         key = (node.id, strip_comments)
         if key not in self._code_views:
             removed = 0
+            role_hit = False
             try:
                 tokens = []
                 for token in tokenize.generate_tokens(io.StringIO(node.code).readline):
                     if token.type == tokenize.COMMENT and (
-                            strip_comments or TEMPORARY_REFERENCE_RE.search(token.string)):
+                            strip_comments or TEMPORARY_REFERENCE_RE.search(token.string)
+                            or TEMPORARY_ROLE_RE.search(token.string)):
                         token = tokenize.TokenInfo(token.type, '', token.start, token.end, token.line)
                         removed += 1
+                        role_hit = role_hit or bool(TEMPORARY_ROLE_RE.search(token.string))
                     tokens.append(token)
                 view = tokenize.untokenize(tokens)
             except (IndentationError, tokenize.TokenError):
-                view, removed = node.code, 0
-            self._code_views[key] = view, removed
+                view, removed, role_hit = node.code, 0, False
+            self._code_views[key] = view, removed, role_hit
         return self._code_views[key]
 
     def program_text(self, node, role, omit_idea=False, strip_comments=False):
@@ -113,12 +145,15 @@ class TrajectoryBuilder(BaseBuilder):
             idea, idea_reason = '', 'context_budget'
         if idea_reason:
             omissions.append({'node_id': node.id, 'kind': 'idea', 'reason': idea_reason})
-        code, removed_comments = self.code_view(node, strip_comments)
+        code, removed_comments, role_comment = self.code_view(node, strip_comments)
         if removed_comments:
+            if strip_comments:
+                reason = 'reference_comment_strip'
+            else:
+                reason = ('temporary_role_reference' if role_comment
+                          else 'temporary_algorithm_reference')
             omissions.append({
-                'node_id': node.id, 'kind': 'code_comment',
-                'reason': ('reference_comment_strip' if strip_comments
-                           else 'temporary_algorithm_reference'),
+                'node_id': node.id, 'kind': 'code_comment', 'reason': reason,
                 'count': removed_comments,
             })
         return (f'# {title}\nFitness: {node.fitness}\nDesign note: {idea}\n'

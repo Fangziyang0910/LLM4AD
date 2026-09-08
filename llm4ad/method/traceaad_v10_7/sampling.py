@@ -112,15 +112,18 @@ def _weighted_order(candidates, weights, rng, limit=MAX_FIT_ATTEMPTS):
 
 
 def _evidence_relation(node, parent, role):
+    """Describe a real direct generation edge, or None for archive references.
+
+    Pivot/Fuse references are already recorded through reference_roles and
+    context_program_roles; giving them a second non-edge relation object only
+    duplicates that fact and drifts from the documented analysis contract.
+    """
     if role == 'formation_evidence':
         source, target = node, parent
     elif role == 'development_evidence':
         source, target = parent, node
     else:
-        return {
-            'kind': 'archive_reference', 'base_id': parent.id,
-            'reference_id': node.id, 'direct_generation_relation': False,
-        }
+        return None
 
     relation = {
         'kind': role, 'source_id': source.id, 'target_id': target.id,
@@ -201,7 +204,9 @@ def sample_task_evidence(nodes, parent, rng, *, operator, limit, fits):
             proposed_donor = node if donor_candidate else donor
             proposed_roles = {**roles, node.id: role}
             relation = _evidence_relation(node, parent, role)
-            proposed_relations = [*relations, relation]
+            proposed_relations = (
+                [*relations, relation] if relation is not None else list(relations)
+            )
             accepted = fits(
                 proposed, proposed_donor, proposed_roles, proposed_relations,
             )
@@ -217,7 +222,8 @@ def sample_task_evidence(nodes, parent, rng, *, operator, limit, fits):
             if accepted:
                 selected.append(node)
                 roles[node.id] = role
-                relations.append(relation)
+                if relation is not None:
+                    relations.append(relation)
                 if donor_candidate:
                     donor = node
                 return True

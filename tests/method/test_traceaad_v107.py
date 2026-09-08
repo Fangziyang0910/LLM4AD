@@ -61,7 +61,9 @@ def test_prompt_requests_only_idea_and_code():
     assert 'Implementation Summary' not in text
     assert 'approximately 500 words' not in text
     assert 'First describe' not in text
-    assert 'without referring to Algorithm numbers' in text
+    assert 'without referring to input programs' in text
+    assert 'Algorithm numbers' not in text
+    assert text.count('100 words') == 1
 
 
 def test_one_call_stores_idea_and_removes_second_call_fields(tmp_path):
@@ -76,8 +78,12 @@ def test_one_call_stores_idea_and_removes_second_call_fields(tmp_path):
     assert state['version'] == 1071
     assert state['mechanism']['generation'] == 'idea_code_single_call_self_contained_v1'
     assert state['mechanism']['context_policy'] == 'task_evidence_v1'
-    assert state['mechanism']['inherited_unused'] == {'donor_topk': 5, 'traj_gens': 8}
-    assert 'donor_topk' not in state['mechanism'] and 'traj_gens' not in state['mechanism']
+    assert state['mechanism']['inherited_unused'] == {
+        'donor_topk': 5, 'traj_gens': 8, 'history_tokens': 8192,
+    }
+    assert 'donor_topk' not in state['mechanism']
+    assert 'traj_gens' not in state['mechanism']
+    assert 'history_tokens' not in state['mechanism']
     assert 'summary_tokens' not in state['mechanism']
 
     call = read_journal(runner.llm_calls_path)[0]
@@ -106,9 +112,10 @@ def test_next_prompt_uses_first_call_idea_and_v106_history_shape(tmp_path):
     assert [node.idea for node in runner.tree.all_nodes()] == ['Root idea.', 'Child idea.']
 
 
-def test_max_context_programs_is_bounded(tmp_path):
+@pytest.mark.parametrize('limit', [0, 3, 4])
+def test_max_context_programs_is_bounded(tmp_path, limit):
     with pytest.raises(ValueError, match='max_context_programs'):
-        method(tmp_path, FakeLLM(), max_context_programs=4)
+        method(tmp_path, FakeLLM(), max_context_programs=limit)
 
 
 def test_closed_idea_and_code_at_length_limit_are_still_evaluated(tmp_path):
@@ -118,3 +125,24 @@ def test_closed_idea_and_code_at_length_limit_are_still_evaluated(tmp_path):
 
     assert runner.tree.best().fitness == 3
     assert len(llm.calls) == len(read_journal(runner.evaluations_path)) == 1
+
+
+def test_role_citing_idea_is_archived_but_never_reshown(tmp_path):
+    contaminated = (
+        'Combine the rollout scoring from the Transfer Source '
+        'with the local search in the Design Base.'
+    )
+    llm = FakeLLM(response(1, contaminated), response(2, 'Clean follow-up idea.'))
+    runner = method(tmp_path, llm, budget=2)
+    runner.run()
+
+    # The archive is untouched: evaluation and storage keep the raw Idea.
+    assert runner.tree.all_nodes()[0].idea == contaminated
+    # But the next prompt never shows it again, under any sampled operator.
+    assert contaminated not in llm.calls[1][0]
+    assert 'Transfer Source' not in llm.calls[1][0]
+    event = read_journal(runner.events_path)[-1]
+    assert {'node_id': 0, 'kind': 'idea', 'reason': 'temporary_role_reference'} in (
+        {key: entry[key] for key in ('node_id', 'kind', 'reason')}
+        for entry in event['context_view_omissions']
+    )
