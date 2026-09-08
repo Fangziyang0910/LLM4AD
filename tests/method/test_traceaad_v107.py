@@ -60,6 +60,7 @@ def test_prompt_requests_only_idea_and_code():
     assert 'Idea:' in text and '```python' in text
     assert 'Implementation Summary' not in text
     assert 'approximately 500 words' not in text
+    assert 'First describe' not in text
     assert 'without referring to Algorithm numbers' in text
 
 
@@ -72,9 +73,11 @@ def test_one_call_stores_idea_and_removes_second_call_fields(tmp_path):
     assert runner.tree.best().fitness == 7
     assert runner.tree.best().idea == 'Return the constant seven.'
     state = json.loads(runner.state_path.read_text())
-    assert state['version'] == 107
+    assert state['version'] == 1071
     assert state['mechanism']['generation'] == 'idea_code_single_call_self_contained_v1'
     assert state['mechanism']['context_policy'] == 'task_evidence_v1'
+    assert state['mechanism']['inherited_unused'] == {'donor_topk': 5, 'traj_gens': 8}
+    assert 'donor_topk' not in state['mechanism'] and 'traj_gens' not in state['mechanism']
     assert 'summary_tokens' not in state['mechanism']
 
     call = read_journal(runner.llm_calls_path)[0]
@@ -98,7 +101,7 @@ def test_next_prompt_uses_first_call_idea_and_v106_history_shape(tmp_path):
     runner.run()
 
     assert len(llm.calls) == 2
-    assert 'Idea: Root idea.' in llm.calls[1][0]
+    assert 'Design note: Root idea.' in llm.calls[1][0]
     assert 'Implementation Summary' not in llm.calls[1][0]
     assert [node.idea for node in runner.tree.all_nodes()] == ['Root idea.', 'Child idea.']
 

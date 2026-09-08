@@ -22,7 +22,7 @@ from . import prompts, sampling
 
 
 class TraceAADV107(TraceAADV106):
-    METHOD = 'v107'
+    METHOD = 'v107r'
 
     def __init__(self, *, history_tokens=8192, task_name=None,
                  max_context_programs=3, **kwargs):
@@ -48,6 +48,14 @@ class TraceAADV107(TraceAADV106):
             structure_preference=sampling.STRUCTURE_PREFERENCE,
             task_contract_hash=hashlib.sha256(self.task_contract.encode()).hexdigest(),
         )
+        # donor_topk/traj_gens only satisfy the inherited constructor and feed
+        # history rendering the V10.7R path never calls. They are not mechanism
+        # parameters: relabel them so future analysis cannot mistake them for
+        # live controls. history_tokens stays: it still sizes the builder.
+        self.mechanism['inherited_unused'] = {
+            key: self.mechanism.pop(key)
+            for key in ('donor_topk', 'traj_gens') if key in self.mechanism
+        }
         for source in [
             Path(__file__), Path(prompts.__file__), Path(sampling.__file__),
             Path(v106_traceaad.__file__), Path(v106_prompts.__file__),
@@ -149,9 +157,12 @@ class TraceAADV107(TraceAADV106):
         context.update(scheduling_seconds=time.monotonic() - scheduling_started,
                        tokenizer_requests=len(self.builder._counts) - counts_before)
         prompt_hash = hashlib.sha256(prompt_text.encode()).hexdigest()
-        parent_attempt_before = self.implementation_attempt_counts.get(parent_code_hash, 0)
-        if parent_code_hash is not None:
-            self.implementation_attempt_counts[parent_code_hash] = parent_attempt_before + 1
+        # Attempts are counted per (implementation, requested operator): ten
+        # Refine tries on one base say nothing about an untried Pivot on it.
+        attempt_key = f'{parent_code_hash}:{requested}' if parent_code_hash else None
+        parent_attempt_before = self.implementation_attempt_counts.get(attempt_key, 0)
+        if attempt_key is not None:
+            self.implementation_attempt_counts[attempt_key] = parent_attempt_before + 1
         prompt_repeat_before = self.generation_condition_counts.get(prompt_hash, 0)
         self.generation_condition_counts[prompt_hash] = prompt_repeat_before + 1
         return {
@@ -247,7 +258,7 @@ class TraceAADV107(TraceAADV106):
 
     def _save_state(self) -> None:
         atomic_json(self.state_path, {
-            'version': 107, 'mechanism': self.mechanism, 'started_at': self.started_at,
+            'version': 1071, 'mechanism': self.mechanism, 'started_at': self.started_at,
             'nodes': self.tree.to_state(), 'rng_state': list(self.rng.getstate()),
             'parent_selection_counts': self.parent_selection_counts,
             'implementation_attempt_counts': self.implementation_attempt_counts,
@@ -259,8 +270,8 @@ class TraceAADV107(TraceAADV106):
 
     def _load_state(self) -> None:
         state = json.loads(self.state_path.read_text())
-        if state.get('version') != 107 or state.get('mechanism') != self.mechanism:
-            raise ValueError('checkpoint mechanism/source/backend differs from this V10.7 configuration')
+        if state.get('version') != 1071 or state.get('mechanism') != self.mechanism:
+            raise ValueError('checkpoint mechanism/source/backend differs from this V10.7R configuration')
         TraceAADV103._load_state(self)
         self.implementation_attempt_counts = state['implementation_attempt_counts']
         self.generation_condition_counts = state['generation_condition_counts']
@@ -282,7 +293,8 @@ class TraceAADV107(TraceAADV106):
                 )
             parent_hash = pending['parent_code_hash']
             if parent_hash is not None:
-                self.implementation_attempt_counts[parent_hash] = (
+                restore_key = f"{parent_hash}:{pending['requested_operator']}"
+                self.implementation_attempt_counts[restore_key] = (
                     pending['parent_implementation_attempt_before'] + 1
                 )
             self.generation_condition_counts[pending['prompt_hash']] = (
@@ -300,7 +312,7 @@ class TraceAADV107(TraceAADV106):
                 self._advance()
                 best = self.tree.best().fitness if self.tree.nodes else None
                 print(
-                    f'v107: budget={self.budget_used}/{self.budget} '
+                    f'v107r: budget={self.budget_used}/{self.budget} '
                     f'nodes={len(self.tree.nodes)} best={best}',
                     flush=True,
                 )

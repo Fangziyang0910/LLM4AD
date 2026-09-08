@@ -11,14 +11,14 @@ from llm4ad.method.traceaad_v10_7 import TraceAADV107
 from llm4ad.method.traceaad_v10_7.prompts import GENERATION
 from llm4ad.method.traceaad_v10_7.sampling import CONTEXT_POLICY, STRUCTURE_PREFERENCE
 
-METHOD = 'v107'
+METHOD = 'v107r'
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     add_common_run_args(parser, default_output_tokens=16384, default_budget=FORMAL_BUDGET)
     parser.add_argument('--n-roots', type=int, default=8)
-    parser.add_argument('--max-context-programs', type=int, default=3)
+    parser.add_argument('--max-context-programs', type=int, default=2)
     parser.add_argument('--context-margin', type=int, default=256)
     parser.add_argument('--ess-fraction', type=float, default=0.1)
     parser.add_argument('--ess-minimum', type=int, default=2)
@@ -37,6 +37,8 @@ def main() -> None:
     }
     # Fixed, not configurable: the trajectory path never renders ancestor
     # history, and the donor shortlist belongs to the retired ancestor mode.
+    # traj_gens/donor_topk only satisfy the inherited constructor; the V10.7R
+    # mechanism records them under inherited_unused, not as live parameters.
     # Values match the parent default (traj_gens) and the established budget.
     params.update(traj_gens=8, donor_topk=5, history_tokens=8192)
     ctx = setup_experiment_run(
@@ -58,7 +60,7 @@ def main() -> None:
     )
     try:
         ctx.run(method.run, header=[
-            'v107: one-call self-contained Idea and Code; task-specific evidence; '
+            'v107r: one-call self-contained Idea and Code; task-specific evidence; '
             'parent-first; R/P/F=0.50/0.15/0.35'
         ])
     finally:

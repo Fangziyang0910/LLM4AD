@@ -1,0 +1,2222 @@
+{
+  "extracted_at": "2026-09-08T14:19:13.149159+08:00",
+  "budget_per_run": 250,
+  "warning": "Historical systems differ in prompts, selection, operators, output cap, backends and sampling; not a causal model comparison.",
+  "sources": [
+    {
+      "path": "experiments/traceaad_v9_7/results/cvrp_aco/v9_7_20260814_150927_cvrp_aco_rep1/artifacts/candidates.jsonl",
+      "prefix_lines": 262,
+      "prefix_sha256": "227044074ec1b2c50118cf72f73fb466fe03b4ea7e345c4663081de392ca798e"
+    },
+    {
+      "path": "experiments/traceaad_v9_7/results/cvrp_aco/v9_7_20260814_150927_cvrp_aco_rep2/artifacts/candidates.jsonl",
+      "prefix_lines": 264,
+      "prefix_sha256": "201698a3d37e243e9ac09cafadd47e245f0af152dd26e7bdaefd66919d784839"
+    },
+    {
+      "path": "experiments/traceaad_v9_7/results/cvrp_aco/v9_7_20260814_150927_cvrp_aco_rep3/artifacts/candidates.jsonl",
+      "prefix_lines": 261,
+      "prefix_sha256": "69f1143973df844b8ba35c51f92e2508a5de3fd918d19b22e3ee8e652d26cfe4"
+    },
+    {
+      "path": "experiments/traceaad_v9_7/results/online_bin_packing/v9_7_20260814_150927_online_bin_packing_rep1/artifacts/candidates.jsonl",
+      "prefix_lines": 256,
+      "prefix_sha256": "80ee78fb327f65f52cdd79e30d5ed9bd51d8be62fc39e00ca6e7885b531d73a0"
+    },
+    {
+      "path": "experiments/traceaad_v9_7/results/online_bin_packing/v9_7_20260814_150927_online_bin_packing_rep2/artifacts/candidates.jsonl",
+      "prefix_lines": 252,
+      "prefix_sha256": "f735a76932d11045056b4e99fdbce074cf76949d08ad745356adfdc65aa2e0a0"
+    },
+    {
+      "path": "experiments/traceaad_v9_7/results/online_bin_packing/v9_7_20260814_150927_online_bin_packing_rep3/artifacts/candidates.jsonl",
+      "prefix_lines": 257,
+      "prefix_sha256": "f7fb4bbb48ce165ac8a1f0ec9fd3749a4f70b71456b6e04e42c57609b06f7dc6"
+    },
+    {
+      "path": "experiments/traceaad_v9_7/results/op_aco/v9_7_20260814_150927_op_aco_rep1/artifacts/candidates.jsonl",
+      "prefix_lines": 258,
+      "prefix_sha256": "b5741723ac5b4f17d2119e003dfb18d101eb6d3f61df9b78afb566d987b422c2"
+    },
+    {
+      "path": "experiments/traceaad_v9_7/results/op_aco/v9_7_20260814_150927_op_aco_rep2/artifacts/candidates.jsonl",
+      "prefix_lines": 262,
+      "prefix_sha256": "06084a0407ea4ad852797e575705f407585774615ed9be77702c3635a7169b6f"
+    },
+    {
+      "path": "experiments/traceaad_v9_7/results/op_aco/v9_7_20260814_150927_op_aco_rep3/artifacts/candidates.jsonl",
+      "prefix_lines": 261,
+      "prefix_sha256": "4edca28a6d0d1784d03e9d2825f639d68640cc5c3913448220dbac221c41bf01"
+    },
+    {
+      "path": "experiments/traceaad_v9_7/results/tsp_construct/v9_7_20260814_150927_tsp_construct_rep1/artifacts/candidates.jsonl",
+      "prefix_lines": 254,
+      "prefix_sha256": "bb08d801e9acc845749af5422647a0743c71f0ac06cb94bc27be5deb4eeb0658"
+    },
+    {
+      "path": "experiments/traceaad_v9_7/results/tsp_construct/v9_7_20260814_150927_tsp_construct_rep2/artifacts/candidates.jsonl",
+      "prefix_lines": 255,
+      "prefix_sha256": "2a0e3f18d71384d222234d0488f07eca3570d36d9e8e8cddba86475bc7016a1c"
+    },
+    {
+      "path": "experiments/traceaad_v9_7/results/tsp_construct/v9_7_20260814_150927_tsp_construct_rep3/artifacts/candidates.jsonl",
+      "prefix_lines": 253,
+      "prefix_sha256": "5f06112208f9d46fe67ef631f71b8d084f03cfef2486639423a84cecb279908c"
+    },
+    {
+      "path": "experiments/traceaad_v10_7/results/cvrp_aco/20260907_bounded_formal_cvrp_v107_rep1/events.jsonl",
+      "prefix_lines": 251,
+      "prefix_sha256": "01ebf8604c6b17298ab2dbe086dda8b2d41d8160a305b70a9484642d5e817d3a"
+    },
+    {
+      "path": "experiments/traceaad_v10_7/results/cvrp_aco/20260907_bounded_formal_cvrp_v107_rep2/events.jsonl",
+      "prefix_lines": 251,
+      "prefix_sha256": "1454e88876c277694dc0a94d9899584daedca523db55b8e821181d79ddb4b742"
+    },
+    {
+      "path": "experiments/traceaad_v10_7/results/cvrp_aco/20260907_bounded_formal_cvrp_v107_rep3/events.jsonl",
+      "prefix_lines": 250,
+      "prefix_sha256": "d917f916eaa938bbbf564ae5860184157ae1415d7132b1454bb1e1d565f36667"
+    },
+    {
+      "path": "experiments/traceaad_v10_7/results/online_bin_packing/20260907_bounded_formal_obp_v107_rep1/events.jsonl",
+      "prefix_lines": 251,
+      "prefix_sha256": "879ec379ee89e28c0398cfa698c5ec411ac34b4e1671d36631708194b9c92352"
+    },
+    {
+      "path": "experiments/traceaad_v10_7/results/online_bin_packing/20260907_bounded_formal_obp_v107_rep2/events.jsonl",
+      "prefix_lines": 250,
+      "prefix_sha256": "8ef13716850009109549676c8be3b57268aa0067755004a6be0365da2a7a711f"
+    },
+    {
+      "path": "experiments/traceaad_v10_7/results/online_bin_packing/20260907_bounded_formal_obp_v107_rep3/events.jsonl",
+      "prefix_lines": 250,
+      "prefix_sha256": "3f5d6038e161e8d820cb21a188c4e894b88ec8970499a5b357893df5360b6c5e"
+    },
+    {
+      "path": "experiments/traceaad_v10_7/results/op_aco/20260907_bounded_formal_op_v107_rep1/events.jsonl",
+      "prefix_lines": 250,
+      "prefix_sha256": "f12a30dd4c6d9dcc742118f46a7a34a262c29a9b7da4f3690f3eead4892166bd"
+    },
+    {
+      "path": "experiments/traceaad_v10_7/results/op_aco/20260907_bounded_formal_op_v107_rep2/events.jsonl",
+      "prefix_lines": 252,
+      "prefix_sha256": "6681e623b7f5d95f33c3360dfc08db69ee40e7cff7f555a00bc3d219d7d97b04"
+    },
+    {
+      "path": "experiments/traceaad_v10_7/results/op_aco/20260907_bounded_formal_op_v107_rep3/events.jsonl",
+      "prefix_lines": 250,
+      "prefix_sha256": "6213fef3011af3b73078cb1570ec6120838ffd7d736da2670ec50e6884ff3217"
+    },
+    {
+      "path": "experiments/traceaad_v10_7/results/tsp_construct/20260907_bounded_formal_tsp_v107_rep1/events.jsonl",
+      "prefix_lines": 251,
+      "prefix_sha256": "9ca2fec372791fd852adc971ce386ec53f594bf24eb07918bcf0dc0dfb3fc615"
+    },
+    {
+      "path": "experiments/traceaad_v10_7/results/tsp_construct/20260907_bounded_formal_tsp_v107_rep2/events.jsonl",
+      "prefix_lines": 252,
+      "prefix_sha256": "afb0a040c815b1e9d2c3cbf23fe5b129c39d0aef7f53bb1d093ac0ebfdc38d02"
+    },
+    {
+      "path": "experiments/traceaad_v10_7/results/tsp_construct/20260907_bounded_formal_tsp_v107_rep3/events.jsonl",
+      "prefix_lines": 251,
+      "prefix_sha256": "9bf8c1503a7b461d0f38a100f73dca8c0878e3d4692507811c33242267d0a432"
+    }
+  ],
+  "runs": [
+    {
+      "version": "v97_q36",
+      "task": "cvrp_aco",
+      "repeat": 1,
+      "source": "experiments/traceaad_v9_7/results/cvrp_aco/v9_7_20260814_150927_cvrp_aco_rep1/artifacts/candidates.jsonl",
+      "config": {
+        "created_at": "2026-08-14T15:09:35",
+        "generator_environment": {
+          "logical_model_name": "Qwen3.6-27B",
+          "max_new_tokens": 8192,
+          "max_total_context": 32768,
+          "sampling_seed": 1,
+          "temperature": 1.0
+        },
+        "method": "traceaad_v9_7",
+        "method_params": {
+          "budget": 1000,
+          "checkpoint_schema_version": 4,
+          "context_limit": 32768,
+          "explore_probability": 0.30000000000000004,
+          "max_history": 8,
+          "max_tokens": 8192,
+          "maximize": true,
+          "n_roots": 8,
+          "protocol_id": "traceaad-v9.7-route-refine-explore",
+          "refine_probability": 0.7,
+          "seed": 1
+        },
+        "repeat": 1,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/cvrp_aco/traceaad_v9_7/v9_7_20260814_150927_cvrp_aco_rep1",
+        "task": "cvrp_aco",
+        "task_eval": {
+          "aco_seed": 1234,
+          "n_ants": 30,
+          "n_iterations": 100,
+          "n_workers": 10,
+          "split": "train",
+          "timeout_seconds": 120
+        },
+        "timestamp": "v9_7_20260814_150927_cvrp_aco_rep1"
+      },
+      "recorded_attempts": 262,
+      "evaluations": 250,
+      "valid_evaluations": 233,
+      "valid_rate": 0.932,
+      "statuses": {
+        "eval_failed": 17,
+        "ok": 244,
+        "parse_failed": 1
+      },
+      "refine_evaluations": 169,
+      "refine_valid": 163,
+      "refine_improved": 63,
+      "refine_equal_score": 13,
+      "idea_words_median": 41,
+      "idea_over_100_words": 0,
+      "code_chars_median": 6161
+    },
+    {
+      "version": "v97_q36",
+      "task": "cvrp_aco",
+      "repeat": 2,
+      "source": "experiments/traceaad_v9_7/results/cvrp_aco/v9_7_20260814_150927_cvrp_aco_rep2/artifacts/candidates.jsonl",
+      "config": {
+        "created_at": "2026-08-14T15:09:35",
+        "generator_environment": {
+          "logical_model_name": "Qwen3.6-27B",
+          "max_new_tokens": 8192,
+          "max_total_context": 32768,
+          "sampling_seed": 2,
+          "temperature": 1.0
+        },
+        "method": "traceaad_v9_7",
+        "method_params": {
+          "budget": 1000,
+          "checkpoint_schema_version": 4,
+          "context_limit": 32768,
+          "explore_probability": 0.30000000000000004,
+          "max_history": 8,
+          "max_tokens": 8192,
+          "maximize": true,
+          "n_roots": 8,
+          "protocol_id": "traceaad-v9.7-route-refine-explore",
+          "refine_probability": 0.7,
+          "seed": 2
+        },
+        "repeat": 2,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/cvrp_aco/traceaad_v9_7/v9_7_20260814_150927_cvrp_aco_rep2",
+        "task": "cvrp_aco",
+        "task_eval": {
+          "aco_seed": 1234,
+          "n_ants": 30,
+          "n_iterations": 100,
+          "n_workers": 10,
+          "split": "train",
+          "timeout_seconds": 120
+        },
+        "timestamp": "v9_7_20260814_150927_cvrp_aco_rep2"
+      },
+      "recorded_attempts": 264,
+      "evaluations": 250,
+      "valid_evaluations": 241,
+      "valid_rate": 0.964,
+      "statuses": {
+        "ok": 252,
+        "parse_failed": 3,
+        "eval_failed": 9
+      },
+      "refine_evaluations": 170,
+      "refine_valid": 165,
+      "refine_improved": 58,
+      "refine_equal_score": 13,
+      "idea_words_median": 42,
+      "idea_over_100_words": 0,
+      "code_chars_median": 5468
+    },
+    {
+      "version": "v97_q36",
+      "task": "cvrp_aco",
+      "repeat": 3,
+      "source": "experiments/traceaad_v9_7/results/cvrp_aco/v9_7_20260814_150927_cvrp_aco_rep3/artifacts/candidates.jsonl",
+      "config": {
+        "created_at": "2026-08-14T15:09:34",
+        "generator_environment": {
+          "logical_model_name": "Qwen3.6-27B",
+          "max_new_tokens": 8192,
+          "max_total_context": 32768,
+          "sampling_seed": 3,
+          "temperature": 1.0
+        },
+        "method": "traceaad_v9_7",
+        "method_params": {
+          "budget": 1000,
+          "checkpoint_schema_version": 4,
+          "context_limit": 32768,
+          "explore_probability": 0.30000000000000004,
+          "max_history": 8,
+          "max_tokens": 8192,
+          "maximize": true,
+          "n_roots": 8,
+          "protocol_id": "traceaad-v9.7-route-refine-explore",
+          "refine_probability": 0.7,
+          "seed": 3
+        },
+        "repeat": 3,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/cvrp_aco/traceaad_v9_7/v9_7_20260814_150927_cvrp_aco_rep3",
+        "task": "cvrp_aco",
+        "task_eval": {
+          "aco_seed": 1234,
+          "n_ants": 30,
+          "n_iterations": 100,
+          "n_workers": 10,
+          "split": "train",
+          "timeout_seconds": 120
+        },
+        "timestamp": "v9_7_20260814_150927_cvrp_aco_rep3"
+      },
+      "recorded_attempts": 261,
+      "evaluations": 250,
+      "valid_evaluations": 245,
+      "valid_rate": 0.98,
+      "statuses": {
+        "ok": 256,
+        "eval_failed": 5
+      },
+      "refine_evaluations": 173,
+      "refine_valid": 171,
+      "refine_improved": 71,
+      "refine_equal_score": 19,
+      "idea_words_median": 42,
+      "idea_over_100_words": 0,
+      "code_chars_median": 4737
+    },
+    {
+      "version": "v97_q36",
+      "task": "online_bin_packing",
+      "repeat": 1,
+      "source": "experiments/traceaad_v9_7/results/online_bin_packing/v9_7_20260814_150927_online_bin_packing_rep1/artifacts/candidates.jsonl",
+      "config": {
+        "created_at": "2026-08-14T15:09:34",
+        "generator_environment": {
+          "logical_model_name": "Qwen3.6-27B",
+          "max_new_tokens": 8192,
+          "max_total_context": 32768,
+          "sampling_seed": 1,
+          "temperature": 1.0
+        },
+        "method": "traceaad_v9_7",
+        "method_params": {
+          "budget": 1000,
+          "checkpoint_schema_version": 4,
+          "context_limit": 32768,
+          "explore_probability": 0.30000000000000004,
+          "max_history": 8,
+          "max_tokens": 8192,
+          "maximize": true,
+          "n_roots": 8,
+          "protocol_id": "traceaad-v9.7-route-refine-explore",
+          "refine_probability": 0.7,
+          "seed": 1
+        },
+        "repeat": 1,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/online_bin_packing/traceaad_v9_7/v9_7_20260814_150927_online_bin_packing_rep1",
+        "task": "online_bin_packing",
+        "task_eval": {
+          "dataset_specs": [
+            {
+              "capacities": [
+                100,
+                500
+              ],
+              "n_instances": 1,
+              "n_items": 1000
+            },
+            {
+              "capacities": [
+                100,
+                500
+              ],
+              "n_instances": 1,
+              "n_items": 5000
+            }
+          ],
+          "seed": 2024,
+          "split": "train",
+          "timeout_seconds": 30
+        },
+        "timestamp": "v9_7_20260814_150927_online_bin_packing_rep1"
+      },
+      "recorded_attempts": 256,
+      "evaluations": 250,
+      "valid_evaluations": 250,
+      "valid_rate": 1.0,
+      "statuses": {
+        "ok": 256
+      },
+      "refine_evaluations": 171,
+      "refine_valid": 171,
+      "refine_improved": 33,
+      "refine_equal_score": 61,
+      "idea_words_median": 45.0,
+      "idea_over_100_words": 0,
+      "code_chars_median": 3274.0
+    },
+    {
+      "version": "v97_q36",
+      "task": "online_bin_packing",
+      "repeat": 2,
+      "source": "experiments/traceaad_v9_7/results/online_bin_packing/v9_7_20260814_150927_online_bin_packing_rep2/artifacts/candidates.jsonl",
+      "config": {
+        "created_at": "2026-08-14T15:09:34",
+        "generator_environment": {
+          "logical_model_name": "Qwen3.6-27B",
+          "max_new_tokens": 8192,
+          "max_total_context": 32768,
+          "sampling_seed": 2,
+          "temperature": 1.0
+        },
+        "method": "traceaad_v9_7",
+        "method_params": {
+          "budget": 1000,
+          "checkpoint_schema_version": 4,
+          "context_limit": 32768,
+          "explore_probability": 0.30000000000000004,
+          "max_history": 8,
+          "max_tokens": 8192,
+          "maximize": true,
+          "n_roots": 8,
+          "protocol_id": "traceaad-v9.7-route-refine-explore",
+          "refine_probability": 0.7,
+          "seed": 2
+        },
+        "repeat": 2,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/online_bin_packing/traceaad_v9_7/v9_7_20260814_150927_online_bin_packing_rep2",
+        "task": "online_bin_packing",
+        "task_eval": {
+          "dataset_specs": [
+            {
+              "capacities": [
+                100,
+                500
+              ],
+              "n_instances": 1,
+              "n_items": 1000
+            },
+            {
+              "capacities": [
+                100,
+                500
+              ],
+              "n_instances": 1,
+              "n_items": 5000
+            }
+          ],
+          "seed": 2024,
+          "split": "train",
+          "timeout_seconds": 30
+        },
+        "timestamp": "v9_7_20260814_150927_online_bin_packing_rep2"
+      },
+      "recorded_attempts": 252,
+      "evaluations": 250,
+      "valid_evaluations": 249,
+      "valid_rate": 0.996,
+      "statuses": {
+        "ok": 251,
+        "eval_failed": 1
+      },
+      "refine_evaluations": 168,
+      "refine_valid": 168,
+      "refine_improved": 37,
+      "refine_equal_score": 71,
+      "idea_words_median": 45,
+      "idea_over_100_words": 0,
+      "code_chars_median": 2420
+    },
+    {
+      "version": "v97_q36",
+      "task": "online_bin_packing",
+      "repeat": 3,
+      "source": "experiments/traceaad_v9_7/results/online_bin_packing/v9_7_20260814_150927_online_bin_packing_rep3/artifacts/candidates.jsonl",
+      "config": {
+        "created_at": "2026-08-14T15:09:34",
+        "generator_environment": {
+          "logical_model_name": "Qwen3.6-27B",
+          "max_new_tokens": 8192,
+          "max_total_context": 32768,
+          "sampling_seed": 3,
+          "temperature": 1.0
+        },
+        "method": "traceaad_v9_7",
+        "method_params": {
+          "budget": 1000,
+          "checkpoint_schema_version": 4,
+          "context_limit": 32768,
+          "explore_probability": 0.30000000000000004,
+          "max_history": 8,
+          "max_tokens": 8192,
+          "maximize": true,
+          "n_roots": 8,
+          "protocol_id": "traceaad-v9.7-route-refine-explore",
+          "refine_probability": 0.7,
+          "seed": 3
+        },
+        "repeat": 3,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/online_bin_packing/traceaad_v9_7/v9_7_20260814_150927_online_bin_packing_rep3",
+        "task": "online_bin_packing",
+        "task_eval": {
+          "dataset_specs": [
+            {
+              "capacities": [
+                100,
+                500
+              ],
+              "n_instances": 1,
+              "n_items": 1000
+            },
+            {
+              "capacities": [
+                100,
+                500
+              ],
+              "n_instances": 1,
+              "n_items": 5000
+            }
+          ],
+          "seed": 2024,
+          "split": "train",
+          "timeout_seconds": 30
+        },
+        "timestamp": "v9_7_20260814_150927_online_bin_packing_rep3"
+      },
+      "recorded_attempts": 257,
+      "evaluations": 250,
+      "valid_evaluations": 247,
+      "valid_rate": 0.988,
+      "statuses": {
+        "ok": 254,
+        "eval_failed": 3
+      },
+      "refine_evaluations": 172,
+      "refine_valid": 171,
+      "refine_improved": 47,
+      "refine_equal_score": 47,
+      "idea_words_median": 45,
+      "idea_over_100_words": 0,
+      "code_chars_median": 3247
+    },
+    {
+      "version": "v97_q36",
+      "task": "op_aco",
+      "repeat": 1,
+      "source": "experiments/traceaad_v9_7/results/op_aco/v9_7_20260814_150927_op_aco_rep1/artifacts/candidates.jsonl",
+      "config": {
+        "created_at": "2026-08-14T15:09:33",
+        "generator_environment": {
+          "logical_model_name": "Qwen3.6-27B",
+          "max_new_tokens": 8192,
+          "max_total_context": 32768,
+          "sampling_seed": 1,
+          "temperature": 1.0
+        },
+        "method": "traceaad_v9_7",
+        "method_params": {
+          "budget": 1000,
+          "checkpoint_schema_version": 4,
+          "context_limit": 32768,
+          "explore_probability": 0.30000000000000004,
+          "max_history": 8,
+          "max_tokens": 8192,
+          "maximize": true,
+          "n_roots": 8,
+          "protocol_id": "traceaad-v9.7-route-refine-explore",
+          "refine_probability": 0.7,
+          "seed": 1
+        },
+        "repeat": 1,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/op_aco/traceaad_v9_7/v9_7_20260814_150927_op_aco_rep1",
+        "task": "op_aco",
+        "task_eval": {
+          "aco_seed": 1234,
+          "n_ants": 20,
+          "n_iterations": 50,
+          "n_workers": 5,
+          "split": "train",
+          "timeout_seconds": 60
+        },
+        "timestamp": "v9_7_20260814_150927_op_aco_rep1"
+      },
+      "recorded_attempts": 258,
+      "evaluations": 250,
+      "valid_evaluations": 241,
+      "valid_rate": 0.964,
+      "statuses": {
+        "ok": 245,
+        "parse_failed": 4,
+        "eval_failed": 9
+      },
+      "refine_evaluations": 174,
+      "refine_valid": 171,
+      "refine_improved": 23,
+      "refine_equal_score": 22,
+      "idea_words_median": 44,
+      "idea_over_100_words": 0,
+      "code_chars_median": 5888
+    },
+    {
+      "version": "v97_q36",
+      "task": "op_aco",
+      "repeat": 2,
+      "source": "experiments/traceaad_v9_7/results/op_aco/v9_7_20260814_150927_op_aco_rep2/artifacts/candidates.jsonl",
+      "config": {
+        "created_at": "2026-08-14T15:09:34",
+        "generator_environment": {
+          "logical_model_name": "Qwen3.6-27B",
+          "max_new_tokens": 8192,
+          "max_total_context": 32768,
+          "sampling_seed": 2,
+          "temperature": 1.0
+        },
+        "method": "traceaad_v9_7",
+        "method_params": {
+          "budget": 1000,
+          "checkpoint_schema_version": 4,
+          "context_limit": 32768,
+          "explore_probability": 0.30000000000000004,
+          "max_history": 8,
+          "max_tokens": 8192,
+          "maximize": true,
+          "n_roots": 8,
+          "protocol_id": "traceaad-v9.7-route-refine-explore",
+          "refine_probability": 0.7,
+          "seed": 2
+        },
+        "repeat": 2,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/op_aco/traceaad_v9_7/v9_7_20260814_150927_op_aco_rep2",
+        "task": "op_aco",
+        "task_eval": {
+          "aco_seed": 1234,
+          "n_ants": 20,
+          "n_iterations": 50,
+          "n_workers": 5,
+          "split": "train",
+          "timeout_seconds": 60
+        },
+        "timestamp": "v9_7_20260814_150927_op_aco_rep2"
+      },
+      "recorded_attempts": 262,
+      "evaluations": 250,
+      "valid_evaluations": 246,
+      "valid_rate": 0.984,
+      "statuses": {
+        "ok": 257,
+        "parse_failed": 1,
+        "eval_failed": 4
+      },
+      "refine_evaluations": 169,
+      "refine_valid": 167,
+      "refine_improved": 12,
+      "refine_equal_score": 46,
+      "idea_words_median": 45.0,
+      "idea_over_100_words": 0,
+      "code_chars_median": 5581.5
+    },
+    {
+      "version": "v97_q36",
+      "task": "op_aco",
+      "repeat": 3,
+      "source": "experiments/traceaad_v9_7/results/op_aco/v9_7_20260814_150927_op_aco_rep3/artifacts/candidates.jsonl",
+      "config": {
+        "created_at": "2026-08-14T15:09:33",
+        "generator_environment": {
+          "logical_model_name": "Qwen3.6-27B",
+          "max_new_tokens": 8192,
+          "max_total_context": 32768,
+          "sampling_seed": 3,
+          "temperature": 1.0
+        },
+        "method": "traceaad_v9_7",
+        "method_params": {
+          "budget": 1000,
+          "checkpoint_schema_version": 4,
+          "context_limit": 32768,
+          "explore_probability": 0.30000000000000004,
+          "max_history": 8,
+          "max_tokens": 8192,
+          "maximize": true,
+          "n_roots": 8,
+          "protocol_id": "traceaad-v9.7-route-refine-explore",
+          "refine_probability": 0.7,
+          "seed": 3
+        },
+        "repeat": 3,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/op_aco/traceaad_v9_7/v9_7_20260814_150927_op_aco_rep3",
+        "task": "op_aco",
+        "task_eval": {
+          "aco_seed": 1234,
+          "n_ants": 20,
+          "n_iterations": 50,
+          "n_workers": 5,
+          "split": "train",
+          "timeout_seconds": 60
+        },
+        "timestamp": "v9_7_20260814_150927_op_aco_rep3"
+      },
+      "recorded_attempts": 261,
+      "evaluations": 250,
+      "valid_evaluations": 241,
+      "valid_rate": 0.964,
+      "statuses": {
+        "ok": 251,
+        "parse_failed": 1,
+        "eval_failed": 9
+      },
+      "refine_evaluations": 171,
+      "refine_valid": 168,
+      "refine_improved": 21,
+      "refine_equal_score": 31,
+      "idea_words_median": 45,
+      "idea_over_100_words": 0,
+      "code_chars_median": 4944
+    },
+    {
+      "version": "v97_q36",
+      "task": "tsp_construct",
+      "repeat": 1,
+      "source": "experiments/traceaad_v9_7/results/tsp_construct/v9_7_20260814_150927_tsp_construct_rep1/artifacts/candidates.jsonl",
+      "config": {
+        "created_at": "2026-08-14T15:09:34",
+        "generator_environment": {
+          "logical_model_name": "Qwen3.6-27B",
+          "max_new_tokens": 8192,
+          "max_total_context": 32768,
+          "sampling_seed": 1,
+          "temperature": 1.0
+        },
+        "method": "traceaad_v9_7",
+        "method_params": {
+          "budget": 1000,
+          "checkpoint_schema_version": 4,
+          "context_limit": 32768,
+          "explore_probability": 0.30000000000000004,
+          "max_history": 8,
+          "max_tokens": 8192,
+          "maximize": true,
+          "n_roots": 8,
+          "protocol_id": "traceaad-v9.7-route-refine-explore",
+          "refine_probability": 0.7,
+          "seed": 1
+        },
+        "repeat": 1,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/tsp_construct/traceaad_v9_7/v9_7_20260814_150927_tsp_construct_rep1",
+        "task": "tsp_construct",
+        "task_eval": {
+          "n_instance": 16,
+          "problem_size": 50,
+          "seed": 2024,
+          "split": "train",
+          "timeout_seconds": 20
+        },
+        "timestamp": "v9_7_20260814_150927_tsp_construct_rep1"
+      },
+      "recorded_attempts": 254,
+      "evaluations": 250,
+      "valid_evaluations": 219,
+      "valid_rate": 0.876,
+      "statuses": {
+        "ok": 222,
+        "eval_failed": 31,
+        "parse_failed": 1
+      },
+      "refine_evaluations": 172,
+      "refine_valid": 153,
+      "refine_improved": 16,
+      "refine_equal_score": 83,
+      "idea_words_median": 44,
+      "idea_over_100_words": 0,
+      "code_chars_median": 7906
+    },
+    {
+      "version": "v97_q36",
+      "task": "tsp_construct",
+      "repeat": 2,
+      "source": "experiments/traceaad_v9_7/results/tsp_construct/v9_7_20260814_150927_tsp_construct_rep2/artifacts/candidates.jsonl",
+      "config": {
+        "created_at": "2026-08-14T15:09:34",
+        "generator_environment": {
+          "logical_model_name": "Qwen3.6-27B",
+          "max_new_tokens": 8192,
+          "max_total_context": 32768,
+          "sampling_seed": 2,
+          "temperature": 1.0
+        },
+        "method": "traceaad_v9_7",
+        "method_params": {
+          "budget": 1000,
+          "checkpoint_schema_version": 4,
+          "context_limit": 32768,
+          "explore_probability": 0.30000000000000004,
+          "max_history": 8,
+          "max_tokens": 8192,
+          "maximize": true,
+          "n_roots": 8,
+          "protocol_id": "traceaad-v9.7-route-refine-explore",
+          "refine_probability": 0.7,
+          "seed": 2
+        },
+        "repeat": 2,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/tsp_construct/traceaad_v9_7/v9_7_20260814_150927_tsp_construct_rep2",
+        "task": "tsp_construct",
+        "task_eval": {
+          "n_instance": 16,
+          "problem_size": 50,
+          "seed": 2024,
+          "split": "train",
+          "timeout_seconds": 20
+        },
+        "timestamp": "v9_7_20260814_150927_tsp_construct_rep2"
+      },
+      "recorded_attempts": 255,
+      "evaluations": 250,
+      "valid_evaluations": 224,
+      "valid_rate": 0.896,
+      "statuses": {
+        "ok": 227,
+        "eval_failed": 26,
+        "parse_failed": 2
+      },
+      "refine_evaluations": 169,
+      "refine_valid": 155,
+      "refine_improved": 34,
+      "refine_equal_score": 15,
+      "idea_words_median": 43.0,
+      "idea_over_100_words": 0,
+      "code_chars_median": 5164.0
+    },
+    {
+      "version": "v97_q36",
+      "task": "tsp_construct",
+      "repeat": 3,
+      "source": "experiments/traceaad_v9_7/results/tsp_construct/v9_7_20260814_150927_tsp_construct_rep3/artifacts/candidates.jsonl",
+      "config": {
+        "created_at": "2026-08-14T15:09:34",
+        "generator_environment": {
+          "logical_model_name": "Qwen3.6-27B",
+          "max_new_tokens": 8192,
+          "max_total_context": 32768,
+          "sampling_seed": 3,
+          "temperature": 1.0
+        },
+        "method": "traceaad_v9_7",
+        "method_params": {
+          "budget": 1000,
+          "checkpoint_schema_version": 4,
+          "context_limit": 32768,
+          "explore_probability": 0.30000000000000004,
+          "max_history": 8,
+          "max_tokens": 8192,
+          "maximize": true,
+          "n_roots": 8,
+          "protocol_id": "traceaad-v9.7-route-refine-explore",
+          "refine_probability": 0.7,
+          "seed": 3
+        },
+        "repeat": 3,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/tsp_construct/traceaad_v9_7/v9_7_20260814_150927_tsp_construct_rep3",
+        "task": "tsp_construct",
+        "task_eval": {
+          "n_instance": 16,
+          "problem_size": 50,
+          "seed": 2024,
+          "split": "train",
+          "timeout_seconds": 20
+        },
+        "timestamp": "v9_7_20260814_150927_tsp_construct_rep3"
+      },
+      "recorded_attempts": 253,
+      "evaluations": 250,
+      "valid_evaluations": 170,
+      "valid_rate": 0.68,
+      "statuses": {
+        "ok": 171,
+        "eval_failed": 80,
+        "parse_failed": 2
+      },
+      "refine_evaluations": 171,
+      "refine_valid": 111,
+      "refine_improved": 32,
+      "refine_equal_score": 11,
+      "idea_words_median": 44.0,
+      "idea_over_100_words": 0,
+      "code_chars_median": 9331.5
+    },
+    {
+      "version": "v107_q38",
+      "task": "cvrp_aco",
+      "repeat": 1,
+      "source": "experiments/traceaad_v10_7/results/cvrp_aco/20260907_bounded_formal_cvrp_v107_rep1/events.jsonl",
+      "config": {
+        "backend": "server3",
+        "created_at": "2026-09-07T23:40:30",
+        "llm": {
+          "api_key_configured": true,
+          "base_url": "http://222.201.145.6:8000/v1",
+          "enable_thinking": false,
+          "max_tokens": 16384,
+          "model": "qwen3.8-27b-awq",
+          "no_proxy": "222.201.145.6,localhost,127.0.0.1,::1",
+          "temperature": 1.0,
+          "timeout": 600,
+          "top_k": 20,
+          "top_p": 0.95
+        },
+        "method": "v107",
+        "method_params": {
+          "budget": 1000,
+          "budget_basis": "1000 actual evaluator calls including initialization and failed evaluations; LLM-only failures consume no evaluation slot",
+          "context_margin": 256,
+          "context_policy": "sampled_trajectory_v1",
+          "donor_topk": 5,
+          "ess_fraction": 0.1,
+          "ess_minimum": 2,
+          "generation": "idea_code_single_call",
+          "history_tokens": 8192,
+          "max_context_programs": 3,
+          "max_context_tokens": 32768,
+          "n_roots": 8,
+          "operator_probabilities": {
+            "Fuse": 0.35,
+            "Pivot": 0.15,
+            "Refine": 0.5
+          },
+          "output_tokens": 16384,
+          "traj_gens": 8
+        },
+        "repeat": 1,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/cvrp_aco/20260907_bounded_formal_cvrp_v107_rep1",
+        "run_name": "20260907_bounded_formal_cvrp_v107_rep1",
+        "seed": 0,
+        "task": "cvrp_aco",
+        "task_eval": {
+          "aco_seed": 1234,
+          "n_ants": 30,
+          "n_iterations": 100,
+          "n_workers": 4,
+          "split": "train",
+          "timeout_seconds": 120
+        }
+      },
+      "recorded_attempts": 251,
+      "evaluations": 250,
+      "valid_evaluations": 235,
+      "valid_rate": 0.94,
+      "statuses": {
+        "ok": 235,
+        "invalid_output": 1,
+        "eval_failed": 15
+      },
+      "refine_evaluations": 125,
+      "refine_valid": 116,
+      "refine_improved": 30,
+      "refine_equal_score": 8,
+      "idea_words_median": 82,
+      "idea_over_100_words": 32,
+      "code_chars_median": 3587
+    },
+    {
+      "version": "v107_q38",
+      "task": "cvrp_aco",
+      "repeat": 2,
+      "source": "experiments/traceaad_v10_7/results/cvrp_aco/20260907_bounded_formal_cvrp_v107_rep2/events.jsonl",
+      "config": {
+        "backend": "local",
+        "created_at": "2026-09-07T23:40:31",
+        "llm": {
+          "api_key_configured": false,
+          "base_url": "http://127.0.0.1:8001/v1",
+          "enable_thinking": false,
+          "max_tokens": 16384,
+          "model": "Qwen3.8-27B",
+          "no_proxy": "127.0.0.1,localhost,::1",
+          "temperature": 1.0,
+          "timeout": 600,
+          "top_k": 20,
+          "top_p": 0.95
+        },
+        "method": "v107",
+        "method_params": {
+          "budget": 1000,
+          "budget_basis": "1000 actual evaluator calls including initialization and failed evaluations; LLM-only failures consume no evaluation slot",
+          "context_margin": 256,
+          "context_policy": "sampled_trajectory_v1",
+          "donor_topk": 5,
+          "ess_fraction": 0.1,
+          "ess_minimum": 2,
+          "generation": "idea_code_single_call",
+          "history_tokens": 8192,
+          "max_context_programs": 3,
+          "max_context_tokens": 32768,
+          "n_roots": 8,
+          "operator_probabilities": {
+            "Fuse": 0.35,
+            "Pivot": 0.15,
+            "Refine": 0.5
+          },
+          "output_tokens": 16384,
+          "traj_gens": 8
+        },
+        "repeat": 2,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/cvrp_aco/20260907_bounded_formal_cvrp_v107_rep2",
+        "run_name": "20260907_bounded_formal_cvrp_v107_rep2",
+        "seed": 1,
+        "task": "cvrp_aco",
+        "task_eval": {
+          "aco_seed": 1234,
+          "n_ants": 30,
+          "n_iterations": 100,
+          "n_workers": 4,
+          "split": "train",
+          "timeout_seconds": 120
+        }
+      },
+      "recorded_attempts": 251,
+      "evaluations": 250,
+      "valid_evaluations": 248,
+      "valid_rate": 0.992,
+      "statuses": {
+        "ok": 248,
+        "eval_failed": 2,
+        "invalid_output": 1
+      },
+      "refine_evaluations": 116,
+      "refine_valid": 115,
+      "refine_improved": 24,
+      "refine_equal_score": 2,
+      "idea_words_median": 93.0,
+      "idea_over_100_words": 81,
+      "code_chars_median": 3548.0
+    },
+    {
+      "version": "v107_q38",
+      "task": "cvrp_aco",
+      "repeat": 3,
+      "source": "experiments/traceaad_v10_7/results/cvrp_aco/20260907_bounded_formal_cvrp_v107_rep3/events.jsonl",
+      "config": {
+        "backend": "server1",
+        "created_at": "2026-09-07T23:40:30",
+        "llm": {
+          "api_key_configured": true,
+          "base_url": "http://222.201.145.8:8080/v1",
+          "enable_thinking": false,
+          "max_tokens": 16384,
+          "model": "qwen3.8-27b-awq",
+          "no_proxy": "222.201.145.8,localhost,127.0.0.1,::1",
+          "temperature": 1.0,
+          "timeout": 600,
+          "top_k": 20,
+          "top_p": 0.95
+        },
+        "method": "v107",
+        "method_params": {
+          "budget": 1000,
+          "budget_basis": "1000 actual evaluator calls including initialization and failed evaluations; LLM-only failures consume no evaluation slot",
+          "context_margin": 256,
+          "context_policy": "sampled_trajectory_v1",
+          "donor_topk": 5,
+          "ess_fraction": 0.1,
+          "ess_minimum": 2,
+          "generation": "idea_code_single_call",
+          "history_tokens": 8192,
+          "max_context_programs": 3,
+          "max_context_tokens": 32768,
+          "n_roots": 8,
+          "operator_probabilities": {
+            "Fuse": 0.35,
+            "Pivot": 0.15,
+            "Refine": 0.5
+          },
+          "output_tokens": 16384,
+          "traj_gens": 8
+        },
+        "repeat": 3,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/cvrp_aco/20260907_bounded_formal_cvrp_v107_rep3",
+        "run_name": "20260907_bounded_formal_cvrp_v107_rep3",
+        "seed": 2,
+        "task": "cvrp_aco",
+        "task_eval": {
+          "aco_seed": 1234,
+          "n_ants": 30,
+          "n_iterations": 100,
+          "n_workers": 4,
+          "split": "train",
+          "timeout_seconds": 120
+        }
+      },
+      "recorded_attempts": 250,
+      "evaluations": 250,
+      "valid_evaluations": 227,
+      "valid_rate": 0.908,
+      "statuses": {
+        "ok": 227,
+        "eval_failed": 23
+      },
+      "refine_evaluations": 118,
+      "refine_valid": 104,
+      "refine_improved": 25,
+      "refine_equal_score": 3,
+      "idea_words_median": 83,
+      "idea_over_100_words": 24,
+      "code_chars_median": 3727
+    },
+    {
+      "version": "v107_q38",
+      "task": "online_bin_packing",
+      "repeat": 1,
+      "source": "experiments/traceaad_v10_7/results/online_bin_packing/20260907_bounded_formal_obp_v107_rep1/events.jsonl",
+      "config": {
+        "backend": "server3",
+        "created_at": "2026-09-07T23:40:30",
+        "llm": {
+          "api_key_configured": true,
+          "base_url": "http://222.201.145.6:8000/v1",
+          "enable_thinking": false,
+          "max_tokens": 16384,
+          "model": "qwen3.8-27b-awq",
+          "no_proxy": "222.201.145.6,localhost,127.0.0.1,::1",
+          "temperature": 1.0,
+          "timeout": 600,
+          "top_k": 20,
+          "top_p": 0.95
+        },
+        "method": "v107",
+        "method_params": {
+          "budget": 1000,
+          "budget_basis": "1000 actual evaluator calls including initialization and failed evaluations; LLM-only failures consume no evaluation slot",
+          "context_margin": 256,
+          "context_policy": "sampled_trajectory_v1",
+          "donor_topk": 5,
+          "ess_fraction": 0.1,
+          "ess_minimum": 2,
+          "generation": "idea_code_single_call",
+          "history_tokens": 8192,
+          "max_context_programs": 3,
+          "max_context_tokens": 32768,
+          "n_roots": 8,
+          "operator_probabilities": {
+            "Fuse": 0.35,
+            "Pivot": 0.15,
+            "Refine": 0.5
+          },
+          "output_tokens": 16384,
+          "traj_gens": 8
+        },
+        "repeat": 1,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/online_bin_packing/20260907_bounded_formal_obp_v107_rep1",
+        "run_name": "20260907_bounded_formal_obp_v107_rep1",
+        "seed": 0,
+        "task": "online_bin_packing",
+        "task_eval": {
+          "dataset_specs": [
+            {
+              "capacities": [
+                100,
+                500
+              ],
+              "n_instances": 1,
+              "n_items": 1000
+            },
+            {
+              "capacities": [
+                100,
+                500
+              ],
+              "n_instances": 1,
+              "n_items": 5000
+            }
+          ],
+          "seed": 2024,
+          "split": "train",
+          "timeout_seconds": 30
+        }
+      },
+      "recorded_attempts": 251,
+      "evaluations": 250,
+      "valid_evaluations": 250,
+      "valid_rate": 1.0,
+      "statuses": {
+        "ok": 250,
+        "invalid_output": 1
+      },
+      "refine_evaluations": 122,
+      "refine_valid": 122,
+      "refine_improved": 3,
+      "refine_equal_score": 103,
+      "idea_words_median": 87.0,
+      "idea_over_100_words": 60,
+      "code_chars_median": 1599.0
+    },
+    {
+      "version": "v107_q38",
+      "task": "online_bin_packing",
+      "repeat": 2,
+      "source": "experiments/traceaad_v10_7/results/online_bin_packing/20260907_bounded_formal_obp_v107_rep2/events.jsonl",
+      "config": {
+        "backend": "server3b",
+        "created_at": "2026-09-07T23:40:31",
+        "llm": {
+          "api_key_configured": true,
+          "base_url": "http://222.201.145.6:8001/v1",
+          "enable_thinking": false,
+          "max_tokens": 16384,
+          "model": "qwen3.8-27b-awq",
+          "no_proxy": "222.201.145.6,localhost,127.0.0.1,::1",
+          "temperature": 1.0,
+          "timeout": 600,
+          "top_k": 20,
+          "top_p": 0.95
+        },
+        "method": "v107",
+        "method_params": {
+          "budget": 1000,
+          "budget_basis": "1000 actual evaluator calls including initialization and failed evaluations; LLM-only failures consume no evaluation slot",
+          "context_margin": 256,
+          "context_policy": "sampled_trajectory_v1",
+          "donor_topk": 5,
+          "ess_fraction": 0.1,
+          "ess_minimum": 2,
+          "generation": "idea_code_single_call",
+          "history_tokens": 8192,
+          "max_context_programs": 3,
+          "max_context_tokens": 32768,
+          "n_roots": 8,
+          "operator_probabilities": {
+            "Fuse": 0.35,
+            "Pivot": 0.15,
+            "Refine": 0.5
+          },
+          "output_tokens": 16384,
+          "traj_gens": 8
+        },
+        "repeat": 2,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/online_bin_packing/20260907_bounded_formal_obp_v107_rep2",
+        "run_name": "20260907_bounded_formal_obp_v107_rep2",
+        "seed": 1,
+        "task": "online_bin_packing",
+        "task_eval": {
+          "dataset_specs": [
+            {
+              "capacities": [
+                100,
+                500
+              ],
+              "n_instances": 1,
+              "n_items": 1000
+            },
+            {
+              "capacities": [
+                100,
+                500
+              ],
+              "n_instances": 1,
+              "n_items": 5000
+            }
+          ],
+          "seed": 2024,
+          "split": "train",
+          "timeout_seconds": 30
+        }
+      },
+      "recorded_attempts": 250,
+      "evaluations": 250,
+      "valid_evaluations": 249,
+      "valid_rate": 0.996,
+      "statuses": {
+        "ok": 249,
+        "eval_failed": 1
+      },
+      "refine_evaluations": 129,
+      "refine_valid": 129,
+      "refine_improved": 0,
+      "refine_equal_score": 126,
+      "idea_words_median": 96,
+      "idea_over_100_words": 89,
+      "code_chars_median": 1498
+    },
+    {
+      "version": "v107_q38",
+      "task": "online_bin_packing",
+      "repeat": 3,
+      "source": "experiments/traceaad_v10_7/results/online_bin_packing/20260907_bounded_formal_obp_v107_rep3/events.jsonl",
+      "config": {
+        "backend": "local",
+        "created_at": "2026-09-07T23:40:30",
+        "llm": {
+          "api_key_configured": false,
+          "base_url": "http://127.0.0.1:8001/v1",
+          "enable_thinking": false,
+          "max_tokens": 16384,
+          "model": "Qwen3.8-27B",
+          "no_proxy": "127.0.0.1,localhost,::1",
+          "temperature": 1.0,
+          "timeout": 600,
+          "top_k": 20,
+          "top_p": 0.95
+        },
+        "method": "v107",
+        "method_params": {
+          "budget": 1000,
+          "budget_basis": "1000 actual evaluator calls including initialization and failed evaluations; LLM-only failures consume no evaluation slot",
+          "context_margin": 256,
+          "context_policy": "sampled_trajectory_v1",
+          "donor_topk": 5,
+          "ess_fraction": 0.1,
+          "ess_minimum": 2,
+          "generation": "idea_code_single_call",
+          "history_tokens": 8192,
+          "max_context_programs": 3,
+          "max_context_tokens": 32768,
+          "n_roots": 8,
+          "operator_probabilities": {
+            "Fuse": 0.35,
+            "Pivot": 0.15,
+            "Refine": 0.5
+          },
+          "output_tokens": 16384,
+          "traj_gens": 8
+        },
+        "repeat": 3,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/online_bin_packing/20260907_bounded_formal_obp_v107_rep3",
+        "run_name": "20260907_bounded_formal_obp_v107_rep3",
+        "seed": 2,
+        "task": "online_bin_packing",
+        "task_eval": {
+          "dataset_specs": [
+            {
+              "capacities": [
+                100,
+                500
+              ],
+              "n_instances": 1,
+              "n_items": 1000
+            },
+            {
+              "capacities": [
+                100,
+                500
+              ],
+              "n_instances": 1,
+              "n_items": 5000
+            }
+          ],
+          "seed": 2024,
+          "split": "train",
+          "timeout_seconds": 30
+        }
+      },
+      "recorded_attempts": 250,
+      "evaluations": 250,
+      "valid_evaluations": 250,
+      "valid_rate": 1.0,
+      "statuses": {
+        "ok": 250
+      },
+      "refine_evaluations": 114,
+      "refine_valid": 114,
+      "refine_improved": 0,
+      "refine_equal_score": 112,
+      "idea_words_median": 102.0,
+      "idea_over_100_words": 132,
+      "code_chars_median": 1721.5
+    },
+    {
+      "version": "v107_q38",
+      "task": "op_aco",
+      "repeat": 1,
+      "source": "experiments/traceaad_v10_7/results/op_aco/20260907_bounded_formal_op_v107_rep1/events.jsonl",
+      "config": {
+        "backend": "server3b",
+        "created_at": "2026-09-07T23:40:30",
+        "llm": {
+          "api_key_configured": true,
+          "base_url": "http://222.201.145.6:8001/v1",
+          "enable_thinking": false,
+          "max_tokens": 16384,
+          "model": "qwen3.8-27b-awq",
+          "no_proxy": "222.201.145.6,localhost,127.0.0.1,::1",
+          "temperature": 1.0,
+          "timeout": 600,
+          "top_k": 20,
+          "top_p": 0.95
+        },
+        "method": "v107",
+        "method_params": {
+          "budget": 1000,
+          "budget_basis": "1000 actual evaluator calls including initialization and failed evaluations; LLM-only failures consume no evaluation slot",
+          "context_margin": 256,
+          "context_policy": "sampled_trajectory_v1",
+          "donor_topk": 5,
+          "ess_fraction": 0.1,
+          "ess_minimum": 2,
+          "generation": "idea_code_single_call",
+          "history_tokens": 8192,
+          "max_context_programs": 3,
+          "max_context_tokens": 32768,
+          "n_roots": 8,
+          "operator_probabilities": {
+            "Fuse": 0.35,
+            "Pivot": 0.15,
+            "Refine": 0.5
+          },
+          "output_tokens": 16384,
+          "traj_gens": 8
+        },
+        "repeat": 1,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/op_aco/20260907_bounded_formal_op_v107_rep1",
+        "run_name": "20260907_bounded_formal_op_v107_rep1",
+        "seed": 0,
+        "task": "op_aco",
+        "task_eval": {
+          "aco_seed": 1234,
+          "n_ants": 20,
+          "n_iterations": 50,
+          "n_workers": 4,
+          "split": "train",
+          "timeout_seconds": 60
+        }
+      },
+      "recorded_attempts": 250,
+      "evaluations": 250,
+      "valid_evaluations": 248,
+      "valid_rate": 0.992,
+      "statuses": {
+        "ok": 248,
+        "eval_failed": 2
+      },
+      "refine_evaluations": 112,
+      "refine_valid": 111,
+      "refine_improved": 12,
+      "refine_equal_score": 25,
+      "idea_words_median": 94.0,
+      "idea_over_100_words": 76,
+      "code_chars_median": 4036.0
+    },
+    {
+      "version": "v107_q38",
+      "task": "op_aco",
+      "repeat": 2,
+      "source": "experiments/traceaad_v10_7/results/op_aco/20260907_bounded_formal_op_v107_rep2/events.jsonl",
+      "config": {
+        "backend": "server1",
+        "created_at": "2026-09-07T23:40:30",
+        "llm": {
+          "api_key_configured": true,
+          "base_url": "http://222.201.145.8:8080/v1",
+          "enable_thinking": false,
+          "max_tokens": 16384,
+          "model": "qwen3.8-27b-awq",
+          "no_proxy": "222.201.145.8,localhost,127.0.0.1,::1",
+          "temperature": 1.0,
+          "timeout": 600,
+          "top_k": 20,
+          "top_p": 0.95
+        },
+        "method": "v107",
+        "method_params": {
+          "budget": 1000,
+          "budget_basis": "1000 actual evaluator calls including initialization and failed evaluations; LLM-only failures consume no evaluation slot",
+          "context_margin": 256,
+          "context_policy": "sampled_trajectory_v1",
+          "donor_topk": 5,
+          "ess_fraction": 0.1,
+          "ess_minimum": 2,
+          "generation": "idea_code_single_call",
+          "history_tokens": 8192,
+          "max_context_programs": 3,
+          "max_context_tokens": 32768,
+          "n_roots": 8,
+          "operator_probabilities": {
+            "Fuse": 0.35,
+            "Pivot": 0.15,
+            "Refine": 0.5
+          },
+          "output_tokens": 16384,
+          "traj_gens": 8
+        },
+        "repeat": 2,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/op_aco/20260907_bounded_formal_op_v107_rep2",
+        "run_name": "20260907_bounded_formal_op_v107_rep2",
+        "seed": 1,
+        "task": "op_aco",
+        "task_eval": {
+          "aco_seed": 1234,
+          "n_ants": 20,
+          "n_iterations": 50,
+          "n_workers": 4,
+          "split": "train",
+          "timeout_seconds": 60
+        }
+      },
+      "recorded_attempts": 252,
+      "evaluations": 250,
+      "valid_evaluations": 246,
+      "valid_rate": 0.984,
+      "statuses": {
+        "ok": 246,
+        "invalid_output": 2,
+        "eval_failed": 4
+      },
+      "refine_evaluations": 117,
+      "refine_valid": 115,
+      "refine_improved": 5,
+      "refine_equal_score": 14,
+      "idea_words_median": 89.0,
+      "idea_over_100_words": 53,
+      "code_chars_median": 2592.5
+    },
+    {
+      "version": "v107_q38",
+      "task": "op_aco",
+      "repeat": 3,
+      "source": "experiments/traceaad_v10_7/results/op_aco/20260907_bounded_formal_op_v107_rep3/events.jsonl",
+      "config": {
+        "backend": "server3",
+        "created_at": "2026-09-07T23:40:30",
+        "llm": {
+          "api_key_configured": true,
+          "base_url": "http://222.201.145.6:8000/v1",
+          "enable_thinking": false,
+          "max_tokens": 16384,
+          "model": "qwen3.8-27b-awq",
+          "no_proxy": "222.201.145.6,localhost,127.0.0.1,::1",
+          "temperature": 1.0,
+          "timeout": 600,
+          "top_k": 20,
+          "top_p": 0.95
+        },
+        "method": "v107",
+        "method_params": {
+          "budget": 1000,
+          "budget_basis": "1000 actual evaluator calls including initialization and failed evaluations; LLM-only failures consume no evaluation slot",
+          "context_margin": 256,
+          "context_policy": "sampled_trajectory_v1",
+          "donor_topk": 5,
+          "ess_fraction": 0.1,
+          "ess_minimum": 2,
+          "generation": "idea_code_single_call",
+          "history_tokens": 8192,
+          "max_context_programs": 3,
+          "max_context_tokens": 32768,
+          "n_roots": 8,
+          "operator_probabilities": {
+            "Fuse": 0.35,
+            "Pivot": 0.15,
+            "Refine": 0.5
+          },
+          "output_tokens": 16384,
+          "traj_gens": 8
+        },
+        "repeat": 3,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/op_aco/20260907_bounded_formal_op_v107_rep3",
+        "run_name": "20260907_bounded_formal_op_v107_rep3",
+        "seed": 2,
+        "task": "op_aco",
+        "task_eval": {
+          "aco_seed": 1234,
+          "n_ants": 20,
+          "n_iterations": 50,
+          "n_workers": 4,
+          "split": "train",
+          "timeout_seconds": 60
+        }
+      },
+      "recorded_attempts": 250,
+      "evaluations": 250,
+      "valid_evaluations": 247,
+      "valid_rate": 0.988,
+      "statuses": {
+        "ok": 247,
+        "eval_failed": 3
+      },
+      "refine_evaluations": 123,
+      "refine_valid": 122,
+      "refine_improved": 10,
+      "refine_equal_score": 26,
+      "idea_words_median": 85,
+      "idea_over_100_words": 38,
+      "code_chars_median": 4276
+    },
+    {
+      "version": "v107_q38",
+      "task": "tsp_construct",
+      "repeat": 1,
+      "source": "experiments/traceaad_v10_7/results/tsp_construct/20260907_bounded_formal_tsp_v107_rep1/events.jsonl",
+      "config": {
+        "backend": "local",
+        "created_at": "2026-09-07T23:40:32",
+        "llm": {
+          "api_key_configured": false,
+          "base_url": "http://127.0.0.1:8001/v1",
+          "enable_thinking": false,
+          "max_tokens": 16384,
+          "model": "Qwen3.8-27B",
+          "no_proxy": "127.0.0.1,localhost,::1",
+          "temperature": 1.0,
+          "timeout": 600,
+          "top_k": 20,
+          "top_p": 0.95
+        },
+        "method": "v107",
+        "method_params": {
+          "budget": 1000,
+          "budget_basis": "1000 actual evaluator calls including initialization and failed evaluations; LLM-only failures consume no evaluation slot",
+          "context_margin": 256,
+          "context_policy": "sampled_trajectory_v1",
+          "donor_topk": 5,
+          "ess_fraction": 0.1,
+          "ess_minimum": 2,
+          "generation": "idea_code_single_call",
+          "history_tokens": 8192,
+          "max_context_programs": 3,
+          "max_context_tokens": 32768,
+          "n_roots": 8,
+          "operator_probabilities": {
+            "Fuse": 0.35,
+            "Pivot": 0.15,
+            "Refine": 0.5
+          },
+          "output_tokens": 16384,
+          "traj_gens": 8
+        },
+        "repeat": 1,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/tsp_construct/20260907_bounded_formal_tsp_v107_rep1",
+        "run_name": "20260907_bounded_formal_tsp_v107_rep1",
+        "seed": 0,
+        "task": "tsp_construct",
+        "task_eval": {
+          "n_instance": 16,
+          "problem_size": 50,
+          "seed": 2024,
+          "split": "train",
+          "timeout_seconds": 20
+        }
+      },
+      "recorded_attempts": 251,
+      "evaluations": 250,
+      "valid_evaluations": 245,
+      "valid_rate": 0.98,
+      "statuses": {
+        "ok": 245,
+        "eval_failed": 5,
+        "invalid_output": 1
+      },
+      "refine_evaluations": 123,
+      "refine_valid": 120,
+      "refine_improved": 14,
+      "refine_equal_score": 42,
+      "idea_words_median": 102,
+      "idea_over_100_words": 135,
+      "code_chars_median": 3914
+    },
+    {
+      "version": "v107_q38",
+      "task": "tsp_construct",
+      "repeat": 2,
+      "source": "experiments/traceaad_v10_7/results/tsp_construct/20260907_bounded_formal_tsp_v107_rep2/events.jsonl",
+      "config": {
+        "backend": "server3",
+        "created_at": "2026-09-07T23:40:32",
+        "llm": {
+          "api_key_configured": true,
+          "base_url": "http://222.201.145.6:8000/v1",
+          "enable_thinking": false,
+          "max_tokens": 16384,
+          "model": "qwen3.8-27b-awq",
+          "no_proxy": "222.201.145.6,localhost,127.0.0.1,::1",
+          "temperature": 1.0,
+          "timeout": 600,
+          "top_k": 20,
+          "top_p": 0.95
+        },
+        "method": "v107",
+        "method_params": {
+          "budget": 1000,
+          "budget_basis": "1000 actual evaluator calls including initialization and failed evaluations; LLM-only failures consume no evaluation slot",
+          "context_margin": 256,
+          "context_policy": "sampled_trajectory_v1",
+          "donor_topk": 5,
+          "ess_fraction": 0.1,
+          "ess_minimum": 2,
+          "generation": "idea_code_single_call",
+          "history_tokens": 8192,
+          "max_context_programs": 3,
+          "max_context_tokens": 32768,
+          "n_roots": 8,
+          "operator_probabilities": {
+            "Fuse": 0.35,
+            "Pivot": 0.15,
+            "Refine": 0.5
+          },
+          "output_tokens": 16384,
+          "traj_gens": 8
+        },
+        "repeat": 2,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/tsp_construct/20260907_bounded_formal_tsp_v107_rep2",
+        "run_name": "20260907_bounded_formal_tsp_v107_rep2",
+        "seed": 1,
+        "task": "tsp_construct",
+        "task_eval": {
+          "n_instance": 16,
+          "problem_size": 50,
+          "seed": 2024,
+          "split": "train",
+          "timeout_seconds": 20
+        }
+      },
+      "recorded_attempts": 252,
+      "evaluations": 250,
+      "valid_evaluations": 248,
+      "valid_rate": 0.992,
+      "statuses": {
+        "ok": 248,
+        "eval_failed": 2,
+        "invalid_output": 2
+      },
+      "refine_evaluations": 124,
+      "refine_valid": 123,
+      "refine_improved": 7,
+      "refine_equal_score": 54,
+      "idea_words_median": 92.0,
+      "idea_over_100_words": 65,
+      "code_chars_median": 3559.0
+    },
+    {
+      "version": "v107_q38",
+      "task": "tsp_construct",
+      "repeat": 3,
+      "source": "experiments/traceaad_v10_7/results/tsp_construct/20260907_bounded_formal_tsp_v107_rep3/events.jsonl",
+      "config": {
+        "backend": "server3b",
+        "created_at": "2026-09-07T23:40:32",
+        "llm": {
+          "api_key_configured": true,
+          "base_url": "http://222.201.145.6:8001/v1",
+          "enable_thinking": false,
+          "max_tokens": 16384,
+          "model": "qwen3.8-27b-awq",
+          "no_proxy": "222.201.145.6,localhost,127.0.0.1,::1",
+          "temperature": 1.0,
+          "timeout": 600,
+          "top_k": 20,
+          "top_p": 0.95
+        },
+        "method": "v107",
+        "method_params": {
+          "budget": 1000,
+          "budget_basis": "1000 actual evaluator calls including initialization and failed evaluations; LLM-only failures consume no evaluation slot",
+          "context_margin": 256,
+          "context_policy": "sampled_trajectory_v1",
+          "donor_topk": 5,
+          "ess_fraction": 0.1,
+          "ess_minimum": 2,
+          "generation": "idea_code_single_call",
+          "history_tokens": 8192,
+          "max_context_programs": 3,
+          "max_context_tokens": 32768,
+          "n_roots": 8,
+          "operator_probabilities": {
+            "Fuse": 0.35,
+            "Pivot": 0.15,
+            "Refine": 0.5
+          },
+          "output_tokens": 16384,
+          "traj_gens": 8
+        },
+        "repeat": 3,
+        "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/tsp_construct/20260907_bounded_formal_tsp_v107_rep3",
+        "run_name": "20260907_bounded_formal_tsp_v107_rep3",
+        "seed": 2,
+        "task": "tsp_construct",
+        "task_eval": {
+          "n_instance": 16,
+          "problem_size": 50,
+          "seed": 2024,
+          "split": "train",
+          "timeout_seconds": 20
+        }
+      },
+      "recorded_attempts": 251,
+      "evaluations": 250,
+      "valid_evaluations": 246,
+      "valid_rate": 0.984,
+      "statuses": {
+        "invalid_output": 1,
+        "ok": 246,
+        "eval_failed": 4
+      },
+      "refine_evaluations": 129,
+      "refine_valid": 128,
+      "refine_improved": 6,
+      "refine_equal_score": 7,
+      "idea_words_median": 94.0,
+      "idea_over_100_words": 86,
+      "code_chars_median": 3700.5
+    }
+  ],
+  "groups": [
+    {
+      "version": "v97_q36",
+      "task": "tsp_construct",
+      "recorded_attempts": 762,
+      "evaluations": 750,
+      "valid_evaluations": 613,
+      "valid_rate": 0.8173333333333334,
+      "statuses": {
+        "ok": 620,
+        "eval_failed": 137,
+        "parse_failed": 5
+      },
+      "refine_evaluations": 512,
+      "refine_valid": 419,
+      "refine_improved": 82,
+      "refine_equal_score": 109,
+      "idea_words_median": 44,
+      "idea_over_100_words": 0,
+      "code_chars_median": 6730
+    },
+    {
+      "version": "v97_q36",
+      "task": "cvrp_aco",
+      "recorded_attempts": 787,
+      "evaluations": 750,
+      "valid_evaluations": 719,
+      "valid_rate": 0.9586666666666667,
+      "statuses": {
+        "eval_failed": 31,
+        "ok": 752,
+        "parse_failed": 4
+      },
+      "refine_evaluations": 512,
+      "refine_valid": 499,
+      "refine_improved": 192,
+      "refine_equal_score": 45,
+      "idea_words_median": 42,
+      "idea_over_100_words": 0,
+      "code_chars_median": 5460
+    },
+    {
+      "version": "v97_q36",
+      "task": "op_aco",
+      "recorded_attempts": 781,
+      "evaluations": 750,
+      "valid_evaluations": 728,
+      "valid_rate": 0.9706666666666667,
+      "statuses": {
+        "ok": 753,
+        "parse_failed": 6,
+        "eval_failed": 22
+      },
+      "refine_evaluations": 514,
+      "refine_valid": 506,
+      "refine_improved": 56,
+      "refine_equal_score": 99,
+      "idea_words_median": 45.0,
+      "idea_over_100_words": 0,
+      "code_chars_median": 5450.5
+    },
+    {
+      "version": "v97_q36",
+      "task": "online_bin_packing",
+      "recorded_attempts": 765,
+      "evaluations": 750,
+      "valid_evaluations": 746,
+      "valid_rate": 0.9946666666666667,
+      "statuses": {
+        "ok": 761,
+        "eval_failed": 4
+      },
+      "refine_evaluations": 511,
+      "refine_valid": 510,
+      "refine_improved": 117,
+      "refine_equal_score": 179,
+      "idea_words_median": 45.0,
+      "idea_over_100_words": 0,
+      "code_chars_median": 3084.0
+    },
+    {
+      "version": "v97_q36",
+      "task": "ALL",
+      "recorded_attempts": 3095,
+      "evaluations": 3000,
+      "valid_evaluations": 2806,
+      "valid_rate": 0.9353333333333333,
+      "statuses": {
+        "eval_failed": 194,
+        "ok": 2886,
+        "parse_failed": 15
+      },
+      "refine_evaluations": 2049,
+      "refine_valid": 1934,
+      "refine_improved": 447,
+      "refine_equal_score": 432,
+      "idea_words_median": 44.0,
+      "idea_over_100_words": 0,
+      "code_chars_median": 5091.5
+    },
+    {
+      "version": "v107_q38",
+      "task": "tsp_construct",
+      "recorded_attempts": 754,
+      "evaluations": 750,
+      "valid_evaluations": 739,
+      "valid_rate": 0.9853333333333333,
+      "statuses": {
+        "ok": 739,
+        "eval_failed": 11,
+        "invalid_output": 4
+      },
+      "refine_evaluations": 376,
+      "refine_valid": 371,
+      "refine_improved": 27,
+      "refine_equal_score": 103,
+      "idea_words_median": 96,
+      "idea_over_100_words": 286,
+      "code_chars_median": 3673
+    },
+    {
+      "version": "v107_q38",
+      "task": "cvrp_aco",
+      "recorded_attempts": 752,
+      "evaluations": 750,
+      "valid_evaluations": 710,
+      "valid_rate": 0.9466666666666667,
+      "statuses": {
+        "ok": 710,
+        "invalid_output": 2,
+        "eval_failed": 40
+      },
+      "refine_evaluations": 359,
+      "refine_valid": 335,
+      "refine_improved": 79,
+      "refine_equal_score": 13,
+      "idea_words_median": 86.5,
+      "idea_over_100_words": 137,
+      "code_chars_median": 3616.0
+    },
+    {
+      "version": "v107_q38",
+      "task": "op_aco",
+      "recorded_attempts": 752,
+      "evaluations": 750,
+      "valid_evaluations": 741,
+      "valid_rate": 0.988,
+      "statuses": {
+        "ok": 741,
+        "eval_failed": 9,
+        "invalid_output": 2
+      },
+      "refine_evaluations": 352,
+      "refine_valid": 348,
+      "refine_improved": 27,
+      "refine_equal_score": 65,
+      "idea_words_median": 89,
+      "idea_over_100_words": 167,
+      "code_chars_median": 3672
+    },
+    {
+      "version": "v107_q38",
+      "task": "online_bin_packing",
+      "recorded_attempts": 751,
+      "evaluations": 750,
+      "valid_evaluations": 749,
+      "valid_rate": 0.9986666666666667,
+      "statuses": {
+        "ok": 749,
+        "invalid_output": 1,
+        "eval_failed": 1
+      },
+      "refine_evaluations": 365,
+      "refine_valid": 365,
+      "refine_improved": 3,
+      "refine_equal_score": 341,
+      "idea_words_median": 96,
+      "idea_over_100_words": 281,
+      "code_chars_median": 1614
+    },
+    {
+      "version": "v107_q38",
+      "task": "ALL",
+      "recorded_attempts": 3009,
+      "evaluations": 3000,
+      "valid_evaluations": 2939,
+      "valid_rate": 0.9796666666666667,
+      "statuses": {
+        "ok": 2939,
+        "invalid_output": 9,
+        "eval_failed": 61
+      },
+      "refine_evaluations": 1452,
+      "refine_valid": 1419,
+      "refine_improved": 136,
+      "refine_equal_score": 522,
+      "idea_words_median": 92,
+      "idea_over_100_words": 871,
+      "code_chars_median": 3244
+    }
+  ],
+  "q36_v97_heldout": [
+    {
+      "task": "tsp_construct",
+      "size": "tsp100",
+      "values": [
+        8.432435050015547,
+        8.217596287699426,
+        8.518715345168063
+      ],
+      "mean": 8.38958222762768,
+      "sample_sd": 0.15506593753192494,
+      "source": "experiments/traceaad_v9_7/results/tsp_construct/eval_best_20260815_parentpath/results.json"
+    },
+    {
+      "task": "tsp_construct",
+      "size": "tsp200",
+      "values": [
+        12.418328220112556,
+        11.789292712528832,
+        11.868116591101845
+      ],
+      "mean": 12.025245841247745,
+      "sample_sd": 0.34269318404199095,
+      "source": "experiments/traceaad_v9_7/results/tsp_construct/eval_best_20260815_parentpath/results.json"
+    },
+    {
+      "task": "tsp_construct",
+      "size": "tsp50",
+      "values": [
+        6.09515736531313,
+        5.880584203162861,
+        5.996001516330712
+      ],
+      "mean": 5.990581028268901,
+      "sample_sd": 0.10738923012533738,
+      "source": "experiments/traceaad_v9_7/results/tsp_construct/eval_best_20260815_parentpath/results.json"
+    },
+    {
+      "task": "cvrp_aco",
+      "size": "test_100",
+      "values": [
+        14.743697718549381,
+        15.605579718363805,
+        15.131999929284705
+      ],
+      "mean": 15.16042578873263,
+      "sample_sd": 0.4316435653580885,
+      "source": "experiments/traceaad_v9_7/results/cvrp_aco/eval_best_20260815_parentpath/results.json"
+    },
+    {
+      "task": "cvrp_aco",
+      "size": "test_200",
+      "values": [
+        26.52047751582998,
+        28.137753194279306,
+        27.136343742673677
+      ],
+      "mean": 27.264858150927655,
+      "sample_sd": 0.8162610611027474,
+      "source": "experiments/traceaad_v9_7/results/cvrp_aco/eval_best_20260815_parentpath/results.json"
+    },
+    {
+      "task": "cvrp_aco",
+      "size": "test_50",
+      "values": [
+        9.028188215605946,
+        9.092278208541687,
+        8.942270214048143
+      ],
+      "mean": 9.020912212731925,
+      "sample_sd": 0.07526821883345482,
+      "source": "experiments/traceaad_v9_7/results/cvrp_aco/eval_best_20260815_parentpath/results.json"
+    },
+    {
+      "task": "op_aco",
+      "size": "test_100",
+      "values": [
+        29.71592013888889,
+        30.769013573232325,
+        29.227566287878787
+      ],
+      "mean": 29.90416666666667,
+      "sample_sd": 0.7877769353035413,
+      "source": "experiments/traceaad_v9_7/results/op_aco/eval_best_20260815_parentpath/results.json"
+    },
+    {
+      "task": "op_aco",
+      "size": "test_200",
+      "values": [
+        51.92515625,
+        55.398125,
+        50.00671875
+      ],
+      "mean": 52.443333333333335,
+      "sample_sd": 2.732800021114544,
+      "source": "experiments/traceaad_v9_7/results/op_aco/eval_best_20260815_parentpath/results.json"
+    },
+    {
+      "task": "op_aco",
+      "size": "test_50",
+      "values": [
+        14.968748421717171,
+        15.172967171717172,
+        14.866201073232324
+      ],
+      "mean": 15.002638888888889,
+      "sample_sd": 0.15616588173715115,
+      "source": "experiments/traceaad_v9_7/results/op_aco/eval_best_20260815_parentpath/results.json"
+    },
+    {
+      "task": "online_bin_packing",
+      "size": "10k_100",
+      "values": [
+        4028.2,
+        4026.8,
+        4027.6
+      ],
+      "mean": 4027.5333333333333,
+      "sample_sd": 0.7023769168566637,
+      "source": "experiments/traceaad_v9_7/results/online_bin_packing/eval_best_20260815_parentpath/results.json"
+    },
+    {
+      "task": "online_bin_packing",
+      "size": "10k_500",
+      "values": [
+        803.2,
+        804.0,
+        805.4
+      ],
+      "mean": 804.2,
+      "sample_sd": 1.1135528725659718,
+      "source": "experiments/traceaad_v9_7/results/online_bin_packing/eval_best_20260815_parentpath/results.json"
+    },
+    {
+      "task": "online_bin_packing",
+      "size": "1k_100",
+      "values": [
+        410.2,
+        414.4,
+        414.4
+      ],
+      "mean": 413.0,
+      "sample_sd": 2.4248711305964217,
+      "source": "experiments/traceaad_v9_7/results/online_bin_packing/eval_best_20260815_parentpath/results.json"
+    },
+    {
+      "task": "online_bin_packing",
+      "size": "1k_500",
+      "values": [
+        80.8,
+        81.2,
+        81.6
+      ],
+      "mean": 81.2,
+      "sample_sd": 0.3999999999999986,
+      "source": "experiments/traceaad_v9_7/results/online_bin_packing/eval_best_20260815_parentpath/results.json"
+    },
+    {
+      "task": "online_bin_packing",
+      "size": "5k_100",
+      "values": [
+        2017.0,
+        2019.6,
+        2021.0
+      ],
+      "mean": 2019.2,
+      "sample_sd": 2.029778313018435,
+      "source": "experiments/traceaad_v9_7/results/online_bin_packing/eval_best_20260815_parentpath/results.json"
+    },
+    {
+      "task": "online_bin_packing",
+      "size": "5k_500",
+      "values": [
+        401.8,
+        402.2,
+        403.2
+      ],
+      "mean": 402.4,
+      "sample_sd": 0.7211102550927884,
+      "source": "experiments/traceaad_v9_7/results/online_bin_packing/eval_best_20260815_parentpath/results.json"
+    }
+  ],
+  "v107_word_constraint": {
+    "checked": 2939,
+    "explicit_100_word_prompt": 2939,
+    "above100": 871,
+    "above120": 155,
+    "maximum": 1818,
+    "examples_above130": [
+      {
+        "run": "20260907_bounded_formal_cvrp_v107_rep2",
+        "node": 6,
+        "evaluation": 7,
+        "words": 155,
+        "explicit_100_word_prompt": true
+      },
+      {
+        "run": "20260907_bounded_formal_cvrp_v107_rep2",
+        "node": 43,
+        "evaluation": 44,
+        "words": 159,
+        "explicit_100_word_prompt": true
+      },
+      {
+        "run": "20260907_bounded_formal_cvrp_v107_rep2",
+        "node": 225,
+        "evaluation": 228,
+        "words": 232,
+        "explicit_100_word_prompt": true
+      },
+      {
+        "run": "20260907_bounded_formal_cvrp_v107_rep3",
+        "node": 0,
+        "evaluation": 1,
+        "words": 243,
+        "explicit_100_word_prompt": true
+      },
+      {
+        "run": "20260907_bounded_formal_cvrp_v107_rep3",
+        "node": 30,
+        "evaluation": 34,
+        "words": 137,
+        "explicit_100_word_prompt": true
+      },
+      {
+        "run": "20260907_bounded_formal_cvrp_v107_rep3",
+        "node": 212,
+        "evaluation": 233,
+        "words": 139,
+        "explicit_100_word_prompt": true
+      },
+      {
+        "run": "20260907_bounded_formal_obp_v107_rep1",
+        "node": 157,
+        "evaluation": 158,
+        "words": 132,
+        "explicit_100_word_prompt": true
+      },
+      {
+        "run": "20260907_bounded_formal_obp_v107_rep2",
+        "node": 4,
+        "evaluation": 5,
+        "words": 148,
+        "explicit_100_word_prompt": true
+      }
+    ],
+    "definition": "whitespace-separated tokens in archived Idea; exact text confirmed in corresponding raw response"
+  }
+}

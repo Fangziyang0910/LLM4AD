@@ -5,10 +5,12 @@ import pytest
 
 from llm4ad.method.traceaad_v10_3.schema import Node
 from llm4ad.method.traceaad_v10_5.traceaad import read_journal
-from llm4ad.method.traceaad_v10_7.prompts import TrajectoryBuilder
+from llm4ad.method.traceaad_v10_7.prompts import (
+    TEMPORARY_REFERENCE_RE, TrajectoryBuilder,
+)
 from llm4ad.method.traceaad_v10_7.sampling import (
-    STRUCTURE_PREFERENCE, _soft_structure_weights, quality_layers,
-    sample_task_evidence,
+    STRUCTURE_PREFERENCE, _bounded_structure_weights, _task_base_weights,
+    quality_layers, sample_task_evidence,
 )
 from test_traceaad_v107 import FakeLLM, method, response
 
@@ -36,26 +38,34 @@ def builder():
                              history_tokens=1, max_events=0)
 
 
-def test_sorted_full_programs_preserve_explicit_roles_and_donor():
+def test_role_sections_replace_algorithm_numbers_and_fitness_sorting():
     b = builder()
     parent, weaker, stronger = node(20, 7), node(21, 6), node(22, 8)
     parent.code += '\n# retained original comment'
+    stronger.code += '\n# dropped reference comment'
     for operator in ['Refine', 'Pivot', 'Fuse']:
         donor = stronger if operator == 'Fuse' else None
         roles = {parent.id: 'design_base', weaker.id: 'evidence_reference',
                  stronger.id: 'transfer_source' if donor else 'evidence_reference'}
-        text, nodes, donor, executed, _, _ = b.trajectory(
+        text, nodes, donor, executed, _, omissions = b.trajectory(
             parent, [stronger, weaker], operator, donor, roles,
         )
-        assert [n.id for n in nodes] == [21, 20, 22]
-        assert all(text.count(n.code) == text.count(n.idea) == 1 for n in nodes)
+        # Fixed role order: base first, then evidence in selection order.
+        assert [n.id for n in nodes] == [20, 22, 21]
+        assert not TEMPORARY_REFERENCE_RE.search(text)
+        assert '# Design Base' in text and 'Design note:' in text
+        assert '# retained original comment' in text
+        assert '# dropped reference comment' not in text
         assert executed == operator
         assert all(label not in text for label in ['Previous version', 'Resulting version',
                                                   'Development History', 'parent_id', 'donor_id'])
-        instruction = text.split('# Algorithm Design Task\n')[1].split('# Output')[0]
-        assert 'Algorithm 2' in instruction
+        instruction = text.split('# Design Task\n')[1].split('# Output')[0]
+        assert 'Design Base' in instruction or 'Baseline' in instruction
         if operator == 'Fuse':
-            assert donor is stronger and 'Algorithm 3' in instruction
+            assert donor is stronger and 'Transfer Source' in instruction
+        assert {(item['kind'], item['reason']) for item in omissions} == {
+            ('code_comment', 'reference_comment_strip'),
+        }
 
 
 def test_capacity_preserves_full_base_and_reduces_material_count():
@@ -69,7 +79,7 @@ def test_capacity_preserves_full_base_and_reduces_material_count():
             parent, refs, 'Fuse', donor, roles, relations,
         ),
     )
-    assert refs == [] and info['reference_shortfall'] == 2
+    assert refs == [] and info['reference_shortfall'] == 1
     text, _, donor, executed, _, _ = b.trajectory(parent, refs, 'Fuse')
     assert executed == 'Refine' and donor is None and parent.code in text
     assert b.count(text, chat=True) <= b.max_tokens
@@ -125,7 +135,7 @@ def test_end_to_end_single_calls_and_only_parent_counts(tmp_path):
     for event in events:
         assert 'history_ids' not in event and 'history_tokens' not in event
         ids = event['context_node_ids']
-        assert len(ids) <= 3 and len(ids) == len(event['context_program_tokens'])
+        assert len(ids) <= 2 and len(ids) == len(event['context_program_tokens'])
         if event['parent_id'] is not None:
             assert ids[event['context_parent_index'] - 1] == event['parent_id']
         if event['parent_id'] is not None:
@@ -175,7 +185,33 @@ def test_task_evidence_assigns_operator_specific_roles():
     refs, donor, info = task_sample([parent, low, middle, high], parent, 'Fuse')
     assert donor is refs[0]
     assert info['reference_roles'][str(donor.id)] == 'transfer_source'
-    assert len(refs) == 2
+    assert len(refs) == 1
+
+
+def test_refine_prefers_formation_then_same_operator_development():
+    predecessor = node(1, 4)
+    parent = node(2, 5, parent_id=1)
+    parent.operator = 'Refine'
+    refine_child = node(3, 6, parent_id=2)
+    refine_child.operator = 'Refine'
+    pivot_child = node(4, 7, parent_id=2)
+    pivot_child.operator = 'Pivot'
+
+    refs, _, info = task_sample(
+        [pivot_child, refine_child, predecessor, parent], parent, 'Refine',
+    )
+    assert refs == [predecessor]
+    assert info['reference_roles'] == {str(predecessor.id): 'formation_evidence'}
+    assert info['quality_boundaries'] == [] and info['reference_layers'] == {}
+
+    refs, _, info = task_sample(
+        [pivot_child, refine_child, parent], parent, 'Refine',
+    )
+    assert refs == [refine_child]
+    assert info['reference_roles'] == {str(refine_child.id): 'development_evidence'}
+
+    refs, _, info = task_sample([pivot_child, parent], parent, 'Refine')
+    assert refs == [pivot_child]
 
 
 def test_refine_filters_relationship_before_deduplicating_code():
@@ -197,20 +233,40 @@ def test_refine_does_not_fill_missing_relational_evidence_from_archive():
     assert info['reference_shortfall'] == 1
 
 
-def test_structure_is_a_bounded_soft_preference_with_full_support():
+def test_structure_bonus_is_multiplicative_with_full_support():
     parent = node(0, 0)
     same = node(1, 10)
     different = node(2, 1)
     different.code = 'def score(x):\n    if x:\n        return 2\n    return 0'
 
     for operator in ['Pivot', 'Fuse']:
-        weights = _soft_structure_weights([same, different], parent, operator)
+        layers, _ = quality_layers([same, different])
+        base = _task_base_weights([same, different], layers, operator)
+        weights = _bounded_structure_weights([same, different], parent, operator, layers)
         assert sum(weights) == pytest.approx(1)
         assert all(weight > 0 for weight in weights)
-        assert weights[1] >= STRUCTURE_PREFERENCE
+        # The bonus can only scale the task share, within [(1, 1 + λ)].
+        assert base[1] <= weights[1] <= (1 + STRUCTURE_PREFERENCE) * base[1]
+    layers, _ = quality_layers([same, different])
+    pivot = _bounded_structure_weights([same, different], parent, 'Pivot', layers)
+    assert pivot[1] / pivot[0] == pytest.approx(1 + STRUCTURE_PREFERENCE)
 
 
-def test_prompt_states_direction_and_limits_causal_claim():
+def test_lone_structure_different_candidate_cannot_capture_mass():
+    parent = node(0, 0)
+    peers = [node(index, index) for index in range(1, 1000)]
+    worst = node(1000, 0)
+    worst.code = 'def score(x):\n    if x:\n        return 1000\n    return 0'
+    candidates = [*peers, worst]
+    layers, _ = quality_layers(candidates)
+    for operator in ['Pivot', 'Fuse']:
+        weights = _bounded_structure_weights(candidates, parent, operator, layers)
+        assert sum(weights) == pytest.approx(1)
+        assert all(weight > 0 for weight in weights)
+        assert weights[-1] < 0.01
+
+
+def test_prompt_states_direction_without_causal_claim():
     b = builder()
     predecessor = node(1, 4)
     parent = node(2, 5, parent_id=1)
@@ -222,10 +278,12 @@ def test_prompt_states_direction_and_limits_causal_claim():
         relations=info['evidence_relations'],
     )[0]
 
-    assert '# Observed Design Experiments' in text
-    assert 'Algorithm 2 was generated from Algorithm 1 using Refine' in text
+    assert '# Observed Transition' in text
+    assert 'Formation Evidence --Refine--> Design Base' in text
     assert 'Fitness changed from 4 to 5 (delta +1)' in text
-    assert 'do not prove that any individual code difference caused the result' in text
+    assert 'inspect the code before reusing any changed component' in text
+    assert 'do not prove' not in text
+    assert not TEMPORARY_REFERENCE_RE.search(text)
 
     child = node(4, 3, parent_id=parent.id)
     child.operator = 'Fuse'
@@ -237,9 +295,10 @@ def test_prompt_states_direction_and_limits_causal_claim():
         parent, refs, 'Refine', roles=roles,
         relations=info['evidence_relations'],
     )[0]
-    assert 'Algorithm 1 was generated from Algorithm 2 using Fuse' in reverse_text
+    assert 'Design Base --Fuse--> Development Evidence' in reverse_text
     assert reverse_text != text
-    assert 'A separate archived donor with fitness 8 also participated' in reverse_text
+    assert 'another program also contributed and is not shown' in reverse_text
+    assert 'with fitness 8' not in reverse_text
 
     alternative = node(3, 6)
     refs, _, info = task_sample([parent, alternative], parent, 'Pivot')
@@ -248,7 +307,18 @@ def test_prompt_states_direction_and_limits_causal_claim():
         parent, refs, 'Pivot', roles=roles,
         relations=info['evidence_relations'],
     )[0]
-    assert 'no direct generation relation is asserted' in text
+    assert '# Observed Transition' not in text
+    assert 'no direct generation relation' not in text
+    assert '# Comparison Baseline' in text and '# Alternative Reference' in text
+
+
+def test_bare_refine_prompt_mentions_no_contrast():
+    b = builder()
+    parent = node(1, 5)
+    text = b.trajectory(parent, [], 'Refine', roles={parent.id: 'design_base'})[0]
+    assert '# Observed Transition' not in text
+    assert 'contrast' not in text.lower()
+    assert '# Design Base' in text
 
 
 @pytest.mark.parametrize('operator', ['Refine', 'Pivot', 'Fuse'])

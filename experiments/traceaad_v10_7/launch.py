@@ -22,11 +22,11 @@ RESULTS_ROOT = Path(__file__).resolve().parent / 'results'
 MODULE = 'experiments.traceaad_v10_7.run'
 
 
-def build_plan(batch: str, session_prefix: str, max_context_programs=3) -> list[dict]:
+def build_plan(batch: str, session_prefix: str, max_context_programs=2) -> list[dict]:
     return [
         {
             'task': task, 'repeat': repeat, 'seed': repeat - 1, 'backend': None,
-            'run_name': f'{batch}_{TASK_SHORT[task]}_v107_rep{repeat}',
+            'run_name': f'{batch}_{TASK_SHORT[task]}_v107r_rep{repeat}',
             'session': f'{session_prefix}_{TASK_SHORT[task]}_r{repeat}',
             'attempts': 0, 'status': 'queued',
             'context_policy': CONTEXT_POLICY, 'max_context_programs': max_context_programs,
@@ -65,12 +65,12 @@ def refresh(plan: list[dict], max_attempts: int) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--batch', default=datetime.now().strftime('%Y%m%d_%H%M%S'))
-    parser.add_argument('--session-prefix', default='v107')
+    parser.add_argument('--session-prefix', default='v107r')
     parser.add_argument('--watch', action='store_true')
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--interval', type=int, default=30)
     parser.add_argument('--max-attempts', type=int, default=5)
-    parser.add_argument('--max-context-programs', type=int, default=3)
+    parser.add_argument('--max-context-programs', type=int, default=2)
     args = parser.parse_args()
     if args.interval < 1 or args.max_attempts < 1 or not 1 <= args.max_context_programs <= 3:
         parser.error('interval and max-attempts must be positive; max-context-programs must be 1, 2 or 3')

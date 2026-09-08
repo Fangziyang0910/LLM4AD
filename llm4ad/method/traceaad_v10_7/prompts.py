@@ -6,42 +6,70 @@ import re
 import tokenize
 
 from llm4ad.method.traceaad_v10_5.prompts import PromptBuilder as BaseBuilder
-from llm4ad.method.traceaad_v10_6.prompts import (
-    INSTRUCTIONS, OUTPUT as BASE_OUTPUT, build_task_contract,
-)
+from llm4ad.method.traceaad_v10_6.prompts import INSTRUCTIONS, build_task_contract
 
 GENERATION = 'idea_code_single_call_self_contained_v1'
 TEMPORARY_REFERENCE_RE = re.compile(
     r'(?i)\b(?:Algorithm|Alg\.?)\s*#?\s*\d+\b|算法\s*#?\s*\d+'
 )
-OUTPUT = BASE_OUTPUT + (
-    '\nThe Idea must stand on its own: state this algorithm\'s main decision rule and key '
+#: Strict output contract. The parser only accepts a response that starts with
+#: "Idea:" followed by a single python block, so the prompt must not invite
+#: any preamble, analysis paragraph, or additional code block.
+OUTPUT = (
+    'Return exactly the following two parts and nothing else:\n\n'
+    'Idea: <at most 100 words; a self-contained description of the main '
+    'decision rule and key computation>\n'
+    '```python\n<complete implementation>\n```\n\n'
+    'Do not add headings, analysis, explanations, or additional code blocks. '
+    'The Idea must stand on its own: state this algorithm\'s main decision rule and key '
     'computation without referring to Algorithm numbers or temporary display positions.'
 )
 
 
 TRAJECTORY_INSTRUCTIONS = {
     'Init': INSTRUCTIONS['Init'],
-    'Refine': "Use Algorithm {parent} as the design base and test one main improvement hypothesis. "
-              'Use the supplied contrast to judge what should change, while preserving unrelated '
-              'effective computation unless the hypothesis requires a supporting change.',
-    'Pivot': 'Use Algorithm {parent} as the comparison baseline, but do not inherit it by default. '
-             'Design a competitive alternative main decision method, making a substantive decision '
-             'change rather than a cosmetic formula rewrite.',
-    'Fuse': 'Use Algorithm {parent} as the design base and Algorithm {donor} as the transfer source. '
-            'Adapt compatible computation into one coherent algorithm and aim to improve on the best '
-            'input. Other supplied material is contrast evidence, not another required parent.',
+    'Refine': 'Improve the Design Base by testing one main improvement hypothesis. '
+              'Use the observed transition as evidence when deciding what to change. '
+              'Change the smallest coherent set of computations needed for that hypothesis. '
+              'Leave unrelated parts unchanged unless the hypothesis requires otherwise.',
+    'RefineBare': 'Improve the Design Base by testing one main improvement hypothesis. '
+                  'Change the smallest coherent set of computations needed for that hypothesis. '
+                  'Leave unrelated parts unchanged unless the hypothesis requires otherwise.',
+    'Pivot': 'Design a competitive alternative main decision method for the task. '
+             'Use the Comparison Baseline only as a comparison point, not as a template '
+             'to inherit. Reuse shared utilities when useful, but the main decision '
+             'criterion must be substantively different, not a cosmetic formula rewrite.',
+    'Fuse': 'Design one coherent algorithm that uses useful computation from the Transfer '
+            'Source to improve the Design Base. Aim to outperform the better input. '
+            'Do not combine components merely because both are present.',
 }
 TRAJECTORY_OUTPUT = OUTPUT + '\nKeep the Idea within 100 words.'
 IDEA_TOKENS = 256
-EXPERIMENT_CAVEAT = (
-    'The generation relations and fitness changes above are observations; they do not prove '
-    'that any individual code difference caused the result.'
+#: Shown once above the evidence blocks: archived prose is unverified, code decides.
+DESIGN_NOTE_LINE = (
+    'Code is the authoritative implementation; the design note is an unverified description.'
+)
+#: Shown only with a real direct generation edge. Actionable, not epistemology.
+TRANSITION_NOTE = (
+    'Treat the fitness change as an outcome of the whole transition; '
+    'inspect the code before reusing any changed component.'
 )
 TRAJECTORY_TEMPLATE_HASH = hashlib.sha256(
-    (str(TRAJECTORY_INSTRUCTIONS) + TRAJECTORY_OUTPUT + EXPERIMENT_CAVEAT
-     + str(IDEA_TOKENS)).encode()
+    (str(TRAJECTORY_INSTRUCTIONS) + TRAJECTORY_OUTPUT + DESIGN_NOTE_LINE
+     + TRANSITION_NOTE + str(IDEA_TOKENS)).encode()
 ).hexdigest()
+
+#: Prompt section titles. Roles are the only program identity; there are no
+#: Algorithm numbers and no fitness ordering, so nothing can be mis-cited.
+ROLE_TITLES = {
+    'design_base': 'Design Base',
+    'comparison_baseline': 'Comparison Baseline',
+    'formation_evidence': 'Formation Evidence',
+    'development_evidence': 'Development Evidence',
+    'alternative_reference': 'Alternative Reference',
+    'transfer_source': 'Transfer Source',
+    'evidence_reference': 'Evidence',
+}
 
 
 class TrajectoryBuilder(BaseBuilder):
@@ -57,101 +85,115 @@ class TrajectoryBuilder(BaseBuilder):
                 self._idea_views[node.id] = (node.idea, None)
         return self._idea_views[node.id]
 
-    def code_view(self, node):
+    def code_view(self, node, strip_comments=False):
         if not hasattr(self, '_code_views'):
             self._code_views = {}
-        if node.id not in self._code_views:
+        key = (node.id, strip_comments)
+        if key not in self._code_views:
             removed = 0
             try:
                 tokens = []
                 for token in tokenize.generate_tokens(io.StringIO(node.code).readline):
-                    if token.type == tokenize.COMMENT and TEMPORARY_REFERENCE_RE.search(token.string):
+                    if token.type == tokenize.COMMENT and (
+                            strip_comments or TEMPORARY_REFERENCE_RE.search(token.string)):
                         token = tokenize.TokenInfo(token.type, '', token.start, token.end, token.line)
                         removed += 1
                     tokens.append(token)
                 view = tokenize.untokenize(tokens)
             except (IndentationError, tokenize.TokenError):
                 view, removed = node.code, 0
-            self._code_views[node.id] = view, removed
-        return self._code_views[node.id]
+            self._code_views[key] = view, removed
+        return self._code_views[key]
 
-    def program_text(self, node, index, role, omit_idea=False):
+    def program_text(self, node, role, omit_idea=False, strip_comments=False):
+        title = ROLE_TITLES.get(role, role or 'Evidence')
         idea, idea_reason = self.idea_view(node)
         omissions = []
         if omit_idea and idea:
             idea, idea_reason = '', 'context_budget'
         if idea_reason:
             omissions.append({'node_id': node.id, 'kind': 'idea', 'reason': idea_reason})
-        code, removed_comments = self.code_view(node)
+        code, removed_comments = self.code_view(node, strip_comments)
         if removed_comments:
             omissions.append({
                 'node_id': node.id, 'kind': 'code_comment',
-                'reason': 'temporary_algorithm_reference', 'count': removed_comments,
+                'reason': ('reference_comment_strip' if strip_comments
+                           else 'temporary_algorithm_reference'),
+                'count': removed_comments,
             })
-        return (f'Algorithm {index}\nRole: {role}\nFitness: {node.fitness}\nIdea: {idea}\n'
+        return (f'# {title}\nFitness: {node.fitness}\nDesign note: {idea}\n'
                 f'Code:\n```python\n{code}\n```'), omissions
 
     @staticmethod
-    def experiment_text(relations, positions):
+    def experiment_text(relations, roles):
+        """Render only real direct generation edges.
+
+        Archive references carry no relation section: their role title already
+        says what they are, and genealogy disclaimers only distract from the
+        design task. A Fuse edge whose donor is not shown says so without
+        quoting the unseen donor's fitness, which is not actionable.
+        """
         lines = []
         for relation in relations or []:
-            if relation['direct_generation_relation']:
-                source = f"Algorithm {positions[relation['source_id']]}"
-                target = f"Algorithm {positions[relation['target_id']]}"
+            if not relation.get('direct_generation_relation'):
+                continue
+            evidence = ROLE_TITLES.get(relation['kind'], relation['kind'])
+            if relation['kind'] == 'formation_evidence':
                 lines.append(
-                    f"- {target} was generated from {source} using "
-                    f"{relation['operator']}. Fitness changed from "
-                    f"{relation['source_fitness']} to {relation['target_fitness']} "
-                    f"(delta {relation['fitness_delta']:+g})."
+                    f"- {evidence} --{relation['operator']}--> Design Base. "
+                    f"Fitness changed from {relation['source_fitness']} to "
+                    f"{relation['target_fitness']} (delta {relation['fitness_delta']:+g})."
                 )
-                donor_id = relation.get('historical_donor_id')
-                if donor_id is not None:
-                    donor_fitness = relation.get('historical_donor_fitness')
-                    if donor_id in positions:
-                        donor = f'Algorithm {positions[donor_id]}'
-                        suffix = (f' with fitness {donor_fitness}'
-                                  if donor_fitness is not None else '')
-                        lines.append(f'  A historical donor, {donor}{suffix}, also participated.')
-                    else:
-                        suffix = (f' with fitness {donor_fitness}'
-                                  if donor_fitness is not None else '')
-                        lines.append(f'  A separate archived donor{suffix} also participated.')
             else:
-                base = f"Algorithm {positions[relation['base_id']]}"
-                reference = f"Algorithm {positions[relation['reference_id']]}"
                 lines.append(
-                    f'- {reference} is an archive reference for {base}; no direct generation '
-                    'relation is asserted.'
+                    f"- Design Base --{relation['operator']}--> {evidence}. "
+                    f"Fitness changed from {relation['source_fitness']} to "
+                    f"{relation['target_fitness']} (delta {relation['fitness_delta']:+g})."
                 )
+            donor_id = relation.get('historical_donor_id')
+            if donor_id is not None:
+                donor_role = (roles or {}).get(donor_id)
+                if donor_role is not None:
+                    lines.append(
+                        f'  A historical donor, {ROLE_TITLES.get(donor_role, donor_role)}, '
+                        'also participated.'
+                    )
+                else:
+                    lines.append(
+                        '  This was a multi-input Fuse transition; another program also '
+                        'contributed and is not shown.'
+                    )
         if not lines:
             return ''
-        return '# Observed Design Experiments\n\n' + '\n'.join(lines) + '\n\n' + EXPERIMENT_CAVEAT
+        return '# Observed Transition\n\n' + '\n'.join(lines) + '\n\n' + TRANSITION_NOTE
 
     def trajectory(self, parent, references, operator, donor=None, roles=None,
                    relations=None):
-        nodes = sorted(([parent] if parent is not None else []) + list(references),
-                       key=lambda node: (node.fitness, node.id))
+        # Fixed role order: the base first, then evidence in selection order.
+        # No fitness sorting, so equal evidence renders byte-identical prompts.
+        nodes = ([parent] if parent is not None else []) + list(references)
         executed = 'Refine' if operator == 'Fuse' and donor is None else operator
-        positions = {node.id: index for index, node in enumerate(nodes, 1)}
         roles = roles or {}
-        instruction = TRAJECTORY_INSTRUCTIONS[executed].format(
-            parent=positions.get(parent.id) if parent else None,
-            donor=positions.get(donor.id) if donor else None,
-        )
-        experiment = self.experiment_text(relations, positions)
+        if executed == 'Refine' and not references:
+            instruction = TRAJECTORY_INSTRUCTIONS['RefineBare']
+        else:
+            instruction = TRAJECTORY_INSTRUCTIONS[executed]
+        experiment = self.experiment_text(relations, roles)
         def render(omit_idea=False):
             rendered = [self.program_text(
-                node, index, roles.get(node.id, 'evidence_reference'), omit_idea,
-            ) for index, node in enumerate(nodes, 1)]
+                node, roles.get(node.id, 'evidence_reference'), omit_idea,
+                strip_comments=node is not parent,
+            ) for node in nodes]
             return [item[0] for item in rendered], [entry for item in rendered for entry in item[1]]
         blocks, omissions = render()
         def assemble():
             parts = [self.task_contract]
             if blocks:
-                parts.append('# Design Evidence\n\n' + '\n\n'.join(blocks))
+                parts.append('# Design Evidence\n\n' + DESIGN_NOTE_LINE + '\n\n'
+                             + '\n\n'.join(blocks))
             if experiment:
                 parts.append(experiment)
-            parts.extend(['# Algorithm Design Task\n' + instruction, '# Output\n' + TRAJECTORY_OUTPUT])
+            parts.extend(['# Design Task\n' + instruction, '# Output\n' + TRAJECTORY_OUTPUT])
             return '\n\n\n'.join(parts)
         text = assemble()
         if self.count(text, chat=True) > self.max_tokens:
