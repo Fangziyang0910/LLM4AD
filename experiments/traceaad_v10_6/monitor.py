@@ -81,14 +81,31 @@ TASKS_METADATA = [
 TASK_MAP = {t["key"]: t for t in TASKS_METADATA}
 REP_RE = re.compile(r"_rep(\d+)$")
 
+
+def _version_dir_pattern(version_id: str) -> str | None:
+    """Run-dir filter separating batches that share one results root."""
+    return KNOWN_VERSIONS.get(version_id, {}).get("dir_pattern")
+
 KNOWN_VERSIONS = {
+    "v10_7r": {
+        "id": "v10_7r",
+        "name": "TraceAAD V10.7R（任务证据正式）",
+        "badge": "V10.7R",
+        "default_prefix": "v107r",
+        "path": REPO_ROOT / "experiments" / "traceaad_v10_7" / "results",
+        "is_latest": True,
+        # Only the V10.7R batch dirs (…_v107r_repN); the frozen V10.7
+        # batch (…_v107_repN) lives in the same results root.
+        "dir_pattern": r"_v107r_rep\d+$",
+    },
     "v10_7": {
         "id": "v10_7",
-        "name": "TraceAAD V10.7 (最新版本)",
+        "name": "TraceAAD V10.7（冻结对照）",
         "badge": "V10.7",
         "default_prefix": "v107",
         "path": REPO_ROOT / "experiments" / "traceaad_v10_7" / "results",
-        "is_latest": True,
+        "is_latest": False,
+        "dir_pattern": r"_v107_rep\d+$",
     },
     "v10_6": {
         "id": "v10_6",
@@ -267,7 +284,8 @@ class MonitorDataEngine:
         run_dir = root_dir / task / run_name
         if not run_dir.is_dir():
             # Check if this is a queued run described in manifest
-            manifest_run = self._find_queued_run_in_manifest(root_dir, task, run_name, prefix)
+            manifest_run = self._find_queued_run_in_manifest(
+                root_dir, task, run_name, prefix, vid)
             if manifest_run:
                 return {
                     "summary": manifest_run,
@@ -384,22 +402,39 @@ class MonitorDataEngine:
             _stat(run_dir / "logs" / "run_summary.json"),
         )
 
-    def _load_latest_batch_manifest(self, root_dir: Path) -> dict[str, Any] | None:
-        """Find and read the most recent batch_*.json manifest if available."""
+    def _load_latest_batch_manifest(
+        self, root_dir: Path, version_id: str | None = None
+    ) -> dict[str, Any] | None:
+        """Find the most recent manifest belonging to this version's batch.
+
+        Batches that share one results root are separated by matching plan
+        run names against the version's dir pattern; falls back to the
+        latest manifest when the version has no pattern.
+        """
         manifests = sorted(root_dir.glob("batch_*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        pattern = _version_dir_pattern(version_id) if version_id else None
+        fallback = None
         for m in manifests:
             try:
                 data = json.loads(m.read_text(encoding="utf-8"))
-                if isinstance(data, dict) and "plan" in data:
-                    return data
+                if not (isinstance(data, dict) and "plan" in data):
+                    continue
             except Exception:
-                pass
-        return None
+                continue
+            if fallback is None:
+                fallback = data
+            if pattern is None:
+                return data
+            if any(re.search(pattern, item.get("run_name") or "")
+                   for item in data.get("plan", [])):
+                return data
+        return fallback
 
     def _find_queued_run_in_manifest(
-        self, root_dir: Path, task: str, run_name: str, default_prefix: str
+        self, root_dir: Path, task: str, run_name: str, default_prefix: str,
+        version_id: str | None = None,
     ) -> dict[str, Any] | None:
-        manifest = self._load_latest_batch_manifest(root_dir)
+        manifest = self._load_latest_batch_manifest(root_dir, version_id)
         if not manifest:
             return None
         task_info = TASK_MAP.get(task, {"key": task, "label": task, "unit": "fitness", "direction": "max", "short": task})
@@ -465,7 +500,7 @@ class MonitorDataEngine:
     ) -> dict[str, Any]:
         active_tmux = _get_active_tmux_sessions()
         now = datetime.now()
-        manifest = self._load_latest_batch_manifest(root_dir)
+        manifest = self._load_latest_batch_manifest(root_dir, version_id)
 
         # Pre-group manifest plan items by (task, rep)
         manifest_by_task_rep: dict[tuple[str, int], dict[str, Any]] = {}
@@ -486,6 +521,7 @@ class MonitorDataEngine:
         all_etas: list[float] = []
         all_speeds: list[float] = []
 
+        dir_pattern = _version_dir_pattern(version_id)
         for task_info in TASKS_METADATA:
             task_key = task_info["key"]
             task_dir = root_dir / task_key
@@ -495,6 +531,8 @@ class MonitorDataEngine:
             if task_dir.is_dir():
                 for run_dir in sorted(task_dir.iterdir()):
                     if not run_dir.is_dir() or not (run_dir / "run_config.json").exists():
+                        continue
+                    if dir_pattern and not re.search(dir_pattern, run_dir.name):
                         continue
                     rep_match = re.search(r"_rep(\d+)$", run_dir.name)
                     if not rep_match:
