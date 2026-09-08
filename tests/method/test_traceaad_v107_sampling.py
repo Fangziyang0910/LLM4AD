@@ -43,34 +43,62 @@ def builder():
                              history_tokens=1, max_events=0)
 
 
-def test_role_sections_replace_algorithm_numbers_and_fitness_sorting():
+@pytest.mark.parametrize('operator,parent_role,ref_role,section', [
+    ('Refine', 'design_base', 'formation_evidence', '# Design Base'),
+    ('Pivot', 'comparison_baseline', 'alternative_reference', '# Comparison Baseline'),
+    ('Fuse', 'design_base', 'transfer_source', '# Design Base'),
+])
+def test_role_sections_replace_algorithm_numbers_and_fitness_sorting(
+        operator, parent_role, ref_role, section):
     b = builder()
-    parent, weaker, stronger = node(20, 7), node(21, 6), node(22, 8)
+    parent, stronger = node(20, 7), node(22, 8)
     parent.code += '\n# retained original comment'
     stronger.code += '\n# dropped reference comment'
-    for operator in ['Refine', 'Pivot', 'Fuse']:
-        donor = stronger if operator == 'Fuse' else None
-        roles = {parent.id: 'design_base', weaker.id: 'evidence_reference',
-                 stronger.id: 'transfer_source' if donor else 'evidence_reference'}
-        text, nodes, donor, executed, _, omissions = b.trajectory(
-            parent, [stronger, weaker], operator, donor, roles,
+    donor = stronger if operator == 'Fuse' else None
+    roles = {parent.id: parent_role, stronger.id: ref_role}
+    text, nodes, donor_out, executed, _, omissions = b.trajectory(
+        parent, [stronger], operator, donor, roles,
+    )
+    # Fixed role order: base first, then the single evidence reference.
+    assert [n.id for n in nodes] == [20, 22]
+    assert not ALGORITHM_NUMBER_RE.search(text)
+    assert section in text and 'Design note:' in text
+    assert '# retained original comment' in text
+    assert '# dropped reference comment' not in text
+    assert executed == operator
+    assert all(label not in text for label in ['Previous version', 'Resulting version',
+                                              'Development History', 'parent_id', 'donor_id'])
+    instruction = text.split('# Design Task\n')[1].split('# Output')[0]
+    assert 'Design Base' in instruction or 'Baseline' in instruction
+    if operator == 'Fuse':
+        assert donor_out is stronger and 'Transfer Source' in instruction
+    assert {(item['kind'], item['reason']) for item in omissions} == {
+        ('code_comment', 'reference_comment_strip'),
+    }
+
+
+def test_missing_reference_role_fails_fast():
+    b = builder()
+    parent, ref = node(20, 7), node(22, 8)
+    with pytest.raises(KeyError):
+        b.trajectory(
+            parent, [ref], 'Pivot',
+            roles={parent.id: 'comparison_baseline'},
         )
-        # Fixed role order: base first, then evidence in selection order.
-        assert [n.id for n in nodes] == [20, 22, 21]
-        assert not ALGORITHM_NUMBER_RE.search(text)
-        assert '# Design Base' in text and 'Design note:' in text
-        assert '# retained original comment' in text
-        assert '# dropped reference comment' not in text
-        assert executed == operator
-        assert all(label not in text for label in ['Previous version', 'Resulting version',
-                                                  'Development History', 'parent_id', 'donor_id'])
-        instruction = text.split('# Design Task\n')[1].split('# Output')[0]
-        assert 'Design Base' in instruction or 'Baseline' in instruction
-        if operator == 'Fuse':
-            assert donor is stronger and 'Transfer Source' in instruction
-        assert {(item['kind'], item['reason']) for item in omissions} == {
-            ('code_comment', 'reference_comment_strip'),
-        }
+
+
+@pytest.mark.parametrize('operator', ['Refine', 'Pivot', 'Fuse'])
+def test_sampler_serves_at_most_one_reference(operator):
+    parent = node(0, 5)
+    archive = [parent, *(
+        node(index, index % 7, parent_id=0 if index % 3 else None)
+        for index in range(1, 40)
+    )]
+    for seed in range(5):
+        refs, donor, info = task_sample(archive, parent, operator, seed=seed)
+        assert len(refs) <= 1
+        assert donor is None or (len(refs) == 1 and donor is refs[0])
+        assert info['reference_shortfall'] == 1 - len(refs)
 
 
 def test_capacity_preserves_full_base_and_reduces_material_count():
@@ -135,19 +163,22 @@ def test_end_to_end_single_calls_and_only_parent_counts(tmp_path):
     events = read_journal(m.events_path)
     assert len(llm.calls) == len(read_journal(m.evaluations_path)) == 6
     assert sum(m.parent_selection_counts.values()) == 4
-    assert sum(m.implementation_attempt_counts.values()) == 4
-    assert sum(m.generation_condition_counts.values()) == 6
     for event in events:
         assert 'history_ids' not in event and 'history_tokens' not in event
         ids = event['context_node_ids']
         assert len(ids) <= 2 and len(ids) == len(event['context_program_tokens'])
+        assert len(ids) == len(event['context_program_roles'])
+        for field in [
+            'context_program_count', 'context_parent_index',
+            'context_donor_index', 'parent_code_hash', 'donor_code_hash',
+            'context_code_hashes', 'parent_implementation_attempt_before',
+            'prompt_repeat_before',
+        ]:
+            assert field not in event
         if event['parent_id'] is not None:
-            assert ids[event['context_parent_index'] - 1] == event['parent_id']
-        if event['parent_id'] is not None:
+            assert event['parent_id'] in ids
             assert event['context_delta'] == event['fitness'] - event['context_best_fitness']
-            assert event['parent_code_hash']
             assert 'evidence_relations' in event
-        assert len(ids) == len(event['context_program_roles']) == len(event['context_code_hashes'])
 
 
 def test_task_evidence_assigns_operator_specific_roles():
@@ -183,6 +214,9 @@ def test_task_evidence_assigns_operator_specific_roles():
     assert info['reference_roles'][str(refs[0].id)] == 'alternative_reference'
     # Archive references leave no relation object: the role already says it.
     assert info['evidence_relations'] == []
+    # Only Pivot logs tier boundaries: they are its actual decision variables.
+    assert info['quality_boundaries'] != []
+    assert str(refs[0].id) in info['reference_layers']
 
     low, middle, high = node(7, 1), node(8, 5), node(9, 9)
     low.code = 'def score(x):\n    if x:\n        return 7\n    return 0'
@@ -365,8 +399,6 @@ def test_resume_reuses_context_and_does_not_repeat_evaluation(tmp_path, monkeypa
     assert len(resumed.llm.calls) == (1 if point == 'selected' else 0)
     assert len(read_journal(resumed.evaluations_path)) == 2
     assert sum(resumed.parent_selection_counts.values()) == 1
-    assert sum(resumed.implementation_attempt_counts.values()) == 1
-    assert sum(resumed.generation_condition_counts.values()) == 2
 
 
 def test_fuse_archive_reference_leaves_no_relation():
@@ -375,6 +407,9 @@ def test_fuse_archive_reference_leaves_no_relation():
     assert refs == [donor] and donor_out is donor
     assert info['reference_roles'] == {str(donor.id): 'transfer_source'}
     assert info['evidence_relations'] == []
+    # Fuse distributes mass over exact fitness levels; tier boundaries are
+    # not its decision variables and must not be logged.
+    assert info['quality_boundaries'] == [] and info['reference_layers'] == {}
 
 
 def test_fuse_prompt_does_not_presume_useful_donor():

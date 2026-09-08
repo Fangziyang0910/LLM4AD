@@ -117,7 +117,7 @@ def sample_task_evidence(nodes, parent, rng, *, operator, limit, fits):
     """
     desired = min(limit, 1)
     empty = {
-        'quality_boundaries': [], 'reference_layers': {}, 'reference_roles': {},
+        'reference_roles': {},
         'reference_fit_rejections': [], 'reference_attempts': [],
         'reference_shortfall': desired, 'evidence_relations': [],
     }
@@ -157,7 +157,10 @@ def sample_task_evidence(nodes, parent, rng, *, operator, limit, fits):
         candidates = _deduplicate_records(eligible, rng)
     if not candidates:
         return [], None, empty
-    if operator in ('Pivot', 'Fuse'):
+    # Only Pivot distributes mass over low/middle/high quality tiers. Fuse
+    # distributes mass over exact fitness levels inside _task_base_weights;
+    # the tier boundaries are not its decision variables and are not logged.
+    if operator == 'Pivot':
         all_layers, boundaries = quality_layers(candidates)
     else:
         all_layers, boundaries = {}, []
@@ -224,7 +227,7 @@ def sample_task_evidence(nodes, parent, rng, *, operator, limit, fits):
     return selected, donor, {
         'quality_boundaries': boundaries,
         'reference_layers': {str(node.id): all_layers[node.id] for node in selected}
-        if operator in ('Pivot', 'Fuse') else {},
+        if operator == 'Pivot' else {},
         'reference_roles': {str(node_id): role for node_id, role in roles.items()},
         'reference_fit_rejections': rejected,
         'reference_attempts': attempts,

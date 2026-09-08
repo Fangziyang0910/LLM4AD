@@ -35,15 +35,18 @@ OUTPUT = (
 )
 
 
+#: Refine base instruction. The evidence sentence in the middle is only
+#: present when direct evidence is shown; the two renderings are
+#: byte-identical to the former Refine/RefineBare pair.
+REFINE_BASE = 'Improve the Design Base by testing one main improvement hypothesis. '
+REFINE_EVIDENCE_SENTENCE = (
+    'Use the observed transition as evidence when deciding what to change. '
+)
+REFINE_REST = ('Change the smallest coherent set of computations needed for that hypothesis. '
+               'Leave unrelated parts unchanged unless the hypothesis requires otherwise.')
+
 TRAJECTORY_INSTRUCTIONS = {
     'Init': INSTRUCTIONS['Init'],
-    'Refine': 'Improve the Design Base by testing one main improvement hypothesis. '
-              'Use the observed transition as evidence when deciding what to change. '
-              'Change the smallest coherent set of computations needed for that hypothesis. '
-              'Leave unrelated parts unchanged unless the hypothesis requires otherwise.',
-    'RefineBare': 'Improve the Design Base by testing one main improvement hypothesis. '
-                  'Change the smallest coherent set of computations needed for that hypothesis. '
-                  'Leave unrelated parts unchanged unless the hypothesis requires otherwise.',
     'Pivot': 'Design a competitive alternative main decision method for the task. '
              'Use the Comparison Baseline only as a comparison point, not as a template '
              'to inherit. The Alternative Reference is one implemented example of a '
@@ -57,7 +60,6 @@ TRAJECTORY_INSTRUCTIONS = {
             'do not force a combination merely because both inputs are present. '
             'Aim to outperform the better input.',
 }
-TRAJECTORY_OUTPUT = OUTPUT
 IDEA_TOKENS = 256
 #: Shown once above the evidence blocks: archived prose is unverified, code decides.
 DESIGN_NOTE_LINE = (
@@ -69,12 +71,14 @@ TRANSITION_NOTE = (
     'inspect the code before reusing any changed component.'
 )
 TRAJECTORY_TEMPLATE_HASH = hashlib.sha256(
-    (str(TRAJECTORY_INSTRUCTIONS) + TRAJECTORY_OUTPUT + DESIGN_NOTE_LINE
+    (str(TRAJECTORY_INSTRUCTIONS) + OUTPUT + DESIGN_NOTE_LINE
      + TRANSITION_NOTE + str(IDEA_TOKENS)).encode()
 ).hexdigest()
 
 #: Prompt section titles. Roles are the only program identity; there are no
 #: Algorithm numbers and no fitness ordering, so nothing can be mis-cited.
+#: Every rendered program must carry one of these roles; anything else fails
+#: fast at lookup instead of silently rendering as a generic "Evidence".
 ROLE_TITLES = {
     'design_base': 'Design Base',
     'comparison_baseline': 'Comparison Baseline',
@@ -82,7 +86,6 @@ ROLE_TITLES = {
     'development_evidence': 'Development Evidence',
     'alternative_reference': 'Alternative Reference',
     'transfer_source': 'Transfer Source',
-    'evidence_reference': 'Evidence',
 }
 
 
@@ -134,7 +137,7 @@ class TrajectoryBuilder(BaseBuilder):
         return self._code_views[key]
 
     def program_text(self, node, role, omit_idea=False, strip_comments=False):
-        title = ROLE_TITLES.get(role, role or 'Evidence')
+        title = ROLE_TITLES[role]
         idea, idea_reason = self.idea_view(node)
         omissions = []
         if omit_idea and idea:
@@ -203,15 +206,23 @@ class TrajectoryBuilder(BaseBuilder):
         # No fitness sorting, so equal evidence renders byte-identical prompts.
         nodes = ([parent] if parent is not None else []) + list(references)
         executed = 'Refine' if operator == 'Fuse' and donor is None else operator
-        roles = roles or {}
-        if executed == 'Refine' and not references:
-            instruction = TRAJECTORY_INSTRUCTIONS['RefineBare']
+        roles = dict(roles or {})
+        # Parent and donor roles follow from the operator alone, so capacity
+        # probes (roles=None) render them exactly as scheduled prompts do.
+        # Any other reference without an explicit role fails fast here.
+        if parent is not None and parent.id not in roles:
+            roles[parent.id] = ('comparison_baseline' if executed == 'Pivot'
+                                else 'design_base')
+        if donor is not None and donor.id not in roles:
+            roles[donor.id] = 'transfer_source'
+        if executed == 'Refine':
+            instruction = REFINE_BASE + (REFINE_EVIDENCE_SENTENCE if references else '') + REFINE_REST
         else:
             instruction = TRAJECTORY_INSTRUCTIONS[executed]
         experiment = self.experiment_text(relations, roles)
         def render(omit_idea=False):
             rendered = [self.program_text(
-                node, roles.get(node.id, 'evidence_reference'), omit_idea,
+                node, roles[node.id], omit_idea,
                 strip_comments=node is not parent,
             ) for node in nodes]
             return [item[0] for item in rendered], [entry for item in rendered for entry in item[1]]
@@ -223,7 +234,7 @@ class TrajectoryBuilder(BaseBuilder):
                              + '\n\n'.join(blocks))
             if experiment:
                 parts.append(experiment)
-            parts.extend(['# Design Task\n' + instruction, '# Output\n' + TRAJECTORY_OUTPUT])
+            parts.extend(['# Design Task\n' + instruction, '# Output\n' + OUTPUT])
             return '\n\n\n'.join(parts)
         text = assemble()
         if self.count(text, chat=True) > self.max_tokens:

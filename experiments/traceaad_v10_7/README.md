@@ -34,7 +34,7 @@ uv run python -m experiments.traceaad_v10_7.launch --dry-run
 
 每路仍写入 `run_config.json`、`tree_state.json`、`pending_candidate.json`、`llm_calls.jsonl`、`events.jsonl`、`evaluations.jsonl`、`tokenizer_calls.jsonl` 和 `logs/run_summary.json`。`llm_calls.jsonl` 每个候选只有生成调用；不再记录 `thought_alignment` 阶段。事件不再包含摘要状态、摘要 token、独立摘要调用及分拆耗时字段，`llm_seconds` 表示唯一生成调用耗时。
 
-采样记录按展示顺序的节点、代码哈希、角色、tokens、父代/donor 位置、容量拒绝、视图省略和参考不足，并记录直接边的 `evidence_relations` 与被尝试候选的归一化权重（质量层字段只在 Pivot/Fuse 记录）。事件同时记录 `parent_delta`、`context_delta`、`frontier_delta`，以及同一（代码，请求算子）和完全相同 Prompt 此前的尝试次数。参考曝光不增加父代选择次数。采样结果、原 Prompt、RNG 和计数前值在请求前一起持久化，恢复不重新采样。新运行的方法身份为 `v107r`（检查点 `version=1072`），与冻结的 `v107` 批次互不恢复。
+采样记录按展示顺序的节点、角色、tokens、容量拒绝、视图省略和参考不足，并记录直接边的 `evidence_relations` 与被尝试候选的归一化权重（质量层字段只在 Pivot 记录，Fuse 按精确 fitness 水平选材不记三分层）。事件同时记录 `parent_delta`、`context_delta`、`frontier_delta`；同一（代码，请求算子）与完全相同 Prompt 的此前尝试次数不再在线记录，可由事件与 tree state 离线恢复。参考曝光不增加父代选择次数。采样结果、原 Prompt、RNG 和父代计数前值在请求前一起持久化，恢复不重新采样。新运行的方法身份为 `v107r`（检查点 `version=1073`），与冻结的 `v107` 批次互不恢复。
 
 已删除全档案精确 token 预筛。记录 sampling_seconds、scheduling_seconds 和 tokenizer_requests（缓存未命中的计数接口调用数，不含底层 HTTP 重试）；结合 llm_seconds、eval_seconds 和 tokenizer_calls.jsonl 分析成本。`--max-context-programs=1` 直接跳过参考采样。
 

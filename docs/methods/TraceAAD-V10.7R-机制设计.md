@@ -139,7 +139,7 @@ Pivot 的 alternative 与 Fuse 的 transfer source 没有该段：本来就没�
 
 每个参考槽位最多尝试 32 个无放回候选。容量不足时减少材料数量，不扫描并预先 tokenize 全档案。Refine 的三池按固定优先级依次尝试，形成边永远先获得检查机会；没有直接关系时不产生无意义的容量尝试。每种算子至多使用一份参考证据：Refine 和 Pivot 最多两份完整程序（底座加一份参考），Fuse 最多两份（底座加迁移源）。`max_context_programs` 默认 2，只允许 1 或 2：采样器至多提供一份参考，3 没有不同行为，不提前成为配置维度；未来真有第三证据时再扩展。`max_context_programs=1` 时不选择参考：Refine/Pivot 只看底座，Fuse 回退 Refine。
 
-2026-09-08 对 38 个 `tree_state`、26296 个节点的注释审计：注释普遍存在（47% 节点注释 ≥200 词，最高约 3500 词，常占代码 90% 以上），但最大原始底座块仅 4281 词（约 6246 tokens 量级），远低于 16128 上限，注释决定的资格翻转为 0。因此暂不改变 eligibility 规则（底座注释仍参与容量判定）；审计脚本留 `experiments/traceaad_v10_7/audit_base_comment_eligibility.py`，窗口变化时重审。
+2026-09-08 对 38 个 `tree_state`、26296 个节点的注释审计：注释普遍存在（47% 节点注释 ≥200 词，最高约 3500 词，常占代码 90% 以上），但最大原始底座块仅 4281 词（约 6246 tokens 量级），远低于 16128 上限，注释决定的资格翻转为 0。因此暂不改变 eligibility 规则（底座注释仍参与容量判定）；审计脚本留 `experiments/traceaad_v10_7/analysis/audit_base_comment_eligibility.py`，窗口变化时重审。
 
 ## 7. 选择、评价与预算
 
@@ -154,28 +154,28 @@ Pivot 的 alternative 与 Fuse 的 transfer source 没有该段：本来就没�
 - `context_program_roles`、`reference_roles`：展示程序和参考槽位的真实角色。
 - `evidence_relations`：只记录真实直接边的关系类型、方向、生成算子、fitness 变化与历史 donor 身份；archive reference 不进入该字段（角色标题与 `reference_roles` 已足够，不重复表示同一事实）。
 - `reference_attempts[].selection_weight`：Pivot/Fuse 被尝试候选的归一化后任务权重。
-- `quality_boundaries`、`reference_layers`：只在 Pivot/Fuse 记录；Refine 留空，因为其选材不使用质量层。
+- `quality_boundaries`、`reference_layers`：只在 Pivot 记录，因为只有它按低/中/高层分配质量；Fuse 按精确 fitness 水平选材，不记录三分层（需要时离线计算）。
 - `context_view_omissions`：因提示局部引用、Idea 长度、注释剥离、设计陈述压平或容量产生的视图省略。
-- `parent_code_hash`、`donor_code_hash`、`context_code_hashes`、`code_hash`：稳定的 SHA-256 实现身份。
-- `parent_implementation_attempt_before`：以（代码，请求算子）为键的尝试次数，不因换 node ID 清零；同一代码上的 Refine 次数不再污染 Pivot 的计数。
-- `prompt_repeat_before`：完全相同 `prompt_hash` 此前出现的次数；重复 Prompt 被记录，但不自动判为浪费。
+- `code_hash`：候选自身的稳定 SHA-256 实现身份，保留。`parent_code_hash`、`donor_code_hash`、`context_code_hashes` 已删除：可由 `context_node_ids`/`parent_id`/`donor_id` 回到 tree state 离线计算。`context_program_count`、`context_parent_index`、`context_donor_index` 已删除：Base 固定第一份、参考至多一份，无信息增量。
 - `context_best_fitness`、`context_improved`、`context_delta`：相对所有完整程序输入中最好者的响应。
 
 原有 `parent_delta` 与 `frontier_delta` 继续分别表示超父代和推进全局前沿。对 Fuse 继续记录超父代与 donor 中较好者的 `both_delta`。这样可以区分追上强参考、产生局部改善和真正推进前沿。
 
-实现尝试次数和 Prompt 条件次数进入检查点。选定材料、角色、Prompt、RNG 和计数前值在请求前持久化；恢复时复用原 Prompt，不重新选择材料或重复正式评价。源码、生成协议或上下文配置变化时拒绝恢复旧检查点。
+在线实现尝试计数与 Prompt 重复计数已删除：它们不参与父代、算子、证据选择或 Prompt，只是在线缓存统计。`prompt_repeat` 可由 `events.prompt_hash` 离线累加，实现尝试可由 `parent_id + requested_operator + tree_state.code` 离线恢复；“以后可能分析的统计量”不进入在线算法 state。
+
+选定材料、角色、Prompt、RNG 和父代计数前值在请求前持久化；恢复时复用原 Prompt，不重新选择材料或重复正式评价。源码、生成协议或上下文配置变化时拒绝恢复旧检查点。
 
 ## 9. 配置与对照
 
 当前实现只有 `task_evidence_v1` 一种上下文机制：按 Refine/Pivot/Fuse 的证据角色组织材料。`--context-policy`、`--donor-topk`、`--traj-gens`、`--history-tokens` 等旧入口已删除；检查点、事件与 manifest 以固定常量记录 `context_policy=task_evidence_v1`。`donor_topk`/`traj_gens`/`history_tokens` 只为满足继承构造器而传入固定值，在机制身份与 `run_config` 中都改记 `inherited_unused`，不再是存活参数（V10.7R 的 trajectory/fits 路径不读取 `history_tokens`）。
 
-方法身份已与旧 V10.7 区分：`METHOD=v107r`、检查点 `version=1072`、运行名 `..._v107r_repN`。1072 相对 1071 的变化只有三处：删除 AST 结构加成及其日志字段、Fuse 改为 fitness 水平分质量、临时编号与临时角色合并为单一省略原因；旧正式实验的 `v107` 身份保持冻结，两类数据不会混入同一分析口径。
+方法身份已与旧 V10.7 区分：`METHOD=v107r`、检查点 `version=1073`、运行名 `..._v107r_repN`。1073 相对 1072 是纯减法 cleanup，不改证据选择与 Prompt 语义：删除在线实现尝试/Prompt 重复计数及其恢复链、删除可推导的 context telemetry（程序计数、父代/donor 位置、三处代码哈希）、Fuse 不再计算三分层日志（只 Pivot 记录）、删除 `TRAJECTORY_OUTPUT` 别名并合并 Refine/RefineBare 为单模板加条件句、删除 `evidence_reference` 静默 fallback（缺角色直接 fail-fast）、审计脚本移出生产入口。1072 相对 1071 的变化是删除 AST 结构加成及其日志字段、Fuse 改为 fitness 水平分质量、临时编号与临时角色合并为单一省略原因；旧正式实验的 `v107` 身份保持冻结，两类数据不会混入同一分析口径。
 
 `sampled_trajectory_v1`、`uniform_trajectory_v1`、`ancestor_history` 已正式退役，不再有同源码条件下的对照能力。需要复现冻结批次 `20260907_bounded_formal`（`sampled_trajectory_v1`）或旧对照时，只能使用提交 `ac6f4b9c` 的冻结代码续跑，禁止用新代码恢复旧检查点（指纹校验会直接拒绝）。
 
 ## 10. 验证与实验问题
 
-代码验收至少覆盖：三种算子的角色化选材、Refine 三池优先级与同算子优先、无关系时不补随机档案且不提 contrast、Pivot 层等分层内均匀、Fuse 水平分质量且大平台吞不掉质量信号、机制身份不含 structure_preference、关系段只出现在直接边且隐藏未展示 donor 分数、archive reference 不进 `evidence_relations`、角色小节无编号无排序、严格输出契约可解析、依赖提示局部上下文的 Idea 入档但不再展示、设计陈述单段压平防伪造小节、Fuse 不预设 donor 有 useful 部件、Pivot 限定 Alternative Reference 用法、参考注释剥离不碰归档、`max_context_programs=3` 被拒绝、容量退化、单次调用、评价预算和断点恢复。
+代码验收至少覆盖：三种算子的角色化选材且参考至多一份、缺角色直接 fail-fast、Refine 三池优先级与同算子优先、无关系时不补随机档案且不提 contrast、Pivot 层等分层内均匀且是唯一记录三分层的算子、Fuse 水平分质量且大平台吞不掉质量信号、机制身份与检查点不含 structure_preference 与在线计数器、关系段只出现在直接边且隐藏未展示 donor 分数、archive reference 不进 `evidence_relations`、角色小节无编号无排序、严格输出契约可解析、依赖提示局部上下文的 Idea 入档但不再展示、设计陈述单段压平防伪造小节、Fuse 不预设 donor 有 useful 部件、Pivot 限定 Alternative Reference 用法、参考注释剥离不碰归档、`max_context_programs=3` 被拒绝、容量退化、单次调用、评价预算和断点恢复。
 
 固定状态实验应分别检查编号移除、Refine 有向设计实验、Fuse 主参考和 Pivot 比较目标是否改变了预期生成行为。完整搜索只跑 `task_evidence_v1`，并报告 250/500/1000 次真实评价下的 best、最终独立测试、生成次数、tokens 与时间；与旧策略的比较只能引用冻结代码产出的历史批次数字，不得在新代码下重跑旧策略。若需要对关系块做因果消融，应使用独立实验构造器或冻结分支，不把退役模式重新塞回生产 CLI。
 

@@ -32,8 +32,6 @@ class TraceAADV107(TraceAADV106):
             raise ValueError('max_context_programs must be 1 or 2')
         self.max_context_programs = max_context_programs
         TraceAADV105.__init__(self, history_tokens=history_tokens, **kwargs)
-        self.implementation_attempt_counts = {}
-        self.generation_condition_counts = {}
         self.task_contract = prompts.build_task_contract(self.evaluation)
         self.builder = prompts.TrajectoryBuilder(
             self.llm, self.task_contract, max_tokens=self.builder.max_tokens,
@@ -71,13 +69,8 @@ class TraceAADV107(TraceAADV106):
         TraceAADV105._log_call(self, record)
 
     @staticmethod
-    def _code_hash(node):
-        return hashlib.sha256(node.code.encode()).hexdigest() if node is not None else None
-
-    @staticmethod
-    def _roles(parent, references, operator, donor=None, extra=None):
+    def _roles(parent, operator, donor=None, extra=None):
         roles = {parent.id: ('comparison_baseline' if operator == 'Pivot' else 'design_base')}
-        roles.update({node.id: 'evidence_reference' for node in references})
         roles.update({int(node_id): role for node_id, role in (extra or {}).items()})
         if donor is not None:
             roles[donor.id] = 'transfer_source'
@@ -115,7 +108,7 @@ class TraceAADV107(TraceAADV106):
         if parent is not None:
             def fits(refs, proposed_donor, extra_roles, relations):
                 prompt_roles = self._roles(
-                    parent, refs, requested, proposed_donor, extra_roles,
+                    parent, requested, proposed_donor, extra_roles,
                 )
                 return self.builder.fits_references(
                     parent, refs, requested, proposed_donor, prompt_roles, relations,
@@ -125,7 +118,7 @@ class TraceAADV107(TraceAADV106):
                 limit=self.max_context_programs - 1, fits=fits,
             )
             roles = self._roles(
-                parent, references, requested, donor, context.get('reference_roles'),
+                parent, requested, donor, context.get('reference_roles'),
             )
         prompt_text, programs, donor, operator, blocks, view_omissions = self.builder.trajectory(
             parent, references, requested, donor, roles,
@@ -139,35 +132,19 @@ class TraceAADV107(TraceAADV106):
         context.update(
             sampling_seconds=time.monotonic() - sampling_started,
             context_node_ids=[node.id for node in programs],
-            context_program_count=len(programs),
             context_program_tokens=[self.builder.count(block) for block in blocks],
-            context_program_roles=[roles.get(node.id, 'evidence_reference') for node in programs],
-            context_parent_index=next((i for i, node in enumerate(programs, 1)
-                                       if node.id == parent.id), None) if parent else None,
-            context_donor_index=next((i for i, node in enumerate(programs, 1)
-                                      if node.id == donor.id), None) if donor else None,
+            context_program_roles=[roles[node.id] for node in programs],
             context_view_omissions=view_omissions,
         )
         template_hash = prompts.TRAJECTORY_TEMPLATE_HASH
-        context_nodes = programs
-        parent_code_hash = self._code_hash(parent)
         context.update(
-            context_best_fitness=max((node.fitness for node in context_nodes), default=None),
-            parent_code_hash=parent_code_hash,
-            donor_code_hash=self._code_hash(donor),
-            context_code_hashes=[self._code_hash(node) for node in context_nodes],
+            context_best_fitness=max(
+                (node.fitness for node in programs), default=None,
+            ),
         )
         context.update(scheduling_seconds=time.monotonic() - scheduling_started,
                        tokenizer_requests=len(self.builder._counts) - counts_before)
         prompt_hash = hashlib.sha256(prompt_text.encode()).hexdigest()
-        # Attempts are counted per (implementation, requested operator): ten
-        # Refine tries on one base say nothing about an untried Pivot on it.
-        attempt_key = f'{parent_code_hash}:{requested}' if parent_code_hash else None
-        parent_attempt_before = self.implementation_attempt_counts.get(attempt_key, 0)
-        if attempt_key is not None:
-            self.implementation_attempt_counts[attempt_key] = parent_attempt_before + 1
-        prompt_repeat_before = self.generation_condition_counts.get(prompt_hash, 0)
-        self.generation_condition_counts[prompt_hash] = prompt_repeat_before + 1
         return {
             'candidate_id': self.completed_attempts + 1, 'phase': 'selected',
             'requested_operator': requested, 'operator': operator,
@@ -179,8 +156,6 @@ class TraceAADV107(TraceAADV106):
             'best_before': self.tree.best().fitness if self.tree.nodes else None,
             'prompt': prompt_text, 'prompt_tokens': prompt_tokens,
             'prompt_hash': prompt_hash,
-            'parent_implementation_attempt_before': parent_attempt_before,
-            'prompt_repeat_before': prompt_repeat_before,
             'template_hash': template_hash,
             'context_policy': sampling.CONTEXT_POLICY,
             **context,
@@ -261,11 +236,9 @@ class TraceAADV107(TraceAADV106):
 
     def _save_state(self) -> None:
         atomic_json(self.state_path, {
-            'version': 1072, 'mechanism': self.mechanism, 'started_at': self.started_at,
+            'version': 1073, 'mechanism': self.mechanism, 'started_at': self.started_at,
             'nodes': self.tree.to_state(), 'rng_state': list(self.rng.getstate()),
             'parent_selection_counts': self.parent_selection_counts,
-            'implementation_attempt_counts': self.implementation_attempt_counts,
-            'generation_condition_counts': self.generation_condition_counts,
             'step_counter': self.step_counter, 'batch_counter': self.step_counter,
             'budget_used': self.budget_used, 'completed_attempts': self.completed_attempts,
             'invalid_streak': self._invalid_streak,
@@ -273,11 +246,9 @@ class TraceAADV107(TraceAADV106):
 
     def _load_state(self) -> None:
         state = json.loads(self.state_path.read_text())
-        if state.get('version') != 1072 or state.get('mechanism') != self.mechanism:
+        if state.get('version') != 1073 or state.get('mechanism') != self.mechanism:
             raise ValueError('checkpoint mechanism/source/backend differs from this V10.7R configuration')
         TraceAADV103._load_state(self)
-        self.implementation_attempt_counts = state['implementation_attempt_counts']
-        self.generation_condition_counts = state['generation_condition_counts']
         self.completed_attempts = state['completed_attempts']
         self._invalid_streak = state['invalid_streak']
         if self.pending_path.exists():
@@ -294,15 +265,6 @@ class TraceAADV107(TraceAADV106):
                 self.parent_selection_counts[pending['parent_id']] = (
                     pending['selection']['parent_count_before'] + 1
                 )
-            parent_hash = pending['parent_code_hash']
-            if parent_hash is not None:
-                restore_key = f"{parent_hash}:{pending['requested_operator']}"
-                self.implementation_attempt_counts[restore_key] = (
-                    pending['parent_implementation_attempt_before'] + 1
-                )
-            self.generation_condition_counts[pending['prompt_hash']] = (
-                pending['prompt_repeat_before'] + 1
-            )
 
     def run(self) -> None:
         self.run_dir.mkdir(parents=True, exist_ok=True)
