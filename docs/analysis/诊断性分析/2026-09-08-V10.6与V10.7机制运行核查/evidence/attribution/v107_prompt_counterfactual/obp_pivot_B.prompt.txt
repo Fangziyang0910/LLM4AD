@@ -1,0 +1,209 @@
+# Task Contract
+Implement a priority function for online one-dimensional bin packing. Items arrive one by one and must be placed immediately into a bin with enough remaining capacity. The function receives the item size and an array of remaining capacities of currently feasible bins, and must return a priority score for each feasible bin. The item is placed into the bin with the highest priority. The objective is to minimize the number of bins used. The item sizes and remaining capacities are integer-valued, so the input array normally has an integer dtype. Return a finite floating-point array of the same shape; cast integer-derived arrays before adding floating-point bonuses or penalties.
+
+Target interface:
+```python
+def priority(item: float, bins: np.ndarray) -> np.ndarray:
+    """Returns priority with which we want to add item to each bin.
+    Args:
+        item: Size of item to be added to the bin.
+        bins: Array of capacities for each bin.
+    Return:
+        Array of same size as bins with priority score of each bin.
+    """
+```
+Fitness is this task's score and higher is better.
+
+
+# Algorithm Trajectory
+
+Algorithm 1
+Fitness: -744.5
+Idea: 
+Code:
+```python
+import numpy as np
+
+def priority(item: float, bins: np.ndarray) -> np.ndarray:
+    """Returns priority with which we want to add item to each bin.
+    Args:
+        item: Size of item to be added to the bin.
+        bins: Array of capacities for each bin.
+    Return:
+        Array of same size as bins with priority score of each bin.
+    """
+    # Cast to float to allow adding bonuses/penalties without integer overflow/underflow issues
+    b = np.asarray(bins, dtype=float)
+    item_f = float(item)
+
+    # Feasible bins are those with remaining capacity at least the item size
+    feasible = b >= item_f
+
+    # Start with a very low finite priority for infeasible bins so they are never chosen
+    # (using a large negative finite value instead of -inf to satisfy "finite floating-point" requirement)
+    scores = np.full(b.shape, -1e9, dtype=float)
+
+    if np.any(feasible):
+        cap = b[feasible]       # original remaining capacity of feasible bins
+        leftover = cap - item_f # space left after placing the item (>= 0)
+
+        # Primary: tightness reward — strongly favors minimal leftover
+        # 1/(1+leftover) is high when leftover is small, low when leftover is large
+        tightness = 1.0 / (1.0 + leftover)
+
+        # Secondary: balance penalty — discourages creating very empty bins
+        # Scale small relative to tightness to not override the main fit objective
+        balance_penalty = 0.1 * leftover
+
+        # Tertiary: small capacity bonus to prefer more flexible bins when fits are similar
+        # This helps preserve options for future larger items without dominating tightness
+        capacity_bonus = 1e-6 * cap
+
+        # Deterministic tiny tie-breaker based on capacity (no randomness)
+        # Ensures reproducible outputs and breaks exact ties consistently
+        tie_breaker = 1e-12 * (cap / (1.0 + np.max(cap) if np.max(cap) > 0 else 1.0))
+
+        local_scores = tightness - balance_penalty + capacity_bonus + tie_breaker
+        scores[feasible] = local_scores
+
+    # Ensure finiteness (should already be finite, but guard against any numerical surprises)
+    scores = np.where(np.isfinite(scores), scores, -1e9)
+
+    return scores
+```
+
+Algorithm 2
+Fitness: -744.5
+Idea: 
+Code:
+```python
+import numpy as np
+
+def priority(item: float, bins: np.ndarray) -> np.ndarray:
+    """Returns priority with which we want to add item to each bin.
+    Args:
+        item: Size of item to be added to the bin.
+        bins: Array of capacities for each bin.
+    Return:
+        Array of same size as bins with priority score of each bin.
+    """
+    # Cast to float to ensure floating-point arithmetic and avoid integer issues
+    b = np.asarray(bins, dtype=float)
+    item_f = float(item)
+    
+    # Identify feasible bins (remaining capacity >= item size)
+    feasible = b >= item_f
+    
+    # Initialize scores with a very low finite value for infeasible bins
+    scores = np.full(b.shape, -1e12, dtype=float)
+    
+    if np.any(feasible):
+        # Calculate slack: remaining space after placing the item
+        slack = b[feasible] - item_f
+        
+        # Primary term: Best-Fit logic.
+        # Minimize slack by assigning -slack. Higher score (less negative) means tighter fit.
+        primary_score = -slack
+        
+        # Secondary term: Tie-breaker for equal slack.
+        # Prefer larger original capacities to keep smaller bins available.
+        # A small coefficient ensures this doesn't override the primary best-fit decision.
+        secondary_bonus = 0.01 * b[feasible]
+        
+        # Combine scores
+        local_scores = primary_score + secondary_bonus
+        
+        scores[feasible] = local_scores
+        
+    return scores
+```
+
+Algorithm 3
+Fitness: -744.5
+Idea: 
+Code:
+```python
+import numpy as np
+
+def priority(item: float, bins: np.ndarray) -> np.ndarray:
+    """Returns priority with which we want to add item to each bin.
+    Args:
+        item: Size of item to be added to the bin.
+        bins: Array of capacities for each bin.
+    Return:
+        Array of same size as bins with priority score of each bin.
+    """
+    # Cast to float to ensure floating-point arithmetic and avoid integer issues
+    b = np.asarray(bins, dtype=np.float64)
+    item_f = float(item)
+    
+    # Identify feasible bins (remaining capacity >= item size)
+    feasible = b >= item_f
+    
+    # Initialize scores with a very low finite value for infeasible bins
+    # This ensures they are never selected if any feasible bin exists
+    scores = np.full(b.shape, -1e12, dtype=np.float64)
+    
+    if np.any(feasible):
+        # Calculate slack: remaining space after placing the item
+        slack = b[feasible] - item_f
+        
+        # Primary term: Penalize slack (waste). Lower slack is better.
+        # Score contribution: -slack
+        # We want to maximize this, so we subtract slack.
+        primary_score = -slack
+        
+        # Secondary term: Small bonus for larger bins to preserve flexibility.
+        # If two bins have identical slack, they have identical capacity (since slack = cap - item).
+        # However, if there are floating point differences or if we want to prefer larger bins
+        # generally for tie-breaking robustness (though mathematically slack determines capacity
+        # uniquely for a fixed item), we can add a tiny weight.
+        # Actually, if slack is identical, capacity is identical. 
+        # Wait, the prompt for Alg 1 mentioned preferring larger bins when slack is identical.
+        # If slack is identical, b is identical. So this tie-breaker is redundant for strict equality.
+        # However, Alg 1 used 0.1 * b. Alg 3 used 1e-12 * b.
+        # Let's stick to the core Best Fit logic. The "tie breaker" in Alg 1/3 is largely theoretical
+        # unless there are floating point errors. 
+        # A more useful tie-breaker in practice might be index stability, but we just follow the combo.
+        # Let's use a very small coefficient to satisfy the "combine" instruction without disrupting the best-fit order.
+        # Since slack = b - item, ordering by -slack is exactly ordering by b in reverse?
+        # No. Minimizing slack means maximizing (b - item) is FALSE. Minimizing slack means minimizing b.
+        # Best Fit chooses the bin with the *smallest* remaining capacity that is still >= item.
+        # So we want to pick the bin with the smallest b.
+        # Score = -slack = -(b - item) = item - b.
+        # To maximize score, we need to minimize b. This is correct for Best Fit.
+        
+        # If we have two bins with same slack, they have same b.
+        # The tie breaker in Alg 1 (0.1*b) would prefer larger b.
+        # The tie breaker in Alg 3 (1e-12*b) would prefer larger b.
+        # Let's include a tiny tie breaker that prefers larger bins (Alg 1's idea) but scaled very small
+        # to ensure it only matters in cases of floating point noise or if we wanted to deviate.
+        # Actually, preferring larger bins when slack is identical is mathematically impossible unless
+        # "slack" was calculated differently. Given slack = b - item, identical slack implies identical b.
+        # So any b-based tie breaker is constant among ties.
+        # I will retain the structure from both but keep the primary logic strictly Best Fit.
+        
+        tie_breaker = 1e-6 * b[feasible]
+        
+        # Combined score: Higher is better.
+        local_scores = primary_score + tie_breaker
+        
+        scores[feasible] = local_scores
+
+    return scores
+```
+
+
+# Algorithm Design Task
+Use the supplied algorithms and their evaluation results to design an alternative main decision method for this task. Select useful parts and implement a complete algorithm.
+
+
+# Output
+First describe your proposed algorithm in one concise paragraph, explaining its
+main decision method and key calculations. Then implement it in this format:
+
+Idea: <design idea>
+```python
+<complete target implementation, including all required imports and helpers>
+```
+Keep the Idea within 100 words.

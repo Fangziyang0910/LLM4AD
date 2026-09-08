@@ -1,0 +1,94 @@
+# Task Contract
+Implement a priority function for online one-dimensional bin packing. Items arrive one by one and must be placed immediately into a bin with enough remaining capacity. The function receives the item size and an array of remaining capacities of currently feasible bins, and must return a priority score for each feasible bin. The item is placed into the bin with the highest priority. The objective is to minimize the number of bins used. The item sizes and remaining capacities are integer-valued, so the input array normally has an integer dtype. Return a finite floating-point array of the same shape; cast integer-derived arrays before adding floating-point bonuses or penalties.
+
+Target interface:
+```python
+def priority(item: float, bins: np.ndarray) -> np.ndarray:
+    """Returns priority with which we want to add item to each bin.
+    Args:
+        item: Size of item to be added to the bin.
+        bins: Array of capacities for each bin.
+    Return:
+        Array of same size as bins with priority score of each bin.
+    """
+```
+Fitness is this task's score and higher is better.
+
+
+# Current Algorithm
+Fitness: -744.5
+
+```python
+import numpy as np
+
+def priority(item: float, bins: np.ndarray) -> np.ndarray:
+    """Returns priority with which we want to add item to each bin.
+    Args:
+        item: Size of item to be added to the bin.
+        bins: Array of capacities for each bin.
+    Return:
+        Array of same size as bins with priority score of each bin.
+    """
+
+    b = np.asarray(bins, dtype=float)
+    item_f = float(item)
+
+    feasible = b >= item_f
+
+    scores = np.full(b.shape, -1e12, dtype=float)
+
+    if np.any(feasible):
+
+        slack = b[feasible] - item_f
+
+        primary_score = -slack
+
+        secondary_bonus = 0.01 * b[feasible]
+
+        local_scores = primary_score + secondary_bonus
+
+        scores[feasible] = local_scores
+
+    return scores
+```
+
+
+# Development History
+
+The development history describes how the current algorithm was built and how
+previous versions performed. Use it as context for this algorithm design task.
+
+Step 1
+Previous version fitness: -744.5
+Reference algorithm fitness: -744.5
+Resulting version fitness: -744.5
+Idea: The algorithm uses Best-Fit as its core strategy, assigning a primary penalty proportional to the remaining slack (waste) after placing the item, which directly minimizes fragmentation. To balance this against long-term bin preservation, it adds a small linear bonus for the bin's total capacity (or remaining space), encouraging the use of larger bins when slack is comparable, thus avoiding premature saturation of smaller bins. Non-linear tightness rewards from Algorithm 1 are omitted to maintain the linear clarity of the best-fit penalty, while random tie-breakers are removed to ensure determinism. Infeasible bins are assigned a very low finite priority to prevent selection.
+
+Step 2
+Previous version fitness: -744.5
+Reference algorithm fitness: -744.5
+Resulting version fitness: -744.5
+Idea: Implement a Best-Fit strategy primarily by minimizing the remaining slack after placing the item, using a large negative coefficient for slack to dominate the decision. A smaller positive coefficient on the original bin capacity acts as a secondary tie-breaker, preferring larger bins when slack is identical to preserve smaller bins for tighter future fits. Infeasible bins are assigned a very low finite score to ensure they are never selected.
+
+Step 3
+Previous version fitness: -744.5
+Reference algorithm fitness: -744.5
+Resulting version fitness: -744.5
+Idea: The algorithm implements a Best-Fit strategy by maximizing the priority of bins with the least remaining space after placing the item. It casts inputs to floating-point to handle integer arrays safely and identifies feasible bins (those with capacity ≥ item size). For feasible bins, the primary score is the negative of the residual capacity (`-(bins - item)`), which favors tighter fits. A small secondary bonus proportional to the original bin capacity is added to break ties in favor of larger bins, preserving smaller bins for potentially tighter future items. Infeasible bins receive a large negative finite score to ensure they are never selected. This hybrid approach combines the core Best-Fit logic from Algorithm 1 with the tie-breaking mechanism from Algorithm 2, ensuring robustness and deterministic behavior.
+
+
+# Algorithm Design Task
+Design an algorithm for this task using a different main idea from the current
+algorithm. Use the current algorithm as a reference for developing a promising
+new approach.
+
+
+# Output
+First describe your proposed algorithm in one concise paragraph, explaining its
+main decision method and key calculations. Then implement it in this format:
+
+Idea: <design idea>
+```python
+<complete target implementation, including all required imports and helpers>
+```
+Keep the Idea within 100 words.

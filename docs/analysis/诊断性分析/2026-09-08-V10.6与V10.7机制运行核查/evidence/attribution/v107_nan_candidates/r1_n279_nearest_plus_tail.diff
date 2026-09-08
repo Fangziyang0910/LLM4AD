@@ -1,0 +1,65 @@
+--- original
++++ nearest_plus_tail
+@@ -113,62 +113,4 @@
+                     best_first_node = start_global
+                     
+             return int(best_first_node)
+-
+-    # Heuristic for n > 12
+-    
+-    # 1. Immediate Cost: Distance from current node to each candidate
+-    dist_from_current = distance_matrix[current_node, unvisited_nodes]
+-    
+-    # 2. Destination Cost: Distance from candidate to destination
+-    dist_to_dest = distance_matrix[unvisited_nodes, destination_node]
+-    
+-    # 3. Lookahead & Cluster Metrics
+-    sub_matrix = distance_matrix[np.ix_(unvisited_nodes, unvisited_nodes)]
+-    sub_matrix_no_self = sub_matrix.copy()
+-    np.fill_diagonal(sub_matrix_no_self, np.inf)
+-    
+-    # 3a. Two-Step Lookahead
+-    min_next_unvisited = np.min(sub_matrix_no_self, axis=1)
+-    lookahead_cost = np.minimum(min_next_unvisited, dist_to_dest)
+-    
+-    # 3b. Isolation Penalty
+-    avg_dist_to_cluster = np.mean(sub_matrix_no_self, axis=1)
+-    max_avg_cluster = np.max(avg_dist_to_cluster)
+-    if max_avg_cluster > 1e-9:
+-        norm_isolation = avg_dist_to_cluster / max_avg_cluster
+-    else:
+-        norm_isolation = np.zeros(n)
+-        
+-    # 4. Adaptive Weights
+-    # Reference point for "late game" in heuristic phase is n=13 (just above DP limit)
+-    # Reference point for "early game" is a larger number, say 50 or 100.
+-    # Let's use a reference max of 50 for the ramp.
+-    ref_n = 50
+-    if n <= 13:
+-        progress = 1.0
+-    else:
+-        # Linear ramp from 0 at ref_n to 1 at 13
+-        progress = np.clip(1.0 - (n - 13) / (ref_n - 13), 0.0, 1.0)
+-        
+-    # w_dest: Stronger pull as we get closer to end.
+-    # Quadratic ramp ensures it stays low for long tours but kicks in hard when remaining nodes are few.
+-    w_dest = 0.2 + 0.6 * (progress ** 2)
+-    
+-    # w_look: Lookahead weight.
+-    w_look = 0.4
+-    
+-    # w_iso: Isolation penalty.
+-    w_iso = 0.1 + 0.3 * progress
+-    
+-    # 5. Composite Score
+-    scores = dist_from_current + w_look * lookahead_cost + w_dest * dist_to_dest + w_iso * norm_isolation
+-    
+-    # 6. Prevent selecting destination node early
+-    if destination_node in unvisited_nodes:
+-        dest_idx = np.where(unvisited_nodes == destination_node)[0]
+-        if len(dest_idx) > 0:
+-            scores[dest_idx[0]] = float('inf')
+-            
+-    # 7. Selection
+-    best_idx = np.argmin(scores)
+-    return int(unvisited_nodes[best_idx])+    return int(unvisited_nodes[np.argmin(distance_matrix[current_node, unvisited_nodes])])

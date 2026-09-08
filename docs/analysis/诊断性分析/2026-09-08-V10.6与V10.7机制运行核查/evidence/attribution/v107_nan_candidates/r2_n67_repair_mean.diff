@@ -1,0 +1,11 @@
+--- original
++++ repair_mean
+@@ -40,7 +40,7 @@
+     # Nodes with higher average distance to the rest are more "isolated" or on the fringe.
+     # We penalize this to encourage moving toward the center of the remaining cluster,
+     # which typically yields shorter edges in subsequent steps.
+-    avg_dist_to_unvisited = np.sum(sub, axis=1) / (n_remaining - 1)
++    avg_dist_to_unvisited = np.sum(np.where(np.eye(n_remaining, dtype=bool), 0.0, sub), axis=1) / (n_remaining - 1)
+     max_avg = np.max(avg_dist_to_unvisited) if np.max(avg_dist_to_unvisited) > 0 else 1.0
+     cohesion_penalty_norm = avg_dist_to_unvisited / max_avg
+ 

@@ -1,0 +1,272 @@
+[
+  {
+    "repeat": 1,
+    "node_id": 279,
+    "threshold": 12,
+    "variant": "original",
+    "path": "/tmp/v107_nan_candidates/r1_n279_original.py",
+    "archived_fitness": -6.53389371585012,
+    "evaluation_id": 290,
+    "config": {
+      "n_instance": 16,
+      "problem_size": 50,
+      "seed": 2024,
+      "split": "train",
+      "timeout_seconds": 20
+    },
+    "sha256": "70566bbd67f58acde2f09b7b31fa7b3159a5d1cebc9b1f12a007549754ae5eb6",
+    "seconds": 8.125152783002704,
+    "result": {
+      "fitness": -6.53389371585012,
+      "behavior": {
+        "calls": 768,
+        "main_calls": 592,
+        "main_non_nearest": 0,
+        "tail_calls": 176,
+        "tail_non_nearest": 32
+      }
+    },
+    "failure_kind": null,
+    "error": null
+  },
+  {
+    "repeat": 1,
+    "node_id": 279,
+    "threshold": 12,
+    "variant": "repair_mean",
+    "path": "/tmp/v107_nan_candidates/r1_n279_repair_mean.py",
+    "archived_fitness": -6.53389371585012,
+    "evaluation_id": 290,
+    "config": {
+      "n_instance": 16,
+      "problem_size": 50,
+      "seed": 2024,
+      "split": "train",
+      "timeout_seconds": 20
+    },
+    "sha256": "6868ce2f422dbaf04f158d0b1f92d9c8cf26d22bd560278116bfad16a87587f7",
+    "seconds": 11.481420289026573,
+    "result": {
+      "fitness": -7.635331858516847,
+      "behavior": {
+        "calls": 768,
+        "main_calls": 592,
+        "main_non_nearest": 139,
+        "tail_calls": 176,
+        "tail_non_nearest": 20
+      }
+    },
+    "failure_kind": null,
+    "error": null
+  },
+  {
+    "repeat": 1,
+    "node_id": 279,
+    "threshold": 12,
+    "variant": "nearest_plus_tail",
+    "path": "/tmp/v107_nan_candidates/r1_n279_nearest_plus_tail.py",
+    "archived_fitness": -6.53389371585012,
+    "evaluation_id": 290,
+    "config": {
+      "n_instance": 16,
+      "problem_size": 50,
+      "seed": 2024,
+      "split": "train",
+      "timeout_seconds": 20
+    },
+    "sha256": "600009a578836de69c8ce4f83d96f3676f7d0eec720046815a9c824135e3041a",
+    "seconds": 9.328651329968125,
+    "result": {
+      "fitness": -6.53389371585012,
+      "behavior": {
+        "calls": 768,
+        "main_calls": 592,
+        "main_non_nearest": 0,
+        "tail_calls": 176,
+        "tail_non_nearest": 32
+      }
+    },
+    "failure_kind": null,
+    "error": null
+  },
+  {
+    "repeat": 2,
+    "node_id": 67,
+    "threshold": 1,
+    "variant": "original",
+    "path": "/tmp/v107_nan_candidates/r2_n67_original.py",
+    "archived_fitness": -6.8239686184057184,
+    "evaluation_id": 68,
+    "config": {
+      "n_instance": 16,
+      "problem_size": 50,
+      "seed": 2024,
+      "split": "train",
+      "timeout_seconds": 20
+    },
+    "sha256": "0e4f1d6c2a1c665ee2744cd1dbd5c1de582d61687cc02b2d2c5924065a420135",
+    "seconds": 0.5375588198658079,
+    "result": {
+      "fitness": -6.8239686184057184,
+      "behavior": {
+        "calls": 768,
+        "main_calls": 768,
+        "main_non_nearest": 0,
+        "tail_calls": 0,
+        "tail_non_nearest": 0
+      }
+    },
+    "failure_kind": null,
+    "error": null
+  },
+  {
+    "repeat": 2,
+    "node_id": 67,
+    "threshold": 1,
+    "variant": "repair_mean",
+    "path": "/tmp/v107_nan_candidates/r2_n67_repair_mean.py",
+    "archived_fitness": -6.8239686184057184,
+    "evaluation_id": 68,
+    "config": {
+      "n_instance": 16,
+      "problem_size": 50,
+      "seed": 2024,
+      "split": "train",
+      "timeout_seconds": 20
+    },
+    "sha256": "a09b0d316ba237d39136c5fda197a3efbc31b6d19b499b1906a3013eedb675bb",
+    "seconds": 0.5641887760721147,
+    "result": {
+      "fitness": -7.138143007475717,
+      "behavior": {
+        "calls": 768,
+        "main_calls": 768,
+        "main_non_nearest": 53,
+        "tail_calls": 0,
+        "tail_non_nearest": 0
+      }
+    },
+    "failure_kind": null,
+    "error": null
+  },
+  {
+    "repeat": 2,
+    "node_id": 67,
+    "threshold": 1,
+    "variant": "nearest_plus_tail",
+    "path": "/tmp/v107_nan_candidates/r2_n67_nearest_plus_tail.py",
+    "archived_fitness": -6.8239686184057184,
+    "evaluation_id": 68,
+    "config": {
+      "n_instance": 16,
+      "problem_size": 50,
+      "seed": 2024,
+      "split": "train",
+      "timeout_seconds": 20
+    },
+    "sha256": "8405cd058df44b97bea2852d2d0afe02d93e168bad0e57bc8d7b29ee5224f0e8",
+    "seconds": 0.3228397851344198,
+    "result": {
+      "fitness": -6.8239686184057184,
+      "behavior": {
+        "calls": 768,
+        "main_calls": 768,
+        "main_non_nearest": 0,
+        "tail_calls": 0,
+        "tail_non_nearest": 0
+      }
+    },
+    "failure_kind": null,
+    "error": null
+  },
+  {
+    "repeat": 3,
+    "node_id": 391,
+    "threshold": 8,
+    "variant": "original",
+    "path": "/tmp/v107_nan_candidates/r3_n391_original.py",
+    "archived_fitness": -6.685090878796045,
+    "evaluation_id": 398,
+    "config": {
+      "n_instance": 16,
+      "problem_size": 50,
+      "seed": 2024,
+      "split": "train",
+      "timeout_seconds": 20
+    },
+    "sha256": "64802f66195491d92c8b1a02f010c946f9d4cec470988a730bdd052050dbbcbe",
+    "seconds": 4.203449618071318,
+    "result": {
+      "fitness": -6.685090878796045,
+      "behavior": {
+        "calls": 768,
+        "main_calls": 656,
+        "main_non_nearest": 0,
+        "tail_calls": 112,
+        "tail_non_nearest": 23
+      }
+    },
+    "failure_kind": null,
+    "error": null
+  },
+  {
+    "repeat": 3,
+    "node_id": 391,
+    "threshold": 8,
+    "variant": "repair_mean",
+    "path": "/tmp/v107_nan_candidates/r3_n391_repair_mean.py",
+    "archived_fitness": -6.685090878796045,
+    "evaluation_id": 398,
+    "config": {
+      "n_instance": 16,
+      "problem_size": 50,
+      "seed": 2024,
+      "split": "train",
+      "timeout_seconds": 20
+    },
+    "sha256": "ce03d0a2d9d3b79275b72c1da5d4db25312cf56b827e0bf2a5fc29baf2691ef4",
+    "seconds": 5.2415690389461815,
+    "result": {
+      "fitness": -7.056993754026201,
+      "behavior": {
+        "calls": 768,
+        "main_calls": 656,
+        "main_non_nearest": 42,
+        "tail_calls": 112,
+        "tail_non_nearest": 23
+      }
+    },
+    "failure_kind": null,
+    "error": null
+  },
+  {
+    "repeat": 3,
+    "node_id": 391,
+    "threshold": 8,
+    "variant": "nearest_plus_tail",
+    "path": "/tmp/v107_nan_candidates/r3_n391_nearest_plus_tail.py",
+    "archived_fitness": -6.685090878796045,
+    "evaluation_id": 398,
+    "config": {
+      "n_instance": 16,
+      "problem_size": 50,
+      "seed": 2024,
+      "split": "train",
+      "timeout_seconds": 20
+    },
+    "sha256": "79fb46b78b87d25c8d4c50b60c0aca3117f0527ffb8e4a44a9adc6f4011ca1c5",
+    "seconds": 4.55975400400348,
+    "result": {
+      "fitness": -6.685090878796045,
+      "behavior": {
+        "calls": 768,
+        "main_calls": 656,
+        "main_non_nearest": 0,
+        "tail_calls": 112,
+        "tail_non_nearest": 23
+      }
+    },
+    "failure_kind": null,
+    "error": null
+  }
+]

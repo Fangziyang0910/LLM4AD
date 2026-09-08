@@ -1,0 +1,3847 @@
+{
+  "captured_at": "2026-09-08T09:42:36.132079+08:00",
+  "note": "严格提取原冻结档案中的 best 更新节点，保留完整收益阶梯；不含全部候选、事件或评价收据。",
+  "runs": [
+    {
+      "version": "v106",
+      "task": "cvrp_aco",
+      "repeat": 1,
+      "budget_used": 1000,
+      "best": -9.326517457757536,
+      "best_root": -17.357573218308882,
+      "valid_nodes": 969,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -18.688237314472385,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 2,
+          "evaluation_id": 3,
+          "fitness": -17.357573218308882,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 10,
+          "evaluation_id": 12,
+          "fitness": -15.805364435297012,
+          "parent_id": 8,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 11,
+          "evaluation_id": 13,
+          "fitness": -14.759113432735091,
+          "parent_id": 4,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 13,
+          "evaluation_id": 15,
+          "fitness": -13.898072053751985,
+          "parent_id": 12,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 16,
+          "evaluation_id": 20,
+          "fitness": -13.033675986362969,
+          "parent_id": 13,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 17,
+          "evaluation_id": 22,
+          "fitness": -12.153565715142879,
+          "parent_id": 16,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 23,
+          "evaluation_id": 28,
+          "fitness": -11.795676347491831,
+          "parent_id": 20,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 29,
+          "evaluation_id": 36,
+          "fitness": -11.520340751258603,
+          "parent_id": 28,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 32,
+          "evaluation_id": 39,
+          "fitness": -11.352613179646127,
+          "parent_id": 29,
+          "donor_id": 19,
+          "operator": "Fuse"
+        },
+        {
+          "id": 35,
+          "evaluation_id": 42,
+          "fitness": -11.071524573920565,
+          "parent_id": 32,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 40,
+          "evaluation_id": 47,
+          "fitness": -10.767750445418624,
+          "parent_id": 35,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 41,
+          "evaluation_id": 48,
+          "fitness": -10.710832534740891,
+          "parent_id": 40,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 47,
+          "evaluation_id": 54,
+          "fitness": -10.543672237710316,
+          "parent_id": 44,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 59,
+          "evaluation_id": 68,
+          "fitness": -10.50157354557462,
+          "parent_id": 56,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 96,
+          "evaluation_id": 107,
+          "fitness": -10.470389468359395,
+          "parent_id": 86,
+          "donor_id": 59,
+          "operator": "Fuse"
+        },
+        {
+          "id": 115,
+          "evaluation_id": 127,
+          "fitness": -10.464721666355072,
+          "parent_id": 96,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 122,
+          "evaluation_id": 134,
+          "fitness": -10.454067521140635,
+          "parent_id": 105,
+          "donor_id": 111,
+          "operator": "Fuse"
+        },
+        {
+          "id": 124,
+          "evaluation_id": 136,
+          "fitness": -10.268206381010007,
+          "parent_id": 110,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 157,
+          "evaluation_id": 170,
+          "fitness": -10.213869347567561,
+          "parent_id": 118,
+          "donor_id": 124,
+          "operator": "Fuse"
+        },
+        {
+          "id": 174,
+          "evaluation_id": 187,
+          "fitness": -10.164011250990422,
+          "parent_id": 167,
+          "donor_id": 152,
+          "operator": "Fuse"
+        },
+        {
+          "id": 237,
+          "evaluation_id": 252,
+          "fitness": -10.158477998969564,
+          "parent_id": 157,
+          "donor_id": 182,
+          "operator": "Fuse"
+        },
+        {
+          "id": 250,
+          "evaluation_id": 266,
+          "fitness": -10.107538389406542,
+          "parent_id": 182,
+          "donor_id": 203,
+          "operator": "Fuse"
+        },
+        {
+          "id": 254,
+          "evaluation_id": 270,
+          "fitness": -10.091884411398166,
+          "parent_id": 250,
+          "donor_id": 186,
+          "operator": "Fuse"
+        },
+        {
+          "id": 264,
+          "evaluation_id": 281,
+          "fitness": -10.076158866040682,
+          "parent_id": 191,
+          "donor_id": 254,
+          "operator": "Fuse"
+        },
+        {
+          "id": 268,
+          "evaluation_id": 285,
+          "fitness": -10.014625286622858,
+          "parent_id": 255,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 317,
+          "evaluation_id": 336,
+          "fitness": -9.928456803382641,
+          "parent_id": 313,
+          "donor_id": 311,
+          "operator": "Fuse"
+        },
+        {
+          "id": 332,
+          "evaluation_id": 351,
+          "fitness": -9.899256198665544,
+          "parent_id": 306,
+          "donor_id": 275,
+          "operator": "Fuse"
+        },
+        {
+          "id": 340,
+          "evaluation_id": 359,
+          "fitness": -9.861532533217305,
+          "parent_id": 321,
+          "donor_id": 332,
+          "operator": "Fuse"
+        },
+        {
+          "id": 349,
+          "evaluation_id": 368,
+          "fitness": -9.694840593202581,
+          "parent_id": 347,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 494,
+          "evaluation_id": 518,
+          "fitness": -9.663294664466118,
+          "parent_id": 454,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 595,
+          "evaluation_id": 621,
+          "fitness": -9.622160258402303,
+          "parent_id": 485,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 614,
+          "evaluation_id": 640,
+          "fitness": -9.588353933780484,
+          "parent_id": 493,
+          "donor_id": 595,
+          "operator": "Fuse"
+        },
+        {
+          "id": 620,
+          "evaluation_id": 646,
+          "fitness": -9.539977741526988,
+          "parent_id": 614,
+          "donor_id": 494,
+          "operator": "Fuse"
+        },
+        {
+          "id": 642,
+          "evaluation_id": 669,
+          "fitness": -9.528700059571333,
+          "parent_id": 491,
+          "donor_id": 595,
+          "operator": "Fuse"
+        },
+        {
+          "id": 672,
+          "evaluation_id": 700,
+          "fitness": -9.516894061257016,
+          "parent_id": 579,
+          "donor_id": 642,
+          "operator": "Fuse"
+        },
+        {
+          "id": 677,
+          "evaluation_id": 705,
+          "fitness": -9.44008737762759,
+          "parent_id": 642,
+          "donor_id": 672,
+          "operator": "Fuse"
+        },
+        {
+          "id": 949,
+          "evaluation_id": 981,
+          "fitness": -9.326517457757536,
+          "parent_id": 938,
+          "donor_id": 677,
+          "operator": "Fuse"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_code_or_signature": 293,
+        "runtime_error": 31
+      },
+      "source_sha256": "85c931d5a4147daff814ae8c2f64979b9f0cab1267fe4437fa04a5b81cd50328",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 436,
+        "Refine": 664,
+        "Pivot": 185
+      }
+    },
+    {
+      "version": "v106",
+      "task": "cvrp_aco",
+      "repeat": 2,
+      "budget_used": 1000,
+      "best": -9.162249935769793,
+      "best_root": -11.817923050203785,
+      "valid_nodes": 938,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -18.688237314472385,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 1,
+          "evaluation_id": 2,
+          "fitness": -18.579282096330985,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 4,
+          "evaluation_id": 5,
+          "fitness": -11.817923050203785,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 8,
+          "evaluation_id": 9,
+          "fitness": -11.476042712337534,
+          "parent_id": 2,
+          "donor_id": 4,
+          "operator": "Fuse"
+        },
+        {
+          "id": 12,
+          "evaluation_id": 13,
+          "fitness": -10.891195229749634,
+          "parent_id": 10,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 17,
+          "evaluation_id": 18,
+          "fitness": -10.584213439072125,
+          "parent_id": 15,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 23,
+          "evaluation_id": 24,
+          "fitness": -10.435918819836631,
+          "parent_id": 17,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 40,
+          "evaluation_id": 42,
+          "fitness": -10.434648578926629,
+          "parent_id": 28,
+          "donor_id": 26,
+          "operator": "Fuse"
+        },
+        {
+          "id": 43,
+          "evaluation_id": 45,
+          "fitness": -10.386142554787464,
+          "parent_id": 40,
+          "donor_id": 37,
+          "operator": "Fuse"
+        },
+        {
+          "id": 45,
+          "evaluation_id": 49,
+          "fitness": -10.294140783504865,
+          "parent_id": 40,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 48,
+          "evaluation_id": 53,
+          "fitness": -9.35165360416555,
+          "parent_id": 9,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 50,
+          "evaluation_id": 55,
+          "fitness": -9.276156798954569,
+          "parent_id": 48,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 149,
+          "evaluation_id": 167,
+          "fitness": -9.264312572857657,
+          "parent_id": 74,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 203,
+          "evaluation_id": 226,
+          "fitness": -9.190151428360878,
+          "parent_id": 197,
+          "donor_id": 185,
+          "operator": "Fuse"
+        },
+        {
+          "id": 349,
+          "evaluation_id": 381,
+          "fitness": -9.188829082024512,
+          "parent_id": 258,
+          "donor_id": 266,
+          "operator": "Fuse"
+        },
+        {
+          "id": 358,
+          "evaluation_id": 390,
+          "fitness": -9.162249935769793,
+          "parent_id": 322,
+          "donor_id": null,
+          "operator": "Refine"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_code_or_signature": 372,
+        "runtime_error": 62
+      },
+      "source_sha256": "d4a790ae66ce7fd20da99473e82e1f7c10b6bbd7af22cc495eb7d7f6a1f0ebeb",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 473,
+        "Refine": 678,
+        "Pivot": 213
+      }
+    },
+    {
+      "version": "v106",
+      "task": "cvrp_aco",
+      "repeat": 3,
+      "budget_used": 948,
+      "best": -9.152685776959656,
+      "best_root": -12.630952231363855,
+      "valid_nodes": 907,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -12.630952231363855,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 15,
+          "evaluation_id": 17,
+          "fitness": -11.17487392593183,
+          "parent_id": 0,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 18,
+          "evaluation_id": 20,
+          "fitness": -9.9178078595092,
+          "parent_id": 8,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 57,
+          "evaluation_id": 62,
+          "fitness": -9.764193271084974,
+          "parent_id": 54,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 79,
+          "evaluation_id": 85,
+          "fitness": -9.504807802969003,
+          "parent_id": 74,
+          "donor_id": 76,
+          "operator": "Fuse"
+        },
+        {
+          "id": 129,
+          "evaluation_id": 138,
+          "fitness": -9.367335718290747,
+          "parent_id": 114,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 131,
+          "evaluation_id": 140,
+          "fitness": -9.34108216467996,
+          "parent_id": 109,
+          "donor_id": 115,
+          "operator": "Fuse"
+        },
+        {
+          "id": 142,
+          "evaluation_id": 151,
+          "fitness": -9.251998950715254,
+          "parent_id": 131,
+          "donor_id": 139,
+          "operator": "Fuse"
+        },
+        {
+          "id": 157,
+          "evaluation_id": 166,
+          "fitness": -9.224417945811087,
+          "parent_id": 152,
+          "donor_id": 143,
+          "operator": "Fuse"
+        },
+        {
+          "id": 351,
+          "evaluation_id": 368,
+          "fitness": -9.152685776959656,
+          "parent_id": 302,
+          "donor_id": 309,
+          "operator": "Fuse"
+        }
+      ],
+      "failure_reasons": {
+        "runtime_error": 41,
+        "invalid_code_or_signature": 345
+      },
+      "source_sha256": "3c9ecc511b5f4ee098c2165fd08263ada3d0e7dc89d732979a9c99a29dce185a",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 471,
+        "Refine": 639,
+        "Pivot": 175
+      }
+    },
+    {
+      "version": "v106",
+      "task": "online_bin_packing",
+      "repeat": 1,
+      "budget_used": 1000,
+      "best": -725.5,
+      "best_root": -744.5,
+      "valid_nodes": 999,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -744.5,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 104,
+          "evaluation_id": 105,
+          "fitness": -729.75,
+          "parent_id": 17,
+          "donor_id": 0,
+          "operator": "Fuse"
+        },
+        {
+          "id": 163,
+          "evaluation_id": 164,
+          "fitness": -728.75,
+          "parent_id": 141,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 182,
+          "evaluation_id": 183,
+          "fitness": -727.75,
+          "parent_id": 174,
+          "donor_id": 165,
+          "operator": "Fuse"
+        },
+        {
+          "id": 191,
+          "evaluation_id": 192,
+          "fitness": -727.5,
+          "parent_id": 182,
+          "donor_id": 163,
+          "operator": "Fuse"
+        },
+        {
+          "id": 218,
+          "evaluation_id": 219,
+          "fitness": -727.25,
+          "parent_id": 191,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 219,
+          "evaluation_id": 220,
+          "fitness": -726.5,
+          "parent_id": 140,
+          "donor_id": 198,
+          "operator": "Fuse"
+        },
+        {
+          "id": 246,
+          "evaluation_id": 247,
+          "fitness": -726.25,
+          "parent_id": 200,
+          "donor_id": 219,
+          "operator": "Fuse"
+        },
+        {
+          "id": 387,
+          "evaluation_id": 388,
+          "fitness": -726.0,
+          "parent_id": 253,
+          "donor_id": 293,
+          "operator": "Fuse"
+        },
+        {
+          "id": 603,
+          "evaluation_id": 604,
+          "fitness": -725.75,
+          "parent_id": 451,
+          "donor_id": 456,
+          "operator": "Fuse"
+        },
+        {
+          "id": 842,
+          "evaluation_id": 844,
+          "fitness": -725.5,
+          "parent_id": 831,
+          "donor_id": null,
+          "operator": "Refine"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_code_or_signature": 158,
+        "runtime_error": 1
+      },
+      "source_sha256": "8ea144fa30018bfc87cda61f00e79be57c0ae8eae677a26ed0822ff1726143be",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 391,
+        "Refine": 590,
+        "Pivot": 169
+      }
+    },
+    {
+      "version": "v106",
+      "task": "online_bin_packing",
+      "repeat": 2,
+      "budget_used": 1000,
+      "best": -725.0,
+      "best_root": -744.5,
+      "valid_nodes": 992,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -744.5,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 154,
+          "evaluation_id": 155,
+          "fitness": -744.25,
+          "parent_id": 101,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 167,
+          "evaluation_id": 169,
+          "fitness": -726.5,
+          "parent_id": 154,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 232,
+          "evaluation_id": 235,
+          "fitness": -725.25,
+          "parent_id": 205,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 236,
+          "evaluation_id": 239,
+          "fitness": -725.0,
+          "parent_id": 96,
+          "donor_id": 232,
+          "operator": "Fuse"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_code_or_signature": 555,
+        "runtime_error": 8
+      },
+      "source_sha256": "232201383fe0ae6a0597baec58b3cef55c76790654b9a37335b01c37599be692",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 538,
+        "Refine": 757,
+        "Pivot": 252
+      }
+    },
+    {
+      "version": "v106",
+      "task": "online_bin_packing",
+      "repeat": 3,
+      "budget_used": 1000,
+      "best": -726.75,
+      "best_root": -744.5,
+      "valid_nodes": 992,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -3000.0,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 1,
+          "evaluation_id": 2,
+          "fitness": -744.5,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 76,
+          "evaluation_id": 77,
+          "fitness": -743.0,
+          "parent_id": 54,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 93,
+          "evaluation_id": 94,
+          "fitness": -740.0,
+          "parent_id": 91,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 96,
+          "evaluation_id": 97,
+          "fitness": -739.0,
+          "parent_id": 93,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 121,
+          "evaluation_id": 122,
+          "fitness": -737.0,
+          "parent_id": 113,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 127,
+          "evaluation_id": 128,
+          "fitness": -734.0,
+          "parent_id": 123,
+          "donor_id": 103,
+          "operator": "Fuse"
+        },
+        {
+          "id": 128,
+          "evaluation_id": 129,
+          "fitness": -731.0,
+          "parent_id": 94,
+          "donor_id": 111,
+          "operator": "Fuse"
+        },
+        {
+          "id": 167,
+          "evaluation_id": 168,
+          "fitness": -730.75,
+          "parent_id": 162,
+          "donor_id": 147,
+          "operator": "Fuse"
+        },
+        {
+          "id": 239,
+          "evaluation_id": 241,
+          "fitness": -730.5,
+          "parent_id": 167,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 252,
+          "evaluation_id": 254,
+          "fitness": -728.75,
+          "parent_id": 192,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 286,
+          "evaluation_id": 288,
+          "fitness": -728.0,
+          "parent_id": 244,
+          "donor_id": 269,
+          "operator": "Fuse"
+        },
+        {
+          "id": 450,
+          "evaluation_id": 453,
+          "fitness": -727.25,
+          "parent_id": 356,
+          "donor_id": 286,
+          "operator": "Fuse"
+        },
+        {
+          "id": 552,
+          "evaluation_id": 555,
+          "fitness": -727.0,
+          "parent_id": 550,
+          "donor_id": 450,
+          "operator": "Fuse"
+        },
+        {
+          "id": 944,
+          "evaluation_id": 952,
+          "fitness": -726.75,
+          "parent_id": 920,
+          "donor_id": 627,
+          "operator": "Fuse"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_code_or_signature": 154,
+        "runtime_error": 8
+      },
+      "source_sha256": "d1cd3dc4ea06dd0efbc0c917db67d52e5c9eb5f13bb0777201032775e239f14a",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 417,
+        "Refine": 561,
+        "Pivot": 168
+      }
+    },
+    {
+      "version": "v106",
+      "task": "op_aco",
+      "repeat": 1,
+      "budget_used": 1000,
+      "best": 14.491999999999999,
+      "best_root": 12.968,
+      "valid_nodes": 957,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 2,
+          "fitness": 12.232000000000003,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 1,
+          "evaluation_id": 3,
+          "fitness": 12.955999999999998,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 5,
+          "evaluation_id": 7,
+          "fitness": 12.968,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 9,
+          "evaluation_id": 11,
+          "fitness": 13.072,
+          "parent_id": 1,
+          "donor_id": 3,
+          "operator": "Fuse"
+        },
+        {
+          "id": 13,
+          "evaluation_id": 15,
+          "fitness": 13.276,
+          "parent_id": 12,
+          "donor_id": 1,
+          "operator": "Fuse"
+        },
+        {
+          "id": 21,
+          "evaluation_id": 23,
+          "fitness": 13.308000000000002,
+          "parent_id": 13,
+          "donor_id": 10,
+          "operator": "Fuse"
+        },
+        {
+          "id": 22,
+          "evaluation_id": 24,
+          "fitness": 13.45,
+          "parent_id": 13,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 23,
+          "evaluation_id": 25,
+          "fitness": 13.796000000000001,
+          "parent_id": 22,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 83,
+          "evaluation_id": 85,
+          "fitness": 13.974,
+          "parent_id": 58,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 85,
+          "evaluation_id": 87,
+          "fitness": 14.075999999999999,
+          "parent_id": 83,
+          "donor_id": 36,
+          "operator": "Fuse"
+        },
+        {
+          "id": 113,
+          "evaluation_id": 115,
+          "fitness": 14.180000000000001,
+          "parent_id": 86,
+          "donor_id": 83,
+          "operator": "Fuse"
+        },
+        {
+          "id": 133,
+          "evaluation_id": 135,
+          "fitness": 14.276,
+          "parent_id": 124,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 186,
+          "evaluation_id": 189,
+          "fitness": 14.382,
+          "parent_id": 150,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 610,
+          "evaluation_id": 633,
+          "fitness": 14.491999999999999,
+          "parent_id": 548,
+          "donor_id": 198,
+          "operator": "Fuse"
+        }
+      ],
+      "failure_reasons": {
+        "runtime_error": 43,
+        "invalid_code_or_signature": 219
+      },
+      "source_sha256": "a373d3816cc1ca2c579dabe9076d6b225b4c8efd784378134428c19182a5436e",
+      "executed_operator_counts": {
+        "Init": 11,
+        "Fuse": 410,
+        "Refine": 627,
+        "Pivot": 171
+      }
+    },
+    {
+      "version": "v106",
+      "task": "op_aco",
+      "repeat": 2,
+      "budget_used": 1000,
+      "best": 14.817999999999998,
+      "best_root": 12.734,
+      "valid_nodes": 942,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": 12.432,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 4,
+          "evaluation_id": 5,
+          "fitness": 12.734,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 9,
+          "evaluation_id": 10,
+          "fitness": 12.998,
+          "parent_id": 4,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 12,
+          "evaluation_id": 13,
+          "fitness": 13.536000000000001,
+          "parent_id": 9,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 19,
+          "evaluation_id": 20,
+          "fitness": 13.547999999999998,
+          "parent_id": 14,
+          "donor_id": 0,
+          "operator": "Fuse"
+        },
+        {
+          "id": 26,
+          "evaluation_id": 27,
+          "fitness": 13.847999999999999,
+          "parent_id": 19,
+          "donor_id": 18,
+          "operator": "Fuse"
+        },
+        {
+          "id": 31,
+          "evaluation_id": 32,
+          "fitness": 14.059999999999999,
+          "parent_id": 30,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 43,
+          "evaluation_id": 46,
+          "fitness": 14.174000000000001,
+          "parent_id": 34,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 56,
+          "evaluation_id": 60,
+          "fitness": 14.271999999999997,
+          "parent_id": 48,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 82,
+          "evaluation_id": 88,
+          "fitness": 14.416,
+          "parent_id": 56,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 110,
+          "evaluation_id": 117,
+          "fitness": 14.529999999999998,
+          "parent_id": 82,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 125,
+          "evaluation_id": 134,
+          "fitness": 14.589999999999998,
+          "parent_id": 124,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 258,
+          "evaluation_id": 274,
+          "fitness": 14.644,
+          "parent_id": 144,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 318,
+          "evaluation_id": 336,
+          "fitness": 14.679999999999998,
+          "parent_id": 317,
+          "donor_id": 284,
+          "operator": "Fuse"
+        },
+        {
+          "id": 374,
+          "evaluation_id": 397,
+          "fitness": 14.685999999999998,
+          "parent_id": 193,
+          "donor_id": 321,
+          "operator": "Fuse"
+        },
+        {
+          "id": 382,
+          "evaluation_id": 407,
+          "fitness": 14.706,
+          "parent_id": 319,
+          "donor_id": 318,
+          "operator": "Fuse"
+        },
+        {
+          "id": 386,
+          "evaluation_id": 411,
+          "fitness": 14.752,
+          "parent_id": 374,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 453,
+          "evaluation_id": 480,
+          "fitness": 14.756,
+          "parent_id": 386,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 585,
+          "evaluation_id": 620,
+          "fitness": 14.817999999999998,
+          "parent_id": 500,
+          "donor_id": null,
+          "operator": "Refine"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_code_or_signature": 236,
+        "runtime_error": 58
+      },
+      "source_sha256": "16e60b6eee778e9b675e57a870025badcac416c8984afdb4d65cec7450a6f216",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 413,
+        "Refine": 608,
+        "Pivot": 207
+      }
+    },
+    {
+      "version": "v106",
+      "task": "op_aco",
+      "repeat": 3,
+      "budget_used": 1000,
+      "best": 14.324000000000002,
+      "best_root": 13.038,
+      "valid_nodes": 975,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": 12.432,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 1,
+          "evaluation_id": 2,
+          "fitness": 12.734,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 5,
+          "evaluation_id": 6,
+          "fitness": 13.038,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 14,
+          "evaluation_id": 16,
+          "fitness": 13.064000000000002,
+          "parent_id": 5,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 23,
+          "evaluation_id": 25,
+          "fitness": 13.520000000000001,
+          "parent_id": 20,
+          "donor_id": 18,
+          "operator": "Fuse"
+        },
+        {
+          "id": 24,
+          "evaluation_id": 26,
+          "fitness": 13.681999999999999,
+          "parent_id": 23,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 26,
+          "evaluation_id": 28,
+          "fitness": 13.886000000000001,
+          "parent_id": 24,
+          "donor_id": 1,
+          "operator": "Fuse"
+        },
+        {
+          "id": 41,
+          "evaluation_id": 43,
+          "fitness": 14.216000000000003,
+          "parent_id": 40,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 315,
+          "evaluation_id": 325,
+          "fitness": 14.324000000000002,
+          "parent_id": 156,
+          "donor_id": null,
+          "operator": "Refine"
+        }
+      ],
+      "failure_reasons": {
+        "runtime_error": 25,
+        "invalid_code_or_signature": 229
+      },
+      "source_sha256": "995bbc78162803b9afb27fa938f9fcdc493e34b8399717692025ae012dc30cad",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 441,
+        "Refine": 602,
+        "Pivot": 178
+      }
+    },
+    {
+      "version": "v106",
+      "task": "tsp_construct",
+      "repeat": 1,
+      "budget_used": 677,
+      "best": -5.816405203780095,
+      "best_root": -7.1103281812331725,
+      "valid_nodes": 284,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -7.359441842477924,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 1,
+          "evaluation_id": 2,
+          "fitness": -7.1103281812331725,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 11,
+          "evaluation_id": 15,
+          "fitness": -6.53389371585012,
+          "parent_id": 1,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 26,
+          "evaluation_id": 36,
+          "fitness": -6.478630649544964,
+          "parent_id": 24,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 29,
+          "evaluation_id": 42,
+          "fitness": -5.9333700715310105,
+          "parent_id": 26,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 63,
+          "evaluation_id": 95,
+          "fitness": -5.8922546659408335,
+          "parent_id": 29,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 64,
+          "evaluation_id": 96,
+          "fitness": -5.839114349414924,
+          "parent_id": 63,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 127,
+          "evaluation_id": 223,
+          "fitness": -5.839108700323777,
+          "parent_id": 104,
+          "donor_id": 87,
+          "operator": "Fuse"
+        },
+        {
+          "id": 152,
+          "evaluation_id": 299,
+          "fitness": -5.83294977028907,
+          "parent_id": 127,
+          "donor_id": 101,
+          "operator": "Fuse"
+        },
+        {
+          "id": 178,
+          "evaluation_id": 351,
+          "fitness": -5.826865874872279,
+          "parent_id": 167,
+          "donor_id": 176,
+          "operator": "Fuse"
+        },
+        {
+          "id": 197,
+          "evaluation_id": 398,
+          "fitness": -5.816405203780095,
+          "parent_id": 127,
+          "donor_id": 105,
+          "operator": "Fuse"
+        }
+      ],
+      "failure_reasons": {
+        "runtime_error": 106,
+        "timeout": 282,
+        "invalid_code_or_signature": 246,
+        "invalid_result": 5
+      },
+      "source_sha256": "50fd0e6bee67082964f458bb30ffc43824bee78b83826a89a8010ee085f42fab",
+      "executed_operator_counts": {
+        "Init": 9,
+        "Fuse": 307,
+        "Refine": 476,
+        "Pivot": 131
+      }
+    },
+    {
+      "version": "v106",
+      "task": "tsp_construct",
+      "repeat": 2,
+      "budget_used": 929,
+      "best": -5.933332920891285,
+      "best_root": -7.04868835198929,
+      "valid_nodes": 632,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -7.585210237435456,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 4,
+          "evaluation_id": 5,
+          "fitness": -7.3845946210529885,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 5,
+          "evaluation_id": 6,
+          "fitness": -7.04868835198929,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 53,
+          "evaluation_id": 56,
+          "fitness": -6.937143075194379,
+          "parent_id": 5,
+          "donor_id": 8,
+          "operator": "Fuse"
+        },
+        {
+          "id": 65,
+          "evaluation_id": 68,
+          "fitness": -6.8415001103458755,
+          "parent_id": 64,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 105,
+          "evaluation_id": 112,
+          "fitness": -6.832068717393044,
+          "parent_id": 82,
+          "donor_id": 65,
+          "operator": "Fuse"
+        },
+        {
+          "id": 110,
+          "evaluation_id": 117,
+          "fitness": -6.743585735480223,
+          "parent_id": 100,
+          "donor_id": 65,
+          "operator": "Fuse"
+        },
+        {
+          "id": 115,
+          "evaluation_id": 122,
+          "fitness": -6.731041192540523,
+          "parent_id": 110,
+          "donor_id": 93,
+          "operator": "Fuse"
+        },
+        {
+          "id": 143,
+          "evaluation_id": 152,
+          "fitness": -6.685090878796045,
+          "parent_id": 135,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 150,
+          "evaluation_id": 160,
+          "fitness": -6.674159681260457,
+          "parent_id": 148,
+          "donor_id": 110,
+          "operator": "Fuse"
+        },
+        {
+          "id": 152,
+          "evaluation_id": 162,
+          "fitness": -6.646443949925546,
+          "parent_id": 150,
+          "donor_id": 110,
+          "operator": "Fuse"
+        },
+        {
+          "id": 175,
+          "evaluation_id": 189,
+          "fitness": -6.602711531122946,
+          "parent_id": 170,
+          "donor_id": 152,
+          "operator": "Fuse"
+        },
+        {
+          "id": 204,
+          "evaluation_id": 222,
+          "fitness": -6.249940729569024,
+          "parent_id": 159,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 253,
+          "evaluation_id": 276,
+          "fitness": -6.118507853807532,
+          "parent_id": 237,
+          "donor_id": 204,
+          "operator": "Fuse"
+        },
+        {
+          "id": 256,
+          "evaluation_id": 280,
+          "fitness": -6.037957670849144,
+          "parent_id": 253,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 262,
+          "evaluation_id": 286,
+          "fitness": -5.992456465283849,
+          "parent_id": 256,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 300,
+          "evaluation_id": 333,
+          "fitness": -5.9745874910969,
+          "parent_id": 283,
+          "donor_id": 260,
+          "operator": "Fuse"
+        },
+        {
+          "id": 318,
+          "evaluation_id": 356,
+          "fitness": -5.960614360002593,
+          "parent_id": 303,
+          "donor_id": 300,
+          "operator": "Fuse"
+        },
+        {
+          "id": 333,
+          "evaluation_id": 380,
+          "fitness": -5.957205754999752,
+          "parent_id": 319,
+          "donor_id": 316,
+          "operator": "Fuse"
+        },
+        {
+          "id": 391,
+          "evaluation_id": 475,
+          "fitness": -5.955931211106079,
+          "parent_id": 300,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 487,
+          "evaluation_id": 610,
+          "fitness": -5.953190790039288,
+          "parent_id": 421,
+          "donor_id": 469,
+          "operator": "Fuse"
+        },
+        {
+          "id": 492,
+          "evaluation_id": 615,
+          "fitness": -5.951224051585,
+          "parent_id": 460,
+          "donor_id": 487,
+          "operator": "Fuse"
+        },
+        {
+          "id": 517,
+          "evaluation_id": 640,
+          "fitness": -5.933332920891285,
+          "parent_id": 487,
+          "donor_id": null,
+          "operator": "Refine"
+        }
+      ],
+      "failure_reasons": {
+        "runtime_error": 47,
+        "invalid_code_or_signature": 234,
+        "timeout": 250
+      },
+      "source_sha256": "1dc20152e08837e7c8d79baf854338bf56e71e697ab6815f6df3bbf48ab6a7e8",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 391,
+        "Refine": 572,
+        "Pivot": 192
+      }
+    },
+    {
+      "version": "v106",
+      "task": "tsp_construct",
+      "repeat": 3,
+      "budget_used": 1000,
+      "best": -5.871918704540345,
+      "best_root": -6.820211505568105,
+      "valid_nodes": 744,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -8.060258218042321,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 1,
+          "evaluation_id": 2,
+          "fitness": -6.9269914959541445,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 5,
+          "evaluation_id": 6,
+          "fitness": -6.820211505568105,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 40,
+          "evaluation_id": 41,
+          "fitness": -6.741701734169909,
+          "parent_id": 26,
+          "donor_id": 28,
+          "operator": "Fuse"
+        },
+        {
+          "id": 41,
+          "evaluation_id": 42,
+          "fitness": -6.54863340317773,
+          "parent_id": 40,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 121,
+          "evaluation_id": 128,
+          "fitness": -6.394337266998791,
+          "parent_id": 108,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 229,
+          "evaluation_id": 242,
+          "fitness": -6.23274791252226,
+          "parent_id": 180,
+          "donor_id": 121,
+          "operator": "Fuse"
+        },
+        {
+          "id": 275,
+          "evaluation_id": 292,
+          "fitness": -6.182271363251998,
+          "parent_id": 239,
+          "donor_id": 273,
+          "operator": "Fuse"
+        },
+        {
+          "id": 285,
+          "evaluation_id": 303,
+          "fitness": -6.113413625809921,
+          "parent_id": 268,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 304,
+          "evaluation_id": 325,
+          "fitness": -6.073359461308967,
+          "parent_id": 229,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 331,
+          "evaluation_id": 358,
+          "fitness": -5.937536540279135,
+          "parent_id": 305,
+          "donor_id": 285,
+          "operator": "Fuse"
+        },
+        {
+          "id": 382,
+          "evaluation_id": 421,
+          "fitness": -5.934922351647517,
+          "parent_id": 378,
+          "donor_id": 379,
+          "operator": "Fuse"
+        },
+        {
+          "id": 384,
+          "evaluation_id": 423,
+          "fitness": -5.934460502083816,
+          "parent_id": 357,
+          "donor_id": 382,
+          "operator": "Fuse"
+        },
+        {
+          "id": 415,
+          "evaluation_id": 461,
+          "fitness": -5.877028041939861,
+          "parent_id": 394,
+          "donor_id": 382,
+          "operator": "Fuse"
+        },
+        {
+          "id": 522,
+          "evaluation_id": 627,
+          "fitness": -5.871918704540345,
+          "parent_id": 517,
+          "donor_id": 434,
+          "operator": "Fuse"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_code_or_signature": 252,
+        "invalid_result": 3,
+        "runtime_error": 64,
+        "timeout": 188,
+        "exec_error": 1
+      },
+      "source_sha256": "f9736cede0a11ab371edc5b5dc62e82dc0c05a7a71e7fcf06a72902baf1b5e53",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 459,
+        "Refine": 614,
+        "Pivot": 171
+      }
+    },
+    {
+      "version": "v106",
+      "task": "vrptw_construct",
+      "repeat": 1,
+      "budget_used": 1000,
+      "best": -18.860567140037126,
+      "best_root": -21.3565563925522,
+      "valid_nodes": 938,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -26.78877006043065,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 1,
+          "evaluation_id": 2,
+          "fitness": -21.3565563925522,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 39,
+          "evaluation_id": 43,
+          "fitness": -21.004585108905815,
+          "parent_id": 35,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 44,
+          "evaluation_id": 48,
+          "fitness": -20.997784025539843,
+          "parent_id": 39,
+          "donor_id": 40,
+          "operator": "Fuse"
+        },
+        {
+          "id": 50,
+          "evaluation_id": 54,
+          "fitness": -20.527626608217975,
+          "parent_id": 41,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 51,
+          "evaluation_id": 55,
+          "fitness": -19.374504136881825,
+          "parent_id": 50,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 81,
+          "evaluation_id": 85,
+          "fitness": -19.31718075858261,
+          "parent_id": 56,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 82,
+          "evaluation_id": 86,
+          "fitness": -19.106408165553304,
+          "parent_id": 76,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 99,
+          "evaluation_id": 103,
+          "fitness": -19.095457143674473,
+          "parent_id": 85,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 109,
+          "evaluation_id": 114,
+          "fitness": -19.03701687999356,
+          "parent_id": 99,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 161,
+          "evaluation_id": 169,
+          "fitness": -19.025130366671803,
+          "parent_id": 124,
+          "donor_id": 141,
+          "operator": "Fuse"
+        },
+        {
+          "id": 207,
+          "evaluation_id": 217,
+          "fitness": -18.96772674523048,
+          "parent_id": 199,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 232,
+          "evaluation_id": 243,
+          "fitness": -18.957976421882016,
+          "parent_id": 141,
+          "donor_id": 172,
+          "operator": "Fuse"
+        },
+        {
+          "id": 251,
+          "evaluation_id": 264,
+          "fitness": -18.908589600872546,
+          "parent_id": 107,
+          "donor_id": 250,
+          "operator": "Fuse"
+        },
+        {
+          "id": 302,
+          "evaluation_id": 319,
+          "fitness": -18.860567140037126,
+          "parent_id": 212,
+          "donor_id": 298,
+          "operator": "Fuse"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_code_or_signature": 87,
+        "runtime_error": 40,
+        "invalid_result": 21,
+        "timeout": 1
+      },
+      "source_sha256": "57f692ebc4ccc64554a877fa450445f9dc08f0beffce81889e27364aae9e0c50",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 371,
+        "Refine": 553,
+        "Pivot": 155
+      }
+    },
+    {
+      "version": "v106",
+      "task": "vrptw_construct",
+      "repeat": 2,
+      "budget_used": 1000,
+      "best": -19.01878937525685,
+      "best_root": -22.698596596840076,
+      "valid_nodes": 970,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -22.698596596840076,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 15,
+          "evaluation_id": 17,
+          "fitness": -22.31091622423061,
+          "parent_id": 8,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 22,
+          "evaluation_id": 24,
+          "fitness": -22.245077116937708,
+          "parent_id": 15,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 24,
+          "evaluation_id": 26,
+          "fitness": -21.383572619261912,
+          "parent_id": 22,
+          "donor_id": 11,
+          "operator": "Fuse"
+        },
+        {
+          "id": 47,
+          "evaluation_id": 49,
+          "fitness": -21.329465131982303,
+          "parent_id": 40,
+          "donor_id": 36,
+          "operator": "Fuse"
+        },
+        {
+          "id": 48,
+          "evaluation_id": 50,
+          "fitness": -20.496103426298063,
+          "parent_id": 45,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 80,
+          "evaluation_id": 83,
+          "fitness": -20.437572665054564,
+          "parent_id": 76,
+          "donor_id": 66,
+          "operator": "Fuse"
+        },
+        {
+          "id": 82,
+          "evaluation_id": 85,
+          "fitness": -20.348900309776475,
+          "parent_id": 48,
+          "donor_id": 47,
+          "operator": "Fuse"
+        },
+        {
+          "id": 119,
+          "evaluation_id": 123,
+          "fitness": -20.150936248914213,
+          "parent_id": 76,
+          "donor_id": 82,
+          "operator": "Fuse"
+        },
+        {
+          "id": 128,
+          "evaluation_id": 133,
+          "fitness": -20.038912561946265,
+          "parent_id": 119,
+          "donor_id": 122,
+          "operator": "Fuse"
+        },
+        {
+          "id": 152,
+          "evaluation_id": 159,
+          "fitness": -19.886014626964872,
+          "parent_id": 145,
+          "donor_id": 134,
+          "operator": "Fuse"
+        },
+        {
+          "id": 193,
+          "evaluation_id": 200,
+          "fitness": -19.861338236002677,
+          "parent_id": 152,
+          "donor_id": 192,
+          "operator": "Fuse"
+        },
+        {
+          "id": 219,
+          "evaluation_id": 226,
+          "fitness": -19.81479498122939,
+          "parent_id": 174,
+          "donor_id": 216,
+          "operator": "Fuse"
+        },
+        {
+          "id": 240,
+          "evaluation_id": 247,
+          "fitness": -19.769103544034007,
+          "parent_id": 200,
+          "donor_id": 198,
+          "operator": "Fuse"
+        },
+        {
+          "id": 274,
+          "evaluation_id": 283,
+          "fitness": -19.571911391725294,
+          "parent_id": 203,
+          "donor_id": 240,
+          "operator": "Fuse"
+        },
+        {
+          "id": 296,
+          "evaluation_id": 306,
+          "fitness": -19.473237385006755,
+          "parent_id": 282,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 346,
+          "evaluation_id": 357,
+          "fitness": -19.471785193872,
+          "parent_id": 341,
+          "donor_id": 296,
+          "operator": "Fuse"
+        },
+        {
+          "id": 354,
+          "evaluation_id": 365,
+          "fitness": -19.42262417709432,
+          "parent_id": 296,
+          "donor_id": 346,
+          "operator": "Fuse"
+        },
+        {
+          "id": 358,
+          "evaluation_id": 369,
+          "fitness": -19.326761503367983,
+          "parent_id": 321,
+          "donor_id": 356,
+          "operator": "Fuse"
+        },
+        {
+          "id": 383,
+          "evaluation_id": 394,
+          "fitness": -19.25600422656479,
+          "parent_id": 341,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 418,
+          "evaluation_id": 429,
+          "fitness": -19.121643148927518,
+          "parent_id": 383,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 544,
+          "evaluation_id": 560,
+          "fitness": -19.115699669589,
+          "parent_id": 535,
+          "donor_id": 418,
+          "operator": "Fuse"
+        },
+        {
+          "id": 564,
+          "evaluation_id": 580,
+          "fitness": -19.0908837244463,
+          "parent_id": 514,
+          "donor_id": 418,
+          "operator": "Fuse"
+        },
+        {
+          "id": 624,
+          "evaluation_id": 643,
+          "fitness": -19.025232662323067,
+          "parent_id": 358,
+          "donor_id": 514,
+          "operator": "Fuse"
+        },
+        {
+          "id": 737,
+          "evaluation_id": 762,
+          "fitness": -19.01878937525685,
+          "parent_id": 561,
+          "donor_id": 693,
+          "operator": "Fuse"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_result": 13,
+        "invalid_code_or_signature": 120,
+        "runtime_error": 16,
+        "timeout": 1
+      },
+      "source_sha256": "50fc6e7b1482189ff08d8f15285f3c983e5c9f33028f3deaa592f8d985991bde",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 384,
+        "Refine": 551,
+        "Pivot": 177
+      }
+    },
+    {
+      "version": "v106",
+      "task": "vrptw_construct",
+      "repeat": 3,
+      "budget_used": 939,
+      "best": -20.497691602655692,
+      "best_root": -22.973432988162934,
+      "valid_nodes": 869,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -26.519578057509396,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 1,
+          "evaluation_id": 2,
+          "fitness": -23.81219247922652,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 4,
+          "evaluation_id": 5,
+          "fitness": -22.973432988162934,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 11,
+          "evaluation_id": 12,
+          "fitness": -21.940301397481164,
+          "parent_id": 4,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 22,
+          "evaluation_id": 23,
+          "fitness": -21.93527161284431,
+          "parent_id": 14,
+          "donor_id": 12,
+          "operator": "Fuse"
+        },
+        {
+          "id": 27,
+          "evaluation_id": 28,
+          "fitness": -21.57132031961138,
+          "parent_id": 15,
+          "donor_id": 12,
+          "operator": "Fuse"
+        },
+        {
+          "id": 66,
+          "evaluation_id": 68,
+          "fitness": -21.547053124424295,
+          "parent_id": 63,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 71,
+          "evaluation_id": 74,
+          "fitness": -21.26279245947324,
+          "parent_id": 66,
+          "donor_id": 27,
+          "operator": "Fuse"
+        },
+        {
+          "id": 83,
+          "evaluation_id": 88,
+          "fitness": -21.06574547883304,
+          "parent_id": 66,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 222,
+          "evaluation_id": 233,
+          "fitness": -21.032220395715537,
+          "parent_id": 66,
+          "donor_id": 110,
+          "operator": "Fuse"
+        },
+        {
+          "id": 240,
+          "evaluation_id": 252,
+          "fitness": -20.880351973636124,
+          "parent_id": 226,
+          "donor_id": 222,
+          "operator": "Fuse"
+        },
+        {
+          "id": 281,
+          "evaluation_id": 295,
+          "fitness": -20.84998723367559,
+          "parent_id": 236,
+          "donor_id": 271,
+          "operator": "Fuse"
+        },
+        {
+          "id": 308,
+          "evaluation_id": 322,
+          "fitness": -20.7548447167837,
+          "parent_id": 238,
+          "donor_id": 285,
+          "operator": "Fuse"
+        },
+        {
+          "id": 347,
+          "evaluation_id": 362,
+          "fitness": -20.734536501394587,
+          "parent_id": 341,
+          "donor_id": 331,
+          "operator": "Fuse"
+        },
+        {
+          "id": 369,
+          "evaluation_id": 387,
+          "fitness": -20.562337081812906,
+          "parent_id": 364,
+          "donor_id": 347,
+          "operator": "Fuse"
+        },
+        {
+          "id": 798,
+          "evaluation_id": 859,
+          "fitness": -20.55282351398214,
+          "parent_id": 281,
+          "donor_id": 525,
+          "operator": "Fuse"
+        },
+        {
+          "id": 822,
+          "evaluation_id": 886,
+          "fitness": -20.497691602655692,
+          "parent_id": 507,
+          "donor_id": null,
+          "operator": "Refine"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_code_or_signature": 156,
+        "runtime_error": 61,
+        "invalid_result": 8,
+        "timeout": 1
+      },
+      "source_sha256": "f6ea02f6b6fcef571e0a6d6318888f28ab961030bb56a2a7c731c970729daf1d",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 415,
+        "Refine": 510,
+        "Pivot": 162
+      }
+    },
+    {
+      "version": "v107",
+      "task": "cvrp_aco",
+      "repeat": 1,
+      "budget_used": 411,
+      "best": -9.307110529682667,
+      "best_root": -12.737387302250124,
+      "valid_nodes": 381,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -18.688237314472385,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 1,
+          "evaluation_id": 2,
+          "fitness": -15.183967509794371,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 7,
+          "evaluation_id": 8,
+          "fitness": -12.737387302250124,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 15,
+          "evaluation_id": 16,
+          "fitness": -12.72564283190434,
+          "parent_id": 7,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 32,
+          "evaluation_id": 35,
+          "fitness": -12.39060631263269,
+          "parent_id": 15,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 41,
+          "evaluation_id": 44,
+          "fitness": -12.375606744667365,
+          "parent_id": 37,
+          "donor_id": 39,
+          "operator": "Fuse"
+        },
+        {
+          "id": 49,
+          "evaluation_id": 52,
+          "fitness": -11.131794281353752,
+          "parent_id": 39,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 77,
+          "evaluation_id": 80,
+          "fitness": -11.120379185609057,
+          "parent_id": 74,
+          "donor_id": 41,
+          "operator": "Fuse"
+        },
+        {
+          "id": 94,
+          "evaluation_id": 98,
+          "fitness": -10.76766717057742,
+          "parent_id": 64,
+          "donor_id": 54,
+          "operator": "Fuse"
+        },
+        {
+          "id": 110,
+          "evaluation_id": 115,
+          "fitness": -10.687459561484218,
+          "parent_id": 94,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 165,
+          "evaluation_id": 176,
+          "fitness": -10.629862386660069,
+          "parent_id": 62,
+          "donor_id": 57,
+          "operator": "Fuse"
+        },
+        {
+          "id": 166,
+          "evaluation_id": 177,
+          "fitness": -10.540924479642609,
+          "parent_id": 165,
+          "donor_id": 53,
+          "operator": "Fuse"
+        },
+        {
+          "id": 186,
+          "evaluation_id": 197,
+          "fitness": -10.490424012405448,
+          "parent_id": 184,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 189,
+          "evaluation_id": 201,
+          "fitness": -10.467483600229334,
+          "parent_id": 186,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 213,
+          "evaluation_id": 226,
+          "fitness": -10.353265041316698,
+          "parent_id": 184,
+          "donor_id": 141,
+          "operator": "Fuse"
+        },
+        {
+          "id": 259,
+          "evaluation_id": 275,
+          "fitness": -9.605287437222707,
+          "parent_id": 189,
+          "donor_id": 171,
+          "operator": "Fuse"
+        },
+        {
+          "id": 266,
+          "evaluation_id": 283,
+          "fitness": -9.551979917577897,
+          "parent_id": 259,
+          "donor_id": 134,
+          "operator": "Fuse"
+        },
+        {
+          "id": 270,
+          "evaluation_id": 288,
+          "fitness": -9.451654424752203,
+          "parent_id": 266,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 353,
+          "evaluation_id": 379,
+          "fitness": -9.307110529682667,
+          "parent_id": 343,
+          "donor_id": null,
+          "operator": "Refine"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_code_or_signature": 1,
+        "runtime_error": 30
+      },
+      "source_sha256": "317f28a5f400faf9a77c2bf340aed281d34057e1b9e6479c876276530e43dd7d",
+      "executed_operator_counts": {
+        "Init": 9,
+        "Fuse": 132,
+        "Refine": 207,
+        "Pivot": 64
+      }
+    },
+    {
+      "version": "v107",
+      "task": "cvrp_aco",
+      "repeat": 2,
+      "budget_used": 427,
+      "best": -9.4411016992704,
+      "best_root": -13.835640604793852,
+      "valid_nodes": 424,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -18.688237314472385,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 2,
+          "evaluation_id": 3,
+          "fitness": -15.623550935476672,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 7,
+          "evaluation_id": 8,
+          "fitness": -13.835640604793852,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 28,
+          "evaluation_id": 29,
+          "fitness": -11.977101696753817,
+          "parent_id": 14,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 34,
+          "evaluation_id": 35,
+          "fitness": -11.431761223544276,
+          "parent_id": 28,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 39,
+          "evaluation_id": 40,
+          "fitness": -11.306941457754249,
+          "parent_id": 34,
+          "donor_id": 28,
+          "operator": "Fuse"
+        },
+        {
+          "id": 41,
+          "evaluation_id": 42,
+          "fitness": -11.294376834579385,
+          "parent_id": 28,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 45,
+          "evaluation_id": 46,
+          "fitness": -11.11643245906266,
+          "parent_id": 34,
+          "donor_id": 33,
+          "operator": "Fuse"
+        },
+        {
+          "id": 48,
+          "evaluation_id": 49,
+          "fitness": -10.720497858861942,
+          "parent_id": 45,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 62,
+          "evaluation_id": 63,
+          "fitness": -10.50203478333622,
+          "parent_id": 48,
+          "donor_id": 11,
+          "operator": "Fuse"
+        },
+        {
+          "id": 64,
+          "evaluation_id": 66,
+          "fitness": -10.141465207177804,
+          "parent_id": 62,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 76,
+          "evaluation_id": 78,
+          "fitness": -9.96544786816516,
+          "parent_id": 64,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 112,
+          "evaluation_id": 115,
+          "fitness": -9.92557973095952,
+          "parent_id": 100,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 119,
+          "evaluation_id": 122,
+          "fitness": -9.783217554632596,
+          "parent_id": 112,
+          "donor_id": 89,
+          "operator": "Fuse"
+        },
+        {
+          "id": 143,
+          "evaluation_id": 146,
+          "fitness": -9.778797723140652,
+          "parent_id": 135,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 153,
+          "evaluation_id": 156,
+          "fitness": -9.778398091066236,
+          "parent_id": 143,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 197,
+          "evaluation_id": 200,
+          "fitness": -9.718648285220207,
+          "parent_id": 76,
+          "donor_id": 145,
+          "operator": "Fuse"
+        },
+        {
+          "id": 241,
+          "evaluation_id": 244,
+          "fitness": -9.62203565800258,
+          "parent_id": 222,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 242,
+          "evaluation_id": 245,
+          "fitness": -9.612707821733618,
+          "parent_id": 241,
+          "donor_id": 117,
+          "operator": "Fuse"
+        },
+        {
+          "id": 250,
+          "evaluation_id": 253,
+          "fitness": -9.501807632283809,
+          "parent_id": 241,
+          "donor_id": 195,
+          "operator": "Fuse"
+        },
+        {
+          "id": 342,
+          "evaluation_id": 345,
+          "fitness": -9.46316822312945,
+          "parent_id": 241,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 419,
+          "evaluation_id": 422,
+          "fitness": -9.442354937942953,
+          "parent_id": 406,
+          "donor_id": 234,
+          "operator": "Fuse"
+        },
+        {
+          "id": 423,
+          "evaluation_id": 427,
+          "fitness": -9.4411016992704,
+          "parent_id": 421,
+          "donor_id": null,
+          "operator": "Refine"
+        }
+      ],
+      "failure_reasons": {
+        "runtime_error": 3,
+        "invalid_code_or_signature": 1
+      },
+      "source_sha256": "6176b44d99452582b374536d80aa447d78995aed3e980f31e09812336be7295e",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 158,
+        "Refine": 197,
+        "Pivot": 65
+      }
+    },
+    {
+      "version": "v107",
+      "task": "cvrp_aco",
+      "repeat": 3,
+      "budget_used": 392,
+      "best": -9.118464877115638,
+      "best_root": -12.603320285314163,
+      "valid_nodes": 353,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -18.688237314472385,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 2,
+          "evaluation_id": 3,
+          "fitness": -16.099575146795694,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 4,
+          "evaluation_id": 5,
+          "fitness": -12.603320285314163,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 20,
+          "evaluation_id": 24,
+          "fitness": -9.534357952039855,
+          "parent_id": 12,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 28,
+          "evaluation_id": 32,
+          "fitness": -9.46340317252253,
+          "parent_id": 27,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 35,
+          "evaluation_id": 39,
+          "fitness": -9.303274160910505,
+          "parent_id": 33,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 100,
+          "evaluation_id": 107,
+          "fitness": -9.28256749587624,
+          "parent_id": 81,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 111,
+          "evaluation_id": 118,
+          "fitness": -9.271081018260201,
+          "parent_id": 108,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 113,
+          "evaluation_id": 120,
+          "fitness": -9.253610354257969,
+          "parent_id": 98,
+          "donor_id": 32,
+          "operator": "Fuse"
+        },
+        {
+          "id": 115,
+          "evaluation_id": 122,
+          "fitness": -9.247332563464171,
+          "parent_id": 83,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 124,
+          "evaluation_id": 133,
+          "fitness": -9.228705966047418,
+          "parent_id": 81,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 131,
+          "evaluation_id": 140,
+          "fitness": -9.118983113840901,
+          "parent_id": 105,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 344,
+          "evaluation_id": 382,
+          "fitness": -9.118464877115638,
+          "parent_id": 334,
+          "donor_id": 294,
+          "operator": "Fuse"
+        }
+      ],
+      "failure_reasons": {
+        "runtime_error": 39
+      },
+      "source_sha256": "18b1df3c7e5989228039ab9a1ac9593abb3badc998e421d57bd83a517a6a1a54",
+      "executed_operator_counts": {
+        "Init": 9,
+        "Fuse": 123,
+        "Pivot": 68,
+        "Refine": 192
+      }
+    },
+    {
+      "version": "v107",
+      "task": "online_bin_packing",
+      "repeat": 1,
+      "budget_used": 1000,
+      "best": -728.25,
+      "best_root": -744.5,
+      "valid_nodes": 996,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -744.5,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 195,
+          "evaluation_id": 196,
+          "fitness": -744.0,
+          "parent_id": 130,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 197,
+          "evaluation_id": 198,
+          "fitness": -728.5,
+          "parent_id": 195,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 741,
+          "evaluation_id": 743,
+          "fitness": -728.25,
+          "parent_id": 573,
+          "donor_id": null,
+          "operator": "Refine"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_code_or_signature": 2,
+        "runtime_error": 4
+      },
+      "source_sha256": "d427d159b3a43c9252d896cb9a71cb89a6d74057e8a2ba0dafc6ad861abb1a2e",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 364,
+        "Refine": 465,
+        "Pivot": 165
+      }
+    },
+    {
+      "version": "v107",
+      "task": "online_bin_packing",
+      "repeat": 2,
+      "budget_used": 1000,
+      "best": -744.5,
+      "best_root": -744.5,
+      "valid_nodes": 997,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -744.5,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        }
+      ],
+      "failure_reasons": {
+        "runtime_error": 2,
+        "timeout": 1,
+        "invalid_code_or_signature": 1
+      },
+      "source_sha256": "e65844adc283e61aaf123e1e715b3a55c52c166cc89679f06d23c7d11c861325",
+      "executed_operator_counts": {
+        "Init": 9,
+        "Fuse": 356,
+        "Refine": 504,
+        "Pivot": 132
+      }
+    },
+    {
+      "version": "v107",
+      "task": "online_bin_packing",
+      "repeat": 3,
+      "budget_used": 1000,
+      "best": -744.5,
+      "best_root": -744.5,
+      "valid_nodes": 1000,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -744.5,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        }
+      ],
+      "failure_reasons": {},
+      "source_sha256": "aec3cf95f743a31cc86b3d353615b010f869380242e58509b8a0c5d807ec9267",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 376,
+        "Refine": 461,
+        "Pivot": 155
+      }
+    },
+    {
+      "version": "v107",
+      "task": "op_aco",
+      "repeat": 1,
+      "budget_used": 586,
+      "best": 14.486,
+      "best_root": 12.845999999999998,
+      "valid_nodes": 576,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": 12.734,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 3,
+          "evaluation_id": 4,
+          "fitness": 12.845999999999998,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 9,
+          "evaluation_id": 10,
+          "fitness": 13.064000000000002,
+          "parent_id": 3,
+          "donor_id": 5,
+          "operator": "Fuse"
+        },
+        {
+          "id": 30,
+          "evaluation_id": 31,
+          "fitness": 13.209999999999999,
+          "parent_id": 14,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 35,
+          "evaluation_id": 36,
+          "fitness": 13.504,
+          "parent_id": 33,
+          "donor_id": 30,
+          "operator": "Fuse"
+        },
+        {
+          "id": 48,
+          "evaluation_id": 49,
+          "fitness": 13.575999999999999,
+          "parent_id": 40,
+          "donor_id": 33,
+          "operator": "Fuse"
+        },
+        {
+          "id": 72,
+          "evaluation_id": 73,
+          "fitness": 13.693999999999999,
+          "parent_id": 65,
+          "donor_id": 67,
+          "operator": "Fuse"
+        },
+        {
+          "id": 82,
+          "evaluation_id": 83,
+          "fitness": 14.029999999999998,
+          "parent_id": 80,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 85,
+          "evaluation_id": 86,
+          "fitness": 14.463999999999999,
+          "parent_id": 82,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 129,
+          "evaluation_id": 131,
+          "fitness": 14.486,
+          "parent_id": 95,
+          "donor_id": null,
+          "operator": "Refine"
+        }
+      ],
+      "failure_reasons": {
+        "runtime_error": 10
+      },
+      "source_sha256": "6b0ebe5ab6a7c2cbb62cbb6b83f0688e5b08391bf7ac091e935183f1dc8d9ac4",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 211,
+        "Refine": 274,
+        "Pivot": 93
+      }
+    },
+    {
+      "version": "v107",
+      "task": "op_aco",
+      "repeat": 2,
+      "budget_used": 616,
+      "best": 14.679999999999998,
+      "best_root": 12.734,
+      "valid_nodes": 611,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": 12.734,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 9,
+          "evaluation_id": 10,
+          "fitness": 13.022,
+          "parent_id": 3,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 12,
+          "evaluation_id": 13,
+          "fitness": 13.648000000000001,
+          "parent_id": 9,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 13,
+          "evaluation_id": 14,
+          "fitness": 13.822,
+          "parent_id": 12,
+          "donor_id": 9,
+          "operator": "Fuse"
+        },
+        {
+          "id": 15,
+          "evaluation_id": 16,
+          "fitness": 13.976000000000003,
+          "parent_id": 13,
+          "donor_id": 5,
+          "operator": "Fuse"
+        },
+        {
+          "id": 25,
+          "evaluation_id": 26,
+          "fitness": 14.02,
+          "parent_id": 19,
+          "donor_id": 20,
+          "operator": "Fuse"
+        },
+        {
+          "id": 26,
+          "evaluation_id": 27,
+          "fitness": 14.280000000000001,
+          "parent_id": 15,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 40,
+          "evaluation_id": 41,
+          "fitness": 14.589999999999998,
+          "parent_id": 28,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 182,
+          "evaluation_id": 187,
+          "fitness": 14.648,
+          "parent_id": 153,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 470,
+          "evaluation_id": 476,
+          "fitness": 14.679999999999998,
+          "parent_id": 308,
+          "donor_id": 151,
+          "operator": "Fuse"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_code_or_signature": 2,
+        "runtime_error": 5
+      },
+      "source_sha256": "f36ecf82074f848cdfede25accfe64e3b8403b96ac93bd9d51b5d2c08a235474",
+      "executed_operator_counts": {
+        "Init": 10,
+        "Fuse": 223,
+        "Refine": 293,
+        "Pivot": 92
+      }
+    },
+    {
+      "version": "v107",
+      "task": "op_aco",
+      "repeat": 3,
+      "budget_used": 468,
+      "best": 14.432000000000002,
+      "best_root": 12.734,
+      "valid_nodes": 460,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": 12.734,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 9,
+          "evaluation_id": 11,
+          "fitness": 12.958000000000002,
+          "parent_id": 8,
+          "donor_id": 3,
+          "operator": "Fuse"
+        },
+        {
+          "id": 14,
+          "evaluation_id": 16,
+          "fitness": 13.936000000000002,
+          "parent_id": 9,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 20,
+          "evaluation_id": 22,
+          "fitness": 14.011999999999997,
+          "parent_id": 14,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 21,
+          "evaluation_id": 23,
+          "fitness": 14.126,
+          "parent_id": 20,
+          "donor_id": 11,
+          "operator": "Fuse"
+        },
+        {
+          "id": 37,
+          "evaluation_id": 39,
+          "fitness": 14.207999999999998,
+          "parent_id": 21,
+          "donor_id": 12,
+          "operator": "Fuse"
+        },
+        {
+          "id": 162,
+          "evaluation_id": 165,
+          "fitness": 14.290000000000001,
+          "parent_id": 148,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 256,
+          "evaluation_id": 260,
+          "fitness": 14.294,
+          "parent_id": 239,
+          "donor_id": 203,
+          "operator": "Fuse"
+        },
+        {
+          "id": 414,
+          "evaluation_id": 423,
+          "fitness": 14.432000000000002,
+          "parent_id": 301,
+          "donor_id": null,
+          "operator": "Refine"
+        }
+      ],
+      "failure_reasons": {
+        "runtime_error": 8
+      },
+      "source_sha256": "b04e26f056c28756d157e7055804ac37152c03221c8eec06d8024cd5383cf89b",
+      "executed_operator_counts": {
+        "Init": 9,
+        "Fuse": 141,
+        "Refine": 238,
+        "Pivot": 80
+      }
+    },
+    {
+      "version": "v107",
+      "task": "tsp_construct",
+      "repeat": 1,
+      "budget_used": 524,
+      "best": -6.478630649544964,
+      "best_root": -6.820211505568105,
+      "valid_nodes": 461,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -7.985767597087445,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 1,
+          "evaluation_id": 2,
+          "fitness": -7.284847035760439,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 3,
+          "evaluation_id": 4,
+          "fitness": -6.820211505568105,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 94,
+          "evaluation_id": 95,
+          "fitness": -6.78870135557967,
+          "parent_id": 87,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 169,
+          "evaluation_id": 170,
+          "fitness": -6.775269758259421,
+          "parent_id": 158,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 196,
+          "evaluation_id": 198,
+          "fitness": -6.754435499017189,
+          "parent_id": 169,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 201,
+          "evaluation_id": 203,
+          "fitness": -6.731041192540523,
+          "parent_id": 196,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 203,
+          "evaluation_id": 205,
+          "fitness": -6.71085613825252,
+          "parent_id": 201,
+          "donor_id": 91,
+          "operator": "Fuse"
+        },
+        {
+          "id": 205,
+          "evaluation_id": 207,
+          "fitness": -6.685090878796045,
+          "parent_id": 203,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 220,
+          "evaluation_id": 222,
+          "fitness": -6.614621233519911,
+          "parent_id": 215,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 279,
+          "evaluation_id": 290,
+          "fitness": -6.53389371585012,
+          "parent_id": 260,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 440,
+          "evaluation_id": 502,
+          "fitness": -6.495361093057388,
+          "parent_id": 331,
+          "donor_id": 385,
+          "operator": "Fuse"
+        },
+        {
+          "id": 452,
+          "evaluation_id": 514,
+          "fitness": -6.478630649544964,
+          "parent_id": 440,
+          "donor_id": 400,
+          "operator": "Fuse"
+        }
+      ],
+      "failure_reasons": {
+        "runtime_error": 7,
+        "invalid_code_or_signature": 11,
+        "timeout": 56
+      },
+      "source_sha256": "281555e92304f152775531110d09b1c81d7507da97a14b00a491ee0aeab20621",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 174,
+        "Refine": 275,
+        "Pivot": 78
+      }
+    },
+    {
+      "version": "v107",
+      "task": "tsp_construct",
+      "repeat": 2,
+      "budget_used": 733,
+      "best": -6.8239686184057184,
+      "best_root": -7.178999203709081,
+      "valid_nodes": 727,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -9.229107058045662,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 1,
+          "evaluation_id": 2,
+          "fitness": -8.081762316416569,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 3,
+          "evaluation_id": 4,
+          "fitness": -7.178999203709081,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 34,
+          "evaluation_id": 35,
+          "fitness": -7.071455064831496,
+          "parent_id": 18,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 35,
+          "evaluation_id": 36,
+          "fitness": -6.973203841713479,
+          "parent_id": 34,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 67,
+          "evaluation_id": 68,
+          "fitness": -6.8239686184057184,
+          "parent_id": 53,
+          "donor_id": null,
+          "operator": "Refine"
+        }
+      ],
+      "failure_reasons": {
+        "runtime_error": 6,
+        "invalid_code_or_signature": 4
+      },
+      "source_sha256": "028f8eef0ca05a06f27ecf776f982ef55765c5a6912c8957e620d8f92d8b9f6e",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 238,
+        "Refine": 369,
+        "Pivot": 122
+      }
+    },
+    {
+      "version": "v107",
+      "task": "tsp_construct",
+      "repeat": 3,
+      "budget_used": 814,
+      "best": -6.685090878796045,
+      "best_root": -6.820211505568105,
+      "valid_nodes": 775,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -7.326274010792124,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 3,
+          "evaluation_id": 4,
+          "fitness": -6.908971224394478,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 4,
+          "evaluation_id": 5,
+          "fitness": -6.820211505568105,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 46,
+          "evaluation_id": 48,
+          "fitness": -6.773758892265338,
+          "parent_id": 33,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 216,
+          "evaluation_id": 221,
+          "fitness": -6.746176489883796,
+          "parent_id": 46,
+          "donor_id": 170,
+          "operator": "Fuse"
+        },
+        {
+          "id": 356,
+          "evaluation_id": 362,
+          "fitness": -6.71085613825252,
+          "parent_id": 294,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 391,
+          "evaluation_id": 398,
+          "fitness": -6.685090878796045,
+          "parent_id": 383,
+          "donor_id": 99,
+          "operator": "Fuse"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_code_or_signature": 3,
+        "runtime_error": 9,
+        "invalid_result": 1,
+        "timeout": 29
+      },
+      "source_sha256": "6fb9a4c343042de4f7ae2dd7c0968f264d6e70e56f564ac9e23e76e3485123f1",
+      "executed_operator_counts": {
+        "Init": 9,
+        "Fuse": 279,
+        "Pivot": 117,
+        "Refine": 412
+      }
+    },
+    {
+      "version": "v107",
+      "task": "vrptw_construct",
+      "repeat": 1,
+      "budget_used": 546,
+      "best": -20.438223235676475,
+      "best_root": -22.698596596840076,
+      "valid_nodes": 539,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -30.02301723710724,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 2,
+          "evaluation_id": 4,
+          "fitness": -22.698596596840076,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 8,
+          "evaluation_id": 10,
+          "fitness": -21.400083232443347,
+          "parent_id": 5,
+          "donor_id": 2,
+          "operator": "Fuse"
+        },
+        {
+          "id": 27,
+          "evaluation_id": 32,
+          "fitness": -21.249718161559414,
+          "parent_id": 24,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 42,
+          "evaluation_id": 47,
+          "fitness": -21.062698972451628,
+          "parent_id": 34,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 45,
+          "evaluation_id": 50,
+          "fitness": -20.967318107819032,
+          "parent_id": 42,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 74,
+          "evaluation_id": 79,
+          "fitness": -20.94399052617237,
+          "parent_id": 65,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 95,
+          "evaluation_id": 100,
+          "fitness": -20.863428602415482,
+          "parent_id": 67,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 97,
+          "evaluation_id": 102,
+          "fitness": -20.850768158730773,
+          "parent_id": 72,
+          "donor_id": 90,
+          "operator": "Fuse"
+        },
+        {
+          "id": 105,
+          "evaluation_id": 110,
+          "fitness": -20.830911519202505,
+          "parent_id": 104,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 114,
+          "evaluation_id": 119,
+          "fitness": -20.789289063986175,
+          "parent_id": 111,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 126,
+          "evaluation_id": 131,
+          "fitness": -20.75763617812207,
+          "parent_id": 114,
+          "donor_id": 60,
+          "operator": "Fuse"
+        },
+        {
+          "id": 127,
+          "evaluation_id": 132,
+          "fitness": -20.69657117137861,
+          "parent_id": 126,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 310,
+          "evaluation_id": 315,
+          "fitness": -20.635104640328635,
+          "parent_id": 258,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 321,
+          "evaluation_id": 326,
+          "fitness": -20.512394510787217,
+          "parent_id": 298,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 437,
+          "evaluation_id": 444,
+          "fitness": -20.438223235676475,
+          "parent_id": 251,
+          "donor_id": null,
+          "operator": "Refine"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_result": 2,
+        "invalid_code_or_signature": 3,
+        "runtime_error": 5
+      },
+      "source_sha256": "dd92f26cf28a103e3279ea4ed44086b7a66e23e8e375af610aa790b53e6fd3aa",
+      "executed_operator_counts": {
+        "Init": 9,
+        "Fuse": 178,
+        "Refine": 282,
+        "Pivot": 80
+      }
+    },
+    {
+      "version": "v107",
+      "task": "vrptw_construct",
+      "repeat": 2,
+      "budget_used": 670,
+      "best": -20.540543328644052,
+      "best_root": -21.169550682225346,
+      "valid_nodes": 656,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 2,
+          "fitness": -21.169550682225346,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 31,
+          "evaluation_id": 35,
+          "fitness": -20.771859226138478,
+          "parent_id": 0,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 45,
+          "evaluation_id": 49,
+          "fitness": -20.711219027495595,
+          "parent_id": 41,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 61,
+          "evaluation_id": 65,
+          "fitness": -20.705435126932677,
+          "parent_id": 41,
+          "donor_id": 45,
+          "operator": "Fuse"
+        },
+        {
+          "id": 94,
+          "evaluation_id": 98,
+          "fitness": -20.68927829994564,
+          "parent_id": 57,
+          "donor_id": 43,
+          "operator": "Fuse"
+        },
+        {
+          "id": 179,
+          "evaluation_id": 185,
+          "fitness": -20.670669468196994,
+          "parent_id": 94,
+          "donor_id": null,
+          "operator": "Pivot"
+        },
+        {
+          "id": 319,
+          "evaluation_id": 329,
+          "fitness": -20.610651568678435,
+          "parent_id": 237,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 342,
+          "evaluation_id": 352,
+          "fitness": -20.540543328644052,
+          "parent_id": 333,
+          "donor_id": null,
+          "operator": "Refine"
+        }
+      ],
+      "failure_reasons": {
+        "invalid_result": 2,
+        "runtime_error": 12,
+        "invalid_code_or_signature": 5
+      },
+      "source_sha256": "4b54ad75a148e756189240f77ab7d31e99279849c60fc9025039d2e8a525dfb2",
+      "executed_operator_counts": {
+        "Init": 11,
+        "Fuse": 243,
+        "Refine": 317,
+        "Pivot": 104
+      }
+    },
+    {
+      "version": "v107",
+      "task": "vrptw_construct",
+      "repeat": 3,
+      "budget_used": 734,
+      "best": -20.528990869547894,
+      "best_root": -21.443300379938325,
+      "valid_nodes": 720,
+      "frontier": [
+        {
+          "id": 0,
+          "evaluation_id": 1,
+          "fitness": -28.615931795387063,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 1,
+          "evaluation_id": 2,
+          "fitness": -28.22634151651679,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 2,
+          "evaluation_id": 3,
+          "fitness": -24.652841367133867,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 4,
+          "evaluation_id": 5,
+          "fitness": -22.698596596840076,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 7,
+          "evaluation_id": 8,
+          "fitness": -21.443300379938325,
+          "parent_id": null,
+          "donor_id": null,
+          "operator": "Init"
+        },
+        {
+          "id": 41,
+          "evaluation_id": 45,
+          "fitness": -21.29410746935263,
+          "parent_id": 39,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 45,
+          "evaluation_id": 49,
+          "fitness": -21.16882754249866,
+          "parent_id": 41,
+          "donor_id": 7,
+          "operator": "Fuse"
+        },
+        {
+          "id": 49,
+          "evaluation_id": 53,
+          "fitness": -21.033358733230198,
+          "parent_id": 45,
+          "donor_id": 33,
+          "operator": "Fuse"
+        },
+        {
+          "id": 55,
+          "evaluation_id": 59,
+          "fitness": -20.983376602562323,
+          "parent_id": 53,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 86,
+          "evaluation_id": 91,
+          "fitness": -20.787475515683948,
+          "parent_id": 55,
+          "donor_id": 85,
+          "operator": "Fuse"
+        },
+        {
+          "id": 310,
+          "evaluation_id": 320,
+          "fitness": -20.745052262127523,
+          "parent_id": 286,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 416,
+          "evaluation_id": 426,
+          "fitness": -20.707865118733693,
+          "parent_id": 376,
+          "donor_id": null,
+          "operator": "Refine"
+        },
+        {
+          "id": 434,
+          "evaluation_id": 444,
+          "fitness": -20.528990869547894,
+          "parent_id": 422,
+          "donor_id": 230,
+          "operator": "Fuse"
+        }
+      ],
+      "failure_reasons": {
+        "runtime_error": 11,
+        "invalid_result": 3,
+        "invalid_code_or_signature": 5
+      },
+      "source_sha256": "a92a808443a18c84fd38192e6016b75ac0504086dec60fe8cd94ad9776869c43",
+      "executed_operator_counts": {
+        "Init": 8,
+        "Fuse": 257,
+        "Refine": 375,
+        "Pivot": 99
+      }
+    }
+  ]
+}

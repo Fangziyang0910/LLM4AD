@@ -1,0 +1,902 @@
+{
+  "pilot": true,
+  "anchors": [
+    {
+      "label": "tsp_pivot",
+      "task": "tsp_construct",
+      "repeat": 2,
+      "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/tsp_construct/20260907_bounded_formal_tsp_v107_rep2",
+      "candidate_id": 97,
+      "original_event": {
+        "candidate_id": 97,
+        "requested_operator": "Pivot",
+        "operator": "Pivot",
+        "parent_id": 83,
+        "donor_id": null,
+        "operator_probabilities": {
+          "Refine": 0.5,
+          "Pivot": 0.15,
+          "Fuse": 0.35
+        },
+        "selection": {
+          "eligible_nodes": 94,
+          "beta": 225.81140994359632,
+          "ess_target": 14,
+          "quality_ess": 14.0,
+          "corrected_ess": 13.252837977544793,
+          "conditional_ess": 13.252837977544793,
+          "parent_marginal_ess": 15.129154332539324,
+          "operator_conditional": {
+            "Refine": 0.5343826982065386,
+            "Pivot": 0.09154941304888436,
+            "Fuse": 0.374067888744577
+          },
+          "parent_route": "joint_marginal",
+          "parent_probability": 0.07003790009278732,
+          "parent_count_before": 1
+        },
+        "parent_fitness": -6.8239686184057184,
+        "donor_fitness": null,
+        "best_before": -6.8239686184057184,
+        "prompt_tokens": 3383,
+        "prompt_hash": "7ca56a6b79766f99058b92f7b1b6db5fcec59459c36fdc8a8c06c42181e33ae1",
+        "template_hash": "c9ac9c80f47830b5e9a27c43d5e438f1e89178f44759c25a70ed51d70e19bc44",
+        "context_policy": "sampled_trajectory_v1",
+        "quality_boundaries": [
+          -7.447127293328439,
+          -7.2500820284558785
+        ],
+        "reference_layers": {
+          "85": "high",
+          "54": "low"
+        },
+        "reference_fit_rejections": [],
+        "reference_attempts": [
+          {
+            "node_id": 85,
+            "layer": "high",
+            "accepted": true
+          },
+          {
+            "node_id": 54,
+            "layer": "low",
+            "accepted": true
+          }
+        ],
+        "reference_shortfall": 0,
+        "sampling_seconds": 0.08047092496417463,
+        "context_node_ids": [
+          54,
+          83,
+          85
+        ],
+        "context_program_count": 3,
+        "context_program_tokens": [
+          845,
+          986,
+          1193
+        ],
+        "context_parent_index": 2,
+        "context_donor_index": null,
+        "scheduling_seconds": 0.13709684391506016,
+        "tokenizer_requests": 4,
+        "llm_attempts": 1,
+        "evaluation_id": 96,
+        "ts": "2026-09-08T00:49:54",
+        "step": 89,
+        "status": "ok",
+        "reason": null,
+        "budget_used": 96,
+        "eval_seconds": 0.5831789970397949,
+        "llm_seconds": 52.89244508743286,
+        "node_id": 94,
+        "fitness": -7.509306108067609,
+        "parent_improved": false,
+        "frontier_improved": false,
+        "parent_delta": -0.6853374896618902,
+        "frontier_delta": -0.6853374896618902
+      },
+      "parent": {
+        "id": 83,
+        "fitness": -6.8239686184057184,
+        "evaluation_id": 84,
+        "parent_id": 68,
+        "operator": "Refine",
+        "donor_id": null,
+        "code_hash": "4e8be04d1dfd52244bbd88c160f1ace5152675df6f1182befc65a19faf871e5b"
+      },
+      "context_nodes": [
+        {
+          "id": 54,
+          "fitness": -8.208833389475853,
+          "evaluation_id": 55,
+          "parent_id": 17,
+          "operator": "Refine",
+          "donor_id": null,
+          "code_hash": "bea53c05fc4dabb5f8efe1d2a116232ae8c8b26d18230e70215c2f300ffadac9"
+        },
+        {
+          "id": 83,
+          "fitness": -6.8239686184057184,
+          "evaluation_id": 84,
+          "parent_id": 68,
+          "operator": "Refine",
+          "donor_id": null,
+          "code_hash": "4e8be04d1dfd52244bbd88c160f1ace5152675df6f1182befc65a19faf871e5b"
+        },
+        {
+          "id": 85,
+          "fitness": -6.8239686184057184,
+          "evaluation_id": 87,
+          "parent_id": 81,
+          "operator": "Refine",
+          "donor_id": null,
+          "code_hash": "1c42efe0b3e3b04c4ac7b240321725d2d10ffa7a882e3ebf9afa7ecb17e56784"
+        }
+      ],
+      "evaluation_config": {
+        "split": "train",
+        "timeout_seconds": 20,
+        "n_instance": 16,
+        "problem_size": 50,
+        "seed": 2024
+      },
+      "A_reconstructed_identical": true,
+      "C": {
+        "kind": "ancestor_context_instruction_comment_bundle",
+        "history_ids": [
+          18,
+          34,
+          35,
+          41,
+          53,
+          67,
+          68,
+          83
+        ],
+        "omissions": []
+      },
+      "prompts": {
+        "A": {
+          "prompt_hash": "7ca56a6b79766f99058b92f7b1b6db5fcec59459c36fdc8a8c06c42181e33ae1",
+          "prompt_tokens": 3383,
+          "prompt_file": "tsp_pivot_A.prompt.txt"
+        },
+        "B": {
+          "prompt_hash": "532c165254b892fd2649dd5bcd6bb895b97382de14a012f03e492b07b9f35cbf",
+          "prompt_tokens": 3031,
+          "prompt_file": "tsp_pivot_B.prompt.txt"
+        },
+        "C": {
+          "prompt_hash": "86cbf1c223d928ec0a4671f44aaf2d15026771aaf1156724a8187d0797a6ff48",
+          "prompt_tokens": 2324,
+          "prompt_file": "tsp_pivot_C.prompt.txt"
+        }
+      }
+    },
+    {
+      "label": "obp_pivot",
+      "task": "online_bin_packing",
+      "repeat": 3,
+      "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/online_bin_packing/20260907_bounded_formal_obp_v107_rep3",
+      "candidate_id": 104,
+      "original_event": {
+        "candidate_id": 104,
+        "requested_operator": "Pivot",
+        "operator": "Pivot",
+        "parent_id": 43,
+        "donor_id": null,
+        "operator_probabilities": {
+          "Refine": 0.5,
+          "Pivot": 0.15,
+          "Fuse": 0.35
+        },
+        "selection": {
+          "eligible_nodes": 103,
+          "beta": 0.020269303750643737,
+          "ess_target": 101,
+          "quality_ess": 100.99999999999974,
+          "corrected_ess": 95.32216853708098,
+          "conditional_ess": 95.32216853708098,
+          "parent_marginal_ess": 96.3591869655105,
+          "operator_conditional": {
+            "Refine": 0.5084769721616889,
+            "Pivot": 0.135589147325129,
+            "Fuse": 0.35593388051318214
+          },
+          "parent_route": "joint_marginal",
+          "parent_probability": 0.012275535783338709,
+          "parent_count_before": 0
+        },
+        "parent_fitness": -744.5,
+        "donor_fitness": null,
+        "best_before": -744.5,
+        "prompt_tokens": 2616,
+        "prompt_hash": "cb725f21c5b4c7545704cf2cceaeb230a367e46ea2a30195dfb92d02227489c3",
+        "template_hash": "c9ac9c80f47830b5e9a27c43d5e438f1e89178f44759c25a70ed51d70e19bc44",
+        "context_policy": "sampled_trajectory_v1",
+        "quality_boundaries": [
+          -744.5,
+          -744.5
+        ],
+        "reference_layers": {
+          "9": "low",
+          "61": "low"
+        },
+        "reference_fit_rejections": [],
+        "reference_attempts": [
+          {
+            "node_id": 9,
+            "layer": "low",
+            "accepted": true
+          },
+          {
+            "node_id": 61,
+            "layer": "low",
+            "accepted": true
+          }
+        ],
+        "reference_shortfall": 0,
+        "sampling_seconds": 0.05967277893796563,
+        "context_node_ids": [
+          9,
+          43,
+          61
+        ],
+        "context_program_count": 3,
+        "context_program_tokens": [
+          708,
+          516,
+          1038
+        ],
+        "context_parent_index": 2,
+        "context_donor_index": null,
+        "scheduling_seconds": 0.13444051006808877,
+        "tokenizer_requests": 6,
+        "llm_attempts": 1,
+        "evaluation_id": 104,
+        "ts": "2026-09-08T00:21:44",
+        "step": 96,
+        "status": "ok",
+        "reason": null,
+        "budget_used": 104,
+        "eval_seconds": 1.907377004623413,
+        "llm_seconds": 19.117456674575806,
+        "node_id": 103,
+        "fitness": -744.5,
+        "parent_improved": false,
+        "frontier_improved": false,
+        "parent_delta": 0.0,
+        "frontier_delta": 0.0
+      },
+      "parent": {
+        "id": 43,
+        "fitness": -744.5,
+        "evaluation_id": 44,
+        "parent_id": 31,
+        "operator": "Fuse",
+        "donor_id": 21,
+        "code_hash": "e5aa11a20e90ea821562c0ba02db62e9586918faed6247be5b5ec93e4344d338"
+      },
+      "context_nodes": [
+        {
+          "id": 9,
+          "fitness": -744.5,
+          "evaluation_id": 10,
+          "parent_id": 5,
+          "operator": "Fuse",
+          "donor_id": 4,
+          "code_hash": "6bbe47b3a90aeaa1bf352d658fe4fd44e4d6cc451d6e553b6f027effd0010880"
+        },
+        {
+          "id": 43,
+          "fitness": -744.5,
+          "evaluation_id": 44,
+          "parent_id": 31,
+          "operator": "Fuse",
+          "donor_id": 21,
+          "code_hash": "e5aa11a20e90ea821562c0ba02db62e9586918faed6247be5b5ec93e4344d338"
+        },
+        {
+          "id": 61,
+          "fitness": -744.5,
+          "evaluation_id": 62,
+          "parent_id": 51,
+          "operator": "Fuse",
+          "donor_id": 31,
+          "code_hash": "40cfe864a403f6583b23145d4c9e0bc8440fca6332d52f13796736d90db3b374"
+        }
+      ],
+      "evaluation_config": {
+        "split": "train",
+        "timeout_seconds": 30,
+        "dataset_specs": [
+          {
+            "n_instances": 1,
+            "n_items": 1000,
+            "capacities": [
+              100,
+              500
+            ]
+          },
+          {
+            "n_instances": 1,
+            "n_items": 5000,
+            "capacities": [
+              100,
+              500
+            ]
+          }
+        ],
+        "seed": 2024
+      },
+      "A_reconstructed_identical": true,
+      "C": {
+        "kind": "ancestor_context_instruction_comment_bundle",
+        "history_ids": [
+          28,
+          31,
+          43
+        ],
+        "omissions": []
+      },
+      "prompts": {
+        "A": {
+          "prompt_hash": "cb725f21c5b4c7545704cf2cceaeb230a367e46ea2a30195dfb92d02227489c3",
+          "prompt_tokens": 2616,
+          "prompt_file": "obp_pivot_A.prompt.txt"
+        },
+        "B": {
+          "prompt_hash": "e1d9cf16cf6578f4cda8901964e6f1b68ea0d078d775017499b3504b284d0f35",
+          "prompt_tokens": 2200,
+          "prompt_file": "obp_pivot_B.prompt.txt"
+        },
+        "C": {
+          "prompt_hash": "2156da9f5c44e35a2d4425835eaa709ed826ce054e28169f3471e4dded9954ca",
+          "prompt_tokens": 1088,
+          "prompt_file": "obp_pivot_C.prompt.txt"
+        }
+      }
+    },
+    {
+      "label": "vrptw_fuse",
+      "task": "vrptw_construct",
+      "repeat": 1,
+      "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/vrptw_construct/20260907_bounded_formal_vrptw_v107_rep1",
+      "candidate_id": 197,
+      "original_event": {
+        "candidate_id": 197,
+        "requested_operator": "Fuse",
+        "operator": "Fuse",
+        "parent_id": 127,
+        "donor_id": 142,
+        "operator_probabilities": {
+          "Refine": 0.5,
+          "Pivot": 0.15,
+          "Fuse": 0.35
+        },
+        "selection": {
+          "eligible_nodes": 191,
+          "beta": 11.441603416883975,
+          "ess_target": 19.1,
+          "quality_ess": 19.099999999999998,
+          "corrected_ess": 20.546525982965335,
+          "conditional_ess": 20.546525982965335,
+          "parent_marginal_ess": 23.58536013886323,
+          "operator_conditional": {
+            "Refine": 0.5379780920774491,
+            "Pivot": 0.08543724346833648,
+            "Fuse": 0.37658466445421435
+          },
+          "parent_route": "joint_marginal",
+          "parent_probability": 0.08283254942019,
+          "parent_count_before": 5
+        },
+        "parent_fitness": -20.69657117137861,
+        "donor_fitness": -21.144346571420726,
+        "best_before": -20.69657117137861,
+        "prompt_tokens": 6278,
+        "prompt_hash": "8041da8cc8f5631f878241e493005c3de029fe5769cab19e62dc7768e66031f6",
+        "template_hash": "c9ac9c80f47830b5e9a27c43d5e438f1e89178f44759c25a70ed51d70e19bc44",
+        "context_policy": "sampled_trajectory_v1",
+        "quality_boundaries": [
+          -23.087592425655725,
+          -21.229837471416705
+        ],
+        "reference_layers": {
+          "142": "high",
+          "18": "low"
+        },
+        "reference_fit_rejections": [],
+        "reference_attempts": [
+          {
+            "node_id": 142,
+            "layer": "high",
+            "accepted": true
+          },
+          {
+            "node_id": 18,
+            "layer": "low",
+            "accepted": true
+          }
+        ],
+        "reference_shortfall": 0,
+        "sampling_seconds": 0.0912363650277257,
+        "context_node_ids": [
+          18,
+          142,
+          127
+        ],
+        "context_program_count": 3,
+        "context_program_tokens": [
+          1062,
+          2102,
+          2672
+        ],
+        "context_parent_index": 3,
+        "context_donor_index": 2,
+        "scheduling_seconds": 0.20444644917733967,
+        "tokenizer_requests": 6,
+        "llm_attempts": 1,
+        "evaluation_id": 196,
+        "ts": "2026-09-08T03:11:01",
+        "step": 188,
+        "status": "ok",
+        "reason": null,
+        "budget_used": 196,
+        "eval_seconds": 0.7603466510772705,
+        "llm_seconds": 87.98804974555969,
+        "node_id": 191,
+        "fitness": -22.746562582124685,
+        "parent_improved": false,
+        "frontier_improved": false,
+        "parent_delta": -2.049991410746074,
+        "frontier_delta": -2.049991410746074,
+        "both_improved": false,
+        "both_delta": -2.049991410746074
+      },
+      "parent": {
+        "id": 127,
+        "fitness": -20.69657117137861,
+        "evaluation_id": 132,
+        "parent_id": 126,
+        "operator": "Refine",
+        "donor_id": null,
+        "code_hash": "69e09585a8d14e9da0f091af9a42a569c2216c0e4267b7eced1b015a24b6affa"
+      },
+      "context_nodes": [
+        {
+          "id": 18,
+          "fitness": -24.43152986117674,
+          "evaluation_id": 20,
+          "parent_id": 8,
+          "operator": "Fuse",
+          "donor_id": 17,
+          "code_hash": "2bc1038e903e4edc8348c85d1c29c76cdb677756afb25b8c121cf946b947ad4e"
+        },
+        {
+          "id": 142,
+          "fitness": -21.144346571420726,
+          "evaluation_id": 147,
+          "parent_id": 115,
+          "operator": "Refine",
+          "donor_id": null,
+          "code_hash": "7f856c12a8360845196cf79188733683dd31d7ace433f210c2cfb5f6be00d878"
+        },
+        {
+          "id": 127,
+          "fitness": -20.69657117137861,
+          "evaluation_id": 132,
+          "parent_id": 126,
+          "operator": "Refine",
+          "donor_id": null,
+          "code_hash": "69e09585a8d14e9da0f091af9a42a569c2216c0e4267b7eced1b015a24b6affa"
+        }
+      ],
+      "evaluation_config": {
+        "split": "train",
+        "timeout_seconds": 30,
+        "problem_size": 50,
+        "n_instance": 16,
+        "seed": 2024
+      },
+      "A_reconstructed_identical": true,
+      "C": {
+        "kind": "best_fitting_cross_lineage_donor_upper_bound",
+        "old_donor": {
+          "id": 142,
+          "code": "import numpy as np\n\ndef select_next_node(current_node: int, depot: int, unvisited_nodes: np.ndarray, rest_capacity: float, current_time: float, demands: np.ndarray, distance_matrix: np.ndarray, time_windows: np.ndarray) -> int:\n    \"\"\"\n    Selects the next node using a refined heuristic with 2-step lookahead risk,\n    adaptive urgency, and 2-regret.\n    \"\"\"\n    if len(unvisited_nodes) == 0:\n        return depot\n\n    unvisited_nodes = np.asarray(unvisited_nodes)\n\n    if len(unvisited_nodes) == 1:\n        node = int(unvisited_nodes[0])\n        if demands[node] <= rest_capacity:\n            arrival = current_time + distance_matrix[current_node, node]\n            if arrival <= time_windows[node, 1] + 1e-9:\n                return node\n        return depot\n\n    candidates = []\n    for node in unvisited_nodes:\n        node_idx = int(node)\n        if demands[node_idx] > rest_capacity:\n            continue\n        dist = distance_matrix[current_node, node_idx]\n        arrival_time = current_time + dist\n        tw_start = time_windows[node_idx, 0]\n        tw_end = time_windows[node_idx, 1]\n        if arrival_time > tw_end + 1e-9:\n            continue\n        wait_time = max(0.0, tw_start - arrival_time)\n        service_start = max(arrival_time, tw_start)\n        slack = tw_end - service_start\n        base_cost = dist + 0.3 * wait_time\n        candidates.append({\n            'node': node_idx,\n            'cost': base_cost,\n            'slack': slack,\n            'arrival_time': service_start,\n            'remaining_capacity': rest_capacity - demands[node_idx]\n        })\n\n    if not candidates:\n        return depot\n    if len(candidates) == 1:\n        return candidates[0]['node']\n\n    n_cand = len(candidates)\n    costs = np.array([c['cost'] for c in candidates])\n    slacks = np.array([c['slack'] for c in candidates])\n    nodes = np.array([c['node'] for c in candidates])\n    arrivals = np.array([c['arrival_time'] for c in candidates])\n    rem_caps = np.array([c['remaining_capacity'] for c in candidates])\n\n    min_c, max_c = np.min(costs), np.max(costs)\n    cost_range = max_c - min_c if max_c > min_c + 1e-9 else 1.0\n    norm_costs = (costs - min_c) / cost_range\n\n    avg_slack = np.mean(slacks)\n    # Adaptive lambda: higher for tighter windows\n    lambda_urgency = 0.15 / (1.0 + avg_slack / 30.0)\n    urgencies = np.exp(-lambda_urgency * slacks)\n\n    # 2-step lookahead risk\n    # For each candidate i, find the best next move j (cost + urgency of j)\n    lookahead_risks = np.zeros(n_cand)\n    for i in range(n_cand):\n        current_node_idx = nodes[i]\n        current_time_after = arrivals[i]\n        current_cap_after = rem_caps[i]\n        \n        best_next_risk = float('inf')\n        \n        # Option 1: Return to depot\n        # Risk is the return distance. We treat it as a neutral high risk or low?\n        # Returning to depot ends the route. If there are still unvisited nodes (implied by unvisited_nodes input),\n        # returning might be suboptimal unless capacity/time prevents others.\n        # However, the interface returns depot if no *feasible* next customer.\n        # Here we are comparing customers. If no customer is feasible in step 2, risk should be high (penalize moving to dead end).\n        \n        for j in range(n_cand):\n            if i == j:\n                continue\n            node_j = nodes[j]\n            if demands[node_j] > current_cap_after:\n                continue\n            \n            dist_ij = distance_matrix[current_node_idx, node_j]\n            arrival_j = current_time_after + dist_ij\n            tw_s_j = time_windows[node_j, 0]\n            tw_e_j = time_windows[node_j, 1]\n            \n            if arrival_j > tw_e_j + 1e-9:\n                continue\n            \n            wait_j = max(0.0, tw_s_j - arrival_j)\n            service_j = max(arrival_j, tw_s_j)\n            slack_j = tw_e_j - service_j\n            cost_j = dist_ij + 0.3 * wait_j\n            \n            # Urgency of the next node: higher urgency is \"riskier\" if we delay it?\n            # Actually, if the next node has very low slack, it's critical.\n            # We want to avoid paths that lead to nodes with *no* slack.\n            # Let's define risk as cost_j * (1 + urgency_penalty).\n            # If slack is low, urgency is high.\n            urg_j = np.exp(-lambda_urgency * slack_j)\n            \n            # If we pick i, and then pick j, the \"risk\" is the cost to get to j plus a penalty if j is tight.\n            # We want to MINIMIZE this risk. So we want the next step to be cheap and NOT tight?\n            # Actually, visiting a tight node immediately is good if it's the only option, but generally we want flexibility.\n            # However, a common heuristic is to prefer continuations that keep options open.\n            # Let's simplify: Risk = cost_j. If no next step is feasible, risk = large value.\n            \n            best_next_risk = min(best_next_risk, cost_j)\n\n        if best_next_risk == float('inf'):\n            # No feasible next customer from i. This is a dead end. High penalty.\n            lookahead_risks[i] = 1000.0\n        else:\n            lookahead_risks[i] = best_next_risk\n\n    min_lk, max_lk = np.min(lookahead_risks), np.max(lookahead_risks)\n    lk_range = max_lk - min_lk if max_lk > min_lk + 1e-9 else 1.0\n    norm_lookaheads = (lookahead_risks - min_lk) / lk_range\n\n    # 2-regret\n    regrets = np.zeros(n_cand)\n    for i in range(n_cand):\n        mask = np.ones(n_cand, dtype=bool)\n        mask[i] = False\n        best_alt = np.min(costs[mask]) if np.any(mask) else 0.0\n        regrets[i] = best_alt - costs[i]\n\n    min_r, max_r = np.min(regrets), np.max(regrets)\n    r_range = max_r - min_r if max_r > min_r + 1e-9 else 1.0\n    norm_regrets = (regrets - min_r) / r_range\n\n    # Adaptive Weights\n    w_cost = 0.40\n    w_urgency = 0.30\n    w_regret = 0.15\n    w_lookahead = 0.15\n\n    # Capacity tightness: if rest_capacity is small relative to average demand, prioritize cost (pack tightly)\n    avg_demand = np.mean(demands[unvisited_nodes]) if len(unvisited_nodes) > 0 else 1.0\n    cap_ratio = rest_capacity / (avg_demand + 1e-9)\n    \n    if cap_ratio < 2.0:\n        # Capacity is tight. We need to maximize load. \n        # High cost (long distances) is bad because it wastes route length, but maybe we need to visit specific nodes.\n        # Actually, if capacity is tight, we might be forced to return to depot soon.\n        # Boost urgency to ensure we don't miss tight windows before returning.\n        w_urgency *= 1.5\n        w_cost *= 0.9\n\n    if avg_slack < 10:\n        # Time is critical\n        w_urgency *= 1.8\n        w_lookahead *= 1.2\n        w_cost *= 0.8\n\n    total_w = w_cost + w_urgency + w_regret + w_lookahead\n    w_cost /= total_w\n    w_urgency /= total_w\n    w_regret /= total_w\n    w_lookahead /= total_w\n\n    score = (\n        w_cost * norm_costs +\n        w_urgency * (1.0 - urgencies) +\n        w_regret * (1.0 - norm_regrets) +\n        w_lookahead * norm_lookaheads\n    )\n\n    best_idx = np.argmin(score)\n    return int(nodes[best_idx])",
+          "idea": "This algorithm refines the 2-step lookahead by incorporating a composite \"future risk\" score that weights the cost of the best subsequent node by its time-window tightness. It dynamically adjusts the urgency exponent based on the average slack to better differentiate critical deadlines. Capacity constraints are integrated into the lookahead to ensure feasible continuations. The final score balances immediate travel cost, time-window urgency, 2-regret, and the weighted future risk, with weights adaptively scaled to prioritize feasibility under tight time or capacity conditions.",
+          "fitness": -21.144346571420726,
+          "evaluation_id": 147,
+          "parent_id": 115,
+          "operator": "Refine",
+          "donor_id": null
+        },
+        "new_donor": {
+          "id": 167,
+          "code": "import numpy as np\n\ndef select_next_node(current_node: int, depot: int, unvisited_nodes: np.ndarray, rest_capacity: float, current_time: float, demands: np.ndarray, distance_matrix: np.ndarray, time_windows: np.ndarray) -> int:\n    if len(unvisited_nodes) == 0:\n        return depot\n    \n    unvisited_nodes = np.asarray(unvisited_nodes)\n    \n    if len(unvisited_nodes) == 1:\n        node = int(unvisited_nodes[0])\n        if demands[node] <= rest_capacity:\n            arrival = current_time + distance_matrix[current_node, node]\n            if arrival <= time_windows[node, 1] + 1e-9:\n                return node\n        return depot\n\n    candidates = []\n    \n    # Step 1: Filter feasible candidates and compute raw metrics\n    for node in unvisited_nodes:\n        node_idx = int(node)\n        \n        # Capacity Check\n        if demands[node_idx] > rest_capacity:\n            continue\n            \n        dist = distance_matrix[current_node, node_idx]\n        arrival_time = current_time + dist\n        \n        tw_start = time_windows[node_idx, 0]\n        tw_end = time_windows[node_idx, 1]\n        \n        # Time Window Feasibility Check\n        if arrival_time > tw_end + 1e-9:\n            continue\n        \n        wait_time = max(0.0, tw_start - arrival_time)\n        service_start = max(arrival_time, tw_start)\n        slack = tw_end - service_start\n        \n        # Base Cost: Distance + Waiting Time\n        base_cost = dist + 0.3 * wait_time\n\n        candidates.append({\n            'node': node_idx,\n            'cost': base_cost,\n            'slack': slack,\n            'arrival_time': service_start,\n            'remaining_capacity': rest_capacity - demands[node_idx]\n        })\n    \n    if not candidates:\n        return depot\n        \n    if len(candidates) == 1:\n        return candidates[0]['node']\n\n    n_cand = len(candidates)\n    costs = np.array([c['cost'] for c in candidates])\n    slacks = np.array([c['slack'] for c in candidates])\n    nodes = np.array([c['node'] for c in candidates])\n    arrivals = np.array([c['arrival_time'] for c in candidates])\n    rem_caps = np.array([c['remaining_capacity'] for c in candidates])\n\n    # Normalize costs to [0, 1]\n    min_c, max_c = np.min(costs), np.max(costs)\n    cost_range = max_c - min_c if max_c > min_c + 1e-9 else 1.0\n    norm_costs = (costs - min_c) / cost_range\n\n    # Calculate Adaptive Urgency\n    avg_slack = np.mean(slacks)\n    min_slack = np.min(slacks)\n    # Dynamic lambda: tighter windows -> steeper decay\n    lambda_urgency = 0.1 / (1.0 + avg_slack / 50.0)\n    urgencies = np.exp(-lambda_urgency * slacks)\n    \n    # Additional urgency boost if min_slack is very small\n    if min_slack < 5:\n        urgencies = 0.5 * urgencies + 0.5 * (1.0 / (1.0 + min_slack))\n\n    # Calculate Regret (2-regret)\n    # Regret is the cost of losing the best alternative if we don't pick this one.\n    regrets = np.zeros(n_cand)\n    for i in range(n_cand):\n        if n_cand > 2:\n            mask = np.ones(n_cand, dtype=bool)\n            mask[i] = False\n            best_alt_cost = np.min(costs[mask])\n        else:\n            other_idx = 1 - i\n            best_alt_cost = costs[other_idx]\n        regrets[i] = best_alt_cost - costs[i]\n    \n    min_reg, max_reg = np.min(regrets), np.max(regrets)\n    regret_range = max_reg - min_reg if max_reg > min_reg + 1e-9 else 1.0\n    norm_regrets = (regrets - min_reg) / regret_range\n\n    # Calculate Lookahead Cost: 2-step simulation\n    # For each candidate, estimate the minimum cost to the next step (another customer or depot)\n    lookahead_costs = np.zeros(n_cand)\n    for i in range(n_cand):\n        current_node_idx = nodes[i]\n        current_time_after_visit = arrivals[i]\n        current_cap_after_visit = rem_caps[i]\n        \n        min_next_cost = float('inf')\n        \n        # Option 1: Go to Depot\n        dist_to_depot = distance_matrix[current_node_idx, depot]\n        min_next_cost = min(min_next_cost, dist_to_depot)\n        \n        # Option 2: Go to another feasible customer\n        for j in range(n_cand):\n            if i == j:\n                continue\n            \n            node_j = nodes[j]\n            \n            # Check capacity\n            if demands[node_j] > current_cap_after_visit:\n                continue\n                \n            dist_ij = distance_matrix[current_node_idx, node_j]\n            arrival_j = current_time_after_visit + dist_ij\n            \n            tw_start_j = time_windows[node_j, 0]\n            tw_end_j = time_windows[node_j, 1]\n            \n            if arrival_j > tw_end_j + 1e-9:\n                continue\n            \n            wait_j = max(0.0, tw_start_j - arrival_j)\n            service_start_j = max(arrival_j, tw_start_j)\n            cost_j = dist_ij + 0.3 * wait_j\n            \n            if cost_j < min_next_cost:\n                min_next_cost = cost_j\n        \n        # If no other customer is feasible, min_next_cost remains dist_to_depot\n        if min_next_cost == float('inf'):\n            min_next_cost = 0.0\n            \n        lookahead_costs[i] = min_next_cost\n\n    # Normalize lookahead costs\n    min_lk, max_lk = np.min(lookahead_costs), np.max(lookahead_costs)\n    lk_range = max_lk - min_lk if max_lk > min_lk + 1e-9 else 1.0\n    norm_lookaheads = (lookahead_costs - min_lk) / lk_range\n\n    # Adaptive Weights\n    # Base weights balancing the four components\n    w_cost = 0.4\n    w_urgency = 0.3\n    w_regret = 0.15\n    w_lookahead = 0.15\n    \n    # Adapt weights based on slack tightness\n    # If time windows are tight, prioritize urgency and regret to avoid getting stuck\n    if min_slack < 10:\n        w_urgency *= 2.0\n        w_regret *= 1.5\n        w_cost *= 0.8\n        w_lookahead *= 0.5\n    elif avg_slack < 20:\n        w_urgency *= 1.5\n\n    total_w = w_cost + w_urgency + w_regret + w_lookahead\n    w_cost /= total_w\n    w_urgency /= total_w\n    w_regret /= total_w\n    w_lookahead /= total_w\n\n    # Final Score Minimization\n    # 1. Cost: Lower is better\n    # 2. Urgency: Higher urgency is better -> Penalize low urgency (1 - urgency)\n    # 3. Regret: Higher regret is better -> Penalize low regret (1 - regret)\n    # 4. Lookahead: Lower distance to next step is better\n    \n    score = (\n        w_cost * norm_costs + \n        w_urgency * (1.0 - urgencies) + \n        w_regret * (1.0 - norm_regrets) +\n        w_lookahead * norm_lookaheads\n    )\n    \n    best_idx = np.argmin(score)\n    return int(nodes[best_idx])",
+          "idea": "The algorithm integrates a 2-step lookahead with time-aware regret and adaptive urgency. It computes immediate travel costs including waiting time, then estimates future feasibility by checking the cheapest valid next step from each candidate (including return to depot). Urgency is derived from the remaining time slack within each node's window using an exponential decay function. A 2-regret term measures the cost difference between the best and second-best immediate alternatives to prevent suboptimal early choices. Dynamic weights balance these components based on overall time-window tightness, penalizing candidates that lead to high future costs or leave little slack for critical nodes.",
+          "fitness": -20.75763617812207,
+          "evaluation_id": 172,
+          "parent_id": 126,
+          "operator": "Fuse",
+          "donor_id": 2
+        },
+        "auxiliary_id": 18,
+        "context_node_ids": [
+          18,
+          167,
+          127
+        ]
+      },
+      "prompts": {
+        "A": {
+          "prompt_hash": "8041da8cc8f5631f878241e493005c3de029fe5769cab19e62dc7768e66031f6",
+          "prompt_tokens": 6278,
+          "prompt_file": "vrptw_fuse_A.prompt.txt"
+        },
+        "B": {
+          "prompt_hash": "0faf3395edc127dd1e0f52ece48b8764dde721918d0a21cea105aed7a5b0d6e1",
+          "prompt_tokens": 5968,
+          "prompt_file": "vrptw_fuse_B.prompt.txt"
+        },
+        "C": {
+          "prompt_hash": "5f41abdfea666daf3237b6da66bc13ec6eb4ca8e08b26d58b5adbbec669d92fe",
+          "prompt_tokens": 6106,
+          "prompt_file": "vrptw_fuse_C.prompt.txt"
+        }
+      }
+    },
+    {
+      "label": "tsp_fuse",
+      "task": "tsp_construct",
+      "repeat": 3,
+      "run_dir": "/home/fang/code/LLM4AD/LLM4AD/experiments/traceaad_v10_7/results/tsp_construct/20260907_bounded_formal_tsp_v107_rep3",
+      "candidate_id": 399,
+      "original_event": {
+        "candidate_id": 399,
+        "requested_operator": "Fuse",
+        "operator": "Fuse",
+        "parent_id": 383,
+        "donor_id": 99,
+        "operator_probabilities": {
+          "Refine": 0.5,
+          "Pivot": 0.15,
+          "Fuse": 0.35
+        },
+        "selection": {
+          "eligible_nodes": 391,
+          "beta": 33.93140573736991,
+          "ess_target": 39.1,
+          "quality_ess": 39.099999999999945,
+          "corrected_ess": 32.12169493200929,
+          "conditional_ess": 32.12169493200929,
+          "parent_marginal_ess": 37.02849686419707,
+          "operator_conditional": {
+            "Refine": 0.5388721354554021,
+            "Pivot": 0.08391736972581619,
+            "Fuse": 0.3772104948187815
+          },
+          "parent_route": "joint_marginal",
+          "parent_probability": 0.0621457269762265,
+          "parent_count_before": 0
+        },
+        "parent_fitness": -6.71085613825252,
+        "donor_fitness": -6.871174223357194,
+        "best_before": -6.71085613825252,
+        "prompt_tokens": 4040,
+        "prompt_hash": "f270d88920b08d80fd99c0c1e57a0fd552aca2f904e6c9a9c5fec65068ed7071",
+        "template_hash": "c9ac9c80f47830b5e9a27c43d5e438f1e89178f44759c25a70ed51d70e19bc44",
+        "context_policy": "sampled_trajectory_v1",
+        "quality_boundaries": [
+          -7.144778142262636,
+          -6.897727475798229
+        ],
+        "reference_layers": {
+          "84": "middle",
+          "99": "high"
+        },
+        "reference_fit_rejections": [],
+        "reference_attempts": [
+          {
+            "node_id": 84,
+            "layer": "middle",
+            "accepted": true
+          },
+          {
+            "node_id": 99,
+            "layer": "high",
+            "accepted": true
+          }
+        ],
+        "reference_shortfall": 0,
+        "sampling_seconds": 0.06693474994972348,
+        "context_node_ids": [
+          84,
+          99,
+          383
+        ],
+        "context_program_count": 3,
+        "context_program_tokens": [
+          1307,
+          1310,
+          1049
+        ],
+        "context_parent_index": 3,
+        "context_donor_index": 2,
+        "scheduling_seconds": 0.18021520297043025,
+        "tokenizer_requests": 6,
+        "llm_attempts": 1,
+        "evaluation_id": 398,
+        "ts": "2026-09-08T04:23:14",
+        "step": 390,
+        "status": "ok",
+        "reason": null,
+        "budget_used": 398,
+        "eval_seconds": 5.318105459213257,
+        "llm_seconds": 57.73631453514099,
+        "node_id": 391,
+        "fitness": -6.685090878796045,
+        "parent_improved": true,
+        "frontier_improved": true,
+        "parent_delta": 0.025765259456475675,
+        "frontier_delta": 0.025765259456475675,
+        "both_improved": true,
+        "both_delta": 0.025765259456475675
+      },
+      "parent": {
+        "id": 383,
+        "fitness": -6.71085613825252,
+        "evaluation_id": 390,
+        "parent_id": 372,
+        "operator": "Refine",
+        "donor_id": null,
+        "code_hash": "2201789058080001c02b3375eb6678d2b36cedfdb81b56a6b81fce517e907bd1"
+      },
+      "context_nodes": [
+        {
+          "id": 84,
+          "fitness": -7.051434586683751,
+          "evaluation_id": 87,
+          "parent_id": 68,
+          "operator": "Refine",
+          "donor_id": null,
+          "code_hash": "667c8cced59e119c1ddba3ced7b82ce75437255d00bc9e09f04fae893b819585"
+        },
+        {
+          "id": 99,
+          "fitness": -6.871174223357194,
+          "evaluation_id": 102,
+          "parent_id": 67,
+          "operator": "Refine",
+          "donor_id": null,
+          "code_hash": "380ade708a8986960f5336b6169648ee4f5eb421b6b04cf36b3b3248dd000ba4"
+        },
+        {
+          "id": 383,
+          "fitness": -6.71085613825252,
+          "evaluation_id": 390,
+          "parent_id": 372,
+          "operator": "Refine",
+          "donor_id": null,
+          "code_hash": "2201789058080001c02b3375eb6678d2b36cedfdb81b56a6b81fce517e907bd1"
+        }
+      ],
+      "evaluation_config": {
+        "split": "train",
+        "timeout_seconds": 20,
+        "n_instance": 16,
+        "problem_size": 50,
+        "seed": 2024
+      },
+      "A_reconstructed_identical": true,
+      "C": {
+        "kind": "best_fitting_cross_lineage_donor_upper_bound",
+        "old_donor": {
+          "id": 99,
+          "code": "import numpy as np\n\ndef select_next_node(current_node: int, destination_node: int, unvisited_nodes: np.ndarray, distance_matrix: np.ndarray) -> int:\n    \"\"\"\n    Design a novel algorithm to select the next node in each step.\n    \n    Combines immediate cost, destination lookahead, and a safety penalty for isolation,\n    with regret-based stabilization.\n    \"\"\"\n    if unvisited_nodes is None or len(unvisited_nodes) == 0:\n        return destination_node\n    \n    n = len(unvisited_nodes)\n    if n == 1:\n        return int(unvisited_nodes[0])\n    \n    candidates = unvisited_nodes.astype(int)\n    current_node = int(current_node)\n    destination_node = int(destination_node)\n    \n    # 1. Immediate cost: distance from current node to each candidate\n    dist_current = distance_matrix[current_node, candidates]\n    \n    # 2. Destination cost: distance from each candidate to destination\n    dist_dest = distance_matrix[candidates, destination_node]\n    \n    # 3. Lookahead cost: approximate next step's cost towards destination\n    # For n > 2, use the global min dest distance (or 2nd min if self is min)\n    if n > 2:\n        sorted_indices = np.argsort(dist_dest)\n        min_val_1 = dist_dest[sorted_indices[0]]\n        min_val_2 = dist_dest[sorted_indices[1]]\n        min_idx_1 = sorted_indices[0]\n        \n        lookahead_costs = np.full(n, min_val_1)\n        lookahead_costs[min_idx_1] = min_val_2\n    else:\n        # n == 2, handled explicitly later, but need this for general flow if we didn't branch\n        # Actually, let's handle n=2 with exact logic for better performance\n        if n == 2:\n            node_a = candidates[0]\n            node_b = candidates[1]\n            cost_a = distance_matrix[current_node, node_a] + distance_matrix[node_a, node_b] + distance_matrix[node_b, destination_node]\n            cost_b = distance_matrix[current_node, node_b] + distance_matrix[node_b, node_a] + distance_matrix[node_a, destination_node]\n            return int(node_a if cost_a <= cost_b else node_b)\n        \n    # 4. Safety/Isolation cost: minimum distance to any other unvisited node or destination\n    # This penalizes nodes that are far from the \"cluster\" of remaining nodes.\n    # We compute min dist to other unvisited nodes.\n    if n > 2:\n        # Compute submatrix of distances between candidates\n        # For efficiency, if n is large, we might sample, but for TSP heuristics n is usually manageable\n        # or we can use the fact that we just need min.\n        # Vectorized min: for each candidate, find min dist to other candidates.\n        # Note: distance_matrix[np.ix_(candidates, candidates)] is O(n^2).\n        # Given the context of typical TSP instances in these tasks (n < 100), this is acceptable.\n        cand_to_cand = distance_matrix[np.ix_(candidates, candidates)]\n        np.fill_diagonal(cand_to_cand, np.inf)\n        min_to_other_unvisited = np.min(cand_to_cand, axis=1)\n        \n        # The safety cost is the min of (min_to_other_unvisited, dist_dest)\n        # Why include dist_dest? If a node is close to destination, it's a \"safe\" exit point.\n        safety_costs = np.minimum(min_to_other_unvisited, dist_dest)\n    else:\n        safety_costs = np.zeros(n)\n\n    # 5. Adaptive Weights\n    # alpha: weight for lookahead (destination proximity)\n    # beta: weight for safety (avoiding isolation)\n    \n    # As n decreases, we want to prioritize completing the tour efficiently (lookahead)\n    # and ensure we don't get stuck (safety).\n    \n    alpha = min(1.0 / n, 0.5)\n    # Safety weight: slightly lower than alpha initially, but important for avoiding bad choices.\n    # We scale it similarly but with a different base.\n    beta = min(0.5 / n, 0.3)\n\n    # 6. Composite Primary Score\n    # Score = dist_current + alpha * lookahead + beta * safety\n    primary_scores = dist_current + alpha * lookahead_costs + beta * safety_costs\n\n    # 7. Regret-based Stabilization\n    # Find the best and second-best scores\n    if n > 2:\n        two_smallest_indices = np.argpartition(primary_scores, 2)[:2]\n        if primary_scores[two_smallest_indices[0]] < primary_scores[two_smallest_indices[1]]:\n            second_val = primary_scores[two_smallest_indices[1]]\n        else:\n            second_val = primary_scores[two_smallest_indices[0]]\n    else:\n        # n should be > 2 here due to earlier branch\n        pass\n\n    regret = second_val - primary_scores\n    \n    # Apply small regret bonus to prefer clear winners\n    composite_scores = primary_scores - 0.05 * regret\n    \n    best_idx = np.argmin(composite_scores)\n    return int(candidates[best_idx])",
+          "idea": "This algorithm improves upon Algorithm 3 by incorporating a dynamic \"safety\" term that penalizes candidates with poor immediate escape options (high minimum distance to other unvisited nodes or destination), preventing isolated moves that lead to expensive backtracking. It blends the immediate cost, the destination-oriented lookahead, and this safety penalty with adaptive weights that shift focus from local exploration to global closure as the number of remaining nodes decreases. A regret-based stabilization term is retained to ensure robust selection when candidates have similar scores, favoring the clearly superior option to reduce heuristic noise.",
+          "fitness": -6.871174223357194,
+          "evaluation_id": 102,
+          "parent_id": 67,
+          "operator": "Refine",
+          "donor_id": null
+        },
+        "new_donor": {
+          "id": 366,
+          "code": "import numpy as np\nfrom itertools import permutations\n\ndef select_next_node(current_node: int, destination_node: int, unvisited_nodes: np.ndarray, distance_matrix: np.ndarray) -> int:\n    if unvisited_nodes is None or len(unvisited_nodes) == 0:\n        return int(destination_node)\n    \n    n = len(unvisited_nodes)\n    if n == 1:\n        return int(unvisited_nodes[0])\n    \n    candidates = np.asarray(unvisited_nodes, dtype=int)\n    current_node = int(current_node)\n    destination_node = int(destination_node)\n    \n    # Exact endgame for n <= 6\n    if n <= 6:\n        best_cost = float('inf')\n        best_first = candidates[0]\n        for perm in permutations(candidates):\n            cost = distance_matrix[current_node, perm[0]]\n            for i in range(len(perm) - 1):\n                cost += distance_matrix[perm[i], perm[i+1]]\n            cost += distance_matrix[perm[-1], destination_node]\n            if cost < best_cost:\n                best_cost = cost\n                best_first = perm[0]\n        return int(best_first)\n    \n    # Heuristic for n > 6\n    dist_current = distance_matrix[current_node, candidates]\n    dist_dest = distance_matrix[candidates, destination_node]\n    dist_cand_cand = distance_matrix[np.ix_(candidates, candidates)]\n    \n    # Set diagonal to infinity for exit calculations\n    dist_cand_cand_copy = dist_cand_cand.copy()\n    np.fill_diagonal(dist_cand_cand_copy, np.inf)\n    \n    # 1. Hybrid exit cost: blend of min and mean distance to other unvisited nodes\n    min_exit = np.min(dist_cand_cand_copy, axis=1)\n    mean_exit = np.mean(dist_cand_cand_copy, axis=1)\n    hybrid_exit = 0.6 * min_exit + 0.4 * mean_exit\n    \n    # 2. 2-step lookahead: min over j != i of (dist(i,j) + hybrid_exit(j))\n    lookahead_matrix = dist_cand_cand_copy + hybrid_exit[np.newaxis, :]\n    lookahead_cost = np.min(lookahead_matrix, axis=1)\n    \n    # 3. Destination closure: average distance of remaining nodes (excluding candidate i) to destination\n    sum_dest = np.sum(dist_dest)\n    avg_dest_rem = (sum_dest - dist_dest) / (n - 1)\n    \n    # 4. Normalize all terms\n    max_dist = np.max(distance_matrix)\n    if max_dist == 0:\n        max_dist = 1.0\n    \n    norm_current = dist_current / max_dist\n    norm_lookahead = lookahead_cost / max_dist\n    norm_closure = avg_dest_rem / max_dist\n    \n    # 5. Adaptive weights: future structure and closure gain prominence as n decreases\n    # For n=7, alpha ~ 0.5, beta ~ 0.2; as n grows, weights shrink toward greedy\n    alpha = 0.3 + 0.5 / (n - 6)\n    beta = 0.1 + 0.3 / np.sqrt(n - 6)\n    \n    # Composite score\n    scores = 1.0 * norm_current + alpha * norm_lookahead + beta * norm_closure\n    \n    # 6. Regret-based stabilization: amplify clear winners\n    sorted_idx = np.argsort(scores)\n    min_val = scores[sorted_idx[0]]\n    second_min_val = scores[sorted_idx[1]]\n    regret = second_min_val - scores\n    final_scores = scores - 0.1 * regret\n    \n    best_idx = np.argmin(final_scores)\n    return int(candidates[best_idx])",
+          "idea": "This algorithm combines Algorithm 3's exact endgame (n≤6) with a refined composite heuristic for larger instances. It normalizes all cost terms by the global distance scale to ensure weight stability. The score comprises immediate distance, a 2-step lookahead cost (min distance to other nodes plus their exit costs), and a destination closure term (average distance of remaining nodes to destination). Adaptive weights emphasize future structure as n decreases, and a regret term stabilizes selection by amplifying confident choices. Exact permutation search guarantees optimal completion for small n, avoiding heuristic errors in critical final steps.",
+          "fitness": -6.71085613825252,
+          "evaluation_id": 373,
+          "parent_id": 356,
+          "operator": "Fuse",
+          "donor_id": 351
+        },
+        "auxiliary_id": 84,
+        "context_node_ids": [
+          84,
+          366,
+          383
+        ]
+      },
+      "prompts": {
+        "A": {
+          "prompt_hash": "f270d88920b08d80fd99c0c1e57a0fd552aca2f904e6c9a9c5fec65068ed7071",
+          "prompt_tokens": 4040,
+          "prompt_file": "tsp_fuse_A.prompt.txt"
+        },
+        "B": {
+          "prompt_hash": "8966e6e5ee511ff9af19b7cb2f98a1cc8aec90d490782c61be0882f6a16548b0",
+          "prompt_tokens": 3694,
+          "prompt_file": "tsp_fuse_B.prompt.txt"
+        },
+        "C": {
+          "prompt_hash": "f42e7c38fd1e16c8ae7045cdba372d7653232cae56bf80a964117bb9bfa2ef66",
+          "prompt_tokens": 3706,
+          "prompt_file": "tsp_fuse_C.prompt.txt"
+        }
+      }
+    }
+  ],
+  "jobs": [
+    {
+      "anchor": "tsp_fuse",
+      "arm": "B",
+      "seed": 20260908,
+      "id": "tsp_fuse_B_20260908"
+    },
+    {
+      "anchor": "vrptw_fuse",
+      "arm": "B",
+      "seed": 20260909,
+      "id": "vrptw_fuse_B_20260909"
+    },
+    {
+      "anchor": "vrptw_fuse",
+      "arm": "C",
+      "seed": 20260909,
+      "id": "vrptw_fuse_C_20260909"
+    },
+    {
+      "anchor": "tsp_fuse",
+      "arm": "A",
+      "seed": 20260908,
+      "id": "tsp_fuse_A_20260908"
+    },
+    {
+      "anchor": "tsp_pivot",
+      "arm": "C",
+      "seed": 20260909,
+      "id": "tsp_pivot_C_20260909"
+    },
+    {
+      "anchor": "vrptw_fuse",
+      "arm": "A",
+      "seed": 20260909,
+      "id": "vrptw_fuse_A_20260909"
+    },
+    {
+      "anchor": "vrptw_fuse",
+      "arm": "A",
+      "seed": 20260908,
+      "id": "vrptw_fuse_A_20260908"
+    },
+    {
+      "anchor": "obp_pivot",
+      "arm": "C",
+      "seed": 20260908,
+      "id": "obp_pivot_C_20260908"
+    },
+    {
+      "anchor": "obp_pivot",
+      "arm": "B",
+      "seed": 20260909,
+      "id": "obp_pivot_B_20260909"
+    },
+    {
+      "anchor": "tsp_fuse",
+      "arm": "A",
+      "seed": 20260909,
+      "id": "tsp_fuse_A_20260909"
+    },
+    {
+      "anchor": "tsp_pivot",
+      "arm": "B",
+      "seed": 20260909,
+      "id": "tsp_pivot_B_20260909"
+    },
+    {
+      "anchor": "vrptw_fuse",
+      "arm": "C",
+      "seed": 20260908,
+      "id": "vrptw_fuse_C_20260908"
+    },
+    {
+      "anchor": "tsp_pivot",
+      "arm": "A",
+      "seed": 20260909,
+      "id": "tsp_pivot_A_20260909"
+    },
+    {
+      "anchor": "tsp_fuse",
+      "arm": "C",
+      "seed": 20260909,
+      "id": "tsp_fuse_C_20260909"
+    },
+    {
+      "anchor": "tsp_pivot",
+      "arm": "B",
+      "seed": 20260908,
+      "id": "tsp_pivot_B_20260908"
+    },
+    {
+      "anchor": "tsp_pivot",
+      "arm": "A",
+      "seed": 20260908,
+      "id": "tsp_pivot_A_20260908"
+    },
+    {
+      "anchor": "obp_pivot",
+      "arm": "B",
+      "seed": 20260908,
+      "id": "obp_pivot_B_20260908"
+    },
+    {
+      "anchor": "tsp_fuse",
+      "arm": "B",
+      "seed": 20260909,
+      "id": "tsp_fuse_B_20260909"
+    },
+    {
+      "anchor": "vrptw_fuse",
+      "arm": "B",
+      "seed": 20260908,
+      "id": "vrptw_fuse_B_20260908"
+    },
+    {
+      "anchor": "tsp_fuse",
+      "arm": "C",
+      "seed": 20260908,
+      "id": "tsp_fuse_C_20260908"
+    },
+    {
+      "anchor": "tsp_pivot",
+      "arm": "C",
+      "seed": 20260908,
+      "id": "tsp_pivot_C_20260908"
+    },
+    {
+      "anchor": "obp_pivot",
+      "arm": "C",
+      "seed": 20260909,
+      "id": "obp_pivot_C_20260909"
+    },
+    {
+      "anchor": "obp_pivot",
+      "arm": "A",
+      "seed": 20260908,
+      "id": "obp_pivot_A_20260908"
+    },
+    {
+      "anchor": "obp_pivot",
+      "arm": "A",
+      "seed": 20260909,
+      "id": "obp_pivot_A_20260909"
+    }
+  ],
+  "backend": {
+    "base_url": "http://222.201.145.6:8001/v1",
+    "model": "qwen3.8-27b-awq",
+    "no_proxy": "222.201.145.6,localhost,127.0.0.1,::1"
+  },
+  "seeds": [
+    20260908,
+    20260909
+  ],
+  "max_tokens": 16384,
+  "max_concurrency": 3,
+  "generation_retry": false,
+  "created_at": 1788828088.678358,
+  "archive_note": "凝练版计划：重复代码/Idea和内嵌Prompt改为哈希与文件引用；原始完整计划和逐次原始响应在本地忽略目录。"
+}

@@ -1,0 +1,11 @@
+--- original
++++ repair_mean
+@@ -132,7 +132,7 @@
+     lookahead_cost = np.minimum(min_next_unvisited, dist_to_dest)
+     
+     # 3b. Isolation Penalty
+-    avg_dist_to_cluster = np.mean(sub_matrix_no_self, axis=1)
++    avg_dist_to_cluster = np.sum(np.where(np.eye(n, dtype=bool), 0.0, sub_matrix_no_self), axis=1) / (n - 1)
+     max_avg_cluster = np.max(avg_dist_to_cluster)
+     if max_avg_cluster > 1e-9:
+         norm_isolation = avg_dist_to_cluster / max_avg_cluster

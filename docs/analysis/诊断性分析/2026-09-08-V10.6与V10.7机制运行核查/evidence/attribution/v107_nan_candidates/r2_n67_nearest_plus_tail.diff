@@ -1,0 +1,76 @@
+--- original
++++ nearest_plus_tail
+@@ -21,73 +21,4 @@
+     if n_remaining == 1:
+         return int(unvisited_nodes[0])
+ 
+-    n_total = distance_matrix.shape[0]
+-    if n_total <= 1:
+-        return destination_node
+-
+-    # Distances from current and to destination
+-    d_curr = distance_matrix[current_node, unvisited_nodes]
+-    d_dest = distance_matrix[unvisited_nodes, destination_node]
+-
+-    # Sub-matrix of unvisited nodes
+-    sub = distance_matrix[np.ix_(unvisited_nodes, unvisited_nodes)]
+-    
+-    # For min calculations, set diagonal to inf (exclude self)
+-    np.fill_diagonal(sub, np.inf)
+-    
+-    # 1. Structural Cohesion Penalty:
+-    # We use the average distance to other unvisited nodes as a proxy for "isolation".
+-    # Nodes with higher average distance to the rest are more "isolated" or on the fringe.
+-    # We penalize this to encourage moving toward the center of the remaining cluster,
+-    # which typically yields shorter edges in subsequent steps.
+-    avg_dist_to_unvisited = np.sum(sub, axis=1) / (n_remaining - 1)
+-    max_avg = np.max(avg_dist_to_unvisited) if np.max(avg_dist_to_unvisited) > 0 else 1.0
+-    cohesion_penalty_norm = avg_dist_to_unvisited / max_avg
+-
+-    # 2. 2-step Exit Cost:
+-    # The minimum distance from a candidate to any other unvisited node or the destination.
+-    # This ensures we don't pick a node that leaves us with only expensive options next.
+-    min_exit_sub = np.min(sub, axis=1)
+-    exit_cost = np.minimum(min_exit_sub, d_dest)
+-    max_exit = np.max(exit_cost) if np.max(exit_cost) > 0 else 1.0
+-    exit_cost_norm = exit_cost / max_exit
+-
+-    # Progress (0 to 1)
+-    progress = (n_total - n_remaining) / (n_total - 1)
+-
+-    # Weights
+-    # Return weight: Quadratic to strongly pull back to destination at the end
+-    # (Similar to Alg 3, kept robust)
+-    w_return = 0.05 + 0.45 * (progress ** 2)
+-    
+-    # Cohesion weight: High early to build dense local paths, fades out late
+-    # when we just need to head back to destination.
+-    w_cohesion = 0.3 * (1.0 - progress)
+-    
+-    # Exit weight: Moderate to ensure local connectivity, fades slightly faster than cohesion
+-    w_exit = 0.2 * (1.0 - progress)
+-
+-    # Scaling by Immediate Distance:
+-    # Heuristic penalties should not dominate if the move itself is very short,
+-    # nor be negligible if the move is very long. We scale by min(d_curr, 1.0)
+-    # to keep the score dominated by the immediate travel cost but adjusted by structure.
+-    scale_factor = np.minimum(d_curr, 1.0)
+-    
+-    scaled_cohesion = cohesion_penalty_norm * scale_factor
+-    scaled_exit = exit_cost_norm * scale_factor
+-
+-    # Composite Cost
+-    # Minimize: Immediate distance
+-    # Minimize: Weighted return to destination (for tour closure)
+-    # Maximize: Cohesion (subtract penalty)
+-    # Minimize: Exit cost (add penalty)
+-    
+-    scores = d_curr + w_return * d_dest + w_cohesion * scaled_cohesion + w_exit * scaled_exit
+-
+-    # Tie breaker: Deterministic small increment based on index to ensure stable selection
+-    tie_breaker = 1e-6 * (np.arange(len(unvisited_nodes)) + 1)
+-    
+-    final_scores = scores + tie_breaker
+-
+-    idx = int(np.argmin(final_scores))
+-    return int(unvisited_nodes[idx])+    return int(unvisited_nodes[np.argmin(distance_matrix[current_node, unvisited_nodes])])

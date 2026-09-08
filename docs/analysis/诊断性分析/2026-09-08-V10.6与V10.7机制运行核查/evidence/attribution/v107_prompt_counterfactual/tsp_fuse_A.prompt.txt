@@ -1,0 +1,340 @@
+# Task Contract
+The Traveling Salesman Problem asks for a shortest tour that visits each node once and returns to the start. Instances are generated from node coordinates, but the constructive heuristic does not receive coordinates. At each step it receives the current node id, the destination/start node id, an array of unvisited candidate node ids, and the pairwise distance matrix, and must return the id of the next node to visit. Help me design a novel algorithm to select the next node in each step.
+
+Target interface:
+```python
+def select_next_node(current_node: int, destination_node: int, unvisited_nodes: np.ndarray, distance_matrix: np.ndarray) -> int:
+    """
+    Design a novel algorithm to select the next node in each step.
+
+    Args:
+    current_node: ID of the current node.
+    destination_node: ID of the destination node.
+    unvisited_nodes: Array of IDs of unvisited nodes.
+    distance_matrix: Distance matrix of nodes.
+
+    Return:
+    ID of the next node to visit.
+    """
+```
+Fitness is this task's score and higher is better.
+
+
+# Algorithm Trajectory
+
+Algorithm 1
+Fitness: -7.051434586683751
+Idea: This algorithm enhances Algorithm 3 by combining a robust two-step lookahead with adaptive weighting. It calculates the immediate travel cost, a "nearest-neighbor" exit cost (distance to the closest other unvisited node or destination) to prevent isolating clusters, and a direct destination return cost. The weights for these lookahead components increase adaptively as the number of remaining nodes decreases, transitioning from pure greedy to heavily forward-looking. To ensure stability and avoid noise-induced local minima, it employs a regret-based selection mechanism, choosing the node that minimizes the composite score adjusted by a small fraction of its regret relative to the second-best option.
+Code:
+```python
+import numpy as np
+
+def select_next_node(current_node: int, destination_node: int, unvisited_nodes: np.ndarray, distance_matrix: np.ndarray) -> int:
+    """
+    Select the next node using an adaptive two-step lookahead with regret stabilization.
+    
+    Balances immediate cost, local connectivity (exit cost), and global return (dest cost).
+    Weights adapt based on remaining nodes. Regret minimization improves robustness.
+    """
+    if unvisited_nodes is None or len(unvisited_nodes) == 0:
+        return int(destination_node)
+    
+    n = len(unvisited_nodes)
+    if n == 1:
+        return int(unvisited_nodes[0])
+    
+    candidates = unvisited_nodes.astype(int)
+    current_node = int(current_node)
+    destination_node = int(destination_node)
+    
+    # 1. Immediate cost: current to each candidate
+    dist_current = distance_matrix[current_node, candidates]
+    
+    # 2. Return cost: candidate to destination
+    dist_dest = distance_matrix[candidates, destination_node]
+    
+    # 3. Exit cost: nearest other unvisited node (or destination if last)
+    # This prevents picking a node that is far from all other remaining nodes.
+    if n == 2:
+        # After picking candidate i, we must go to candidate j (the only other one)
+        # then to destination. The immediate "next" edge from i is to j.
+        d01 = distance_matrix[candidates[0], candidates[1]]
+        exit_cost = np.array([d01, d01], dtype=float)
+    else:
+        sub_dist = distance_matrix[np.ix_(candidates, candidates)]
+        np.fill_diagonal(sub_dist, np.inf)
+        # Min distance to any other unvisited node
+        exit_cost = np.min(sub_dist, axis=1)
+        
+        # If the destination is closer than the nearest unvisited node,
+        # it might be a better "exit" if we are close to the end of the tour.
+        # However, for general TSP, we usually have to visit all unvisited first.
+        # So the "exit" from this node *within the unvisited set* is the most critical
+        # for connectivity. But if we treat the destination as a valid "next" node 
+        # only if it's the last one, the logic is trickier.
+        # Standard Nearest Neighbor heuristic often just looks at unvisited.
+        # Let's stick to min distance to other unvisited to ensure we don't strand nodes.
+        
+    # 4. Adaptive weights
+    # As n gets smaller, we should care more about the return to destination
+    # and the local structure, because the global optimization has less room for error.
+    # For large n, prioritize local greedy choice (dist_current) to build a tight local tour.
+    
+    # Normalize n to [0, 1] where 0 is large n, 1 is small n (n=2)
+    # Using a soft ramp.
+    ramp = (10.0 / n) / (1.0 + 10.0 / n)
+    
+    # Weights:
+    # w_current: always 1.0
+    # w_exit: starts low, increases. Max ~0.3
+    # w_dest: starts very low, increases. Max ~0.5
+    
+    w_exit = 0.3 * ramp
+    w_dest = 0.5 * ramp
+    
+    # 5. Composite primary score
+    # We minimize the total estimated cost contribution of this step.
+    primary_scores = dist_current + w_exit * exit_cost + w_dest * dist_dest
+    
+    # 6. Regret-based selection
+    # This adds a slight preference for the clear best option to reduce noise sensitivity.
+    best_idx = np.argmin(primary_scores)
+    best_val = primary_scores[best_idx]
+    
+    if n > 2:
+        # Find the second smallest score
+        # np.argpartition returns indices of the smallest k elements
+        two_smallest_idx = np.argpartition(primary_scores, 2)[:2]
+        # Sort these two to find the actual second smallest
+        s1 = primary_scores[two_smallest_idx[0]]
+        s2 = primary_scores[two_smallest_idx[1]]
+        if s1 > s2:
+            second_val = s1
+        else:
+            second_val = s2
+    else:
+        second_val = primary_scores[1 - best_idx]
+    
+    # Regret = second_best - current_score
+    # Higher regret means this option is significantly better than the next best.
+    # We want to maximize regret (i.e., pick the unique best) but also minimize score.
+    # A common trick: minimize (score - lambda * regret)
+    # If score is low and regret is high, the term becomes very negative -> selected.
+    # If score is low but regret is 0 (tie), it depends on score.
+    
+    lambda_regret = 0.1
+    composite_scores = primary_scores - lambda_regret * (second_val - primary_scores)
+    
+    final_idx = np.argmin(composite_scores)
+    return int(candidates[final_idx])
+```
+
+Algorithm 2
+Fitness: -6.871174223357194
+Idea: This algorithm improves upon Algorithm 3 by incorporating a dynamic "safety" term that penalizes candidates with poor immediate escape options (high minimum distance to other unvisited nodes or destination), preventing isolated moves that lead to expensive backtracking. It blends the immediate cost, the destination-oriented lookahead, and this safety penalty with adaptive weights that shift focus from local exploration to global closure as the number of remaining nodes decreases. A regret-based stabilization term is retained to ensure robust selection when candidates have similar scores, favoring the clearly superior option to reduce heuristic noise.
+Code:
+```python
+import numpy as np
+
+def select_next_node(current_node: int, destination_node: int, unvisited_nodes: np.ndarray, distance_matrix: np.ndarray) -> int:
+    """
+    Design a novel algorithm to select the next node in each step.
+    
+    Combines immediate cost, destination lookahead, and a safety penalty for isolation,
+    with regret-based stabilization.
+    """
+    if unvisited_nodes is None or len(unvisited_nodes) == 0:
+        return destination_node
+    
+    n = len(unvisited_nodes)
+    if n == 1:
+        return int(unvisited_nodes[0])
+    
+    candidates = unvisited_nodes.astype(int)
+    current_node = int(current_node)
+    destination_node = int(destination_node)
+    
+    # 1. Immediate cost: distance from current node to each candidate
+    dist_current = distance_matrix[current_node, candidates]
+    
+    # 2. Destination cost: distance from each candidate to destination
+    dist_dest = distance_matrix[candidates, destination_node]
+    
+    # 3. Lookahead cost: approximate next step's cost towards destination
+    # For n > 2, use the global min dest distance (or 2nd min if self is min)
+    if n > 2:
+        sorted_indices = np.argsort(dist_dest)
+        min_val_1 = dist_dest[sorted_indices[0]]
+        min_val_2 = dist_dest[sorted_indices[1]]
+        min_idx_1 = sorted_indices[0]
+        
+        lookahead_costs = np.full(n, min_val_1)
+        lookahead_costs[min_idx_1] = min_val_2
+    else:
+        # n == 2, handled explicitly later, but need this for general flow if we didn't branch
+        # Actually, let's handle n=2 with exact logic for better performance
+        if n == 2:
+            node_a = candidates[0]
+            node_b = candidates[1]
+            cost_a = distance_matrix[current_node, node_a] + distance_matrix[node_a, node_b] + distance_matrix[node_b, destination_node]
+            cost_b = distance_matrix[current_node, node_b] + distance_matrix[node_b, node_a] + distance_matrix[node_a, destination_node]
+            return int(node_a if cost_a <= cost_b else node_b)
+        
+    # 4. Safety/Isolation cost: minimum distance to any other unvisited node or destination
+    # This penalizes nodes that are far from the "cluster" of remaining nodes.
+    # We compute min dist to other unvisited nodes.
+    if n > 2:
+        # Compute submatrix of distances between candidates
+        # For efficiency, if n is large, we might sample, but for TSP heuristics n is usually manageable
+        # or we can use the fact that we just need min.
+        # Vectorized min: for each candidate, find min dist to other candidates.
+        # Note: distance_matrix[np.ix_(candidates, candidates)] is O(n^2).
+        # Given the context of typical TSP instances in these tasks (n < 100), this is acceptable.
+        cand_to_cand = distance_matrix[np.ix_(candidates, candidates)]
+        np.fill_diagonal(cand_to_cand, np.inf)
+        min_to_other_unvisited = np.min(cand_to_cand, axis=1)
+        
+        # The safety cost is the min of (min_to_other_unvisited, dist_dest)
+        # Why include dist_dest? If a node is close to destination, it's a "safe" exit point.
+        safety_costs = np.minimum(min_to_other_unvisited, dist_dest)
+    else:
+        safety_costs = np.zeros(n)
+
+    # 5. Adaptive Weights
+    # alpha: weight for lookahead (destination proximity)
+    # beta: weight for safety (avoiding isolation)
+    
+    # As n decreases, we want to prioritize completing the tour efficiently (lookahead)
+    # and ensure we don't get stuck (safety).
+    
+    alpha = min(1.0 / n, 0.5)
+    # Safety weight: slightly lower than alpha initially, but important for avoiding bad choices.
+    # We scale it similarly but with a different base.
+    beta = min(0.5 / n, 0.3)
+
+    # 6. Composite Primary Score
+    # Score = dist_current + alpha * lookahead + beta * safety
+    primary_scores = dist_current + alpha * lookahead_costs + beta * safety_costs
+
+    # 7. Regret-based Stabilization
+    # Find the best and second-best scores
+    if n > 2:
+        two_smallest_indices = np.argpartition(primary_scores, 2)[:2]
+        if primary_scores[two_smallest_indices[0]] < primary_scores[two_smallest_indices[1]]:
+            second_val = primary_scores[two_smallest_indices[1]]
+        else:
+            second_val = primary_scores[two_smallest_indices[0]]
+    else:
+        # n should be > 2 here due to earlier branch
+        pass
+
+    regret = second_val - primary_scores
+    
+    # Apply small regret bonus to prefer clear winners
+    composite_scores = primary_scores - 0.05 * regret
+    
+    best_idx = np.argmin(composite_scores)
+    return int(candidates[best_idx])
+```
+
+Algorithm 3
+Fitness: -6.71085613825252
+Idea: Build on Algorithm 3’s exact endgame and hybrid lookahead, but add a cheap 3-step transition estimate and a robust scale normalization. For each candidate, score the immediate move plus a normalized two-term future cost: the best one-step escape to another unvisited node or destination, and the best two-step path through a second candidate to a final unvisited/destination endpoint. Use a blended min/mean exit cost for stability, and scale all costs by the mean inter-candidate distance so immediate and future terms stay balanced as the tour shrinks.
+Code:
+```python
+import numpy as np
+from itertools import permutations
+
+def select_next_node(current_node: int, destination_node: int, unvisited_nodes: np.ndarray, distance_matrix: np.ndarray) -> int:
+    if unvisited_nodes is None or len(unvisited_nodes) == 0:
+        return int(destination_node)
+
+    n = len(unvisited_nodes)
+    if n == 1:
+        return int(unvisited_nodes[0])
+
+    candidates = np.asarray(unvisited_nodes, dtype=int)
+    current_node = int(current_node)
+    destination_node = int(destination_node)
+
+    # Exact endgame for small n: exhaustive permutation of all remaining nodes
+    if n <= 6:
+        best_cost = float('inf')
+        best_first = candidates[0]
+        for perm in permutations(candidates):
+            cost = distance_matrix[current_node, perm[0]]
+            for i in range(len(perm) - 1):
+                cost += distance_matrix[perm[i], perm[i + 1]]
+            cost += distance_matrix[perm[-1], destination_node]
+            if cost < best_cost:
+                best_cost = cost
+                best_first = perm[0]
+        return int(best_first)
+
+    # Distances
+    dist_current = distance_matrix[current_node, candidates]
+    dist_dest = distance_matrix[candidates, destination_node]
+    dist_cand_cand = distance_matrix[np.ix_(candidates, candidates)]
+
+    # Candidate-to-candidate without self
+    cand_exit = dist_cand_cand.copy()
+    np.fill_diagonal(cand_exit, np.inf)
+
+    # Hybrid exit cost: best step from candidate to another unvisited node or destination
+    min_exit_1 = np.minimum(np.min(cand_exit, axis=1), dist_dest)
+    mean_exit_1 = np.mean(cand_exit, axis=1)
+    hybrid_exit_1 = 0.6 * min_exit_1 + 0.4 * mean_exit_1
+
+    # 2-step lookahead: min over next candidate j of dist(i,j) + hybrid_exit_1(j)
+    two_step = np.min(cand_exit + hybrid_exit_1[np.newaxis, :], axis=1)
+
+    # 3-step lookahead: min over i -> j -> k, where k can be any unvisited node or destination
+    # Cost = dist(i,j) + dist(j,k)
+    # Use dist(j,k) for k in candidates or destination, and take min excluding k=j
+    # Build matrix T[j,k] = dist(j,k) for k in candidates, and also T[j,dest]
+    # Then min_k T[j,k] (k != j)
+    # This is min_exit_1[j], which already includes destination
+    # So 3-step = min_j [ dist(i,j) + min_exit_1(j) ]
+    # But that's the same as 2-step if hybrid_exit_1 is replaced by min_exit_1
+    # To make 3-step distinct, use min_exit_1 for the final leg:
+    three_step = np.min(cand_exit + min_exit_1[np.newaxis, :], axis=1)
+
+    # Future cost blend: 2-step is smoother, 3-step is sharper
+    future_cost = 0.5 * two_step + 0.5 * three_step
+
+    # Scale: use mean inter-candidate distance for robustness
+    scale_candidates = np.mean(dist_cand_cand)
+    if scale_candidates < 1e-9:
+        scale_candidates = 1.0
+    scale = max(np.mean(dist_current), scale_candidates)
+    if scale < 1e-9:
+        scale = 1.0
+
+    # Normalize
+    norm_current = dist_current / scale
+    norm_future = future_cost / scale
+
+    # Adaptive weight: stronger future emphasis as n decreases
+    alpha = np.clip(0.8 - (n - 6) / 40.0, 0.3, 0.8)
+
+    # Composite score
+    scores = norm_current + alpha * norm_future
+
+    best_idx = np.argmin(scores)
+    return int(candidates[best_idx])
+```
+
+
+# Algorithm Design Task
+Combine Algorithm 3 and Algorithm 2 as the main inputs. Use the other supplied algorithms as additional references. Select and adapt compatible computations into a coherent algorithm, retaining, replacing or reorganizing parts as useful.
+
+
+# Output
+First describe your proposed algorithm in one concise paragraph, explaining its
+main decision method and key calculations. Then implement it in this format:
+
+Idea: <design idea>
+```python
+<complete target implementation, including all required imports and helpers>
+```
+Keep the Idea within 100 words.

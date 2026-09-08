@@ -1,0 +1,153 @@
+# Task Contract
+The Traveling Salesman Problem asks for a shortest tour that visits each node once and returns to the start. Instances are generated from node coordinates, but the constructive heuristic does not receive coordinates. At each step it receives the current node id, the destination/start node id, an array of unvisited candidate node ids, and the pairwise distance matrix, and must return the id of the next node to visit. Help me design a novel algorithm to select the next node in each step.
+
+Target interface:
+```python
+def select_next_node(current_node: int, destination_node: int, unvisited_nodes: np.ndarray, distance_matrix: np.ndarray) -> int:
+    """
+    Design a novel algorithm to select the next node in each step.
+
+    Args:
+    current_node: ID of the current node.
+    destination_node: ID of the destination node.
+    unvisited_nodes: Array of IDs of unvisited nodes.
+    distance_matrix: Distance matrix of nodes.
+
+    Return:
+    ID of the next node to visit.
+    """
+```
+Fitness is this task's score and higher is better.
+
+
+# Current Algorithm
+Fitness: -6.8239686184057184
+
+```python
+import numpy as np
+
+def select_next_node(current_node: int, destination_node: int, unvisited_nodes: np.ndarray, distance_matrix: np.ndarray) -> int:
+    if len(unvisited_nodes) == 0:
+        return destination_node
+
+    n_remaining = len(unvisited_nodes)
+
+    if n_remaining == 1:
+        return int(unvisited_nodes[0])
+
+    n_total = distance_matrix.shape[0]
+    if n_total <= 1:
+        return destination_node
+
+    d_curr = distance_matrix[current_node, unvisited_nodes]
+    d_dest = distance_matrix[unvisited_nodes, destination_node]
+
+    sub = distance_matrix[np.ix_(unvisited_nodes, unvisited_nodes)]
+    np.fill_diagonal(sub, np.inf)
+
+    avg_cohesion = np.sum(sub, axis=1) / (n_remaining - 1)
+
+    min_exit = np.minimum(np.min(sub, axis=1), d_dest)
+
+    if n_remaining > 2:
+        sorted_dists = np.sort(sub, axis=1)
+        second_nearest = sorted_dists[:, 1]
+    else:
+        second_nearest = np.full(n_remaining, np.inf)
+
+    scale = np.mean(d_curr)
+    if scale < 1e-9:
+        scale = 1.0
+
+    progress = (n_total - n_remaining) / (n_total - 1)
+
+    return_weight = 0.1 + 0.6 * (progress * progress * (3 - 2 * progress))
+
+    cohesion_weight = 0.4 * (1 - progress)
+    exit_weight = 0.2 * (1 - progress)
+    orphan_weight = 0.15 * (1 - progress)
+
+    d_curr_n = d_curr / scale
+    d_dest_n = d_dest / scale
+    cohesion_n = avg_cohesion / scale
+    exit_n = min_exit / scale
+    orphan_n = second_nearest / scale
+
+    scores = d_curr_n + return_weight * d_dest_n + cohesion_weight * cohesion_n + exit_weight * exit_n + orphan_weight * orphan_n
+
+    k = min(3, n_remaining - 1)
+    flexibility = np.sum(np.sort(sub, axis=1)[:, :k], axis=1)
+
+    tie_breaker = 1e-6 * flexibility / scale
+
+    final_scores = scores + tie_breaker
+
+    if np.any(np.isnan(final_scores)) or np.any(np.isinf(final_scores)):
+        final_scores = d_curr_n + 1e-6 * np.arange(n_remaining)
+
+    idx = int(np.argmin(final_scores))
+    return int(unvisited_nodes[idx])
+```
+
+
+# Development History
+
+The development history describes how the current algorithm was built and how
+previous versions performed. Use it as context for this algorithm design task.
+
+Step 1
+Previous version fitness: -7.178999203709081
+Resulting version fitness: -7.178999203709081
+Idea: The algorithm uses a dynamic greedy-return heuristic that balances immediate travel cost against the future return cost to the destination. For each unvisited candidate, it computes a composite score equal to the direct distance from the current node plus a weighted penalty term reflecting the distance from the candidate to the destination. The weight dynamically increases as fewer nodes remain, transitioning from pure greedy (prioritizing short hops) to a return-focused heuristic (ensuring the final leg isn't excessively long). This prevents the heuristic from getting trapped far from the destination early in the tour, while still maintaining local optimality.
+
+Step 2
+Previous version fitness: -7.178999203709081
+Resulting version fitness: -7.071455064831496
+Idea: Extend the greedy-return core with an inverse distance transform that favors distant unvisited nodes early and nearby ones late, plus a light nearest-neighbor smoothing to avoid isolated jumps. The return weight grows as the tour progresses to cap the final leg, while the novelty weight fades to prevent over-dispersal. Composite cost = d(current, cand) + beta * d(cand, dest) - delta * avg_to_unvisited + gamma * min_to_unvisited.
+
+Step 3
+Previous version fitness: -7.071455064831496
+Resulting version fitness: -6.973203841713479
+Idea: Enhances the composite cost model by refining the isolation metrics and adding a "progress-weighted" local smoothness term. Instead of a linear progress factor, it uses a quadratic curve for the return bias to keep exploration longer, and introduces a weighted average of nearest-neighbor distances to penalize candidates that are isolated *from the current node* late in the tour. It also normalizes the dispersion reward to ensure stability across different instance scales, balancing global cluster coherence with local path efficiency.
+
+Step 4
+Previous version fitness: -6.973203841713479
+Resulting version fitness: -6.99533525019895
+Idea: We refine the composite score by replacing the noisy normalized average distance with a robust median-based dispersion metric and a sharper 2-step lookahead. The return weight uses a smooth $0.1 + 0.4\sqrt{p}$ curve to better balance the transition to the final leg. Crucially, we subtract a "cluster connectivity" reward based on the median distance to other unvisited nodes, which encourages visiting nodes within the current tour's bounding cluster early, while a penalty for the minimum distance to the destination ensures we don't prematurely return. This stabilizes the selection by focusing on local density rather than global averages, preventing the jagged paths seen in earlier attempts.
+
+Step 5
+Previous version fitness: -6.99533525019895
+Resulting version fitness: -7.0732395983884935
+Idea: We refine the score by adding a dynamic 2-step exit cost, which is the minimum distance from a candidate to any other unvisited node or the destination. This lookahead prevents the tour from getting stuck by ensuring every move preserves a cheap exit path. To stabilize decisions, we scale the dispersion reward and exit cost by the immediate distance to the current node, making them adaptive to the current position's geometry. We also introduce a small node diversity bonus to break ties and avoid redundant local choices, while maintaining the quadratic return pressure from the previous iteration for a smooth finish.
+
+Step 6
+Previous version fitness: -7.0732395983884935
+Resulting version fitness: -6.8239686184057184
+Idea: We refine Algorithm 3's composite scoring by replacing the potentially unstable normalized dispersion metric with a robust "structural cohesion" penalty based on the average distance to remaining unvisited nodes (inspired by Algorithm 2's connectivity concept, but inverted as a penalty to encourage local clustering). To prevent getting stuck in isolated clusters or causing long final returns, we maintain Algorithm 3's 2-step exit cost lookahead and the convex quadratic return weight. The key improvement is normalizing all heuristic terms by the immediate distance to the current node, ensuring that structural penalties scale appropriately with the current move's length rather than raw map scale, which stabilizes decisions across different instance sizes.
+
+Step 7
+Previous version fitness: -6.8239686184057184
+Resulting version fitness: -6.8239686184057184
+Idea: I enhance Algorithm 3 by addressing its weakness with scale-dependent heuristic weights. I normalize the immediate distance, cohesion penalty, exit cost, and return bias by the average distance from the current node to the remaining cluster, making the composite score invariant to map scale. I adjust weights to prioritize the return bias more aggressively in the final stages ($progress^3$) and blend in a regret term to sharpen decision boundaries, mitigating ties between suboptimal candidates.
+
+Step 8
+Previous version fitness: -6.8239686184057184
+Resulting version fitness: -6.8239686184057184
+Idea: I extend Algorithm 3's normalized composite cost by adding an "Orphan Penalty" (distance to the second nearest unvisited neighbor) to prevent isolating the last few nodes, which Algorithm 3's average-based cohesion misses. I replace the regret term with a dynamic tie-breaker that prioritizes nodes with higher "exit flexibility" (more nearby options) when scores are close. The return bias uses a smooth step function for a softer but decisive pull at the end. All components are scale-invariant.
+
+
+# Algorithm Design Task
+Design an algorithm for this task using a different main idea from the current
+algorithm. Use the current algorithm as a reference for developing a promising
+new approach.
+
+
+# Output
+First describe your proposed algorithm in one concise paragraph, explaining its
+main decision method and key calculations. Then implement it in this format:
+
+Idea: <design idea>
+```python
+<complete target implementation, including all required imports and helpers>
+```
+Keep the Idea within 100 words.

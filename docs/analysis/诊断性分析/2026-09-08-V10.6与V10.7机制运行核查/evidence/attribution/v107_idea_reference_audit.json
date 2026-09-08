@@ -1,0 +1,994 @@
+{
+  "regex": "\\bAlgorithm\\s+(\\d+)\\b",
+  "cuts": {
+    "20260907_bounded_formal_tsp_v107_rep1": 463,
+    "20260907_bounded_formal_cvrp_v107_rep1": 344,
+    "20260907_bounded_formal_op_v107_rep1": 492,
+    "20260907_bounded_formal_obp_v107_rep1": 922,
+    "20260907_bounded_formal_vrptw_v107_rep1": 466,
+    "20260907_bounded_formal_tsp_v107_rep2": 625,
+    "20260907_bounded_formal_cvrp_v107_rep2": 354,
+    "20260907_bounded_formal_op_v107_rep2": 520,
+    "20260907_bounded_formal_obp_v107_rep2": 1001,
+    "20260907_bounded_formal_vrptw_v107_rep2": 571,
+    "20260907_bounded_formal_tsp_v107_rep3": 698,
+    "20260907_bounded_formal_cvrp_v107_rep3": 329,
+    "20260907_bounded_formal_op_v107_rep3": 392,
+    "20260907_bounded_formal_obp_v107_rep3": 1000,
+    "20260907_bounded_formal_vrptw_v107_rep3": 622
+  },
+  "reports": [
+    {
+      "run": "20260907_bounded_formal_tsp_v107_rep1",
+      "task": "tsp_construct",
+      "horizon": "250",
+      "counts": {
+        "archived_nodes": 245,
+        "nodes_with_Algorithm_N": 165,
+        "all_blocks": 729,
+        "shown_nonempty_ideas": 711,
+        "blocks_with_Algorithm_N": 459,
+        "blocks_wrong_or_missing": 452,
+        "blocks_changed_referent": 452,
+        "blocks_changed_code": 450,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 674,
+        "changed_mentions": 657,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_tsp_v107_rep1",
+      "task": "tsp_construct",
+      "horizon": "full",
+      "counts": {
+        "archived_nodes": 405,
+        "nodes_with_Algorithm_N": 265,
+        "all_blocks": 1365,
+        "shown_nonempty_ideas": 1343,
+        "blocks_with_Algorithm_N": 881,
+        "blocks_wrong_or_missing": 874,
+        "blocks_changed_referent": 874,
+        "blocks_changed_code": 868,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 1294,
+        "changed_mentions": 1276,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_cvrp_v107_rep1",
+      "task": "cvrp_aco",
+      "horizon": "250",
+      "counts": {
+        "archived_nodes": 235,
+        "nodes_with_Algorithm_N": 125,
+        "all_blocks": 726,
+        "shown_nonempty_ideas": 726,
+        "blocks_with_Algorithm_N": 354,
+        "blocks_wrong_or_missing": 350,
+        "blocks_changed_referent": 350,
+        "blocks_changed_code": 350,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 498,
+        "changed_mentions": 488,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_cvrp_v107_rep1",
+      "task": "cvrp_aco",
+      "horizon": "full",
+      "counts": {
+        "archived_nodes": 322,
+        "nodes_with_Algorithm_N": 173,
+        "all_blocks": 1005,
+        "shown_nonempty_ideas": 1005,
+        "blocks_with_Algorithm_N": 515,
+        "blocks_wrong_or_missing": 510,
+        "blocks_changed_referent": 510,
+        "blocks_changed_code": 510,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 730,
+        "changed_mentions": 719,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_op_v107_rep1",
+      "task": "op_aco",
+      "horizon": "250",
+      "counts": {
+        "archived_nodes": 248,
+        "nodes_with_Algorithm_N": 156,
+        "all_blocks": 726,
+        "shown_nonempty_ideas": 719,
+        "blocks_with_Algorithm_N": 380,
+        "blocks_wrong_or_missing": 377,
+        "blocks_changed_referent": 377,
+        "blocks_changed_code": 377,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 537,
+        "changed_mentions": 531,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_op_v107_rep1",
+      "task": "op_aco",
+      "horizon": "full",
+      "counts": {
+        "archived_nodes": 486,
+        "nodes_with_Algorithm_N": 326,
+        "all_blocks": 1452,
+        "shown_nonempty_ideas": 1445,
+        "blocks_with_Algorithm_N": 861,
+        "blocks_wrong_or_missing": 856,
+        "blocks_changed_referent": 856,
+        "blocks_changed_code": 856,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 1243,
+        "changed_mentions": 1233,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_obp_v107_rep1",
+      "task": "online_bin_packing",
+      "horizon": "250",
+      "counts": {
+        "archived_nodes": 250,
+        "nodes_with_Algorithm_N": 86,
+        "all_blocks": 729,
+        "shown_nonempty_ideas": 729,
+        "blocks_with_Algorithm_N": 232,
+        "blocks_wrong_or_missing": 232,
+        "blocks_changed_referent": 232,
+        "blocks_changed_code": 232,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 371,
+        "changed_mentions": 368,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_obp_v107_rep1",
+      "task": "online_bin_packing",
+      "horizon": "full",
+      "counts": {
+        "archived_nodes": 916,
+        "nodes_with_Algorithm_N": 398,
+        "all_blocks": 2742,
+        "shown_nonempty_ideas": 2742,
+        "blocks_with_Algorithm_N": 1077,
+        "blocks_wrong_or_missing": 1074,
+        "blocks_changed_referent": 1074,
+        "blocks_changed_code": 1073,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 1671,
+        "changed_mentions": 1664,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_vrptw_v107_rep1",
+      "task": "vrptw_construct",
+      "horizon": "250",
+      "counts": {
+        "archived_nodes": 246,
+        "nodes_with_Algorithm_N": 136,
+        "all_blocks": 726,
+        "shown_nonempty_ideas": 726,
+        "blocks_with_Algorithm_N": 331,
+        "blocks_wrong_or_missing": 328,
+        "blocks_changed_referent": 328,
+        "blocks_changed_code": 328,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 486,
+        "changed_mentions": 478,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_vrptw_v107_rep1",
+      "task": "vrptw_construct",
+      "horizon": "full",
+      "counts": {
+        "archived_nodes": 457,
+        "nodes_with_Algorithm_N": 267,
+        "all_blocks": 1371,
+        "shown_nonempty_ideas": 1371,
+        "blocks_with_Algorithm_N": 705,
+        "blocks_wrong_or_missing": 699,
+        "blocks_changed_referent": 699,
+        "blocks_changed_code": 699,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 1017,
+        "changed_mentions": 1005,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_tsp_v107_rep2",
+      "task": "tsp_construct",
+      "horizon": "250",
+      "counts": {
+        "archived_nodes": 248,
+        "nodes_with_Algorithm_N": 167,
+        "all_blocks": 732,
+        "shown_nonempty_ideas": 729,
+        "blocks_with_Algorithm_N": 417,
+        "blocks_wrong_or_missing": 415,
+        "blocks_changed_referent": 415,
+        "blocks_changed_code": 415,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 638,
+        "changed_mentions": 627,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_tsp_v107_rep2",
+      "task": "tsp_construct",
+      "horizon": "full",
+      "counts": {
+        "archived_nodes": 617,
+        "nodes_with_Algorithm_N": 434,
+        "all_blocks": 1851,
+        "shown_nonempty_ideas": 1845,
+        "blocks_with_Algorithm_N": 1192,
+        "blocks_wrong_or_missing": 1190,
+        "blocks_changed_referent": 1190,
+        "blocks_changed_code": 1190,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 1807,
+        "changed_mentions": 1796,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_cvrp_v107_rep2",
+      "task": "cvrp_aco",
+      "horizon": "250",
+      "counts": {
+        "archived_nodes": 248,
+        "nodes_with_Algorithm_N": 161,
+        "all_blocks": 729,
+        "shown_nonempty_ideas": 727,
+        "blocks_with_Algorithm_N": 408,
+        "blocks_wrong_or_missing": 404,
+        "blocks_changed_referent": 404,
+        "blocks_changed_code": 404,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 591,
+        "changed_mentions": 583,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_cvrp_v107_rep2",
+      "task": "cvrp_aco",
+      "horizon": "full",
+      "counts": {
+        "archived_nodes": 351,
+        "nodes_with_Algorithm_N": 233,
+        "all_blocks": 1038,
+        "shown_nonempty_ideas": 1035,
+        "blocks_with_Algorithm_N": 612,
+        "blocks_wrong_or_missing": 607,
+        "blocks_changed_referent": 607,
+        "blocks_changed_code": 607,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 898,
+        "changed_mentions": 888,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_op_v107_rep2",
+      "task": "op_aco",
+      "horizon": "250",
+      "counts": {
+        "archived_nodes": 246,
+        "nodes_with_Algorithm_N": 197,
+        "all_blocks": 726,
+        "shown_nonempty_ideas": 709,
+        "blocks_with_Algorithm_N": 504,
+        "blocks_wrong_or_missing": 498,
+        "blocks_changed_referent": 498,
+        "blocks_changed_code": 498,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 744,
+        "changed_mentions": 733,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_op_v107_rep2",
+      "task": "op_aco",
+      "horizon": "full",
+      "counts": {
+        "archived_nodes": 513,
+        "nodes_with_Algorithm_N": 421,
+        "all_blocks": 1530,
+        "shown_nonempty_ideas": 1506,
+        "blocks_with_Algorithm_N": 1144,
+        "blocks_wrong_or_missing": 1135,
+        "blocks_changed_referent": 1135,
+        "blocks_changed_code": 1135,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 1721,
+        "changed_mentions": 1703,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_obp_v107_rep2",
+      "task": "online_bin_packing",
+      "horizon": "250",
+      "counts": {
+        "archived_nodes": 249,
+        "nodes_with_Algorithm_N": 40,
+        "all_blocks": 723,
+        "shown_nonempty_ideas": 720,
+        "blocks_with_Algorithm_N": 95,
+        "blocks_wrong_or_missing": 95,
+        "blocks_changed_referent": 95,
+        "blocks_changed_code": 95,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 177,
+        "changed_mentions": 176,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_obp_v107_rep2",
+      "task": "online_bin_packing",
+      "horizon": "full",
+      "counts": {
+        "archived_nodes": 997,
+        "nodes_with_Algorithm_N": 230,
+        "all_blocks": 2976,
+        "shown_nonempty_ideas": 2965,
+        "blocks_with_Algorithm_N": 552,
+        "blocks_wrong_or_missing": 552,
+        "blocks_changed_referent": 552,
+        "blocks_changed_code": 550,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 925,
+        "changed_mentions": 923,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_vrptw_v107_rep2",
+      "task": "vrptw_construct",
+      "horizon": "250",
+      "counts": {
+        "archived_nodes": 242,
+        "nodes_with_Algorithm_N": 124,
+        "all_blocks": 720,
+        "shown_nonempty_ideas": 720,
+        "blocks_with_Algorithm_N": 311,
+        "blocks_wrong_or_missing": 307,
+        "blocks_changed_referent": 307,
+        "blocks_changed_code": 307,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 520,
+        "changed_mentions": 512,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_vrptw_v107_rep2",
+      "task": "vrptw_construct",
+      "horizon": "full",
+      "counts": {
+        "archived_nodes": 554,
+        "nodes_with_Algorithm_N": 334,
+        "all_blocks": 1680,
+        "shown_nonempty_ideas": 1680,
+        "blocks_with_Algorithm_N": 923,
+        "blocks_wrong_or_missing": 917,
+        "blocks_changed_referent": 917,
+        "blocks_changed_code": 916,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 1449,
+        "changed_mentions": 1439,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_tsp_v107_rep3",
+      "task": "tsp_construct",
+      "horizon": "250",
+      "counts": {
+        "archived_nodes": 246,
+        "nodes_with_Algorithm_N": 166,
+        "all_blocks": 726,
+        "shown_nonempty_ideas": 726,
+        "blocks_with_Algorithm_N": 468,
+        "blocks_wrong_or_missing": 462,
+        "blocks_changed_referent": 462,
+        "blocks_changed_code": 462,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 713,
+        "changed_mentions": 700,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_tsp_v107_rep3",
+      "task": "tsp_construct",
+      "horizon": "full",
+      "counts": {
+        "archived_nodes": 666,
+        "nodes_with_Algorithm_N": 438,
+        "all_blocks": 2067,
+        "shown_nonempty_ideas": 2067,
+        "blocks_with_Algorithm_N": 1372,
+        "blocks_wrong_or_missing": 1363,
+        "blocks_changed_referent": 1363,
+        "blocks_changed_code": 1363,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 2065,
+        "changed_mentions": 2048,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_cvrp_v107_rep3",
+      "task": "cvrp_aco",
+      "horizon": "250",
+      "counts": {
+        "archived_nodes": 227,
+        "nodes_with_Algorithm_N": 151,
+        "all_blocks": 723,
+        "shown_nonempty_ideas": 711,
+        "blocks_with_Algorithm_N": 432,
+        "blocks_wrong_or_missing": 428,
+        "blocks_changed_referent": 428,
+        "blocks_changed_code": 428,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 618,
+        "changed_mentions": 610,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_cvrp_v107_rep3",
+      "task": "cvrp_aco",
+      "horizon": "full",
+      "counts": {
+        "archived_nodes": 296,
+        "nodes_with_Algorithm_N": 202,
+        "all_blocks": 960,
+        "shown_nonempty_ideas": 947,
+        "blocks_with_Algorithm_N": 584,
+        "blocks_wrong_or_missing": 580,
+        "blocks_changed_referent": 580,
+        "blocks_changed_code": 580,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 835,
+        "changed_mentions": 827,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_op_v107_rep3",
+      "task": "op_aco",
+      "horizon": "250",
+      "counts": {
+        "archived_nodes": 247,
+        "nodes_with_Algorithm_N": 146,
+        "all_blocks": 723,
+        "shown_nonempty_ideas": 723,
+        "blocks_with_Algorithm_N": 445,
+        "blocks_wrong_or_missing": 440,
+        "blocks_changed_referent": 440,
+        "blocks_changed_code": 439,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 648,
+        "changed_mentions": 636,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_op_v107_rep3",
+      "task": "op_aco",
+      "horizon": "full",
+      "counts": {
+        "archived_nodes": 384,
+        "nodes_with_Algorithm_N": 247,
+        "all_blocks": 1149,
+        "shown_nonempty_ideas": 1149,
+        "blocks_with_Algorithm_N": 717,
+        "blocks_wrong_or_missing": 712,
+        "blocks_changed_referent": 712,
+        "blocks_changed_code": 710,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 1038,
+        "changed_mentions": 1026,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_obp_v107_rep3",
+      "task": "online_bin_packing",
+      "horizon": "250",
+      "counts": {
+        "archived_nodes": 250,
+        "nodes_with_Algorithm_N": 59,
+        "all_blocks": 726,
+        "shown_nonempty_ideas": 719,
+        "blocks_with_Algorithm_N": 161,
+        "blocks_wrong_or_missing": 161,
+        "blocks_changed_referent": 161,
+        "blocks_changed_code": 161,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 262,
+        "changed_mentions": 261,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_obp_v107_rep3",
+      "task": "online_bin_packing",
+      "horizon": "full",
+      "counts": {
+        "archived_nodes": 1000,
+        "nodes_with_Algorithm_N": 223,
+        "all_blocks": 2976,
+        "shown_nonempty_ideas": 2965,
+        "blocks_with_Algorithm_N": 680,
+        "blocks_wrong_or_missing": 680,
+        "blocks_changed_referent": 680,
+        "blocks_changed_code": 679,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 1086,
+        "changed_mentions": 1085,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_vrptw_v107_rep3",
+      "task": "vrptw_construct",
+      "horizon": "250",
+      "counts": {
+        "archived_nodes": 241,
+        "nodes_with_Algorithm_N": 99,
+        "all_blocks": 729,
+        "shown_nonempty_ideas": 729,
+        "blocks_with_Algorithm_N": 299,
+        "blocks_wrong_or_missing": 296,
+        "blocks_changed_referent": 296,
+        "blocks_changed_code": 296,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 436,
+        "changed_mentions": 430,
+        "missing_mentions": 0
+      }
+    },
+    {
+      "run": "20260907_bounded_formal_vrptw_v107_rep3",
+      "task": "vrptw_construct",
+      "horizon": "full",
+      "counts": {
+        "archived_nodes": 606,
+        "nodes_with_Algorithm_N": 291,
+        "all_blocks": 1842,
+        "shown_nonempty_ideas": 1842,
+        "blocks_with_Algorithm_N": 834,
+        "blocks_wrong_or_missing": 830,
+        "blocks_changed_referent": 830,
+        "blocks_changed_code": 830,
+        "blocks_missing_current": 0,
+        "blocks_unresolved_original": 0,
+        "resolved_mentions": 1230,
+        "changed_mentions": 1221,
+        "missing_mentions": 0
+      }
+    }
+  ],
+  "examples": [
+    {
+      "task": "tsp_construct",
+      "run": "20260907_bounded_formal_tsp_v107_rep1",
+      "node": 9,
+      "birth_candidate": 10,
+      "birth_eval": 10,
+      "birth_context": [
+        2,
+        5,
+        3
+      ],
+      "reuse_candidate": 11,
+      "reuse_eval": 11,
+      "reuse_context": [
+        0,
+        5,
+        9
+      ],
+      "changed_indices": [
+        3
+      ],
+      "missing_indices": [],
+      "idea": "I propose a **Spectral Proximity Heuristic** that enhances the dynamic return-aware approach by incorporating a geometric centrality measure. While Algorithm 3 dynamically balances immediate cost against destination return distance, it ignores the local structure of unvisited nodes. My method computes a \"spectral centrality\" score for each candidate, defined as the mean distance to all other unvisited nodes. This penalizes outliers that would create long, inefficient detours later. The total cost is a convex combination: immediate distance, destination return distance (weighted by progress), and the centrality penalty. This ensures the path stays close to the destination while maintaining a compact cluster of remaining nodes."
+    },
+    {
+      "task": "tsp_construct",
+      "run": "20260907_bounded_formal_tsp_v107_rep1",
+      "node": 9,
+      "birth_candidate": 10,
+      "birth_eval": 10,
+      "birth_context": [
+        2,
+        5,
+        3
+      ],
+      "reuse_candidate": 12,
+      "reuse_eval": 12,
+      "reuse_context": [
+        6,
+        5,
+        9
+      ],
+      "changed_indices": [
+        3
+      ],
+      "missing_indices": [],
+      "idea": "I propose a **Spectral Proximity Heuristic** that enhances the dynamic return-aware approach by incorporating a geometric centrality measure. While Algorithm 3 dynamically balances immediate cost against destination return distance, it ignores the local structure of unvisited nodes. My method computes a \"spectral centrality\" score for each candidate, defined as the mean distance to all other unvisited nodes. This penalizes outliers that would create long, inefficient detours later. The total cost is a convex combination: immediate distance, destination return distance (weighted by progress), and the centrality penalty. This ensures the path stays close to the destination while maintaining a compact cluster of remaining nodes."
+    },
+    {
+      "task": "tsp_construct",
+      "run": "20260907_bounded_formal_tsp_v107_rep1",
+      "node": 9,
+      "birth_candidate": 10,
+      "birth_eval": 10,
+      "birth_context": [
+        2,
+        5,
+        3
+      ],
+      "reuse_candidate": 14,
+      "reuse_eval": 14,
+      "reuse_context": [
+        4,
+        9,
+        8
+      ],
+      "changed_indices": [
+        3
+      ],
+      "missing_indices": [],
+      "idea": "I propose a **Spectral Proximity Heuristic** that enhances the dynamic return-aware approach by incorporating a geometric centrality measure. While Algorithm 3 dynamically balances immediate cost against destination return distance, it ignores the local structure of unvisited nodes. My method computes a \"spectral centrality\" score for each candidate, defined as the mean distance to all other unvisited nodes. This penalizes outliers that would create long, inefficient detours later. The total cost is a convex combination: immediate distance, destination return distance (weighted by progress), and the centrality penalty. This ensures the path stays close to the destination while maintaining a compact cluster of remaining nodes."
+    },
+    {
+      "task": "cvrp_aco",
+      "run": "20260907_bounded_formal_cvrp_v107_rep1",
+      "node": 12,
+      "birth_candidate": 14,
+      "birth_eval": 13,
+      "birth_context": [
+        6,
+        1,
+        7
+      ],
+      "reuse_candidate": 15,
+      "reuse_eval": 14,
+      "reuse_context": [
+        1,
+        10,
+        12
+      ],
+      "changed_indices": [
+        2,
+        3
+      ],
+      "missing_indices": [],
+      "idea": "Combine the Clarke-Wright savings signal with a sharp inverse-distance prior, scaled by a capacity-aware feasibility weight for each destination. The savings term rewards edges that merge routes (reducing total distance), while the squared inverse distance strongly favors local proximity. Crucially, we apply a destination-specific multiplier: edges to high-demand nodes (relative to vehicle capacity) are dampened to steer ants away from moves that risk infeasibility, and edges to low-demand nodes are slightly boosted. This integrates the global route-merging benefit of Algorithm 2 with the local precision of Algorithm 3, while explicitly handling the CVRP capacity constraint via a soft, vectorized demand-ratio penalty."
+    },
+    {
+      "task": "cvrp_aco",
+      "run": "20260907_bounded_formal_cvrp_v107_rep1",
+      "node": 13,
+      "birth_candidate": 15,
+      "birth_eval": 14,
+      "birth_context": [
+        1,
+        10,
+        12
+      ],
+      "reuse_candidate": 16,
+      "reuse_eval": 15,
+      "reuse_context": [
+        0,
+        1,
+        13
+      ],
+      "changed_indices": [
+        2,
+        3
+      ],
+      "missing_indices": [],
+      "idea": "Build a hybrid edge prior from Algorithm 3's sharp local signal and Algorithm 2's rank-normalized Clarke\u2013Wright savings. Compute `1/dist^2` as the base attractiveness, then for customer\u2013customer pairs add a rank-based savings term (ranks normalized to (0,1)) scaled by a moderate weight to prioritize route merging while avoiding scale bias. Apply a mild destination capacity factor `1/(1+0.75*demands[j]/capacity)` to damp moves toward high-demand nodes, preserving short-edge preference for depot links. Final matrix is finite, positive, with diagonal set to epsilon."
+    },
+    {
+      "task": "cvrp_aco",
+      "run": "20260907_bounded_formal_cvrp_v107_rep1",
+      "node": 12,
+      "birth_candidate": 14,
+      "birth_eval": 13,
+      "birth_context": [
+        6,
+        1,
+        7
+      ],
+      "reuse_candidate": 17,
+      "reuse_eval": 16,
+      "reuse_context": [
+        0,
+        12,
+        7
+      ],
+      "changed_indices": [
+        2
+      ],
+      "missing_indices": [],
+      "idea": "Combine the Clarke-Wright savings signal with a sharp inverse-distance prior, scaled by a capacity-aware feasibility weight for each destination. The savings term rewards edges that merge routes (reducing total distance), while the squared inverse distance strongly favors local proximity. Crucially, we apply a destination-specific multiplier: edges to high-demand nodes (relative to vehicle capacity) are dampened to steer ants away from moves that risk infeasibility, and edges to low-demand nodes are slightly boosted. This integrates the global route-merging benefit of Algorithm 2 with the local precision of Algorithm 3, while explicitly handling the CVRP capacity constraint via a soft, vectorized demand-ratio penalty."
+    },
+    {
+      "task": "op_aco",
+      "run": "20260907_bounded_formal_op_v107_rep1",
+      "node": 10,
+      "birth_candidate": 11,
+      "birth_eval": 11,
+      "birth_context": [
+        8,
+        2,
+        9
+      ],
+      "reuse_candidate": 12,
+      "reuse_eval": 12,
+      "reuse_context": [
+        4,
+        9,
+        10
+      ],
+      "changed_indices": [
+        3
+      ],
+      "missing_indices": [],
+      "idea": "Improve Algorithm 3 by refining the feasibility constraint to use the minimum feasible return cost rather than a hard cut, allowing a soft transition for edges near the budget limit. Combine normalized destination prizes with inverse distances and a convex slack factor that strongly penalizes edges consuming most of the budget while softly discouraging infeasible edges. This maintains the high-performance prize/distance trade-off of Algorithm 3 while making the heuristic more robust to tight constraints by ensuring feasible edges always receive higher scores than infeasible ones."
+    },
+    {
+      "task": "op_aco",
+      "run": "20260907_bounded_formal_op_v107_rep1",
+      "node": 10,
+      "birth_candidate": 11,
+      "birth_eval": 11,
+      "birth_context": [
+        8,
+        2,
+        9
+      ],
+      "reuse_candidate": 15,
+      "reuse_eval": 15,
+      "reuse_context": [
+        3,
+        11,
+        10
+      ],
+      "changed_indices": [
+        3
+      ],
+      "missing_indices": [],
+      "idea": "Improve Algorithm 3 by refining the feasibility constraint to use the minimum feasible return cost rather than a hard cut, allowing a soft transition for edges near the budget limit. Combine normalized destination prizes with inverse distances and a convex slack factor that strongly penalizes edges consuming most of the budget while softly discouraging infeasible edges. This maintains the high-performance prize/distance trade-off of Algorithm 3 while making the heuristic more robust to tight constraints by ensuring feasible edges always receive higher scores than infeasible ones."
+    },
+    {
+      "task": "op_aco",
+      "run": "20260907_bounded_formal_op_v107_rep1",
+      "node": 10,
+      "birth_candidate": 11,
+      "birth_eval": 11,
+      "birth_context": [
+        8,
+        2,
+        9
+      ],
+      "reuse_candidate": 17,
+      "reuse_eval": 17,
+      "reuse_context": [
+        11,
+        10,
+        13
+      ],
+      "changed_indices": [
+        3
+      ],
+      "missing_indices": [],
+      "idea": "Improve Algorithm 3 by refining the feasibility constraint to use the minimum feasible return cost rather than a hard cut, allowing a soft transition for edges near the budget limit. Combine normalized destination prizes with inverse distances and a convex slack factor that strongly penalizes edges consuming most of the budget while softly discouraging infeasible edges. This maintains the high-performance prize/distance trade-off of Algorithm 3 while making the heuristic more robust to tight constraints by ensuring feasible edges always receive higher scores than infeasible ones."
+    },
+    {
+      "task": "online_bin_packing",
+      "run": "20260907_bounded_formal_obp_v107_rep1",
+      "node": 9,
+      "birth_candidate": 10,
+      "birth_eval": 10,
+      "birth_context": [
+        1,
+        3,
+        6
+      ],
+      "reuse_candidate": 12,
+      "reuse_eval": 12,
+      "reuse_context": [
+        2,
+        9,
+        10
+      ],
+      "changed_indices": [
+        1,
+        2,
+        3
+      ],
+      "missing_indices": [],
+      "idea": "Adopt Algorithm 1's core Best-Fit heuristic where smaller leftover capacity yields higher priority. To address the fragmentation risks of aggressive Best-Fit, incorporate a mild quadratic penalty on large slacks (as in Algorithm 2) to smooth the preference curve. Add a tiny epsilon bonus for strictly positive slack to ensure finite, well-behaved tie-breaking without distorting the primary order. Infeasible bins are explicitly assigned a large negative finite value, borrowing robustness from Algorithm 3 while maintaining the integer-aware slack computation."
+    },
+    {
+      "task": "online_bin_packing",
+      "run": "20260907_bounded_formal_obp_v107_rep1",
+      "node": 10,
+      "birth_candidate": 11,
+      "birth_eval": 11,
+      "birth_context": [
+        1,
+        3,
+        6
+      ],
+      "reuse_candidate": 12,
+      "reuse_eval": 12,
+      "reuse_context": [
+        2,
+        9,
+        10
+      ],
+      "changed_indices": [
+        1,
+        3
+      ],
+      "missing_indices": [],
+      "idea": "Adapt Algorithm 3's feasibility mask and remaining-capacity computation, then blend with Algorithm 1's Best-Fit linear score by adding a tiny positive bonus for strictly positive slack. This keeps tight fits highest priority, handles infeasible bins with a finite large-negative constant (avoiding inf), and casts to float before adding bonuses to ensure finite same-shape output."
+    },
+    {
+      "task": "online_bin_packing",
+      "run": "20260907_bounded_formal_obp_v107_rep1",
+      "node": 9,
+      "birth_candidate": 10,
+      "birth_eval": 10,
+      "birth_context": [
+        1,
+        3,
+        6
+      ],
+      "reuse_candidate": 14,
+      "reuse_eval": 14,
+      "reuse_context": [
+        5,
+        8,
+        9
+      ],
+      "changed_indices": [
+        1,
+        2,
+        3
+      ],
+      "missing_indices": [],
+      "idea": "Adopt Algorithm 1's core Best-Fit heuristic where smaller leftover capacity yields higher priority. To address the fragmentation risks of aggressive Best-Fit, incorporate a mild quadratic penalty on large slacks (as in Algorithm 2) to smooth the preference curve. Add a tiny epsilon bonus for strictly positive slack to ensure finite, well-behaved tie-breaking without distorting the primary order. Infeasible bins are explicitly assigned a large negative finite value, borrowing robustness from Algorithm 3 while maintaining the integer-aware slack computation."
+    },
+    {
+      "task": "vrptw_construct",
+      "run": "20260907_bounded_formal_vrptw_v107_rep1",
+      "node": 8,
+      "birth_candidate": 10,
+      "birth_eval": 10,
+      "birth_context": [
+        1,
+        5,
+        2
+      ],
+      "reuse_candidate": 14,
+      "reuse_eval": 13,
+      "reuse_context": [
+        0,
+        2,
+        8
+      ],
+      "changed_indices": [
+        2,
+        3
+      ],
+      "missing_indices": [],
+      "idea": "The proposed algorithm selects the next customer by minimizing a composite cost function that balances spatial proximity and temporal efficiency. For each feasible candidate, it calculates the Euclidean distance, the waiting time (if arriving early), and the remaining slack before the time window closes. To prevent getting stuck in tight nodes, it applies a regret term that increases the penalty for nodes whose feasibility is most constrained (small slack) if not visited immediately. The final score is a weighted sum: $Score = w_d \\cdot d + w_w \\cdot wait + w_r \\cdot (1 - slack/max\\_slack)$. The node with the lowest score is selected; if no nodes remain, the depot is chosen. This approach combines the normalized distance/waiting logic of Algorithm 2 with the urgency/regret-inspired slack handling of Algorithm 3."
+    },
+    {
+      "task": "vrptw_construct",
+      "run": "20260907_bounded_formal_vrptw_v107_rep1",
+      "node": 8,
+      "birth_candidate": 10,
+      "birth_eval": 10,
+      "birth_context": [
+        1,
+        5,
+        2
+      ],
+      "reuse_candidate": 17,
+      "reuse_eval": 16,
+      "reuse_context": [
+        3,
+        2,
+        8
+      ],
+      "changed_indices": [
+        2,
+        3
+      ],
+      "missing_indices": [],
+      "idea": "The proposed algorithm selects the next customer by minimizing a composite cost function that balances spatial proximity and temporal efficiency. For each feasible candidate, it calculates the Euclidean distance, the waiting time (if arriving early), and the remaining slack before the time window closes. To prevent getting stuck in tight nodes, it applies a regret term that increases the penalty for nodes whose feasibility is most constrained (small slack) if not visited immediately. The final score is a weighted sum: $Score = w_d \\cdot d + w_w \\cdot wait + w_r \\cdot (1 - slack/max\\_slack)$. The node with the lowest score is selected; if no nodes remain, the depot is chosen. This approach combines the normalized distance/waiting logic of Algorithm 2 with the urgency/regret-inspired slack handling of Algorithm 3."
+    },
+    {
+      "task": "vrptw_construct",
+      "run": "20260907_bounded_formal_vrptw_v107_rep1",
+      "node": 8,
+      "birth_candidate": 10,
+      "birth_eval": 10,
+      "birth_context": [
+        1,
+        5,
+        2
+      ],
+      "reuse_candidate": 20,
+      "reuse_eval": 19,
+      "reuse_context": [
+        5,
+        16,
+        8
+      ],
+      "changed_indices": [
+        2,
+        3
+      ],
+      "missing_indices": [],
+      "idea": "The proposed algorithm selects the next customer by minimizing a composite cost function that balances spatial proximity and temporal efficiency. For each feasible candidate, it calculates the Euclidean distance, the waiting time (if arriving early), and the remaining slack before the time window closes. To prevent getting stuck in tight nodes, it applies a regret term that increases the penalty for nodes whose feasibility is most constrained (small slack) if not visited immediately. The final score is a weighted sum: $Score = w_d \\cdot d + w_w \\cdot wait + w_r \\cdot (1 - slack/max\\_slack)$. The node with the lowest score is selected; if no nodes remain, the depot is chosen. This approach combines the normalized distance/waiting logic of Algorithm 2 with the urgency/regret-inspired slack handling of Algorithm 3."
+    }
+  ]
+}

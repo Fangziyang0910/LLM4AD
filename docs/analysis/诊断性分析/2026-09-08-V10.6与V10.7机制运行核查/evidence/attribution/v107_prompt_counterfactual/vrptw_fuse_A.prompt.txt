@@ -1,0 +1,593 @@
+# Task Contract
+Design a constructive heuristic for Vehicle Routing with Time Windows (VRPTW). Routes must respect vehicle capacity and customer time windows while minimizing total travel cost. At each step the heuristic receives the current node, depot id, feasible unvisited customers, remaining capacity, current time, demands, distance matrix, and time windows, and must return the next customer id or the depot. Help me design an algorithm to select the next node in each step.
+
+Target interface:
+```python
+def select_next_node(current_node: int, depot: int, unvisited_nodes: np.ndarray, rest_capacity: float, current_time: float, demands: np.ndarray, distance_matrix: np.ndarray, time_windows: np.ndarray) -> int:
+    """Design a novel algorithm to select the next node in each step.
+    Args:
+        current_node: ID of the current node.
+        depot: ID of the depot.
+        unvisited_nodes: Array of feasible unvisited node IDs under capacity and time-window constraints.
+        rest_capacity: Remaining vehicle capacity before selecting the next node.
+        current_time: Current time on the active route.
+        demands: Demand of each node.
+        distance_matrix: Pairwise distance matrix.
+        time_windows: Time window of each node.
+    Return:
+        ID of the next node to visit, or depot to start a new route.
+    """
+```
+Fitness is this task's score and higher is better.
+
+
+# Algorithm Trajectory
+
+Algorithm 1
+Fitness: -24.43152986117674
+Idea: The algorithm computes a composite insertion cost for each feasible candidate, prioritizing spatial proximity while strongly penalizing temporal inefficiency. It calculates raw distance and waiting time, normalizing them by the maximum values among current candidates to ensure scale-invariance. To prevent route failure, it incorporates a dynamic regret term that exponentially weights the tightness of the remaining time window (slack). Nodes with minimal slack are heavily penalized if not selected immediately, balancing short-term distance optimization with long-term route feasibility.
+Code:
+```python
+import numpy as np
+
+def select_next_node(current_node: int, depot: int, unvisited_nodes: np.ndarray, rest_capacity: float, current_time: float, demands: np.ndarray, distance_matrix: np.ndarray, time_windows: np.ndarray) -> int:
+    """
+    Selects the next node using a normalized composite score of distance, waiting time, and dynamic time-window regret.
+    
+    The score is defined as:
+    Score = w_dist * norm_dist + w_wait * norm_wait + w_regret * (1 - norm_slack)
+    
+    Where:
+    - norm_dist is the distance normalized by the max distance among feasible candidates.
+    - norm_wait is the waiting time normalized by the max wait among feasible candidates.
+    - norm_slack is the remaining slack normalized by the max slack among feasible candidates.
+    - A higher w_regret ensures that nodes with tight time windows (low slack) are prioritized to avoid infeasibility later.
+    """
+    if len(unvisited_nodes) == 0:
+        return depot
+
+    unvisited_nodes = np.asarray(unvisited_nodes)
+    
+    if len(unvisited_nodes) == 1:
+        node = int(unvisited_nodes[0])
+        # Safety check: ensure the single node is actually feasible
+        if demands[node] <= rest_capacity:
+            arrival = current_time + distance_matrix[current_node, node]
+            if arrival <= time_windows[node, 1]:
+                return node
+        return depot
+
+    # Weights tuned to balance proximity and time feasibility
+    w_dist = 1.0
+    w_wait = 0.8
+    w_regret = 1.5
+
+    candidates = []
+    max_dist = 0.0
+    max_wait = 0.0
+    max_slack = 0.0
+
+    for node in unvisited_nodes:
+        node_idx = int(node)
+        
+        # 1. Capacity Check
+        if demands[node_idx] > rest_capacity:
+            continue
+            
+        # 2. Distance and Arrival Time
+        dist = distance_matrix[current_node, node_idx]
+        arrival_time = current_time + dist
+        
+        # 3. Time Window Check
+        tw_start = time_windows[node_idx, 0]
+        tw_end = time_windows[node_idx, 1]
+        
+        if arrival_time > tw_end:
+            continue
+            
+        # 4. Metrics Calculation
+        wait_time = max(0.0, tw_start - arrival_time)
+        service_start = max(arrival_time, tw_start)
+        slack = tw_end - service_start
+        
+        # Update normalization bounds
+        if dist > max_dist: max_dist = dist
+        if wait_time > max_wait: max_wait = wait_time
+        if slack > max_slack: max_slack = slack
+        
+        candidates.append({
+            'node': node_idx,
+            'dist': dist,
+            'wait': wait_time,
+            'slack': slack
+        })
+
+    if not candidates:
+        return depot
+
+    if len(candidates) == 1:
+        return candidates[0]['node']
+
+    # Avoid division by zero
+    if max_dist == 0: max_dist = 1.0
+    if max_wait == 0: max_wait = 1.0
+    if max_slack == 0: max_slack = 1.0
+
+    best_score = float('inf')
+    best_node = depot
+
+    for c in candidates:
+        # Normalize components to [0, 1]
+        norm_dist = c['dist'] / max_dist
+        norm_wait = c['wait'] / max_wait
+        norm_slack = c['slack'] / max_slack
+        
+        # Regret Term: (1 - norm_slack)
+        # If slack is max, regret is 0 (no penalty).
+        # If slack is 0, regret is 1 (max penalty).
+        # This encourages visiting nodes that are becoming infeasible sooner.
+        regret = 1.0 - norm_slack
+        
+        # Composite Score
+        score = w_dist * norm_dist + w_wait * norm_wait + w_regret * regret
+        
+        if score < best_score:
+            best_score = score
+            best_node = c['node']
+
+    return best_node
+```
+
+Algorithm 2
+Fitness: -21.144346571420726
+Idea: This algorithm refines the 2-step lookahead by incorporating a composite "future risk" score that weights the cost of the best subsequent node by its time-window tightness. It dynamically adjusts the urgency exponent based on the average slack to better differentiate critical deadlines. Capacity constraints are integrated into the lookahead to ensure feasible continuations. The final score balances immediate travel cost, time-window urgency, 2-regret, and the weighted future risk, with weights adaptively scaled to prioritize feasibility under tight time or capacity conditions.
+Code:
+```python
+import numpy as np
+
+def select_next_node(current_node: int, depot: int, unvisited_nodes: np.ndarray, rest_capacity: float, current_time: float, demands: np.ndarray, distance_matrix: np.ndarray, time_windows: np.ndarray) -> int:
+    """
+    Selects the next node using a refined heuristic with 2-step lookahead risk,
+    adaptive urgency, and 2-regret.
+    """
+    if len(unvisited_nodes) == 0:
+        return depot
+
+    unvisited_nodes = np.asarray(unvisited_nodes)
+
+    if len(unvisited_nodes) == 1:
+        node = int(unvisited_nodes[0])
+        if demands[node] <= rest_capacity:
+            arrival = current_time + distance_matrix[current_node, node]
+            if arrival <= time_windows[node, 1] + 1e-9:
+                return node
+        return depot
+
+    candidates = []
+    for node in unvisited_nodes:
+        node_idx = int(node)
+        if demands[node_idx] > rest_capacity:
+            continue
+        dist = distance_matrix[current_node, node_idx]
+        arrival_time = current_time + dist
+        tw_start = time_windows[node_idx, 0]
+        tw_end = time_windows[node_idx, 1]
+        if arrival_time > tw_end + 1e-9:
+            continue
+        wait_time = max(0.0, tw_start - arrival_time)
+        service_start = max(arrival_time, tw_start)
+        slack = tw_end - service_start
+        base_cost = dist + 0.3 * wait_time
+        candidates.append({
+            'node': node_idx,
+            'cost': base_cost,
+            'slack': slack,
+            'arrival_time': service_start,
+            'remaining_capacity': rest_capacity - demands[node_idx]
+        })
+
+    if not candidates:
+        return depot
+    if len(candidates) == 1:
+        return candidates[0]['node']
+
+    n_cand = len(candidates)
+    costs = np.array([c['cost'] for c in candidates])
+    slacks = np.array([c['slack'] for c in candidates])
+    nodes = np.array([c['node'] for c in candidates])
+    arrivals = np.array([c['arrival_time'] for c in candidates])
+    rem_caps = np.array([c['remaining_capacity'] for c in candidates])
+
+    min_c, max_c = np.min(costs), np.max(costs)
+    cost_range = max_c - min_c if max_c > min_c + 1e-9 else 1.0
+    norm_costs = (costs - min_c) / cost_range
+
+    avg_slack = np.mean(slacks)
+    # Adaptive lambda: higher for tighter windows
+    lambda_urgency = 0.15 / (1.0 + avg_slack / 30.0)
+    urgencies = np.exp(-lambda_urgency * slacks)
+
+    # 2-step lookahead risk
+    # For each candidate i, find the best next move j (cost + urgency of j)
+    lookahead_risks = np.zeros(n_cand)
+    for i in range(n_cand):
+        current_node_idx = nodes[i]
+        current_time_after = arrivals[i]
+        current_cap_after = rem_caps[i]
+        
+        best_next_risk = float('inf')
+        
+        # Option 1: Return to depot
+        # Risk is the return distance. We treat it as a neutral high risk or low?
+        # Returning to depot ends the route. If there are still unvisited nodes (implied by unvisited_nodes input),
+        # returning might be suboptimal unless capacity/time prevents others.
+        # However, the interface returns depot if no *feasible* next customer.
+        # Here we are comparing customers. If no customer is feasible in step 2, risk should be high (penalize moving to dead end).
+        
+        for j in range(n_cand):
+            if i == j:
+                continue
+            node_j = nodes[j]
+            if demands[node_j] > current_cap_after:
+                continue
+            
+            dist_ij = distance_matrix[current_node_idx, node_j]
+            arrival_j = current_time_after + dist_ij
+            tw_s_j = time_windows[node_j, 0]
+            tw_e_j = time_windows[node_j, 1]
+            
+            if arrival_j > tw_e_j + 1e-9:
+                continue
+            
+            wait_j = max(0.0, tw_s_j - arrival_j)
+            service_j = max(arrival_j, tw_s_j)
+            slack_j = tw_e_j - service_j
+            cost_j = dist_ij + 0.3 * wait_j
+            
+            # Urgency of the next node: higher urgency is "riskier" if we delay it?
+            # Actually, if the next node has very low slack, it's critical.
+            # We want to avoid paths that lead to nodes with *no* slack.
+            # Let's define risk as cost_j * (1 + urgency_penalty).
+            # If slack is low, urgency is high.
+            urg_j = np.exp(-lambda_urgency * slack_j)
+            
+            # If we pick i, and then pick j, the "risk" is the cost to get to j plus a penalty if j is tight.
+            # We want to MINIMIZE this risk. So we want the next step to be cheap and NOT tight?
+            # Actually, visiting a tight node immediately is good if it's the only option, but generally we want flexibility.
+            # However, a common heuristic is to prefer continuations that keep options open.
+            # Let's simplify: Risk = cost_j. If no next step is feasible, risk = large value.
+            
+            best_next_risk = min(best_next_risk, cost_j)
+
+        if best_next_risk == float('inf'):
+            # No feasible next customer from i. This is a dead end. High penalty.
+            lookahead_risks[i] = 1000.0
+        else:
+            lookahead_risks[i] = best_next_risk
+
+    min_lk, max_lk = np.min(lookahead_risks), np.max(lookahead_risks)
+    lk_range = max_lk - min_lk if max_lk > min_lk + 1e-9 else 1.0
+    norm_lookaheads = (lookahead_risks - min_lk) / lk_range
+
+    # 2-regret
+    regrets = np.zeros(n_cand)
+    for i in range(n_cand):
+        mask = np.ones(n_cand, dtype=bool)
+        mask[i] = False
+        best_alt = np.min(costs[mask]) if np.any(mask) else 0.0
+        regrets[i] = best_alt - costs[i]
+
+    min_r, max_r = np.min(regrets), np.max(regrets)
+    r_range = max_r - min_r if max_r > min_r + 1e-9 else 1.0
+    norm_regrets = (regrets - min_r) / r_range
+
+    # Adaptive Weights
+    w_cost = 0.40
+    w_urgency = 0.30
+    w_regret = 0.15
+    w_lookahead = 0.15
+
+    # Capacity tightness: if rest_capacity is small relative to average demand, prioritize cost (pack tightly)
+    avg_demand = np.mean(demands[unvisited_nodes]) if len(unvisited_nodes) > 0 else 1.0
+    cap_ratio = rest_capacity / (avg_demand + 1e-9)
+    
+    if cap_ratio < 2.0:
+        # Capacity is tight. We need to maximize load. 
+        # High cost (long distances) is bad because it wastes route length, but maybe we need to visit specific nodes.
+        # Actually, if capacity is tight, we might be forced to return to depot soon.
+        # Boost urgency to ensure we don't miss tight windows before returning.
+        w_urgency *= 1.5
+        w_cost *= 0.9
+
+    if avg_slack < 10:
+        # Time is critical
+        w_urgency *= 1.8
+        w_lookahead *= 1.2
+        w_cost *= 0.8
+
+    total_w = w_cost + w_urgency + w_regret + w_lookahead
+    w_cost /= total_w
+    w_urgency /= total_w
+    w_regret /= total_w
+    w_lookahead /= total_w
+
+    score = (
+        w_cost * norm_costs +
+        w_urgency * (1.0 - urgencies) +
+        w_regret * (1.0 - norm_regrets) +
+        w_lookahead * norm_lookaheads
+    )
+
+    best_idx = np.argmin(score)
+    return int(nodes[best_idx])
+```
+
+Algorithm 3
+Fitness: -20.69657117137861
+Idea: This algorithm refines Algorithm 3 by introducing a capacity-aware regret mechanism that penalizes choices which leave insufficient capacity for high-demand unvisited customers, preventing dead-end routes. It integrates the 2-step lookahead to estimate the cost of the subsequent move, ensuring routes do not terminate prematurely due to spatial infeasibility. The composite score minimizes a weighted sum of normalized immediate cost, capacity-aware regret, adaptive urgency (based on exponential slack decay), and lookahead cost, with weights dynamically adjusted to prioritize feasibility when time windows are tight or capacity is constrained.
+Code:
+```python
+import numpy as np
+
+def select_next_node(current_node: int, depot: int, unvisited_nodes: np.ndarray, rest_capacity: float, current_time: float, demands: np.ndarray, distance_matrix: np.ndarray, time_windows: np.ndarray) -> int:
+    """
+    Selects the next node using a composite score that includes capacity-aware regret,
+    2-step lookahead, and adaptive urgency.
+    
+    Args:
+        current_node: ID of the current node.
+        depot: ID of the depot.
+        unvisited_nodes: Array of feasible unvisited node IDs.
+        rest_capacity: Remaining vehicle capacity.
+        current_time: Current time on the active route.
+        demands: Demand of each node.
+        distance_matrix: Pairwise distance matrix.
+        time_windows: Time window of each node (start, end).
+        
+    Returns:
+        ID of the next node to visit, or depot.
+    """
+    if len(unvisited_nodes) == 0:
+        return depot
+
+    unvisited_nodes = np.asarray(unvisited_nodes)
+    
+    if len(unvisited_nodes) == 1:
+        node = int(unvisited_nodes[0])
+        if demands[node] <= rest_capacity:
+            arrival = current_time + distance_matrix[current_node, node]
+            if arrival <= time_windows[node, 1] + 1e-9:
+                return node
+        return depot
+
+    candidates = []
+    
+    # Step 1: Filter feasible candidates and compute raw metrics
+    for node in unvisited_nodes:
+        node_idx = int(node)
+        
+        # Capacity Check
+        if demands[node_idx] > rest_capacity:
+            continue
+            
+        dist = distance_matrix[current_node, node_idx]
+        arrival_time = current_time + dist
+        
+        tw_start = time_windows[node_idx, 0]
+        tw_end = time_windows[node_idx, 1]
+        
+        # Time Window Feasibility Check
+        if arrival_time > tw_end + 1e-9:
+            continue
+        
+        wait_time = max(0.0, tw_start - arrival_time)
+        service_start = max(arrival_time, tw_start)
+        slack = tw_end - service_start
+        
+        # Base Cost: Distance + Waiting Time
+        base_cost = dist + 0.3 * wait_time
+
+        candidates.append({
+            'node': node_idx,
+            'cost': base_cost,
+            'slack': slack,
+            'arrival_time': service_start,
+            'remaining_capacity': rest_capacity - demands[node_idx],
+            'demand': demands[node_idx]
+        })
+    
+    if not candidates:
+        return depot
+        
+    if len(candidates) == 1:
+        return candidates[0]['node']
+
+    n_cand = len(candidates)
+    costs = np.array([c['cost'] for c in candidates])
+    slacks = np.array([c['slack'] for c in candidates])
+    nodes = np.array([c['node'] for c in candidates])
+    arrivals = np.array([c['arrival_time'] for c in candidates])
+    rem_caps = np.array([c['remaining_capacity'] for c in candidates])
+    demands_cand = np.array([c['demand'] for c in candidates])
+
+    # Normalize costs to [0, 1]
+    min_c, max_c = np.min(costs), np.max(costs)
+    cost_range = max_c - min_c if max_c > min_c + 1e-9 else 1.0
+    norm_costs = (costs - min_c) / cost_range
+
+    # Calculate Adaptive Urgency
+    avg_slack = np.mean(slacks)
+    min_slack = np.min(slacks)
+    # Dynamic lambda: tighter windows -> steeper decay
+    lambda_urgency = 0.1 / (1.0 + avg_slack / 50.0)
+    urgencies = np.exp(-lambda_urgency * slacks)
+    
+    # Additional urgency boost if min_slack is very small
+    if min_slack < 5:
+        urgencies = 0.5 * urgencies + 0.5 * (1.0 / (1.0 + min_slack))
+
+    # Calculate Capacity-Aware Regret
+    # Regret_i = (Best Alternative Cost) - (Cost_i) + (Capacity Penalty if skipping i leads to dead end)
+    # We define a capacity risk penalty for each candidate based on how much capacity is left
+    # and whether that capacity can serve any remaining high-demand unvisited nodes.
+    
+    # Identify the maximum demand among all unvisited nodes (including those in candidates)
+    # to assess the "risk" of low remaining capacity.
+    max_demand_unvisited = np.max(demands[unvisited_nodes]) if len(unvisited_nodes) > 0 else 0
+    max_demand_unvisited = max(max_demand_unvisited, 1e-9) # Avoid division by zero
+    
+    # Regret Calculation
+    regrets = np.zeros(n_cand)
+    for i in range(n_cand):
+        if n_cand > 2:
+            mask = np.ones(n_cand, dtype=bool)
+            mask[i] = False
+            best_alt_cost = np.min(costs[mask])
+        else:
+            other_idx = 1 - i
+            best_alt_cost = costs[other_idx]
+        
+        base_regret = best_alt_cost - costs[i]
+        
+        # Capacity Risk Penalty:
+        # If picking node i leaves very little capacity relative to the max demand of *any* unvisited node,
+        # we are at risk of being unable to serve a future node.
+        # This increases the "effective cost" of picking i, thus decreasing its regret relative to others?
+        # Actually, we want to AVOID picking nodes that leave low capacity if other options exist.
+        # So, if picking i leaves low capacity, we add a penalty to its cost in the regret calc.
+        # Let's define an "effective cost" for candidate i: cost_i + cap_risk_i
+        # Cap_risk_i is high if rem_cap_i is small compared to max possible future demand.
+        
+        rem_cap_i = rem_caps[i]
+        # If remaining capacity is less than max demand, we can't serve the biggest future node.
+        # Risk = 1 if rem_cap_i < max_demand_unvisited, else 0. 
+        # Let's make it continuous: Risk = (1 - rem_cap_i / max_demand_unvisited)^2 if rem_cap_i < max_demand_unvisited else 0
+        if rem_cap_i < max_demand_unvisited:
+            risk_ratio = rem_cap_i / max_demand_unvisited
+            cap_risk = (1.0 - risk_ratio) ** 2
+        else:
+            cap_risk = 0.0
+        
+        # Scale risk to be comparable to cost difference
+        # We scale risk by the max cost range to make it dimensionless and comparable
+        risk_penalty = cap_risk * (max_c - min_c) * 0.5 # Weight of 0.5
+        
+        # Effective Cost for Regret: cost_i + risk_penalty
+        eff_cost_i = costs[i] + risk_penalty
+        # Best alternative effective cost needs similar treatment? 
+        # For simplicity, we only penalize the current candidate's choice.
+        # Regret = BestAltCost - (Cost_i + Risk_i)
+        # If Risk_i is high, Regret decreases, making this node less attractive.
+        
+        regrets[i] = best_alt_cost - eff_cost_i
+        
+    min_reg, max_reg = np.min(regrets), np.max(regrets)
+    regret_range = max_reg - min_reg if max_reg > min_reg + 1e-9 else 1.0
+    norm_regrets = (regrets - min_reg) / regret_range
+
+    # Calculate Lookahead Cost: 2-step simulation
+    lookahead_costs = np.zeros(n_cand)
+    for i in range(n_cand):
+        current_node_idx = nodes[i]
+        current_time_after_visit = arrivals[i]
+        current_cap_after_visit = rem_caps[i]
+        
+        min_next_cost = float('inf')
+        
+        # Option 1: Go to Depot
+        dist_to_depot = distance_matrix[current_node_idx, depot]
+        min_next_cost = min(min_next_cost, dist_to_depot)
+        
+        # Option 2: Go to another feasible customer
+        for j in range(n_cand):
+            if i == j:
+                continue
+            
+            node_j = nodes[j]
+            
+            # Check capacity
+            if demands[node_j] > current_cap_after_visit:
+                continue
+                
+            dist_ij = distance_matrix[current_node_idx, node_j]
+            arrival_j = current_time_after_visit + dist_ij
+            
+            tw_start_j = time_windows[node_j, 0]
+            tw_end_j = time_windows[node_j, 1]
+            
+            if arrival_j > tw_end_j + 1e-9:
+                continue
+            
+            wait_j = max(0.0, tw_start_j - arrival_j)
+            service_start_j = max(arrival_j, tw_start_j)
+            cost_j = dist_ij + 0.3 * wait_j
+            
+            if cost_j < min_next_cost:
+                min_next_cost = cost_j
+        
+        if min_next_cost == float('inf'):
+            min_next_cost = 0.0
+            
+        lookahead_costs[i] = min_next_cost
+
+    # Normalize lookahead costs
+    min_lk, max_lk = np.min(lookahead_costs), np.max(lookahead_costs)
+    lk_range = max_lk - min_lk if max_lk > min_lk + 1e-9 else 1.0
+    norm_lookaheads = (lookahead_costs - min_lk) / lk_range
+
+    # Adaptive Weights
+    w_cost = 0.4
+    w_urgency = 0.3
+    w_regret = 0.15
+    w_lookahead = 0.15
+    
+    # Adapt weights based on slack and capacity constraints
+    if min_slack < 10:
+        w_urgency *= 2.0
+        w_regret *= 1.5
+        w_cost *= 0.8
+        w_lookahead *= 0.5
+    elif avg_slack < 20:
+        w_urgency *= 1.5
+        
+    # If remaining capacity is tight relative to max demand, boost regret weight to avoid capacity traps
+    if rest_capacity < max_demand_unvisited * 1.5:
+        w_regret *= 1.5
+
+    total_w = w_cost + w_urgency + w_regret + w_lookahead
+    w_cost /= total_w
+    w_urgency /= total_w
+    w_regret /= total_w
+    w_lookahead /= total_w
+
+    # Final Score Minimization
+    # 1. Cost: Lower is better
+    # 2. Urgency: Higher urgency is better -> Penalize low urgency (1 - urgency)
+    # 3. Regret: Higher regret is better -> Penalize low regret (1 - regret)
+    # 4. Lookahead: Lower distance to next step is better
+    
+    score = (
+        w_cost * norm_costs + 
+        w_urgency * (1.0 - urgencies) + 
+        w_regret * (1.0 - norm_regrets) +
+        w_lookahead * norm_lookaheads
+    )
+    
+    best_idx = np.argmin(score)
+    return int(nodes[best_idx])
+```
+
+
+# Algorithm Design Task
+Combine Algorithm 3 and Algorithm 2 as the main inputs. Use the other supplied algorithms as additional references. Select and adapt compatible computations into a coherent algorithm, retaining, replacing or reorganizing parts as useful.
+
+
+# Output
+First describe your proposed algorithm in one concise paragraph, explaining its
+main decision method and key calculations. Then implement it in this format:
+
+Idea: <design idea>
+```python
+<complete target implementation, including all required imports and helpers>
+```
+Keep the Idea within 100 words.
