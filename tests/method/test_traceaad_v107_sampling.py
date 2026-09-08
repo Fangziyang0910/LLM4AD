@@ -1,16 +1,16 @@
 import json
 import random
+import re
 
 import pytest
 
 from llm4ad.method.traceaad_v10_3.schema import Node
 from llm4ad.method.traceaad_v10_5.traceaad import read_journal
 from llm4ad.method.traceaad_v10_7.prompts import (
-    TEMPORARY_REFERENCE_RE, TrajectoryBuilder,
+    TEMPORARY_PROMPT_REFERENCE_RE, TrajectoryBuilder,
 )
 from llm4ad.method.traceaad_v10_7.sampling import (
-    STRUCTURE_PREFERENCE, _bounded_structure_weights, _task_base_weights,
-    quality_layers, sample_task_evidence,
+    _task_base_weights, quality_layers, sample_task_evidence,
 )
 from test_traceaad_v107 import FakeLLM, method, response
 
@@ -18,6 +18,11 @@ from test_traceaad_v107 import FakeLLM, method, response
 def node(index, fitness, parent_id=None):
     return Node(index, f'def score(x):\n    return {index}', f'Idea {index}', fitness,
                 parent_id=parent_id)
+
+
+#: Algorithm numbers must never appear in a rendered prompt. Role titles do
+#: (they are the legitimate section headers), so this checks numbers only.
+ALGORITHM_NUMBER_RE = re.compile(r'(?i)\b(?:Algorithm|Alg\.?)\s*#?\s*\d+\b|算法\s*#?\s*\d+')
 
 
 def task_sample(nodes, parent, operator, seed=0, **kwargs):
@@ -52,7 +57,7 @@ def test_role_sections_replace_algorithm_numbers_and_fitness_sorting():
         )
         # Fixed role order: base first, then evidence in selection order.
         assert [n.id for n in nodes] == [20, 22, 21]
-        assert not TEMPORARY_REFERENCE_RE.search(text)
+        assert not ALGORITHM_NUMBER_RE.search(text)
         assert '# Design Base' in text and 'Design note:' in text
         assert '# retained original comment' in text
         assert '# dropped reference comment' not in text
@@ -118,8 +123,8 @@ def test_temporary_algorithm_references_are_removed_only_from_prompt_view():
     assert 'label = "Algorithm #3 and Alg 4"' in text
     assert parent.idea not in text
     assert {(item['kind'], item['reason']) for item in omissions} == {
-        ('idea', 'temporary_algorithm_reference'),
-        ('code_comment', 'temporary_algorithm_reference'),
+        ('idea', 'temporary_prompt_reference'),
+        ('code_comment', 'temporary_prompt_reference'),
     }
 
 
@@ -234,37 +239,28 @@ def test_refine_does_not_fill_missing_relational_evidence_from_archive():
     assert info['reference_shortfall'] == 1
 
 
-def test_structure_bonus_is_multiplicative_with_full_support():
-    parent = node(0, 0)
-    same = node(1, 10)
-    different = node(2, 1)
-    different.code = 'def score(x):\n    if x:\n        return 2\n    return 0'
-
-    for operator in ['Pivot', 'Fuse']:
-        layers, _ = quality_layers([same, different])
-        base = _task_base_weights([same, different], layers, operator)
-        weights = _bounded_structure_weights([same, different], parent, operator, layers)
-        assert sum(weights) == pytest.approx(1)
-        assert all(weight > 0 for weight in weights)
-        # The bonus can only scale the task share, within [(1, 1 + λ)].
-        assert base[1] <= weights[1] <= (1 + STRUCTURE_PREFERENCE) * base[1]
-    layers, _ = quality_layers([same, different])
-    pivot = _bounded_structure_weights([same, different], parent, 'Pivot', layers)
-    assert pivot[1] / pivot[0] == pytest.approx(1 + STRUCTURE_PREFERENCE)
-
-
-def test_lone_structure_different_candidate_cannot_capture_mass():
-    parent = node(0, 0)
-    peers = [node(index, index) for index in range(1, 1000)]
-    worst = node(1000, 0)
-    worst.code = 'def score(x):\n    if x:\n        return 1000\n    return 0'
-    candidates = [*peers, worst]
+def test_pivot_task_weights_are_tier_equal_and_uniform_within_tier():
+    candidates = [node(index, index) for index in range(6)]
     layers, _ = quality_layers(candidates)
-    for operator in ['Pivot', 'Fuse']:
-        weights = _bounded_structure_weights(candidates, parent, operator, layers)
-        assert sum(weights) == pytest.approx(1)
-        assert all(weight > 0 for weight in weights)
-        assert weights[-1] < 0.01
+    assert set(layers.values()) == {'low', 'middle', 'high'}
+    weights = _task_base_weights(candidates, layers, 'Pivot')
+    assert sum(weights) == pytest.approx(1)
+    assert all(weight == pytest.approx(1 / 6) for weight in weights)
+
+
+def test_fuse_task_weights_split_mass_by_fitness_level_not_node_count():
+    plateau = [node(index, 0) for index in range(1, 11)]
+    elite = [node(11, 1), node(12, 1)]
+    weights = _task_base_weights([*plateau, *elite], {}, 'Fuse')
+    assert sum(weights) == pytest.approx(1)
+    assert all(weight > 0 for weight in weights)
+    # Levels {0: rank 1, 1: rank 2}: the 10-node plateau holds 1/3 of the
+    # mass, the 2-node elite level holds 2/3, so node count cannot swamp
+    # the quality signal.
+    assert sum(weights[:10]) == pytest.approx(1 / 3)
+    assert sum(weights[10:]) == pytest.approx(2 / 3)
+    assert weights[0] == pytest.approx(1 / 30)
+    assert weights[10] == pytest.approx(1 / 3)
 
 
 def test_prompt_states_direction_without_causal_claim():
@@ -284,7 +280,7 @@ def test_prompt_states_direction_without_causal_claim():
     assert 'Fitness changed from 4 to 5 (delta +1)' in text
     assert 'inspect the code before reusing any changed component' in text
     assert 'do not prove' not in text
-    assert not TEMPORARY_REFERENCE_RE.search(text)
+    assert not ALGORITHM_NUMBER_RE.search(text)
 
     child = node(4, 3, parent_id=parent.id)
     child.operator = 'Fuse'
@@ -425,6 +421,6 @@ def test_role_mentioning_ideas_are_removed_only_from_prompt_view(role):
     # The design note slot is empty; the role title itself may still appear
     # as a legitimate section header elsewhere in the prompt.
     assert 'Design note: \n' in text
-    assert ('idea', 'temporary_role_reference') in {
+    assert ('idea', 'temporary_prompt_reference') in {
         (item['kind'], item['reason']) for item in omissions
     }

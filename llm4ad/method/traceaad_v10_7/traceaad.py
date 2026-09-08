@@ -47,7 +47,6 @@ class TraceAADV107(TraceAADV106):
             context_policy=sampling.CONTEXT_POLICY,
             max_context_programs=max_context_programs,
             reference_fit_attempts=sampling.MAX_FIT_ATTEMPTS,
-            structure_preference=sampling.STRUCTURE_PREFERENCE,
             task_contract_hash=hashlib.sha256(self.task_contract.encode()).hexdigest(),
         )
         # donor_topk/traj_gens/history_tokens only satisfy the inherited
@@ -262,7 +261,7 @@ class TraceAADV107(TraceAADV106):
 
     def _save_state(self) -> None:
         atomic_json(self.state_path, {
-            'version': 1071, 'mechanism': self.mechanism, 'started_at': self.started_at,
+            'version': 1072, 'mechanism': self.mechanism, 'started_at': self.started_at,
             'nodes': self.tree.to_state(), 'rng_state': list(self.rng.getstate()),
             'parent_selection_counts': self.parent_selection_counts,
             'implementation_attempt_counts': self.implementation_attempt_counts,
@@ -274,7 +273,7 @@ class TraceAADV107(TraceAADV106):
 
     def _load_state(self) -> None:
         state = json.loads(self.state_path.read_text())
-        if state.get('version') != 1071 or state.get('mechanism') != self.mechanism:
+        if state.get('version') != 1072 or state.get('mechanism') != self.mechanism:
             raise ValueError('checkpoint mechanism/source/backend differs from this V10.7R configuration')
         TraceAADV103._load_state(self)
         self.implementation_attempt_counts = state['implementation_attempt_counts']

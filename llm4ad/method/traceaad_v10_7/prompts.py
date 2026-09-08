@@ -9,15 +9,15 @@ from llm4ad.method.traceaad_v10_5.prompts import PromptBuilder as BaseBuilder
 from llm4ad.method.traceaad_v10_6.prompts import INSTRUCTIONS, build_task_contract
 
 GENERATION = 'idea_code_single_call_self_contained_v1'
-TEMPORARY_REFERENCE_RE = re.compile(
+#: Prompt-local references: temporary algorithm numbers and temporary role
+#: titles from earlier prompts. A generated Idea that depends on either is not
+#: self-contained: the next prompt may show no such number or role, exactly
+#: the Algorithm-N misreference failure in a new form. Such ideas are
+#: evaluated and archived normally but omitted from future prompt views under
+#: this single omission reason.
+TEMPORARY_PROMPT_REFERENCE_RE = re.compile(
     r'(?i)\b(?:Algorithm|Alg\.?)\s*#?\s*\d+\b|算法\s*#?\s*\d+'
-)
-#: Temporary prompt role titles. A generated Idea that cites one of these is
-#: not self-contained: the next prompt may show no such role, exactly the
-#: Algorithm-N misreference failure in a new form. Such ideas are evaluated
-#: and archived normally but omitted from future prompt views.
-TEMPORARY_ROLE_RE = re.compile(
-    r'(?i)\b(?:Design Base|Comparison Baseline|Formation Evidence|'
+    r'|\b(?:Design Base|Comparison Baseline|Formation Evidence|'
     r'Development Evidence|Alternative Reference|Transfer Source)\b'
 )
 #: Strict output contract. The parser only accepts a response that starts with
@@ -104,10 +104,8 @@ class TrajectoryBuilder(BaseBuilder):
             self._idea_views = {}
         if node.id not in self._idea_views:
             view = _flatten_design_note(node.idea)
-            if TEMPORARY_REFERENCE_RE.search(view):
-                self._idea_views[node.id] = ('', 'temporary_algorithm_reference')
-            elif TEMPORARY_ROLE_RE.search(view):
-                self._idea_views[node.id] = ('', 'temporary_role_reference')
+            if TEMPORARY_PROMPT_REFERENCE_RE.search(view):
+                self._idea_views[node.id] = ('', 'temporary_prompt_reference')
             elif self.count(view) > IDEA_TOKENS:
                 self._idea_views[node.id] = ('', 'idea_token_limit')
             else:
@@ -120,21 +118,19 @@ class TrajectoryBuilder(BaseBuilder):
         key = (node.id, strip_comments)
         if key not in self._code_views:
             removed = 0
-            role_hit = False
             try:
                 tokens = []
                 for token in tokenize.generate_tokens(io.StringIO(node.code).readline):
                     if token.type == tokenize.COMMENT and (
-                            strip_comments or TEMPORARY_REFERENCE_RE.search(token.string)
-                            or TEMPORARY_ROLE_RE.search(token.string)):
+                            strip_comments
+                            or TEMPORARY_PROMPT_REFERENCE_RE.search(token.string)):
                         token = tokenize.TokenInfo(token.type, '', token.start, token.end, token.line)
                         removed += 1
-                        role_hit = role_hit or bool(TEMPORARY_ROLE_RE.search(token.string))
                     tokens.append(token)
                 view = tokenize.untokenize(tokens)
             except (IndentationError, tokenize.TokenError):
-                view, removed, role_hit = node.code, 0, False
-            self._code_views[key] = view, removed, role_hit
+                view, removed = node.code, 0
+            self._code_views[key] = view, removed
         return self._code_views[key]
 
     def program_text(self, node, role, omit_idea=False, strip_comments=False):
@@ -145,13 +141,12 @@ class TrajectoryBuilder(BaseBuilder):
             idea, idea_reason = '', 'context_budget'
         if idea_reason:
             omissions.append({'node_id': node.id, 'kind': 'idea', 'reason': idea_reason})
-        code, removed_comments, role_comment = self.code_view(node, strip_comments)
+        code, removed_comments = self.code_view(node, strip_comments)
         if removed_comments:
-            if strip_comments:
-                reason = 'reference_comment_strip'
-            else:
-                reason = ('temporary_role_reference' if role_comment
-                          else 'temporary_algorithm_reference')
+            # strip_comments=True removes every comment (reference evidence);
+            # otherwise only prompt-local references were removed.
+            reason = ('reference_comment_strip' if strip_comments
+                      else 'temporary_prompt_reference')
             omissions.append({
                 'node_id': node.id, 'kind': 'code_comment', 'reason': reason,
                 'count': removed_comments,

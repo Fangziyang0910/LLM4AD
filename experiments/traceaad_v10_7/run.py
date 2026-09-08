@@ -9,7 +9,7 @@ from experiments.infra.runner import FORMAL_BUDGET, add_common_run_args, setup_e
 from llm4ad.method.traceaad_v10_6.traceaad import OPERATOR_PROBABILITIES
 from llm4ad.method.traceaad_v10_7 import TraceAADV107
 from llm4ad.method.traceaad_v10_7.prompts import GENERATION
-from llm4ad.method.traceaad_v10_7.sampling import CONTEXT_POLICY, STRUCTURE_PREFERENCE
+from llm4ad.method.traceaad_v10_7.sampling import CONTEXT_POLICY
 
 METHOD = 'v107r'
 
@@ -48,7 +48,6 @@ def main() -> None:
             **params, 'inherited_unused': dict(compat),
             'operator_probabilities': OPERATOR_PROBABILITIES,
             'generation': GENERATION, 'context_policy': CONTEXT_POLICY,
-            'structure_preference': STRUCTURE_PREFERENCE,
         },
         budget_basis=(
             f'{args.budget} actual evaluator calls including initialization and failed '

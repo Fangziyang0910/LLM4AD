@@ -8,7 +8,7 @@
 
 上下文只有一种机制：先确定 Refine、Pivot 或 Fuse 所需的证据角色，再从全档案选择材料。旧的 `ancestor_history`、`uniform_trajectory_v1`、`sampled_trajectory_v1` 已删除（`sampled_trajectory_v1` 仍是冻结批次 `20260907_bounded_formal` 的运行配置，其实现以提交 `ac6f4b9c` 为准）。
 
-V10.7R 的 Refine 按固定优先级尝试形成边、同算子子代、异算子子代三池证据，只展示直接生成关系的方向、历史算子和 fitness 变化；没有直接关系时只看底座且不提 contrast。Pivot 按质量层等概率基础分布、Fuse 按 fitness 秩加权选择唯一参考，两者只乘以至多 `(1+0.25)` 的结构差异加成，所有合格候选保留正概率。Fuse 不再补第三份对照，没有能容纳的 donor 时回退 Refine。程序块按固定语义角色小节呈现（无 `Algorithm N`、无 fitness 排序），历史 Idea 改称 `Design note` 并声明以代码为准；只有直接边配关系段，archive reference 不配。
+V10.7R 的 Refine 按固定优先级尝试形成边、同算子子代、异算子子代三池证据，只展示直接生成关系的方向、历史算子和 fitness 变化；没有直接关系时只看底座且不提 contrast。Pivot 按现存质量层等分概率、层内均匀选择唯一参考；Fuse 按不同 fitness 水平分质量（水平质量正比于其秩）、水平内均匀选择，使大平台无法靠节点数吞掉质量信号；两者都不再有结构加成，所有合格候选保留正概率。Fuse 不再补第三份对照，没有能容纳的 donor 时回退 Refine。程序块按固定语义角色小节呈现（无 `Algorithm N`、无 fitness 排序），历史 Idea 改称 `Design note` 并声明以代码为准；只有直接边配关系段，archive reference 不配。
 
 `--max-context-programs=2` 包含底座；可用材料少或上下文不足时减少数量。Idea 视图最多 256 tokens，超长整段省略；出现 `Algorithm N`、`Algorithm #N`、`Alg N`、`Alg #N` 或 `算法 N` 临时编号的历史 Idea 也整段省略，引用临时提示角色（Design Base、Transfer Source 等）的 Idea 同样只入档不再展示。历史 Idea 先压成单段纯文本再展示，旧文本里的伪小节不改变 Prompt 结构。参考证据代码的注释 token 从提示视图全部删除（docstring 保留），Design Base 暂保留。匹配临时编号模式的 Python 注释只从提示视图移除，字符串、可执行代码与原始档案不变。输出是严格的两段契约：一段 100 words 内的自足 Idea 加一个代码块，不允许其它内容。总输入默认上限 16128 tokens，不叠加祖先历史区。Init 尚无底座时保持从头生成，不采参考。
 
@@ -34,7 +34,7 @@ uv run python -m experiments.traceaad_v10_7.launch --dry-run
 
 每路仍写入 `run_config.json`、`tree_state.json`、`pending_candidate.json`、`llm_calls.jsonl`、`events.jsonl`、`evaluations.jsonl`、`tokenizer_calls.jsonl` 和 `logs/run_summary.json`。`llm_calls.jsonl` 每个候选只有生成调用；不再记录 `thought_alignment` 阶段。事件不再包含摘要状态、摘要 token、独立摘要调用及分拆耗时字段，`llm_seconds` 表示唯一生成调用耗时。
 
-采样记录按展示顺序的节点、代码哈希、角色、tokens、父代/donor 位置、容量拒绝、视图省略和参考不足，并记录直接边的 `evidence_relations`、固定乘性系数 `structure_preference=0.25` 与被尝试候选的归一化权重（质量层字段只在 Pivot/Fuse 记录）。事件同时记录 `parent_delta`、`context_delta`、`frontier_delta`，以及同一（代码，请求算子）和完全相同 Prompt 此前的尝试次数。参考曝光不增加父代选择次数。采样结果、原 Prompt、RNG 和计数前值在请求前一起持久化，恢复不重新采样。新运行的方法身份为 `v107r`（检查点 `version=1071`），与冻结的 `v107` 批次互不恢复。
+采样记录按展示顺序的节点、代码哈希、角色、tokens、父代/donor 位置、容量拒绝、视图省略和参考不足，并记录直接边的 `evidence_relations` 与被尝试候选的归一化权重（质量层字段只在 Pivot/Fuse 记录）。事件同时记录 `parent_delta`、`context_delta`、`frontier_delta`，以及同一（代码，请求算子）和完全相同 Prompt 此前的尝试次数。参考曝光不增加父代选择次数。采样结果、原 Prompt、RNG 和计数前值在请求前一起持久化，恢复不重新采样。新运行的方法身份为 `v107r`（检查点 `version=1072`），与冻结的 `v107` 批次互不恢复。
 
 已删除全档案精确 token 预筛。记录 sampling_seconds、scheduling_seconds 和 tokenizer_requests（缓存未命中的计数接口调用数，不含底层 HTTP 重试）；结合 llm_seconds、eval_seconds 和 tokenizer_calls.jsonl 分析成本。`--max-context-programs=1` 直接跳过参考采样。
 

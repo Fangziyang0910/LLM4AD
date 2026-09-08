@@ -1,14 +1,8 @@
 """Select complete archived records for a concrete algorithm-design task."""
 
-import ast
-from functools import lru_cache
 import math
 
 MAX_FIT_ATTEMPTS = 32
-#: Multiplicative weak hint: a structure-different candidate gets at most
-#: (1 + STRUCTURE_PREFERENCE) times its task weight, never an independent
-#: probability mass. A near-zero task weight stays near zero after the bonus.
-STRUCTURE_PREFERENCE = 0.25
 
 #: The only context mechanism. Kept as an explicit identity in checkpoints,
 #: events and manifests; retired policies are not valid values.
@@ -35,21 +29,6 @@ def quality_layers(nodes):
     }, [lower, upper]
 
 
-@lru_cache(maxsize=None)
-def structure_signature(code):
-    """A conservative control-structure hint, never a semantic identity claim."""
-    try:
-        tree = ast.parse(code)
-    except SyntaxError:
-        return None
-    structural = (
-        ast.FunctionDef, ast.AsyncFunctionDef, ast.For, ast.AsyncFor, ast.While,
-        ast.If, ast.Try, ast.With, ast.AsyncWith, ast.Match, ast.ListComp,
-        ast.SetComp, ast.DictComp, ast.GeneratorExp,
-    )
-    return tuple(type(item).__name__ for item in ast.walk(tree) if isinstance(item, structural))
-
-
 def _deduplicate_records(nodes, rng):
     groups = {}
     for node in nodes:
@@ -59,7 +38,14 @@ def _deduplicate_records(nodes, rng):
 
 
 def _task_base_weights(candidates, layers, operator):
-    """Task-only sampling distribution each operator is built on."""
+    """Task-only sampling distribution: quality group first, then uniform.
+
+    Both archive operators assign mass to a quality group and then pick a
+    uniform implementation inside it, so a large fitness plateau can never
+    capture probability by node count alone. Pivot groups are the present
+    quality tiers (equal mass each); Fuse groups are the distinct fitness
+    levels (mass proportional to level rank).
+    """
     if operator == 'Pivot':
         layer_sizes = {}
         for layer in layers.values():
@@ -67,31 +53,16 @@ def _task_base_weights(candidates, layers, operator):
         present = len(layer_sizes)
         return [1 / (present * layer_sizes[layers[node.id]]) for node in candidates]
     if operator == 'Fuse':
-        ranked_scores = {score: rank for rank, score in enumerate(
-            sorted({node.fitness for node in candidates}), 1
-        )}
-        raw = [ranked_scores[node.fitness] for node in candidates]
-        total = sum(raw)
-        return [weight / total for weight in raw]
-    raise ValueError(f'unsupported structure-bonus operator: {operator}')
-
-
-def _bounded_structure_weights(candidates, parent, operator, layers):
-    """Multiply the task weight of structure-different candidates by (1 + λ).
-
-    Every candidate keeps full support through its positive task weight, so a
-    tiny structure-different set can no longer capture an independent share of
-    the total probability mass.
-    """
-    base = _task_base_weights(candidates, layers, operator)
-    parent_signature = structure_signature(parent.code)
-    boosted = [
-        weight * (1 + STRUCTURE_PREFERENCE)
-        if structure_signature(node.code) != parent_signature else weight
-        for weight, node in zip(base, candidates)
-    ]
-    total = sum(boosted)
-    return [weight / total for weight in boosted]
+        levels = {}
+        for node in candidates:
+            levels.setdefault(node.fitness, []).append(node)
+        ranked = {score: rank for rank, score in enumerate(sorted(levels), 1)}
+        total = sum(ranked.values())
+        return [
+            ranked[node.fitness] / total / len(levels[node.fitness])
+            for node in candidates
+        ]
+    raise ValueError(f'unsupported task-weight operator: {operator}')
 
 
 def _weighted_order(candidates, weights, rng, limit=MAX_FIT_ATTEMPTS):
@@ -140,17 +111,15 @@ def _evidence_relation(node, parent, role):
 def sample_task_evidence(nodes, parent, rng, *, operator, limit, fits):
     """Choose role-specific evidence, with at most one reference.
 
-    ``fits`` receives ``(references, donor, roles, relations)``. Structural
-    signatures only scale the task weight by at most (1 + λ), never an
-    equivalence claim. Quality layers only define the Pivot/Fuse task base
-    distribution; Refine evidence is chosen by generation relationship alone.
+    ``fits`` receives ``(references, donor, roles, relations)``. Quality
+    layers only define the Pivot task distribution; Fuse distributes mass over
+    fitness levels; Refine evidence is chosen by generation relationship alone.
     """
     desired = min(limit, 1)
     empty = {
         'quality_boundaries': [], 'reference_layers': {}, 'reference_roles': {},
         'reference_fit_rejections': [], 'reference_attempts': [],
         'reference_shortfall': desired, 'evidence_relations': [],
-        'structure_preference': STRUCTURE_PREFERENCE,
     }
     if desired == 0:
         return [], None, empty
@@ -213,9 +182,6 @@ def sample_task_evidence(nodes, parent, rng, *, operator, limit, fits):
             attempts.append({
                 'node_id': node.id, 'layer': all_layers.get(node.id),
                 'role': role, 'accepted': accepted,
-                'structure_different': (
-                    structure_signature(node.code) != structure_signature(parent.code)
-                ),
                 **({'selection_weight': selection_weights[node.id]}
                    if selection_weights else {}),
             })
@@ -239,13 +205,13 @@ def sample_task_evidence(nodes, parent, rng, *, operator, limit, fits):
             if try_nodes(pool, role, attempt_start=attempt_start):
                 break
     elif operator == 'Pivot':
-        weights = _bounded_structure_weights(candidates, parent, operator, all_layers)
+        weights = _task_base_weights(candidates, all_layers, operator)
         try_nodes(
             _weighted_order(candidates, weights, rng), 'alternative_reference',
             selection_weights={node.id: weight for node, weight in zip(candidates, weights)},
         )
     elif operator == 'Fuse':
-        weights = _bounded_structure_weights(candidates, parent, operator, all_layers)
+        weights = _task_base_weights(candidates, all_layers, operator)
         try_nodes(
             _weighted_order(candidates, weights, rng), 'transfer_source',
             donor_candidate=True,
@@ -264,5 +230,4 @@ def sample_task_evidence(nodes, parent, rng, *, operator, limit, fits):
         'reference_attempts': attempts,
         'reference_shortfall': desired - len(selected),
         'evidence_relations': relations,
-        'structure_preference': STRUCTURE_PREFERENCE,
     }

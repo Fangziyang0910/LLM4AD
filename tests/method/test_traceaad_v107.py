@@ -75,9 +75,10 @@ def test_one_call_stores_idea_and_removes_second_call_fields(tmp_path):
     assert runner.tree.best().fitness == 7
     assert runner.tree.best().idea == 'Return the constant seven.'
     state = json.loads(runner.state_path.read_text())
-    assert state['version'] == 1071
+    assert state['version'] == 1072
     assert state['mechanism']['generation'] == 'idea_code_single_call_self_contained_v1'
     assert state['mechanism']['context_policy'] == 'task_evidence_v1'
+    assert 'structure_preference' not in state['mechanism']
     assert state['mechanism']['inherited_unused'] == {
         'donor_topk': 5, 'traj_gens': 8, 'history_tokens': 8192,
     }
@@ -142,7 +143,7 @@ def test_role_citing_idea_is_archived_but_never_reshown(tmp_path):
     assert contaminated not in llm.calls[1][0]
     assert 'Transfer Source' not in llm.calls[1][0]
     event = read_journal(runner.events_path)[-1]
-    assert {'node_id': 0, 'kind': 'idea', 'reason': 'temporary_role_reference'} in (
+    assert {'node_id': 0, 'kind': 'idea', 'reason': 'temporary_prompt_reference'} in (
         {key: entry[key] for key in ('node_id', 'kind', 'reason')}
         for entry in event['context_view_omissions']
     )
