@@ -9,6 +9,7 @@ from experiments.infra.runner import FORMAL_BUDGET, add_common_run_args, setup_e
 from llm4ad.method.traceaad_v10_6.traceaad import OPERATOR_PROBABILITIES
 from llm4ad.method.traceaad_v10_7 import TraceAADV107
 from llm4ad.method.traceaad_v10_7.prompts import GENERATION
+from llm4ad.method.traceaad_v10_7.sampling import CONTEXT_POLICY, STRUCTURE_PREFERENCE
 
 METHOD = 'v107'
 
@@ -43,7 +44,8 @@ def main() -> None:
         resume_file='tree_state.json',
         method_params={
             **params, 'operator_probabilities': OPERATOR_PROBABILITIES,
-            'generation': GENERATION,
+            'generation': GENERATION, 'context_policy': CONTEXT_POLICY,
+            'structure_preference': STRUCTURE_PREFERENCE,
         },
         budget_basis=(
             f'{args.budget} actual evaluator calls including initialization and failed '

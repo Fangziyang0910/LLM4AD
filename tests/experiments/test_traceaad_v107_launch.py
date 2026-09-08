@@ -7,6 +7,7 @@ def test_every_launched_run_receives_explicit_context_configuration():
     assert len(plan) == len({row['run_name'] for row in plan}) == 15
     for row in plan:
         assert row['context_policy'] == 'task_evidence_v1'
+        assert row['structure_preference'] == 0.25
         item = launch_item(row)
         args = build_parser().parse_args(['--task', row['task'], *item.extra_args])
         assert args.max_context_programs == 2

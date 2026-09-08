@@ -16,7 +16,7 @@ from experiments.infra.base import (
 from experiments.infra.launcher import get_summary_status
 from experiments.traceaad_v10_6.launch import allocate, healthy_slots
 from llm4ad.method.traceaad_v10_5.traceaad import atomic_json
-from llm4ad.method.traceaad_v10_7.sampling import CONTEXT_POLICY
+from llm4ad.method.traceaad_v10_7.sampling import CONTEXT_POLICY, STRUCTURE_PREFERENCE
 
 RESULTS_ROOT = Path(__file__).resolve().parent / 'results'
 MODULE = 'experiments.traceaad_v10_7.run'
@@ -30,6 +30,7 @@ def build_plan(batch: str, session_prefix: str, max_context_programs=3) -> list[
             'session': f'{session_prefix}_{TASK_SHORT[task]}_r{repeat}',
             'attempts': 0, 'status': 'queued',
             'context_policy': CONTEXT_POLICY, 'max_context_programs': max_context_programs,
+            'structure_preference': STRUCTURE_PREFERENCE,
         }
         for repeat in range(1, 4) for task in TASKS
     ]
@@ -85,6 +86,12 @@ def main() -> None:
                    for row in payload['plan']):
                 raise ValueError(
                     'existing batch uses a retired context policy; '
+                    'resume it with the pinned launch-time code instead'
+                )
+            if any(row.get('structure_preference') != STRUCTURE_PREFERENCE
+                   for row in payload['plan']):
+                raise ValueError(
+                    'existing batch uses a different structure preference; '
                     'resume it with the pinned launch-time code instead'
                 )
             if any(row.get('max_context_programs') != args.max_context_programs

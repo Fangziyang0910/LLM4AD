@@ -45,6 +45,7 @@ class TraceAADV107(TraceAADV106):
             context_policy=sampling.CONTEXT_POLICY,
             max_context_programs=max_context_programs,
             reference_fit_attempts=sampling.MAX_FIT_ATTEMPTS,
+            structure_preference=sampling.STRUCTURE_PREFERENCE,
             task_contract_hash=hashlib.sha256(self.task_contract.encode()).hexdigest(),
         )
         for source in [
@@ -101,12 +102,12 @@ class TraceAADV107(TraceAADV106):
         roles = {}
         sampling_started = time.monotonic()
         if parent is not None:
-            def fits(refs, proposed_donor, extra_roles):
+            def fits(refs, proposed_donor, extra_roles, relations):
                 prompt_roles = self._roles(
                     parent, refs, requested, proposed_donor, extra_roles,
                 )
                 return self.builder.fits_references(
-                    parent, refs, requested, proposed_donor, prompt_roles,
+                    parent, refs, requested, proposed_donor, prompt_roles, relations,
                 )
             references, donor, context = sampling.sample_task_evidence(
                 self.tree.all_nodes(), parent, self.rng, operator=requested,
@@ -117,6 +118,7 @@ class TraceAADV107(TraceAADV106):
             )
         prompt_text, programs, donor, operator, blocks, view_omissions = self.builder.trajectory(
             parent, references, requested, donor, roles,
+            context.get('evidence_relations'),
         )
         prompt_tokens = self.builder.count(prompt_text, chat=True)
         if prompt_tokens > self.builder.max_tokens:

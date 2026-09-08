@@ -11,7 +11,9 @@ from llm4ad.method.traceaad_v10_6.prompts import (
 )
 
 GENERATION = 'idea_code_single_call_self_contained_v1'
-TEMPORARY_REFERENCE_RE = re.compile(r'(?i)\bAlgorithm\s+\d+\b|算法\s*\d+')
+TEMPORARY_REFERENCE_RE = re.compile(
+    r'(?i)\b(?:Algorithm|Alg\.?)\s*#?\s*\d+\b|算法\s*#?\s*\d+'
+)
 OUTPUT = BASE_OUTPUT + (
     '\nThe Idea must stand on its own: state this algorithm\'s main decision rule and key '
     'computation without referring to Algorithm numbers or temporary display positions.'
@@ -32,8 +34,13 @@ TRAJECTORY_INSTRUCTIONS = {
 }
 TRAJECTORY_OUTPUT = OUTPUT + '\nKeep the Idea within 100 words.'
 IDEA_TOKENS = 256
+EXPERIMENT_CAVEAT = (
+    'The generation relations and fitness changes above are observations; they do not prove '
+    'that any individual code difference caused the result.'
+)
 TRAJECTORY_TEMPLATE_HASH = hashlib.sha256(
-    (str(TRAJECTORY_INSTRUCTIONS) + TRAJECTORY_OUTPUT + str(IDEA_TOKENS)).encode()
+    (str(TRAJECTORY_INSTRUCTIONS) + TRAJECTORY_OUTPUT + EXPERIMENT_CAVEAT
+     + str(IDEA_TOKENS)).encode()
 ).hexdigest()
 
 
@@ -84,7 +91,44 @@ class TrajectoryBuilder(BaseBuilder):
         return (f'Algorithm {index}\nRole: {role}\nFitness: {node.fitness}\nIdea: {idea}\n'
                 f'Code:\n```python\n{code}\n```'), omissions
 
-    def trajectory(self, parent, references, operator, donor=None, roles=None):
+    @staticmethod
+    def experiment_text(relations, positions):
+        lines = []
+        for relation in relations or []:
+            if relation['direct_generation_relation']:
+                source = f"Algorithm {positions[relation['source_id']]}"
+                target = f"Algorithm {positions[relation['target_id']]}"
+                lines.append(
+                    f"- {target} was generated from {source} using "
+                    f"{relation['operator']}. Fitness changed from "
+                    f"{relation['source_fitness']} to {relation['target_fitness']} "
+                    f"(delta {relation['fitness_delta']:+g})."
+                )
+                donor_id = relation.get('historical_donor_id')
+                if donor_id is not None:
+                    donor_fitness = relation.get('historical_donor_fitness')
+                    if donor_id in positions:
+                        donor = f'Algorithm {positions[donor_id]}'
+                        suffix = (f' with fitness {donor_fitness}'
+                                  if donor_fitness is not None else '')
+                        lines.append(f'  A historical donor, {donor}{suffix}, also participated.')
+                    else:
+                        suffix = (f' with fitness {donor_fitness}'
+                                  if donor_fitness is not None else '')
+                        lines.append(f'  A separate archived donor{suffix} also participated.')
+            else:
+                base = f"Algorithm {positions[relation['base_id']]}"
+                reference = f"Algorithm {positions[relation['reference_id']]}"
+                lines.append(
+                    f'- {reference} is an archive reference for {base}; no direct generation '
+                    'relation is asserted.'
+                )
+        if not lines:
+            return ''
+        return '# Observed Design Experiments\n\n' + '\n'.join(lines) + '\n\n' + EXPERIMENT_CAVEAT
+
+    def trajectory(self, parent, references, operator, donor=None, roles=None,
+                   relations=None):
         nodes = sorted(([parent] if parent is not None else []) + list(references),
                        key=lambda node: (node.fitness, node.id))
         executed = 'Refine' if operator == 'Fuse' and donor is None else operator
@@ -94,6 +138,7 @@ class TrajectoryBuilder(BaseBuilder):
             parent=positions.get(parent.id) if parent else None,
             donor=positions.get(donor.id) if donor else None,
         )
+        experiment = self.experiment_text(relations, positions)
         def render(omit_idea=False):
             rendered = [self.program_text(
                 node, index, roles.get(node.id, 'evidence_reference'), omit_idea,
@@ -104,6 +149,8 @@ class TrajectoryBuilder(BaseBuilder):
             parts = [self.task_contract]
             if blocks:
                 parts.append('# Design Evidence\n\n' + '\n\n'.join(blocks))
+            if experiment:
+                parts.append(experiment)
             parts.extend(['# Algorithm Design Task\n' + instruction, '# Output\n' + TRAJECTORY_OUTPUT])
             return '\n\n\n'.join(parts)
         text = assemble()
@@ -113,8 +160,11 @@ class TrajectoryBuilder(BaseBuilder):
             text = assemble()
         return text, nodes, donor, executed, blocks, omissions
 
-    def fits_references(self, parent, references, operator, donor=None, roles=None):
-        text, *_ = self.trajectory(parent, references, operator, donor, roles)
+    def fits_references(self, parent, references, operator, donor=None, roles=None,
+                        relations=None):
+        text, *_ = self.trajectory(
+            parent, references, operator, donor, roles, relations,
+        )
         return self.count(text, chat=True) <= self.max_tokens
 
     def fits(self, current, operator, donor=None):

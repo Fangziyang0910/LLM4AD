@@ -7,7 +7,8 @@ from llm4ad.method.traceaad_v10_3.schema import Node
 from llm4ad.method.traceaad_v10_5.traceaad import read_journal
 from llm4ad.method.traceaad_v10_7.prompts import TrajectoryBuilder
 from llm4ad.method.traceaad_v10_7.sampling import (
-    quality_layers, sample_task_evidence,
+    STRUCTURE_PREFERENCE, _soft_structure_weights, quality_layers,
+    sample_task_evidence,
 )
 from test_traceaad_v107 import FakeLLM, method, response
 
@@ -18,7 +19,7 @@ def node(index, fitness, parent_id=None):
 
 
 def task_sample(nodes, parent, operator, seed=0, **kwargs):
-    kwargs.setdefault('fits', lambda refs, donor, roles: True)
+    kwargs.setdefault('fits', lambda refs, donor, roles, relations: True)
     return sample_task_evidence(
         nodes, parent, random.Random(seed), operator=operator, limit=2, **kwargs,
     )
@@ -64,8 +65,8 @@ def test_capacity_preserves_full_base_and_reduces_material_count():
     b.max_tokens = b.count(base, chat=True)
     refs, _, info = task_sample(
         [parent, other], parent, 'Fuse',
-        fits=lambda refs, donor, roles: b.fits_references(
-            parent, refs, 'Fuse', donor,
+        fits=lambda refs, donor, roles, relations: b.fits_references(
+            parent, refs, 'Fuse', donor, roles, relations,
         ),
     )
     assert refs == [] and info['reference_shortfall'] == 2
@@ -93,18 +94,18 @@ def test_temporary_algorithm_references_are_removed_only_from_prompt_view():
     b = builder()
     archived_code = (
         'def score(x):\n'
-        '    # Reuse Algorithm 3 here\n'
-        '    label = "Algorithm 3"\n'
+        '    # Reuse Algorithm #3 and Alg 4 here\n'
+        '    label = "Algorithm #3 and Alg 4"\n'
         '    return x\n'
     )
-    parent = Node(0, archived_code, 'Combine Algorithm 2 with a local rule.', 1)
+    parent = Node(0, archived_code, 'Combine Alg #2 with a local rule.', 1)
     text, _, _, _, _, omissions = b.trajectory(
         parent, [], 'Refine', roles={parent.id: 'design_base'},
     )
     assert parent.code == archived_code
-    assert parent.idea == 'Combine Algorithm 2 with a local rule.'
-    assert '# Reuse Algorithm 3 here' not in text
-    assert 'label = "Algorithm 3"' in text
+    assert parent.idea == 'Combine Alg #2 with a local rule.'
+    assert '# Reuse Algorithm #3 and Alg 4 here' not in text
+    assert 'label = "Algorithm #3 and Alg 4"' in text
     assert parent.idea not in text
     assert {(item['kind'], item['reason']) for item in omissions} == {
         ('idea', 'temporary_algorithm_reference'),
@@ -130,44 +131,134 @@ def test_end_to_end_single_calls_and_only_parent_counts(tmp_path):
         if event['parent_id'] is not None:
             assert event['context_delta'] == event['fitness'] - event['context_best_fitness']
             assert event['parent_code_hash']
+            assert 'evidence_relations' in event
         assert len(ids) == len(event['context_program_roles']) == len(event['context_code_hashes'])
 
 
 def test_task_evidence_assigns_operator_specific_roles():
     predecessor = node(1, 4)
     parent = node(2, 5, parent_id=1)
+    parent.operator = 'Refine'
     child = node(3, 6, parent_id=2)
+    child.operator = 'Pivot'
     unrelated = node(4, 2)
     refs, donor, info = task_sample(
-        [predecessor, parent, child, unrelated], parent, 'Refine',
+        [predecessor, parent, unrelated], parent, 'Refine',
     )
-    assert len(refs) == 1 and refs[0].id in {1, 3} and donor is None
-    assert info['reference_roles'][str(refs[0].id)] == 'formation_contrast'
+    assert refs == [predecessor] and donor is None
+    assert info['reference_roles'][str(predecessor.id)] == 'formation_evidence'
+    assert info['evidence_relations'] == [{
+        'kind': 'formation_evidence', 'source_id': 1, 'target_id': 2,
+        'operator': 'Refine', 'source_fitness': 4, 'target_fitness': 5,
+        'fitness_delta': 1, 'direct_generation_relation': True,
+    }]
+
+    refs, donor, info = task_sample([parent, child, unrelated], parent, 'Refine')
+    assert refs == [child] and donor is None
+    assert info['reference_roles'][str(child.id)] == 'development_evidence'
+    assert info['evidence_relations'][0]['source_id'] == parent.id
+    assert info['evidence_relations'][0]['target_id'] == child.id
+    assert info['evidence_relations'][0]['operator'] == 'Pivot'
 
     similar = node(5, 7)
     alternative = node(6, 1)
     alternative.code = 'def score(x):\n    if x:\n        return 6\n    return 0'
     refs, donor, info = task_sample([parent, similar, alternative], parent, 'Pivot')
-    assert refs == [alternative] and donor is None
-    assert info['reference_roles'][str(alternative.id)] == 'alternative_reference'
+    assert len(refs) == 1 and donor is None
+    assert info['reference_roles'][str(refs[0].id)] == 'alternative_reference'
+    assert info['evidence_relations'][0]['direct_generation_relation'] is False
 
     low, middle, high = node(7, 1), node(8, 5), node(9, 9)
     low.code = 'def score(x):\n    if x:\n        return 7\n    return 0'
     middle.code = 'def score(x):\n    for _ in range(1):\n        pass\n    return 8'
     high.code = 'def score(x):\n    while False:\n        pass\n    return 9'
     refs, donor, info = task_sample([parent, low, middle, high], parent, 'Fuse')
-    assert donor is high and refs[0] is high
-    assert info['reference_roles'][str(high.id)] == 'transfer_source'
+    assert donor is refs[0]
+    assert info['reference_roles'][str(donor.id)] == 'transfer_source'
     assert len(refs) == 2
+
+
+def test_refine_filters_relationship_before_deduplicating_code():
+    predecessor = node(1, 4)
+    parent = node(2, 5, parent_id=1)
+    duplicate = node(3, 9)
+    duplicate.code = predecessor.code
+
+    refs, _, info = task_sample([duplicate, predecessor, parent], parent, 'Refine')
+
+    assert refs == [predecessor]
+    assert info['reference_roles'] == {'1': 'formation_evidence'}
+
+
+def test_refine_does_not_fill_missing_relational_evidence_from_archive():
+    parent, unrelated = node(1, 5), node(2, 9)
+    refs, donor, info = task_sample([parent, unrelated], parent, 'Refine')
+    assert refs == [] and donor is None
+    assert info['reference_shortfall'] == 1
+
+
+def test_structure_is_a_bounded_soft_preference_with_full_support():
+    parent = node(0, 0)
+    same = node(1, 10)
+    different = node(2, 1)
+    different.code = 'def score(x):\n    if x:\n        return 2\n    return 0'
+
+    for operator in ['Pivot', 'Fuse']:
+        weights = _soft_structure_weights([same, different], parent, operator)
+        assert sum(weights) == pytest.approx(1)
+        assert all(weight > 0 for weight in weights)
+        assert weights[1] >= STRUCTURE_PREFERENCE
+
+
+def test_prompt_states_direction_and_limits_causal_claim():
+    b = builder()
+    predecessor = node(1, 4)
+    parent = node(2, 5, parent_id=1)
+    parent.operator = 'Refine'
+    refs, _, info = task_sample([predecessor, parent], parent, 'Refine')
+    roles = {parent.id: 'design_base', predecessor.id: 'formation_evidence'}
+    text = b.trajectory(
+        parent, refs, 'Refine', roles=roles,
+        relations=info['evidence_relations'],
+    )[0]
+
+    assert '# Observed Design Experiments' in text
+    assert 'Algorithm 2 was generated from Algorithm 1 using Refine' in text
+    assert 'Fitness changed from 4 to 5 (delta +1)' in text
+    assert 'do not prove that any individual code difference caused the result' in text
+
+    child = node(4, 3, parent_id=parent.id)
+    child.operator = 'Fuse'
+    child.donor_id = 5
+    historical_donor = node(5, 8)
+    refs, _, info = task_sample([parent, child, historical_donor], parent, 'Refine')
+    roles = {parent.id: 'design_base', child.id: 'development_evidence'}
+    reverse_text = b.trajectory(
+        parent, refs, 'Refine', roles=roles,
+        relations=info['evidence_relations'],
+    )[0]
+    assert 'Algorithm 1 was generated from Algorithm 2 using Fuse' in reverse_text
+    assert reverse_text != text
+    assert 'A separate archived donor with fitness 8 also participated' in reverse_text
+
+    alternative = node(3, 6)
+    refs, _, info = task_sample([parent, alternative], parent, 'Pivot')
+    roles = {parent.id: 'comparison_baseline', refs[0].id: 'alternative_reference'}
+    text = b.trajectory(
+        parent, refs, 'Pivot', roles=roles,
+        relations=info['evidence_relations'],
+    )[0]
+    assert 'no direct generation relation is asserted' in text
 
 
 @pytest.mark.parametrize('operator', ['Refine', 'Pivot', 'Fuse'])
 def test_task_evidence_bounds_each_failed_reference_slot(operator):
     parent = node(0, 0)
-    nodes = [parent, *(node(index, index) for index in range(1, 100))]
+    nodes = [parent, *(node(index, index, parent_id=0)
+                       for index in range(1, 100))]
     refs, donor, info = sample_task_evidence(
         nodes, parent, random.Random(0), operator=operator, limit=2,
-        fits=lambda refs, donor, roles: False,
+        fits=lambda refs, donor, roles, relations: False,
     )
     assert refs == [] and donor is None
     assert len(info['reference_attempts']) == 32
