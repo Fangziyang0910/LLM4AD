@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TraceAAD V10.6 · 实验进程可视化</title>
+<title>TraceAAD V10.8 · 实验进程可视化</title>
 <style>
 :root {
   --bg: #0b0f17;
@@ -705,11 +705,14 @@ table.feed-table td {
 
 <header>
   <div class="brand">
-    <span class="brand-badge" id="brand-badge">V10.6</span>
+    <span class="brand-badge" id="brand-badge">V10.8</span>
     <div class="brand-title">TraceAAD 训练监控与分析面板</div>
     <div class="version-picker-wrap">
       <select id="version-select" class="version-select" onchange="changeVersion(this.value)" title="切换监控实验版本">
-        <option value="v10_6" selected>TraceAAD V10.6 (当前运行)</option>
+        <option value="v10_8" selected>TraceAAD V10.8（形成轨迹）(当前运行)</option>
+        <option value="v10_7r">TraceAAD V10.7R（任务证据正式）</option>
+        <option value="v10_7">TraceAAD V10.7（冻结对照）</option>
+        <option value="v10_6">TraceAAD V10.6</option>
         <option value="v10_5">TraceAAD V10.5</option>
         <option value="v10_4">TraceAAD V10.4</option>
         <option value="v10_3">TraceAAD V10.3</option>
@@ -910,7 +913,7 @@ let activeView = "overview";
 let refreshTimer = null;
 let countdown = 10;
 let isInitialRender = true;
-let currentVersion = "";
+let currentVersion = "v10_8";
 let availableVersions = [];
 
 async function loadVersions() {
@@ -921,12 +924,17 @@ async function loadVersions() {
     availableVersions = data.versions || [];
     const urlParams = new URLSearchParams(window.location.search);
     const urlVer = urlParams.get("version");
+    const latestVer = availableVersions.find(v => v.is_latest)?.id;
     if (urlVer && availableVersions.some(v => v.id === urlVer)) {
       currentVersion = urlVer;
     } else if (currentVersion && availableVersions.some(v => v.id === currentVersion)) {
       // keep
+    } else if (data.current && availableVersions.some(v => v.id === data.current)) {
+      currentVersion = data.current;
+    } else if (latestVer) {
+      currentVersion = latestVer;
     } else {
-      currentVersion = data.current || (availableVersions[0] ? availableVersions[0].id : "v10_6");
+      currentVersion = availableVersions[0] ? availableVersions[0].id : "v10_8";
     }
     renderVersionSelector();
   } catch (e) {
@@ -941,7 +949,7 @@ function renderVersionSelector() {
   availableVersions.forEach(v => {
     const opt = document.createElement("option");
     opt.value = v.id;
-    opt.textContent = v.name;
+    opt.textContent = v.name + (v.is_latest ? " (当前运行)" : "");
     if (v.id === currentVersion) opt.selected = true;
     sel.appendChild(opt);
   });
@@ -1437,14 +1445,15 @@ function renderInspector() {
   `;
 
   // Render mechanism metrics for the selected version.
-  const telem = summary.v106_telemetry || summary.v105_telemetry || {};
+  const telem = summary.telemetry || summary.v108_telemetry || summary.v106_telemetry || summary.v105_telemetry || {};
   document.getElementById("v105-llm-time").textContent = telem.avg_llm_seconds ? `${telem.avg_llm_seconds}s` : "–";
   document.getElementById("v105-eval-time").textContent = telem.avg_eval_seconds ? `${telem.avg_eval_seconds}s` : "–";
   document.getElementById("v105-improve-count").textContent = `${telem.parent_improved_count || 0} 次 / ${telem.frontier_improved_count || 0} 次`;
   
-  document.getElementById("idea-label").textContent = currentVersion === "v10_7"
+  const singleCallIdea = ["v10_7", "v10_7r", "v10_8"].includes(currentVersion);
+  document.getElementById("idea-label").textContent = singleCallIdea
     ? "💡 生成思路 (Idea)" : "💡 实现摘要 (Implementation Summary)";
-  if (currentVersion === "v10_7") {
+  if (singleCallIdea) {
     document.getElementById("v105-route-label").textContent = "输入均长 (Tokens)";
     document.getElementById("v105-pivot-route").textContent = telem.avg_prompt_tokens != null
       ? `${telem.avg_prompt_tokens} tok` : "–";

@@ -173,8 +173,7 @@ class TraceAADV108(v107.TraceAADV107):
                 record['implementation_fitness'] = first.fitness
                 if record.get('best_before') is not None:
                     delta = first.fitness - record['best_before']
-                    record.update(implementation_frontier_delta=delta,
-                                  implementation_frontier_improved=delta > 0)
+                    record.update(frontier_delta=delta, frontier_improved=delta > 0)
         super()._append_record(path, record)
 
     def _save_state(self):

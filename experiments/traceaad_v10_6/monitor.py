@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import subprocess
 import threading
@@ -87,13 +86,19 @@ def _version_dir_pattern(version_id: str) -> str | None:
     return KNOWN_VERSIONS.get(version_id, {}).get("dir_pattern")
 
 KNOWN_VERSIONS = {
+    "v10_8": {
+        "id": "v10_8", "name": "TraceAAD V10.8（形成轨迹）",
+        "badge": "V10.8", "default_prefix": "v108",
+        "path": REPO_ROOT / "experiments" / "traceaad_v10_8" / "results",
+        "is_latest": True,
+    },
     "v10_7r": {
         "id": "v10_7r",
         "name": "TraceAAD V10.7R（任务证据正式）",
         "badge": "V10.7R",
         "default_prefix": "v107r",
         "path": REPO_ROOT / "experiments" / "traceaad_v10_7" / "results",
-        "is_latest": True,
+        "is_latest": False,
         # Only the V10.7R batch dirs (…_v107r_repN); the frozen V10.7
         # batch (…_v107_repN) lives in the same results root.
         "dir_pattern": r"_v107r_rep\d+$",
@@ -585,7 +590,12 @@ class MonitorDataEngine:
         max_eta = max(all_etas) if all_etas else 0.0
         avg_speed = (sum(all_speeds) / len(all_speeds)) if all_speeds else 0.0
 
-        scheduler_active = f"{default_prefix}_sched" in active_tmux
+        sched_session = None
+        for candidate in (f"{default_prefix}_launcher", f"{default_prefix}_sched"):
+            if candidate in active_tmux:
+                sched_session = candidate
+                break
+        scheduler_active = sched_session is not None
 
         return {
             "version": badge,
@@ -593,7 +603,7 @@ class MonitorDataEngine:
             "updated_at": now.isoformat(timespec="seconds"),
             "scheduler": {
                 "active": scheduler_active,
-                "session": f"{default_prefix}_sched",
+                "session": sched_session or f"{default_prefix}_launcher",
                 "batch": manifest.get("batch") if manifest else None,
             },
             "global_summary": {
@@ -846,11 +856,16 @@ class MonitorDataEngine:
         sorted_nodes = sorted(
             nodes, key=lambda n: n.get("evaluation_id") or 0
         )
+        seen_codes = set()
         for n in sorted_nodes:
             eid = n.get("evaluation_id")
             fit = n.get("fitness")
             if eid is None or fit is None:
                 continue
+            if method == "v108":
+                if n.get("code") in seen_codes:
+                    continue
+                seen_codes.add(n.get("code"))
             if best_fitness is None or fit > best_fitness:
                 best_fitness = fit
                 breakthroughs.append(
@@ -924,6 +939,8 @@ class MonitorDataEngine:
             "status_counts": status_counts,
             "curve": curve,
             "breakthroughs": breakthroughs,
+            "telemetry": telemetry_payload,
+            "v108_telemetry": telemetry_payload,
             "v106_telemetry": telemetry_payload,
             "v105_telemetry": telemetry_payload,
         }
@@ -1063,7 +1080,11 @@ class MonitorDataEngine:
 
         best_node = None
         if nodes:
-            best_node = max(nodes, key=lambda n: n.get("fitness") or float("-inf"))
+            milestones = summary.get("breakthroughs", [])
+            best_node = (next((n for n in nodes if n.get("id") == milestones[-1]["node_id"]), None)
+                         if milestones else None)
+            if not best_node:
+                best_node = max(nodes, key=lambda n: n.get("fitness") or float("-inf"))
             if best_node:
                 if not best_node.get("operator") and best_node.get("origin_operator"):
                     best_node["operator"] = best_node["origin_operator"]
@@ -1217,13 +1238,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--version",
-        default="v10_6",
-        help="Default experiment version (default: v10_6)",
+        default="v10_8",
+        help="Default experiment version (default: v10_8)",
     )
     parser.add_argument(
         "--session-prefix",
-        default="v106",
-        help="Tmux session prefix (default: v106)",
+        default="v108",
+        help="Tmux session prefix (default: v108)",
     )
     args = parser.parse_args()
 

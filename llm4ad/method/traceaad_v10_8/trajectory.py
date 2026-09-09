@@ -115,9 +115,6 @@ class TrajectoryBuilder(ViewBuilder):
         return self.count(self.assemble(current, operator, donor), chat=True) <= self.max_tokens
 
     def build(self, parent, operator, donor=None):
-        text = self.assemble(parent, operator, donor)
-        if self.count(text, chat=True) > self.max_tokens:
-            raise ValueError('minimum complete prompt exceeds the model context budget')
         edges = []
         cursor = parent
         reason = 'initialization' if parent is None else 'root' if parent.parent_id is None else None
@@ -129,18 +126,24 @@ class TrajectoryBuilder(ViewBuilder):
             source = self.lookup(cursor.parent_id)
             if source is None:
                 raise ValueError('missing archived formation predecessor')
-            proposal = [(source, cursor), *edges]
-            if self.count(self.history_text(proposal)) > self.history_tokens:
-                reason = 'history_budget'
-                break
-            proposed_text = self.assemble(parent, operator, donor, proposal)
-            if self.count(proposed_text, chat=True) > self.max_tokens:
-                reason = 'context_budget'
-                break
-            edges, text, cursor = proposal, proposed_text, source
+            edges.insert(0, (source, cursor))
+            cursor = source
         else:
             if edges and cursor.parent_id is not None:
                 reason = 'edge_limit'
+        # Check only complete candidate suffixes. When everything fits, there
+        # is one history count and one chat count, regardless of edge depth.
+        while edges and self.count(self.history_text(edges)) > self.history_tokens:
+            edges.pop(0)
+            reason = 'history_budget'
+        while True:
+            text = self.assemble(parent, operator, donor, edges)
+            if self.count(text, chat=True) <= self.max_tokens:
+                break
+            if not edges:
+                raise ValueError('minimum complete prompt exceeds the model context budget')
+            edges.pop(0)
+            reason = 'context_budget'
         shown = {n.id: n for edge in edges for n in edge}
         for node in (parent, donor):
             if node is not None:

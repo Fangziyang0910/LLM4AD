@@ -249,7 +249,11 @@ def test_final_best_uses_first_score_even_when_record_no_longer_fits(tmp_path, m
     assert summary['best']['fitness'] == 2
     assert summary['fitness_instability'][0]['first_fitness'] == 1
     assert [e['best_so_far'] for e in read_journal(m.events_path)] == [1, 2, 2]
-    assert read_journal(m.events_path)[-1]['implementation_fitness'] == 1
+    last = read_journal(m.events_path)[-1]
+    assert last['implementation_fitness'] == 1
+    assert last['fitness'] == 100
+    assert last['frontier_delta'] == -1 and last['frontier_improved'] is False
+    assert not any(key.startswith('implementation_frontier_') for key in last)
     m.builder.max_tokens = 1
     assert m.tree.best().fitness == 2
 
@@ -305,3 +309,42 @@ def test_independent_ablation_constructor_and_production_defaults(tmp_path):
     assert args.n_roots == 8 and args.budget == 1000
     with pytest.raises(SystemExit):
         build_parser().parse_args(['--task', 'tsp_construct', '--history-mode', 'old'])
+
+
+def test_full_suffix_counts_only_final_chat_and_cached_donor_change():
+    tree = SearchTree()
+    node = add(tree, 0)
+    for value in range(1, 9):
+        node = add(tree, value, node.id)
+    donor = add(tree, 20)
+    b = builder(tree)
+    b.build(node, 'Refine')
+    assert sum(chat for chat, _ in b._counts) == 1
+    # 16 representation comparisons, one full history count, one chat count.
+    assert len(b._counts) == 18
+    before = set(b._counts)
+    b.build(node, 'Fuse', donor)
+    assert len(set(b._counts) - before) == 1
+    assert sum(chat for chat, _ in set(b._counts) - before) == 1
+
+
+def test_semantic_pair_keeps_same_snapshot_operator_donor_and_visible_edges(tmp_path):
+    from experiments.traceaad_v10_8.ablations import build_representation_pair
+    m = method(tmp_path)
+    root = add(m.tree, 1)
+    middle = add(m.tree, 2, root.id)
+    current = add(m.tree, 3, middle.id)
+    donor = add(m.tree, 4)
+    pair = build_representation_pair(m, parent_id=current.id, operator='Fuse', donor_id=donor.id)
+    code, idea = pair['code_transitions'], pair['short_idea']
+    assert code['history_ids'] == idea['history_ids'] == [middle.id, current.id]
+    assert current.idea in idea['prompt'] and current.idea not in code['prompt']
+    for item in pair.values():
+        assert item['parent_id'] == current.id and item['donor_id'] == donor.id
+        assert item['max_input_tokens'] == 16128
+        assert item['snapshot_evaluation_id'] == donor.evaluation_id
+        assert item['prompt_tokens'] == m.llm.count_prompt_tokens(item['prompt'])
+    m.builder.history_tokens = 1
+    pair = build_representation_pair(m, parent_id=current.id, operator='Refine')
+    assert all(item['history_ids'] == [] for item in pair.values())
+    assert not m.llm.calls and m.completed_attempts == 0
