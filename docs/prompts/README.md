@@ -6,6 +6,7 @@
 
 | 版本 | 提示词来源 | 设计记录 |
 | --- | --- | --- |
+| V10.8 | [实现](../../llm4ad/method/traceaad_v10_8/trajectory.py) | [机制设计](../methods/TraceAAD-V10.8-机制设计.md)：完整底座、近期连续代码转移、Fuse 可选 donor；历史 Idea 不进入首发提示 |
 | V10.7 / V10.7R | [实现](../../llm4ad/method/traceaad_v10_7/prompts.py) | [原 V10.7](../methods/TraceAAD-V10.7-机制设计.md)保留统一采样实验身份；[V10.7R](../methods/TraceAAD-V10.7R-机制设计.md)要求自足 Idea 并按设计任务组织证据，收益待验证 |
 | V10.6 | [实现](../../llm4ad/method/traceaad_v10_6/prompts.py) | [机制设计](../methods/TraceAAD-V10.6/机制设计.md)：Idea → Code → 独立实现 Idea；此前单次 Code → Summary 批次以实际日志为准 |
 | V10.5 | [实现](../../llm4ad/method/traceaad_v10_5/prompts.py) | [机制设计](../methods/TraceAAD-V10.5-机制设计.md) |
