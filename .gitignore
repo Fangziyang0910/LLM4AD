@@ -40,6 +40,7 @@ GUI/outputs/
 experiments/_logs/
 experiments/**/results/
 experiments/**/results/**
+experiments/**/results_*/
 experiments/**/20[0-9]*/
 experiments/**/tm_*/
 experiments/**/v[0-9]*/
