@@ -1,5 +1,7 @@
 # 科研文档导航
 
+- 当前迭代：[V10.9 机制设计](methods/TraceAAD-V10.9-机制设计.md)；[V10.8 思想形成与精炼分析](analysis/诊断性分析/2026-09-09-V10.8思想形成与精炼/分析.md)；[V10.9 运行与排队](../experiments/traceaad_v10_9/README.md)。
+
 围绕研究问题按需阅读。方法版本、实验状态与历史判断分别在对应材料中维护，版本较新不代表效果更好。
 
 ## 模块入口
@@ -21,9 +23,10 @@
 
 更新于 2026-09-09。这里提供接续阅读，运行进度仍读取对应批次记录。
 
-- 当前研究：[V10.8 机制设计](methods/TraceAAD-V10.8-机制设计.md)与[运行说明](../experiments/traceaad_v10_8/README.md)。已实现并启动 15 路正式搜索（[启动记录](../experiments/traceaad_v10_8/launch_20260909.md)）；共同调度下的 code-only、单边、多边与短 Idea 表示对照仍待验证，尚无终局结论。
+- 当前研究：[V10.8 方法报告](methods/TraceAAD-V10.8-机制设计.md)按完整流程、模块机制与教学示例展开；操作入口见[运行说明](../experiments/traceaad_v10_8/README.md)。已实现并启动 15 路正式搜索（[启动记录](../experiments/traceaad_v10_8/launch_20260909.md)）；共同调度下的 code-only、单边、多边与短 Idea 表示对照仍待验证，尚无终局结论。
 - 近期方法：[V10.7 机制设计](methods/TraceAAD-V10.7-机制设计.md)、[运行说明](../experiments/traceaad_v10_7/README.md)及[启动记录](../experiments/traceaad_v10_7/launch_20260907.md)；修复后 48 次真实 smoke 通过，分层采样版 15 路正式实验已启动；祖先历史与均匀采样对照尚未启动。
 - V10.7 机制独立分析：[交接入口](analysis/诊断性分析/2026-09-08-V10.6与V10.7机制运行核查/README.md)，含带时间戳的实验进度、设计/实现归因、24次生成与33次评价证据，以及30路收益摘要与代表性节点。
+- 原 V10.7 终局与机制认识：[试错经验与机制分析](analysis/版本综合分析/2026-09-09-V10.7试错经验与机制分析/机制分析.md)，从 idea、实现和实验过程审视经验利用；已重放两版 30 路完整搜索，含 TSP/OBP 路线、CVRP 后期追赶和成本对照，不含 V10.7R。
 - 搜索证据：[搜索观测与预算分配](analysis/探索性分析/2026-09-07-搜索观测与预算分配/2026-09-07-从搜索观测到预算分配-调研与分析.md)、[二次 Idea 配对核查](analysis/诊断性分析/2026-09-07-V10.6二次Idea配对核查/结论.md)。
 - BehaveSim：[全 Archive 群体验证](experiments/机制验证/2026-09-07-BehaveSim全Archive群体验证/结果.md)、[在线可行性复审](analysis/探索性分析/2026-09-07-BehaveSim在线可行性复审/结论.md)。
 

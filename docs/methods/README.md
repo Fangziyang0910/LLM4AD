@@ -1,5 +1,7 @@
 # 方法设计导航
 
+近期迭代：[V10.9：轨迹支持思想形成、迁移与精炼](TraceAAD-V10.9-机制设计.md)，实现/验证与实验状态见[运行说明](../../experiments/traceaad_v10_9/README.md)。
+
 按版本保存设计，版本号不表示效果排序。表中的实现入口只表示当前仓库存在对应文件，不表示实验已完成或机制已验证；结果与运行状态以实验记录为准。
 
 近期设计：[V10.8](TraceAAD-V10.8-机制设计.md) 已实现近期连续代码转移与同代码组机会计量，机制收益待实验验证；[V10.7R](TraceAAD-V10.7R-机制设计.md) 保留独立证据基线与冻结身份。此前研究来源见[上下文采样构想](../ideas/2026-09-07-按设计任务采样与组织历史上下文/构想.md)。
@@ -26,7 +28,7 @@
 | V10.6 | [机制设计](TraceAAD-V10.6/机制设计.md) | [运行说明](../../experiments/traceaad_v10_6/README.md) |
 | V10.7 | [机制设计](TraceAAD-V10.7-机制设计.md) | [运行说明](../../experiments/traceaad_v10_7/README.md) |
 | V10.7R | [机制设计](TraceAAD-V10.7R-机制设计.md) | [实现目录](../../llm4ad/method/traceaad_v10_7)；[运行说明](../../experiments/traceaad_v10_7/README.md) |
-| V10.8 | [机制设计](TraceAAD-V10.8-机制设计.md) | [实现目录](../../llm4ad/method/traceaad_v10_8)；[运行说明](../../experiments/traceaad_v10_8/README.md) |
+| V10.8 | [方法报告：完整流程、模块机制与示例](TraceAAD-V10.8-机制设计.md) | [实现目录](../../llm4ad/method/traceaad_v10_8)；[运行说明](../../experiments/traceaad_v10_8/README.md) |
 
 ## 历史与讨论
 

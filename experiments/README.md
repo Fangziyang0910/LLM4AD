@@ -1,8 +1,12 @@
 # 实验导航
 
+最新迭代：[V10.9](traceaad_v10_9/README.md)，五任务 × 三重复；冻结源码、按空闲槽逐路启动。
+
 科研背景见 [文档导航](../docs/README.md)。各方法的运行脚本位于 `experiments/<method>/`，近期版本的结果位于其 `results/<task>/<run>/`；历史布局以对应实验记录为准。共享后端、任务构建与客户端工具位于 `runners/`。原始工件只留本地。
 
 ## 近期开发
+
+- **Codex 直接设计参照**：[五任务首次实测](codex_designed_20260909/README.md)：每任务一个人工直接编写程序，各一次训练与独立面板评价，保留源码和完整分数。
 
 - **V10.8**：[机制设计](../docs/methods/TraceAAD-V10.8-机制设计.md)、[运行入口](traceaad_v10_8/README.md)。近期连续代码转移、同代码组机会计量；已实现并启动 15 路正式搜索；[启动记录](traceaad_v10_8/launch_20260909.md)，终局收益待验证。
 - **V10.7**：[机制设计](../docs/methods/TraceAAD-V10.7-机制设计.md)、[运行入口](traceaad_v10_7/README.md)、[修复与启动记录](traceaad_v10_7/launch_20260907.md)。单次 Idea→Code；48 次真实 smoke 通过，分层采样版 15 路正式实验已启动；祖先历史与均匀采样对照尚未启动。

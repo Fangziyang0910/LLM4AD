@@ -1,0 +1,166 @@
+{
+  "numpy_version": "1.26.4",
+  "tsp": [
+    {
+      "repeat": 1,
+      "node_id": 567,
+      "code_sha256": "d6f694b8282d57bde9b4bbea630962559c158ff2437c06148377a68ba8ff7c4c",
+      "cases": 32,
+      "candidate_counts": [
+        16,
+        20,
+        35,
+        48
+      ],
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "non_nearest_choices": 0
+    },
+    {
+      "repeat": 2,
+      "node_id": 904,
+      "code_sha256": "8f037bfe88ce3b73ba097c26b706203752cf03fd69bfa81ef31632e6c995ba2a",
+      "cases": 32,
+      "candidate_counts": [
+        16,
+        20,
+        35,
+        48
+      ],
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "non_nearest_choices": 0
+    },
+    {
+      "repeat": 3,
+      "node_id": 825,
+      "code_sha256": "03d2223b5d5658abe7e62bedfc5e93b65b850375b240562739dcf794ca1fc08e",
+      "cases": 32,
+      "candidate_counts": [
+        16,
+        20,
+        35,
+        48
+      ],
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "non_nearest_choices": 0
+    }
+  ],
+  "obp": [
+    {
+      "repeat": 1,
+      "node_id": 119,
+      "code_sha256": "300e7dad7633b04b9838b59925b1dca4c1317450f6bb9aab84dc53f9c9b82ca4",
+      "item": 10,
+      "bins": [
+        11.0,
+        20.0
+      ],
+      "scores": [
+        -1.0,
+        -10.000000001
+      ],
+      "selected_capacity": 11.0
+    },
+    {
+      "repeat": 1,
+      "node_id": 130,
+      "code_sha256": "41052b7e9d100ccc1422eef4a5b546fa27aca2c73dbf3a03d91ec334f7831ada",
+      "item": 10,
+      "bins": [
+        11.0,
+        20.0
+      ],
+      "scores": [
+        -0.999989,
+        -9.9999800001
+      ],
+      "selected_capacity": 11.0
+    },
+    {
+      "repeat": 1,
+      "node_id": 177,
+      "code_sha256": "a9d972f26fb0c9bc7fc206cdcaf09f64bc83329189d18171b617c78a6c281731",
+      "item": 10,
+      "bins": [
+        11.0,
+        20.0
+      ],
+      "scores": [
+        -1.001,
+        -10.100000000001
+      ],
+      "selected_capacity": 11.0
+    },
+    {
+      "repeat": 1,
+      "node_id": 195,
+      "code_sha256": "fd560b7854473875c2e7549c43e17d07f6d7e91af929f433bbba3570b08a4f26",
+      "item": 10,
+      "bins": [
+        11.0,
+        20.0
+      ],
+      "scores": [
+        -51.0,
+        -9.000000001
+      ],
+      "selected_capacity": 20.0
+    },
+    {
+      "repeat": 1,
+      "node_id": 197,
+      "code_sha256": "85bd5f40d413b81c35c536cf1b49d89b446a2db06d61d29b6956cb7fa132a0c8",
+      "item": 10,
+      "bins": [
+        11.0,
+        20.0
+      ],
+      "scores": [
+        -3.599999999999964,
+        -1e-09
+      ],
+      "selected_capacity": 20.0
+    },
+    {
+      "repeat": 2,
+      "node_id": 61,
+      "code_sha256": "e51ffe11b5de2c3be29ff774ad697bc9d2e8b1ff922f82baa75630f1d319e251",
+      "item": 10,
+      "bins": [
+        11.0,
+        20.0
+      ],
+      "scores": [
+        -1.000011,
+        -10.000019999
+      ],
+      "selected_capacity": 11.0
+    }
+  ]
+}

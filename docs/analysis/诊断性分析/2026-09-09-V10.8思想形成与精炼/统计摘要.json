@@ -1,0 +1,269 @@
+{
+  "snapshot_local_time": "2026-09-09 around 18:45",
+  "checkpoint_version": 1080,
+  "budget_total": 9584,
+  "runs": [
+    {
+      "source": "experiments/traceaad_v10_8/results/cvrp_aco/20260909_v108_formal_cvrp_v108_rep1",
+      "budget": 391,
+      "completed_events": 403,
+      "last_event_time": "2026-09-09T18:44:09"
+    },
+    {
+      "source": "experiments/traceaad_v10_8/results/cvrp_aco/20260909_v108_formal_cvrp_v108_rep2",
+      "budget": 381,
+      "completed_events": 388,
+      "last_event_time": "2026-09-09T18:43:36"
+    },
+    {
+      "source": "experiments/traceaad_v10_8/results/cvrp_aco/20260909_v108_formal_cvrp_v108_rep3",
+      "budget": 384,
+      "completed_events": 388,
+      "last_event_time": "2026-09-09T18:44:40"
+    },
+    {
+      "source": "experiments/traceaad_v10_8/results/online_bin_packing/20260909_v108_formal_obp_v108_rep1",
+      "budget": 1000,
+      "completed_events": 1002,
+      "last_event_time": "2026-09-09T18:12:32"
+    },
+    {
+      "source": "experiments/traceaad_v10_8/results/online_bin_packing/20260909_v108_formal_obp_v108_rep2",
+      "budget": 890,
+      "completed_events": 931,
+      "last_event_time": "2026-09-09T18:44:36"
+    },
+    {
+      "source": "experiments/traceaad_v10_8/results/online_bin_packing/20260909_v108_formal_obp_v108_rep3",
+      "budget": 978,
+      "completed_events": 1026,
+      "last_event_time": "2026-09-09T18:44:32"
+    },
+    {
+      "source": "experiments/traceaad_v10_8/results/op_aco/20260909_v108_formal_op_v108_rep1",
+      "budget": 475,
+      "completed_events": 488,
+      "last_event_time": "2026-09-09T18:44:36"
+    },
+    {
+      "source": "experiments/traceaad_v10_8/results/op_aco/20260909_v108_formal_op_v108_rep2",
+      "budget": 490,
+      "completed_events": 491,
+      "last_event_time": "2026-09-09T18:44:47"
+    },
+    {
+      "source": "experiments/traceaad_v10_8/results/op_aco/20260909_v108_formal_op_v108_rep3",
+      "budget": 426,
+      "completed_events": 433,
+      "last_event_time": "2026-09-09T18:44:21"
+    },
+    {
+      "source": "experiments/traceaad_v10_8/results/tsp_construct/20260909_v108_formal_tsp_v108_rep1",
+      "budget": 515,
+      "completed_events": 559,
+      "last_event_time": "2026-09-09T18:44:15"
+    },
+    {
+      "source": "experiments/traceaad_v10_8/results/tsp_construct/20260909_v108_formal_tsp_v108_rep2",
+      "budget": 735,
+      "completed_events": 773,
+      "last_event_time": "2026-09-09T18:44:22"
+    },
+    {
+      "source": "experiments/traceaad_v10_8/results/tsp_construct/20260909_v108_formal_tsp_v108_rep3",
+      "budget": 853,
+      "completed_events": 886,
+      "last_event_time": "2026-09-09T18:44:53"
+    },
+    {
+      "source": "experiments/traceaad_v10_8/results/vrptw_construct/20260909_v108_formal_vrptw_v108_rep1",
+      "budget": 570,
+      "completed_events": 628,
+      "last_event_time": "2026-09-09T18:44:36"
+    },
+    {
+      "source": "experiments/traceaad_v10_8/results/vrptw_construct/20260909_v108_formal_vrptw_v108_rep2",
+      "budget": 772,
+      "completed_events": 844,
+      "last_event_time": "2026-09-09T18:44:33"
+    },
+    {
+      "source": "experiments/traceaad_v10_8/results/vrptw_construct/20260909_v108_formal_vrptw_v108_rep3",
+      "budget": 724,
+      "completed_events": 767,
+      "last_event_time": "2026-09-09T18:43:47"
+    }
+  ],
+  "ast_edit_counts": [
+    {
+      "task": "cvrp_aco",
+      "counts": {
+        "F_valid": 399,
+        "F_donor_copy": 29,
+        "F_worse_donor_copy": 17,
+        "R_valid": 527,
+        "R_ast_same": 50,
+        "R_numeric_only": 20
+      },
+      "examples": [
+        [
+          "rep1",
+          9,
+          4,
+          0,
+          8,
+          -12.552565662407067,
+          -19.7003851983658,
+          -19.7003851983658
+        ],
+        [
+          "rep2",
+          345,
+          315,
+          55,
+          332,
+          -9.414833786303163,
+          -11.481620621798589,
+          -11.481620621798589
+        ]
+      ]
+    },
+    {
+      "task": "online_bin_packing",
+      "counts": {
+        "F_valid": 1009,
+        "R_valid": 1379,
+        "R_ast_same": 161,
+        "R_numeric_only": 50,
+        "F_donor_copy": 109,
+        "F_worse_donor_copy": 62
+      },
+      "examples": [
+        [
+          "rep1",
+          177,
+          47,
+          123,
+          176,
+          -744.5,
+          -752.75,
+          -752.75
+        ],
+        [
+          "rep1",
+          194,
+          169,
+          144,
+          193,
+          -746.75,
+          -751.25,
+          -751.25
+        ]
+      ]
+    },
+    {
+      "task": "op_aco",
+      "counts": {
+        "F_valid": 481,
+        "R_valid": 650,
+        "R_ast_same": 123,
+        "R_numeric_only": 17,
+        "F_donor_copy": 32,
+        "F_worse_donor_copy": 22
+      },
+      "examples": [
+        [
+          "rep1",
+          308,
+          124,
+          261,
+          303,
+          14.437999999999999,
+          13.209999999999999,
+          13.209999999999999
+        ],
+        [
+          "rep2",
+          266,
+          244,
+          258,
+          259,
+          14.146,
+          12.224,
+          12.224
+        ]
+      ]
+    },
+    {
+      "task": "tsp_construct",
+      "counts": {
+        "F_valid": 757,
+        "R_valid": 957,
+        "R_ast_same": 92,
+        "R_numeric_only": 11,
+        "F_donor_copy": 90,
+        "F_worse_donor_copy": 69
+      },
+      "examples": [
+        [
+          "rep1",
+          91,
+          51,
+          34,
+          89,
+          -6.364599571672045,
+          -7.602773394517474,
+          -7.602773394517474
+        ],
+        [
+          "rep1",
+          225,
+          192,
+          177,
+          223,
+          -6.364599571672045,
+          -7.656084686599987,
+          -7.656084686599987
+        ]
+      ]
+    },
+    {
+      "task": "vrptw_construct",
+      "counts": {
+        "F_valid": 754,
+        "R_valid": 923,
+        "R_ast_same": 99,
+        "R_numeric_only": 21,
+        "F_donor_copy": 93,
+        "F_worse_donor_copy": 84
+      },
+      "examples": [
+        [
+          "rep1",
+          21,
+          17,
+          18,
+          20,
+          -22.02991183098439,
+          -23.689519429346554,
+          -23.689519429346554
+        ],
+        [
+          "rep1",
+          60,
+          54,
+          24,
+          58,
+          -21.261823571285532,
+          -23.463918726607822,
+          -23.463918726607822
+        ]
+      ]
+    }
+  ],
+  "definitions": {
+    "ast_same": "Python AST equality after dropping comments through parsing and removing function docstrings; not full semantic equivalence",
+    "numeric_only": "different ASTs become equal after replacing all int/float literals with zero; excludes structural/variable renaming changes",
+    "scope": "only status ok Refine/Fuse; Init excluded; each run read to checkpoint completed_attempts"
+  }
+}
