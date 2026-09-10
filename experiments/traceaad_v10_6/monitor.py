@@ -86,11 +86,25 @@ def _version_dir_pattern(version_id: str) -> str | None:
     return KNOWN_VERSIONS.get(version_id, {}).get("dir_pattern")
 
 KNOWN_VERSIONS = {
+    "v10_9": {
+        "id": "v10_9", "name": "TraceAAD V10.9（迁移与精炼）",
+        "badge": "V10.9", "default_prefix": "v109",
+        "path": REPO_ROOT / "experiments" / "traceaad_v10_9" / "results",
+        "is_latest": True, "dir_pattern": r"_v109_rep\d+$",
+    },
+    **{f'v10_8{arm.lower()}': {
+        'id': f'v10_8{arm.lower()}', 'name': f'V10.8 分配 {arm}：{label}',
+        'badge': f'V10.8-{arm}', 'default_prefix': 'v108alloc',
+        'path': REPO_ROOT / 'experiments' / 'traceaad_v10_8' / 'results',
+        'is_latest': False, 'dir_pattern': rf'_{arm}_v108_rep\d+$',
+    } for arm, label in [('A', '当前规则'), ('B', '质量优先'),
+                         ('C', '持续集中'), ('D', '逐渐集中')]},
     "v10_8": {
         "id": "v10_8", "name": "TraceAAD V10.8（形成轨迹）",
         "badge": "V10.8", "default_prefix": "v108",
         "path": REPO_ROOT / "experiments" / "traceaad_v10_8" / "results",
-        "is_latest": True,
+        "is_latest": False,
+        "dir_pattern": r"(?<!_[ABCD])_v108_rep\d+$",
     },
     "v10_7r": {
         "id": "v10_7r",
@@ -306,9 +320,15 @@ class MonitorDataEngine:
             cached = self._cache_runs[vid].get(run_name)
             stamp = self._get_run_mtime(run_dir)
             if cached and cached.get("_stamp") == stamp:
-                return cached["data"]
-            data = self._parse_run_detail(run_dir, task, run_name, prefix)
+                data = cached["data"]
+            else:
+                data = self._parse_run_detail(run_dir, task, run_name, prefix)
             if data:
+                # Session and queue state can change without a new run artifact.
+                data['summary'] = self._parse_run_summary_cached(
+                    run_dir, TASK_MAP.get(task, {'key': task, 'label': task, 'unit': 'fitness',
+                                              'direction': 'max', 'short': task}), data['summary']['rep'],
+                    _get_active_tmux_sessions(), datetime.now(), vid, prefix)
                 self._cache_runs[vid][run_name] = {"_stamp": stamp, "data": data}
             return data
 
@@ -424,6 +444,8 @@ class MonitorDataEngine:
                 data = json.loads(m.read_text(encoding="utf-8"))
                 if not (isinstance(data, dict) and "plan" in data):
                     continue
+                if data.get('status') in ('excluded_startup_diagnostic', 'superseded'):
+                    continue
             except Exception:
                 continue
             if fallback is None:
@@ -454,8 +476,8 @@ class MonitorDataEngine:
     ) -> dict[str, Any]:
         session = item.get("session") or f"{default_prefix}_{task_info['short']}_r{rep}"
         telemetry_placeholder = {
-            "requested_operator_counts": {"Init": 0, "Refine": 0, "Pivot": 0, "Fuse": 0},
-            "executed_operator_counts": {"Init": 0, "Refine": 0, "Pivot": 0, "Fuse": 0},
+            "requested_operator_counts": {"Init": 0, "Refine": 0, "Tune": 0, "Pivot": 0, "Fuse": 0},
+            "executed_operator_counts": {"Init": 0, "Refine": 0, "Tune": 0, "Pivot": 0, "Fuse": 0},
             "fuse_fallbacks": 0,
             "parent_routes": {},
             "pivot_routes": {"quality": 0, "uniform": 0},
@@ -492,7 +514,7 @@ class MonitorDataEngine:
             "eta_finish_time": "–",
             "best_fitness": None,
             "best_display": "–",
-            "operator_counts": {"Init": 0, "Refine": 0, "Pivot": 0, "Fuse": 0},
+            "operator_counts": {"Init": 0, "Refine": 0, "Tune": 0, "Pivot": 0, "Fuse": 0},
             "status_counts": {"ok": 0, "eval_failed": 0, "invalid_output": 0},
             "curve": [],
             "breakthroughs": [],
@@ -508,9 +530,13 @@ class MonitorDataEngine:
         manifest = self._load_latest_batch_manifest(root_dir, version_id)
 
         # Pre-group manifest plan items by (task, rep)
+        planned_names = {item.get('run_name') for item in manifest.get('plan', [])} if manifest else set()
         manifest_by_task_rep: dict[tuple[str, int], dict[str, Any]] = {}
+        dir_pattern = _version_dir_pattern(version_id)
         if manifest:
             for item in manifest.get("plan", []):
+                if dir_pattern and not re.search(dir_pattern, item.get('run_name', '')):
+                    continue
                 t_k = item.get("task")
                 r_num = item.get("repeat")
                 if t_k and r_num:
@@ -538,6 +564,8 @@ class MonitorDataEngine:
                     if not run_dir.is_dir() or not (run_dir / "run_config.json").exists():
                         continue
                     if dir_pattern and not re.search(dir_pattern, run_dir.name):
+                        continue
+                    if default_prefix in ('v108alloc', 'v109') and manifest and run_dir.name not in planned_names:
                         continue
                     rep_match = re.search(r"_rep(\d+)$", run_dir.name)
                     if not rep_match:
@@ -623,6 +651,17 @@ class MonitorDataEngine:
             "tasks": tasks_data,
         }
 
+    def _apply_waiting_queue(self, summary, run_dir, version_id):
+        if summary['status'] != 'stalled':
+            return summary
+        manifest = self._load_latest_batch_manifest(run_dir.parent.parent, version_id)
+        if manifest and manifest.get('waiting_for') and any(
+                row.get('run_name') == run_dir.name and row.get('status') in ('queued', 'paused')
+                for row in manifest.get('plan', [])):
+            summary.update(status='queued', eta_formatted='排队中（保留进度）', eta_seconds=None,
+                           eta_finish_time='–')
+        return summary
+
     def _parse_run_summary_cached(
         self,
         run_dir: Path,
@@ -670,11 +709,11 @@ class MonitorDataEngine:
                 if (status == "running" and eta_sec)
                 else "–"
             )
-            return base
+            return self._apply_waiting_queue(base, run_dir, version_id)
 
         summary = self._parse_run_summary_raw(run_dir, task_info, rep, active_tmux, now, default_prefix)
         self._cache_summaries[version_id][run_dir.name] = {"_stamp": stamp, "summary": summary}
-        return summary
+        return self._apply_waiting_queue(summary, run_dir, version_id)
 
     def _parse_run_summary_raw(
         self,
@@ -705,12 +744,16 @@ class MonitorDataEngine:
         started_at = datetime.fromisoformat(started_at_str) if started_at_str else None
 
         expected_session = f"{method}_{task_info['short']}_r{rep}"
+        # Allocation arms share a task and seed; their sessions are in the manifest.
+        if cfg.get('method_params', {}).get('allocation_arm') and default_prefix == 'v108alloc':
+            arm = cfg['method_params']['allocation_arm']
+            expected_session = f'{default_prefix}_{arm}_r{rep}'
         is_in_tmux, actual_session = _is_run_session_alive(expected_session, active_tmux)
 
         events_p = run_dir / "events.jsonl"
         last_event_ts = None
-        op_counts = {"Init": 0, "Refine": 0, "Pivot": 0, "Fuse": 0}
-        req_op_counts = {"Init": 0, "Refine": 0, "Pivot": 0, "Fuse": 0}
+        op_counts = {"Init": 0, "Refine": 0, "Tune": 0, "Pivot": 0, "Fuse": 0}
+        req_op_counts = {"Init": 0, "Refine": 0, "Tune": 0, "Pivot": 0, "Fuse": 0}
         fuse_fallbacks = 0
         parent_routes: dict[str, int] = {}
         pivot_routes = {"quality": 0, "uniform": 0}
@@ -862,7 +905,8 @@ class MonitorDataEngine:
             fit = n.get("fitness")
             if eid is None or fit is None:
                 continue
-            if method == "v108":
+            # Archived V10.8 runs retain their original scoring convention.
+            if method == "v108" and tree_data.get("version", 1080) == 1080:
                 if n.get("code") in seen_codes:
                     continue
                 seen_codes.add(n.get("code"))
@@ -1238,13 +1282,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--version",
-        default="v10_8",
-        help="Default experiment version (default: v10_8)",
+        default="v10_9",
+        help="Default experiment version (default: v10_9)",
     )
     parser.add_argument(
         "--session-prefix",
-        default="v108",
-        help="Tmux session prefix (default: v108)",
+        default="v109",
+        help="Tmux session prefix (default: v109)",
     )
     args = parser.parse_args()
 

@@ -63,21 +63,21 @@ if command -v fuser >/dev/null 2>&1; then
     fi
 fi
 
-CMD="uv run python -m experiments.traceaad_v10_6.monitor --version v10_8 --session-prefix v108 --port ${PORT}"
+CMD="uv run python -m experiments.traceaad_v10_6.monitor --version v10_9 --session-prefix v109 --port ${PORT}"
 
 if [ "$FOREGROUND" -eq 1 ]; then
     echo "Starting monitor in foreground on port ${PORT}..."
     exec ${CMD}
 fi
 
-echo "Starting TraceAAD V10.8 monitor in background tmux session: ${SESSION_NAME} (port ${PORT})..."
+echo "Starting TraceAAD V10.9 monitor in background tmux session: ${SESSION_NAME} (port ${PORT})..."
 tmux new-session -d -s "${SESSION_NAME}" "${CMD}"
 
 # Wait a moment and check status
 sleep 2
 if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
     echo "=========================================================="
-    echo "🚀 TraceAAD V10.8 可视化监控启动成功!"
+    echo "🚀 TraceAAD V10.9 可视化监控启动成功!"
     echo "  Web UI: http://127.0.0.1:${PORT}"
     echo "  Attach: tmux attach -t ${SESSION_NAME}"
     echo "  Stop:   tmux kill-session -t ${SESSION_NAME}"
