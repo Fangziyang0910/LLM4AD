@@ -162,6 +162,10 @@ class TraceAADV107(TraceAADV106):
             'rng_state': list(self.rng.getstate()), 'llm_attempts': 0,
         }
 
+    def _duplicate_inputs(self, code):
+        # V10.7 keeps its original execution policy; V10.8 rejects input copies.
+        return []
+
     def _advance(self) -> None:
         if self.pending is None:
             self.pending = self._schedule()
@@ -172,6 +176,7 @@ class TraceAADV107(TraceAADV106):
         self._log_call(pending['completion'])
         response = pending['completion']
         parsed = self.parse_response(response['response'], response['finish_reason'])
+        duplicates = self._duplicate_inputs(parsed[1]) if parsed is not None else []
         node = None
         reason = None
         if parsed is None:
@@ -179,6 +184,10 @@ class TraceAADV107(TraceAADV106):
                       else 'invalid_code_or_signature')
             self._invalid_streak += 1
             status = 'invalid_output'
+        elif duplicates:
+            self._invalid_streak += 1
+            status = 'duplicate_code'
+            reason = 'identical_to_parent_or_donor'
         else:
             self._invalid_streak = 0
             if pending['phase'] != 'evaluated':
@@ -209,6 +218,8 @@ class TraceAADV107(TraceAADV106):
             llm_seconds=response['seconds'], node_id=node.id if node else None,
             fitness=node.fitness if node else None,
         )
+        if duplicates:
+            record['duplicate_matches'] = duplicates
         if parsed is not None:
             record['code_hash'] = hashlib.sha256(parsed[1].encode()).hexdigest()
         if node is not None and pending['parent_id'] is not None:
@@ -232,7 +243,7 @@ class TraceAADV107(TraceAADV106):
         self.pending_path.unlink(missing_ok=True)
         self.pending = None
         if self._invalid_streak >= 50:
-            raise RuntimeError('50 consecutive generations produced no valid output')
+            raise RuntimeError('50 consecutive generations produced no evaluable output')
 
     def _save_state(self) -> None:
         atomic_json(self.state_path, {

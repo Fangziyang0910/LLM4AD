@@ -1,4 +1,4 @@
-"""Independent constructors; all arms share the production group scheduler."""
+"""Independent constructors; all arms share the production individual scheduler and input deduplication."""
 
 from pathlib import Path
 from dataclasses import replace
@@ -65,8 +65,8 @@ def build_representation_pair(runner, *, parent_id, operator, donor_id=None):
         snapshot.add_raw(replace(node))
     parent = snapshot.nodes[parent_id]
     donor = snapshot.nodes[donor_id] if donor_id is not None else None
-    if donor is not None and donor.code == parent.code:
-        raise ValueError('Fuse donor must have distinct archived code')
+    if donor is not None and donor.id == parent.id:
+        raise ValueError('Fuse donor must be a different node')
     builders = {
         name: cls(runner.llm, runner.task_contract, lookup=snapshot.nodes.get,
                   max_tokens=runner.builder.max_tokens,

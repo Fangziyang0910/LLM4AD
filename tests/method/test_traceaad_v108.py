@@ -1,4 +1,5 @@
 import json
+import math
 import random
 import shutil
 import subprocess
@@ -29,6 +30,48 @@ def add(tree, value, parent=None, code=None, operator='Refine', donor=None):
 def builder(tree):
     return TrajectoryBuilder(FakeLLM(), 'TASK', lookup=tree.nodes.get,
                              max_tokens=10000, history_tokens=8192, max_events=8)
+
+
+def test_allocation_arms_concentration_counts_schedule_and_resume(tmp_path):
+    from llm4ad.method.traceaad_v10_3.traceaad import calibrate_beta
+    runners = {arm: method(tmp_path / arm, budget=1000, allocation_arm=arm) for arm in 'ABCD'}
+    for runner in runners.values():
+        for score in range(100):
+            add(runner.tree, score)
+        runner.parent_selection_counts = {99: 99}
+    a, b, c, d = [runners[arm] for arm in 'ABCD']
+    beta, _, _ = calibrate_beta(list(range(100)), 0.1, 2)
+    weights = [math.exp(beta * (n.fitness - 99)) / math.sqrt(1 + a.parent_selection_counts.get(n.id, 0))
+               for n in a.tree.all_nodes()]
+    pa, _ = a.node_distribution(a.tree.all_nodes(), 'Refine')
+    assert pa == pytest.approx([w / sum(weights) for w in weights])
+    pb, mb = b.node_distribution(b.tree.all_nodes(), 'Refine')
+    assert mb['quality_ess'] == pytest.approx(10)
+    b.parent_selection_counts = {n.id: 10000 - n.id for n in b.tree.all_nodes()}
+    assert b.node_distribution(b.tree.all_nodes(), 'Refine')[0] == pb
+    for used, target in [(0, 32), (500, 16), (1000, 8)]:
+        d.budget_used = used
+        pd, md = d.node_distribution(d.tree.all_nodes(), 'Refine')
+        assert md['quality_ess'] == pytest.approx(target)
+        assert md['ess_target'] == pytest.approx(target)
+        pivot, _ = d.node_distribution(d.tree.all_nodes(), 'Pivot')
+        assert pivot == pytest.approx([0.5*p + 0.005 for p in pd])
+    pc, mc = c.node_distribution(c.tree.all_nodes(), 'Refine')
+    assert mc['quality_ess'] == pytest.approx(8)
+    assert pc == pytest.approx(pd)
+    c._save_state()
+    with pytest.raises(ValueError, match='mechanism/source/backend'):
+        method(tmp_path / 'C', budget=1000, allocation_arm='B')._load_state()
+    restored = method(tmp_path / 'D', budget=1000, allocation_arm='D')
+    d._save_state()
+    restored._load_state()
+    assert restored.node_distribution(restored.tree.all_nodes(), 'Refine')[0] == pytest.approx(pd)
+    tied = method(tmp_path / 'tied', allocation_arm='C')
+    for _ in range(12):
+        add(tied.tree, 1)
+    _, mt = tied.node_distribution(tied.tree.all_nodes(), 'Refine')
+    assert mt['ess_target'] == 8 and mt['attainable_ess_target'] == 12
+    assert mt['quality_ess'] == pytest.approx(12)
 
 
 def test_real_contiguous_edges_views_and_donor_are_traceable():
@@ -133,40 +176,33 @@ def test_root_edge_limit_and_cached_tokenizer_calls():
     assert b.build(node, 'Pivot')[1] == meta and len(b._counts) == calls
 
 
-def test_duplicate_opportunity_conservation_first_quality_and_group_count(tmp_path):
+def test_individual_quality_counts_and_actual_best(tmp_path):
     m = method(tmp_path)
-    originals = [add(m.tree, 1, code=f'def score(x):\n    return x + {i}') for i in range(3)]
-    p, _ = m.group_distribution(m.eligible_groups(), 'Refine')
-    duplicate = add(m.tree, 1000, originals[1].id, code=originals[0].code)
-    groups = m.eligible_groups()
-    assert m.group_distribution(groups, 'Refine')[0] == pytest.approx(p)
-    assert groups[0][0] is originals[0] and groups[0][1] == [originals[0], duplicate]
-    m.parent_selection_counts = {originals[0].id: 3, duplicate.id: 5}
-    groups = m.eligible_groups()
-    refine, stats = m.group_distribution(groups, 'Refine')
+    nodes = [add(m.tree, 1, code=f'def score(x):\n    return x + {i}') for i in range(3)]
+    m.parent_selection_counts = {nodes[0].id: 8}
+    refine, stats = m.node_distribution(m.eligible_nodes(), 'Refine')
     assert refine == pytest.approx([1/7, 3/7, 3/7])
-    assert m.group_distribution(groups, 'Fuse')[0] == refine
-    assert m.group_distribution(groups, 'Pivot')[0] == pytest.approx([.5*p + .5/3 for p in refine])
-    assert stats['ess_target'] == 2 and stats['quality_ess'] == 3
-    assert stats['attainable_ess_target'] == 3
-    assert m.tree.best() is originals[0]
+    assert m.node_distribution(nodes, 'Fuse')[0] == refine
+    assert m.node_distribution(nodes, 'Pivot')[0] == pytest.approx([.5*p + .5/3 for p in refine])
+    assert stats['quality_ess'] == stats['attainable_ess_target'] == 3
+    duplicate = add(m.tree, 1000, nodes[1].id, code=nodes[0].code)
+    assert len(m.eligible_nodes()) == 4
+    assert m.tree.best() is duplicate
+    assert m.node_distribution(m.eligible_nodes(), 'Refine')[0][-1] > 1/4
 
 
-def test_scheduler_returns_whole_duplicate_record_and_its_own_lineage(tmp_path):
+def test_scheduler_selects_individual_and_its_own_lineage(tmp_path):
     m = method(tmp_path)
     first = add(m.tree, 1)
     other = add(m.tree, 2)
     duplicate = add(m.tree, 8, other.id, code=first.code, operator='Pivot')
-    # Deterministically select the first group, then its last real record.
     class SelectLast(random.Random):
         def choices(self, population, weights=None, **kwargs):
-            return ['Refine'] if 'Refine' in population else [0]
-        def choice(self, population):
-            return population[-1]
+            return ['Refine'] if 'Refine' in population else [population[-1]]
     m.rng = SelectLast(0)
     pending = m._schedule()
     assert pending['parent_id'] == duplicate.id and pending['parent_fitness'] == 8
-    assert pending['selection']['group_fitness'] == 1
+    assert pending['selection']['parent_route'] == 'operator_then_node'
     assert pending['evidence_relations'][0]['source_id'] == other.id
     assert pending['history_ids'] == [duplicate.id]
     assert m.parent_selection_counts == {duplicate.id: 1}
@@ -185,18 +221,18 @@ def test_operator_frequencies_and_single_fuse_fallback(tmp_path):
     assert m.parent_selection_counts == {0: 2000} and not m.llm.calls
 
 
-def test_donor_ranked_levels_uniform_implementations_and_capacity_limit(tmp_path, monkeypatch):
+def test_donor_ranked_levels_uniform_nodes_and_capacity_limit(tmp_path, monkeypatch):
     m = method(tmp_path)
     parent = add(m.tree, 0)
     low = [add(m.tree, 1, code=f'def score(x):\n    return x + {i}') for i in (1, 2)]
     high = add(m.tree, 2)
-    add(m.tree, 999, code=low[0].code)
-    seen = dict.fromkeys([n.code for n in [*low, high]], 0)
+    copy = add(m.tree, 1, code=low[0].code)
+    seen = dict.fromkeys([n.id for n in [*low, copy, high]], 0)
     for _ in range(2500):
         donor, attempts = m.select_donor(parent)
-        seen[donor.code] += 1
+        seen[donor.id] += 1
         assert len(attempts) == 1
-    assert [seen[n.code]/2500 for n in [*low, high]] == pytest.approx([1/6, 1/6, 2/3], abs=.04)
+    assert [seen[n.id]/2500 for n in [*low, copy, high]] == pytest.approx([1/9, 1/9, 1/9, 2/3], abs=.04)
     for value in range(3, 45):
         add(m.tree, value)
     probes = []
@@ -206,7 +242,7 @@ def test_donor_ranked_levels_uniform_implementations_and_capacity_limit(tmp_path
     monkeypatch.setattr(m.builder, 'fits', reject)
     donor, attempts = m.select_donor(parent)
     assert donor is None and len(attempts) == len(probes) == 32
-    assert len({m.tree.nodes[i].code for i in probes}) == 32
+    assert len(set(probes)) == 32
 
 
 def test_donor_capacity_has_priority_over_history():
@@ -221,41 +257,109 @@ def test_donor_capacity_has_priority_over_history():
     assert meta['history_ids'] == [] and meta['history_fallback_reason'] == 'context_budget'
 
 
-def test_failed_and_duplicate_evaluations_are_charged_and_ideas_preserved(tmp_path):
-    llm = FakeLLM(response(3), 'bad output', response('float("nan")'), response('1/0'), response(3))
+def test_failed_evaluations_charged_but_input_copies_rejected(tmp_path):
+    llm = FakeLLM(response(3), 'bad output', response('float("nan")'), response('1/0'), response(3), response(4))
     m = method(tmp_path, llm, budget=4)
     m.run()
     events = read_journal(m.events_path)
-    assert len(llm.calls) == 5 and m.budget_used == 4
-    assert [e['status'] for e in events] == ['ok', 'invalid_output', 'eval_failed', 'eval_failed', 'ok']
-    assert [e['budget_used'] for e in events] == [1, 1, 2, 3, 4]
-    assert sum(m.parent_selection_counts.values()) == 4
-    assert len(read_journal(m.evaluations_path)) == 4
-    assert len(m.tree.nodes) == 2 and m.tree.nodes[0].code == m.tree.nodes[1].code
-    assert m.tree.nodes[0].idea == m.tree.nodes[1].idea
+    assert len(llm.calls) == 6 and m.budget_used == 4
+    assert [e['status'] for e in events] == ['ok', 'invalid_output', 'eval_failed', 'eval_failed', 'duplicate_code', 'ok']
+    assert [e['budget_used'] for e in events] == [1, 1, 2, 3, 3, 4]
+    assert events[4]['evaluation_id'] is None and events[4]['node_id'] is None
+    assert events[4]['duplicate_matches'][0]['role'] == 'parent'
+    assert sum(m.parent_selection_counts.values()) == 5
+    assert len(read_journal(m.evaluations_path)) == 4 and len(m.tree.nodes) == 2
     assert m.tree.nodes[0].idea not in llm.calls[1][0]
-    state = json.loads(m.state_path.read_text())
-    assert state['version'] == 1080 and state['mechanism']['history_tokens'] == 8192
+    assert json.loads(m.state_path.read_text())['version'] == 1081
+    assert m.tree.best().fitness == 4
+    assert [e['best_so_far'] for e in events] == [3, 3, 3, 3, 3, 4]
 
 
-def test_final_best_uses_first_score_even_when_record_no_longer_fits(tmp_path, monkeypatch):
-    llm = FakeLLM(response(1), response(2), response(1))
-    m = method(tmp_path, llm, budget=3)
-    from llm4ad.base.evaluate import EvaluationOutcome
-    scores = iter([1, 2, 100])
-    monkeypatch.setattr(m.secure, 'evaluate_program_with_details', lambda code: EvaluationOutcome(next(scores)))
+@pytest.mark.parametrize('role', ['parent', 'donor'])
+@pytest.mark.parametrize('view', ['raw', 'prompt'])
+def test_dedup_matches_only_current_inputs_and_preserves_text_distinctions(tmp_path, role, view):
+    m = method(tmp_path)
+    parent = add(m.tree, 1, code='# Algorithm 72\ndef score(x):\n    return 1')
+    donor = add(m.tree, 2, code='# Algorithm 73\ndef score(x):\n    return 2')
+    historical = add(m.tree, 3)
+    m.pending = {'parent_id': parent.id, 'donor_id': donor.id}
+    node = parent if role == 'parent' else donor
+    code = node.code if view == 'raw' else m.builder.code_view(node)[0]
+    assert {'role': role, 'node_id': node.id, 'view': view} in m._duplicate_inputs(code.strip())
+    assert not m._duplicate_inputs(code + '\n# different comment')
+    assert not m._duplicate_inputs(historical.code)
+    m.pending = {'parent_id': None, 'donor_id': None}
+    assert not m._duplicate_inputs(parent.code)
+
+
+@pytest.mark.parametrize('crash_point', ['after_event', 'after_checkpoint'])
+def test_duplicate_recovery_does_not_regenerate_evaluate_or_recount(tmp_path, monkeypatch, crash_point):
+    m = method(tmp_path, FakeLLM(response(1), response(1)))
+    m._advance()
+    original = m._append_record if crash_point == 'after_event' else m._save_state
+    def crash(*args):
+        original(*args)
+        if crash_point == 'after_checkpoint' or args[0] == m.events_path:
+            raise RuntimeError('simulated crash')
+    monkeypatch.setattr(m, '_append_record' if crash_point == 'after_event' else '_save_state', crash)
+    with pytest.raises(RuntimeError, match='simulated crash'):
+        m._advance()
+    resumed = method(tmp_path, FakeLLM(response(2)))
+    resumed._load_state()
+    if resumed.pending is not None:
+        resumed._advance()
+    assert resumed.budget_used == 1 and resumed.completed_attempts == 2
+    assert resumed.parent_selection_counts == {0: 1}
+    assert len(read_journal(resumed.events_path)) == 2
+    assert len(read_journal(resumed.evaluations_path)) == 1
+    assert not resumed.llm.calls
+    resumed._advance()
+    assert resumed.budget_used == 2 and resumed.completed_attempts == 3
+
+
+@pytest.mark.parametrize('view', ['raw', 'prompt'])
+def test_fuse_donor_copy_rejected_before_evaluator(tmp_path, monkeypatch, view):
+    m = method(tmp_path)
+    parent = add(m.tree, 1)
+    donor = add(m.tree, 2, code='# Algorithm 72\ndef score(x):\n    return 2')
+    class FuseFirst(random.Random):
+        def choices(self, population, weights=None, **kwargs):
+            return ['Fuse'] if 'Fuse' in population else [population[0]]
+    m.rng = FuseFirst(0)
+    code = donor.code if view == 'raw' else m.builder.code_view(donor)[0]
+    m.llm = FakeLLM('Idea: Copy donor.\n```python\n' + code + '\n```')
+    def fail_if_evaluated(*args):
+        pytest.fail('duplicate must never reach evaluator')
+    monkeypatch.setattr(m, '_evaluate_pending', fail_if_evaluated)
+    m._advance()
+    event = read_journal(m.events_path)[0]
+    assert event['operator'] == 'Fuse' and event['donor_id'] == donor.id
+    assert event['status'] == 'duplicate_code'
+    assert all(match['role'] == 'donor' for match in event['duplicate_matches'])
+    assert m.budget_used == 0 and m.completed_attempts == 1 and len(m.tree.nodes) == 2
+    assert m.parent_selection_counts == {parent.id: 1}
+
+
+def test_fifty_input_copies_stop_without_spending_evaluation_budget(tmp_path):
+    m = method(tmp_path, FakeLLM(*[response(1)] * 51))
+    with pytest.raises(RuntimeError, match='50 consecutive'):
+        m.run()
+    assert m.budget_used == 1 and m.completed_attempts == 51
+    assert m.parent_selection_counts == {0: 50}
+    assert len(m.tree.nodes) == len(read_journal(m.evaluations_path)) == 1
+    assert json.loads(m.summary_path.read_text())['status'] == 'error'
+
+
+def test_old_v108_checkpoint_rejected_without_writing(tmp_path):
+    m = method(tmp_path, FakeLLM(response(1)), budget=1)
     m.run()
-    summary = json.loads(m.summary_path.read_text())
-    assert summary['best']['fitness'] == 2
-    assert summary['fitness_instability'][0]['first_fitness'] == 1
-    assert [e['best_so_far'] for e in read_journal(m.events_path)] == [1, 2, 2]
-    last = read_journal(m.events_path)[-1]
-    assert last['implementation_fitness'] == 1
-    assert last['fitness'] == 100
-    assert last['frontier_delta'] == -1 and last['frontier_improved'] is False
-    assert not any(key.startswith('implementation_frontier_') for key in last)
-    m.builder.max_tokens = 1
-    assert m.tree.best().fitness == 2
+    state = json.loads(m.state_path.read_text())
+    state['version'] = 1080
+    m.state_path.write_text(json.dumps(state))
+    before = m.summary_path.read_bytes()
+    with pytest.raises(ValueError, match='configuration'):
+        method(tmp_path, budget=1).run()
+    assert m.summary_path.read_bytes() == before
 
 
 @pytest.mark.parametrize('name', [
