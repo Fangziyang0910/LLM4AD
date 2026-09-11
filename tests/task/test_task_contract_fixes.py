@@ -253,7 +253,10 @@ def test_vrptw_only_offers_feasible_customers_to_heuristic():
         offered.append(feasible_nodes.copy())
         return int(feasible_nodes[0])
 
-    assert evaluation.evaluate(choose_first) is None
+    from llm4ad.base import InvalidEvaluationResult
+
+    with pytest.raises(InvalidEvaluationResult, match='no feasible customer'):
+        evaluation.evaluate(choose_first)
     assert offered
     assert all(2 not in nodes for nodes in offered)
 

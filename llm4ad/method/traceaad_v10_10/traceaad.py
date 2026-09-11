@@ -3,10 +3,13 @@
 import ast
 import json
 import math
+import platform
 import time
 import traceback
 from functools import lru_cache
 from pathlib import Path
+
+import numpy
 
 from llm4ad.method.traceaad_v10_3.traceaad import calibrate_beta
 from llm4ad.method.traceaad_v10_8.traceaad import TraceAADV108
@@ -47,6 +50,17 @@ class TraceAADV1010(TraceAADV108):
         notes = getattr(self.evaluation, 'design_notes', '').strip()
         if notes:
             self.task_contract += f'\n\n# Evaluator Semantics\n{notes}'
+        # The evaluator environment decides which APIs and how much time a
+        # candidate really has; record it and state it as a short fact.
+        self.mechanism['runtime'] = {
+            'python': platform.python_version(), 'numpy': numpy.__version__,
+        }
+        runtime = (f"Python {self.mechanism['runtime']['python']}, "
+                   f"NumPy {self.mechanism['runtime']['numpy']}.")
+        if self.evaluation.timeout_seconds is not None:
+            runtime += (' The complete evaluation of one candidate must finish '
+                        f'within {self.evaluation.timeout_seconds} seconds.')
+        self.task_contract += f'\n\n# Evaluation Runtime\n{runtime}'
         self._parse_interface = errors.expected_interface(
             self._template_func.name, self._template_func.args)
         self.builder = trajectory.TrajectoryBuilder(

@@ -128,20 +128,29 @@ def _display_view(response):
     return text
 
 
+def _candidate_location(traceback_text):
+    """Deepest frame of the candidate module in an evaluator traceback."""
+    frames = re.findall(r'File "<string>", line (\d+), in (\w+)', traceback_text or '')
+    return frames[-1] if frames else None
+
+
 def repair_prompt(task_contract, response, event):
-    # Keep the exception message; full traceback and paths remain in the journal.
+    # Keep the exception message and the failing candidate line; full
+    # traceback and paths remain in the journal.
     message = (event.get('error') or event['reason'] or 'Evaluation failed').strip()
     message = re.sub(r"(['\"])(?:/|[A-Za-z]:[\\/])[^'\"]+\1", '<path>', message)
     message = re.sub(r'(?<!\w)(?:/|[A-Za-z]:[\\/])[^\s,;:]+', '<path>', message)
     feedback = f"{event.get('error_type') or 'Error'}: {message[:ERROR_MESSAGE_MAX_CHARS]}"
     if event['reason'] == 'timeout':
-        feedback = ('Evaluation exceeded its total time limit. '
-                    'Reduce computation and ensure loops terminate while preserving the main idea.')
+        feedback = (f"TimeoutError: {message}. The limit covers the complete evaluation "
+                    'batch. Reduce the computation of each call and ensure loops terminate.')
+    else:
+        location = _candidate_location(event.get('traceback'))
+        if location:
+            feedback += f'\nFailing call: line {location[0]} in {location[1]}().'
     baseline = (f"\nParent fitness: {event['parent_fitness']} (higher is better).\n"
                 if event.get('parent_fitness') is not None else '')
     return (f'{task_contract}\n{baseline}\n# Failed output\n{_display_view(response)}\n\n'
             f"# Failure during {event['operator']}\n{feedback}\n\n"
-            '# Repair\nMake the smallest change addressing this failure. Preserve the proposed '
-            'algorithmic idea, unrelated computations and target signature. For a formatting '
-            'failure, preserve the code whenever possible. Return the Idea and full corrected '
-            f'program.\n\n{OUTPUT}')
+            "# Repair\nCorrect the reported failure while preserving the candidate's "
+            f'intended decision method.\n\n{OUTPUT}')

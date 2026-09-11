@@ -96,6 +96,22 @@ def test_mechanism_records_the_parse_policy(tmp_path):
     assert m.mechanism['generation'] == 'code_first_one_repair_v1'
 
 
+def test_contract_and_mechanism_state_the_real_runtime(tmp_path):
+    import numpy
+    import platform
+    m = method(tmp_path)
+    assert m.mechanism['runtime'] == {
+        'python': platform.python_version(), 'numpy': numpy.__version__}
+    assert '# Evaluation Runtime' in m.task_contract
+    assert 'must finish within' not in m.task_contract  # TinyEvaluation sets no timeout
+    from llm4ad.task.optimization.tsp_construct import TSPEvaluation
+    tsp = TraceAADV1010(evaluation=TSPEvaluation(n_instance=1, problem_size=5),
+                        llm=FakeLLM(), run_dir=tmp_path / 'tsp', budget=1, n_roots=1)
+    assert '# Evaluator Semantics' in tsp.task_contract
+    assert 'ordered by increasing distance' in tsp.task_contract
+    assert 'within 30 seconds' in tsp.task_contract
+
+
 def test_partial_output_at_token_limit_is_not_salvaged(tmp_path):
     m = method(tmp_path)
     assert m.parse_response(response(7).rsplit('```', 1)[0], 'length') is None
@@ -113,7 +129,8 @@ def test_runtime_failure_repairs_once_and_charges_every_evaluation(tmp_path):
     assert events[1]['traceback'] and receipts[1]['traceback']
     assert events[2]['repair_of'] == 2 and events[2]['parent_id'] == events[1]['parent_id']
     assert m.parent_selection_counts == {0: 1}
-    assert 'missing_name' in llm.calls[2][0] and 'smallest change' in llm.calls[2][0]
+    assert 'missing_name' in llm.calls[2][0] and 'intended decision method' in llm.calls[2][0]
+    assert 'Failing call: line' in llm.calls[2][0]
     calls = read_journal(m.llm_calls_path)
     assert [c['stage'] for c in calls] == ['generation', 'generation', 'repair']
     assert sum(c['usage']['completion_tokens'] for c in calls) == 60
@@ -305,7 +322,11 @@ def test_evaluation_failure_types_keep_diagnostics_and_repair_cap(tmp_path, monk
     assert [e.get('repair_of') for e in events] == [None, None, 2, None]
     assert [e['reason'] for e in events[1:]] == [kind] * 3
     assert len(read_journal(m.evaluations_path)) == 4
-    assert 'total time limit' in m.llm.calls[2][0] if kind == 'timeout' else events[1]['error']
+    if kind == 'timeout':
+        assert 'evaluation exceeded 20s' in m.llm.calls[2][0]
+        assert 'complete evaluation batch' in m.llm.calls[2][0]
+    else:
+        assert events[1]['error']
 
 
 def test_transport_failure_during_repair_resumes_the_same_request(tmp_path):

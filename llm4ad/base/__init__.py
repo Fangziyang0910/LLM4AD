@@ -7,6 +7,7 @@ from .code import (
 from .evaluate import (
     Evaluation,
     EvaluationOutcome,
+    InvalidEvaluationResult,
     SecureEvaluator,
     set_kill_with_parent,
 )

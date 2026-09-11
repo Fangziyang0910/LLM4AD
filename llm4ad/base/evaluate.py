@@ -46,6 +46,15 @@ class EvaluationOutcome:
     traceback: str | None = None
 
 
+class InvalidEvaluationResult(Exception):
+    """Evaluator-detected reason why a candidate construction yields no result.
+
+    Task evaluations raise this instead of returning None when they can name
+    the exact violated condition; SecureEvaluator maps it to an
+    ``invalid_result`` outcome that carries the reason.
+    """
+
+
 class Evaluation(ABC):
     def __init__(
             self,
@@ -389,6 +398,13 @@ class SecureEvaluator:
         try:
             res = self._evaluator.evaluate_program(program_str, program_callable, **kwargs)
             result_queue.put(self._outcome(res))
+        except InvalidEvaluationResult as exc:
+            result_queue.put(EvaluationOutcome(
+                result=None,
+                failure_kind='invalid_result',
+                error_type='InvalidEvaluationResult',
+                error=str(exc),
+            ))
         except Exception as exc:
             if self._debug_mode:
                 print("DEBUG: Exception occurred in evaluate_program:")
@@ -409,6 +425,13 @@ class SecureEvaluator:
         try:
             res = self._evaluator.evaluate_program(program_str, program_callable, **kwargs)
             return self._outcome(res)
+        except InvalidEvaluationResult as exc:
+            return EvaluationOutcome(
+                result=None,
+                failure_kind='invalid_result',
+                error_type='InvalidEvaluationResult',
+                error=str(exc),
+            )
         except Exception as exc:
             if self._debug_mode:
                 print("DEBUG: Exception occurred in evaluate_program:")

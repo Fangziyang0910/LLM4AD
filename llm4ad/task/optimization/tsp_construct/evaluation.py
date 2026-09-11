@@ -72,6 +72,15 @@ class TSPEvaluation(Evaluation):
         self.seed = seed
         getData = GetData(self.n_instance, self.problem_size, self.seed)
         self._datasets = getData.generate_instances()
+        self.design_notes = (
+            'The heuristic is called once per tour-construction step on each instance; '
+            'the final remaining node is appended automatically without calling it. '
+            '`unvisited_nodes` lists the IDs of nodes not yet visited, ordered by '
+            'increasing distance from the current node, and the returned node must be '
+            'one of them; `distance_matrix` is the full-instance matrix and the returned '
+            'value is a full-graph node ID. Re-selecting an already visited node aborts '
+            'the evaluation.'
+        )
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
         return self.evaluate(callable_func)

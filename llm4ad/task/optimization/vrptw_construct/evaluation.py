@@ -36,7 +36,7 @@ from __future__ import annotations
 from typing import Any
 import copy
 import numpy as np
-from llm4ad.base import Evaluation
+from llm4ad.base import Evaluation, InvalidEvaluationResult
 from llm4ad.task.optimization.vrptw_construct.get_instance import GetData
 from llm4ad.task.optimization.vrptw_construct.template import template_program, task_description
 
@@ -118,7 +118,8 @@ class VRPTWEvaluation(Evaluation):
             while unvisited_nodes:
                 if len(feasible_unvisited_nodes) == 0:
                     if current_node == 0:
-                        return None
+                        raise InvalidEvaluationResult(
+                            'no feasible customer remains while the vehicle is at the depot')
                     route.append(0)
                     current_load = 0
                     current_time = 0
@@ -136,14 +137,17 @@ class VRPTWEvaluation(Evaluation):
                                       copy.deepcopy(time_windows))
                 if next_node == 0:
                     if current_node == 0:
-                        return None
+                        raise InvalidEvaluationResult(
+                            'the heuristic returned the depot while already at the depot')
                     route.append(next_node)
                     current_load = 0
                     current_time = 0
                     current_node = 0
                 else:
                     if next_node not in feasible_unvisited_nodes:
-                        return None
+                        raise InvalidEvaluationResult(
+                            f'the heuristic returned node {next_node} which is outside '
+                            'the feasible candidate set')
                     travel_time = distance_matrix[current_node, next_node]
                     current_time += (travel_time)
                     current_time = max(current_time, time_windows[next_node][0])
@@ -167,7 +171,8 @@ class VRPTWEvaluation(Evaluation):
             # print(set(route))
 
             if len(set(route)) != self.problem_size + 1:
-                return None
+                raise InvalidEvaluationResult(
+                    'the completed route does not cover every customer')
 
             LLM_dis = self.tour_cost(distance_matrix, route, time_service, time_windows)
             dis[n_ins] = LLM_dis
