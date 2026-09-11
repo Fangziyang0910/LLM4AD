@@ -19,10 +19,11 @@ from llm4ad.method.traceaad_v10_5.traceaad import atomic_json
 RESULTS_ROOT = Path(__file__).resolve().parent / 'results'
 
 
-def build_plan(batch, prefix):
+def build_plan(batch, prefix, thinking=False):
     return [dict(task=task, repeat=repeat, seed=repeat-1, backend=None,
                  run_name=f'{batch}_{TASK_SHORT[task]}_v1010_rep{repeat}',
-                 session=f'{prefix}_{TASK_SHORT[task]}_r{repeat}', attempts=0, status='queued')
+                 session=f'{prefix}_{TASK_SHORT[task]}_r{repeat}', attempts=0, status='queued',
+                 **({'thinking': True} if thinking else {}))
             for repeat in range(1, 4) for task in TASKS]
 
 
@@ -30,7 +31,8 @@ def launch_item(row):
     return LaunchItem(task=row['task'], repeat=row['repeat'], seed=row['seed'],
                       backend=row['backend'], session=row['session'], run_name=row['run_name'],
                       run_dir=RESULTS_ROOT / row['task'] / row['run_name'],
-                      module='experiments.traceaad_v10_10.run')
+                      module='experiments.traceaad_v10_10.run',
+                      extra_args=('--thinking',) if row.get('thinking') else ())
 
 
 def refresh(plan, max_attempts):
@@ -67,6 +69,8 @@ def main():
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--interval', type=int, default=30)
     parser.add_argument('--max-attempts', type=int, default=3)
+    parser.add_argument('--thinking', action='store_true',
+                        help='stamp every run of this batch with model thinking mode')
     args = parser.parse_args()
     if args.interval < 1 or args.max_attempts < 1:
         parser.error('interval and max-attempts must be positive')
@@ -86,7 +90,8 @@ def main():
         else:
             payload = dict(method='v1010', batch=args.batch, session_prefix=args.session_prefix,
                            source_identity=identity, created_at=datetime.now().astimezone().isoformat(),
-                           plan=build_plan(args.batch, args.session_prefix))
+                           thinking=args.thinking,
+                           plan=build_plan(args.batch, args.session_prefix, args.thinking))
             if any(item_is_running(launch_item(r)) or launch_item(r).run_dir.exists()
                    for r in payload['plan']):
                 raise ValueError('existing session or run directory without matching batch manifest')

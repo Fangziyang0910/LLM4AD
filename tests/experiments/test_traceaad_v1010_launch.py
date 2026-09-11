@@ -35,6 +35,38 @@ def test_refresh_blocks_uncertain_evaluations_and_limits_resume(monkeypatch):
     assert [r['status'] for r in plan] == ['finished', 'blocked', 'running', 'stopped']
 
 
+def test_thinking_flag_stamps_every_run_command():
+    plan = launch.build_plan('test', 'v1010t', thinking=True)
+    assert all(row.get('thinking') is True for row in plan)
+    for row in plan:
+        row['backend'] = 'local'
+        argv = list(launch.launch_item(row).command())[3:]
+        args = build_parser().parse_args(argv)
+        assert args.thinking is True and args.task == row['task']
+    plain = launch.build_plan('other', 'v1010')
+    assert not any(row.get('thinking') for row in plain)
+    assert '--thinking' not in launch.launch_item({**plain[0], 'backend': 'local'}).command()
+
+
+def test_llm_pipeline_carries_the_thinking_flag(tmp_path):
+    from experiments.infra.base import build_llm_client, llm_payload
+    payload = llm_payload(base_url='http://127.0.0.1:8001/v1', model='Qwen3.8-27B',
+                          no_proxy='127.0.0.1', max_tokens=64, enable_thinking=True)
+    assert payload['enable_thinking'] is True
+    assert llm_payload(base_url='http://127.0.0.1:8001/v1', model='m', no_proxy='n',
+                       max_tokens=64)['enable_thinking'] is False
+    client = build_llm_client(base_url='http://127.0.0.1:8001/v1', model='Qwen3.8-27B',
+                              no_proxy='127.0.0.1', max_tokens=64, enable_thinking=True)
+    try:
+        assert client.enable_thinking is True
+        extra = client._merged_extra_body(None)
+        assert extra['enable_thinking'] is True
+        assert extra['chat_template_kwargs']['enable_thinking'] is True
+        assert extra['thinking'] == {'type': 'enabled'}
+    finally:
+        client.close()
+
+
 def test_live_launcher_requires_frozen_source():
     with pytest.raises(ValueError, match='freeze the reviewed source'):
         launch.verify_runtime()

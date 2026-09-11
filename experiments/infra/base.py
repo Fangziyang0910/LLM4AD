@@ -168,6 +168,7 @@ def build_llm_client(
     temperature: float = SAMPLING_TEMPERATURE,
     top_p: float | None = SAMPLING_TOP_P,
     top_k: int | None = SAMPLING_TOP_K,
+    enable_thinking: bool = False,
 ) -> OpenAIAPI:
     set_no_proxy(no_proxy)
     extra_body = None if top_k is None else {"top_k": top_k}
@@ -180,7 +181,7 @@ def build_llm_client(
         temperature=temperature,
         top_p=top_p,
         extra_body=extra_body,
-        enable_thinking=False,
+        enable_thinking=enable_thinking,
     )
 
 
@@ -225,6 +226,7 @@ def llm_payload(
     temperature: float = SAMPLING_TEMPERATURE,
     top_p: float | None = SAMPLING_TOP_P,
     top_k: int | None = SAMPLING_TOP_K,
+    enable_thinking: bool = False,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "base_url": base_url,
@@ -232,7 +234,7 @@ def llm_payload(
         "timeout": LLM_TIMEOUT_SECONDS,
         "max_tokens": max_tokens,
         "temperature": temperature,
-        "enable_thinking": False,
+        "enable_thinking": enable_thinking,
         "no_proxy": no_proxy,
         "api_key_configured": resolve_llm_api_key(base_url=base_url) != "EMPTY",
     }

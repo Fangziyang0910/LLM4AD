@@ -49,6 +49,8 @@ def add_common_run_args(
     parser.add_argument("--run-name")
     parser.add_argument("--budget", type=int, default=default_budget)
     parser.add_argument("--eval-workers", type=int)
+    parser.add_argument("--thinking", action="store_true",
+                        help="enable model thinking mode for generation requests")
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,6 +134,7 @@ def setup_experiment_run(
                     model=profile.model,
                     no_proxy=profile.no_proxy,
                     max_tokens=args.output_tokens,
+                    enable_thinking=getattr(args, "thinking", False),
                 ),
                 "task_eval": task_config,
                 "method_params": params,
@@ -146,6 +149,7 @@ def setup_experiment_run(
         model=profile.model,
         no_proxy=profile.no_proxy,
         max_tokens=args.output_tokens,
+        enable_thinking=getattr(args, "thinking", False),
     )
 
     return RunContext(
