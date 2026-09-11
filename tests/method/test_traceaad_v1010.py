@@ -183,14 +183,46 @@ def test_inherited_execution_contract(tmp_path, monkeypatch, name):
     getattr(contract, name)(*((tmp_path,) if 'transport' in name else (tmp_path, monkeypatch)))
 
 
-@pytest.mark.parametrize('name', [
-    'test_initialization_observes_prior_roots_without_bootstrap',
-    'test_initial_copy_rejection_does_not_reject_equal_score_new_code',
-])
-def test_copied_v109_search_semantics(tmp_path, monkeypatch, name):
-    import test_traceaad_v109 as contract
-    monkeypatch.setattr(contract, 'method', method)
-    getattr(contract, name)(tmp_path)
+def test_first_root_prompt_has_no_previous_root_section(tmp_path):
+    m = method(tmp_path, n_roots=2)
+    pending = m._schedule()
+    assert pending['operator'] == 'Init' and pending['parent_id'] is None
+    assert 'Previous Initial Algorithms' not in pending['prompt']
+    assert 'context_node_ids' not in pending
+
+
+def test_later_roots_see_previous_root_code_and_fitness_in_order(tmp_path):
+    m = method(tmp_path, FakeLLM(response(1), response(2)), n_roots=3)
+    m._advance()
+    pending = m._schedule()
+    assert pending['operator'] == 'Init'
+    assert 'Previous Initial Algorithms' in pending['prompt']
+    assert m.tree.nodes[0].code in pending['prompt']
+    assert 'Fitness: 1' in pending['prompt']
+    assert 'study their decision rules' in pending['prompt']
+    m.pending = pending
+    m._persist_pending()
+    m._advance()
+    text = m._schedule()['prompt']
+    assert [text.index(m.tree.nodes[i].code) for i in (0, 1)] == sorted(
+        text.index(m.tree.nodes[i].code) for i in (0, 1))
+
+
+def test_initialization_reaches_target_roots_then_enters_search(tmp_path):
+    m = method(tmp_path, FakeLLM(response(1), response(2)), budget=2, n_roots=2)
+    m.run()
+    assert len(m.tree.roots) == 2 and m.budget_used == 2
+    assert all(n.parent_id is None for n in m.tree.all_nodes())
+    assert m._schedule()['operator'] != 'Init'
+
+
+def test_initial_ast_copy_is_evaluated_and_archived_as_a_root(tmp_path):
+    m = method(tmp_path, FakeLLM(response(1), response(1)), budget=2, n_roots=2)
+    m._advance()
+    m._advance()
+    events = read_journal(m.events_path)
+    assert [e['status'] for e in events] == ['ok', 'ok']
+    assert len(m.tree.roots) == 2 and m.budget_used == 2
 
 
 @pytest.mark.parametrize('kind', ['timeout', 'invalid_result', 'nonfinite_fitness'])
@@ -302,11 +334,11 @@ def test_context_is_assembled_once_without_independent_history_quota(tmp_path):
     m = method(tmp_path, n_roots=8)
     roots = [add(m.tree, i) for i in range(3)]
     text, meta = m.builder.build(None, 'Init')
-    assert meta['initial_reference_ids'] == [n.id for n in roots]
+    assert meta == {}
     assert [text.index(n.code) for n in roots] == sorted(text.index(n.code) for n in roots)
     host = add(m.tree, 4, roots[0].id)
     _, meta = m.builder.build(host, 'Fuse', roots[1])
-    assert meta['history_edge_count'] == 1 and not meta['context_omissions']
+    assert meta['history_edge_count'] == 1
     assert 'history_tokens' not in meta
     m.builder.max_tokens = 1
     assert m.select_donor(host)[0] is not None

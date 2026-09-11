@@ -7,15 +7,11 @@ from .errors import OUTPUT
 GENERATION = 'idea_code_tolerant_one_repair_v1'
 
 CONTEXT_POLICY = 'operator_context_single_capacity_check_v3'
-INITIALIZATION_POLICY = 'complete_prior_roots_chronological_v2'
+INITIALIZATION_POLICY = 'sequential_informed_v1'
 INSTRUCTIONS = {
     'Init': 'Design a competitive coherent decision method with meaningful task-dependent computations. '
-            'When previous initial algorithms are shown, inspect their actual decision rules and propose '
-            'another promising decision hypothesis. Make the difference affect actual choices or search '
-            'behavior, rather than names, unused terms or score transformations that preserve decisions. '
-            'You may reuse and reorganize useful components. References are comparison evidence, not a '
-            'host that must be refined or a blacklist of computations. Do not sacrifice competitiveness '
-            'merely to look different. Without references, design an independent initial algorithm.',
+            'When previous initial algorithms are shown, study their decision rules and evaluated '
+            'performance, then design another competitive candidate algorithm.',
     'Refine': 'Continue improving the current algorithm within its existing design. '
               'Make one focused modification based on the current code and its formation history.',
     'Tune': 'Identify the main algorithm parameters and improve their settings while preserving '
@@ -99,28 +95,19 @@ class TrajectoryBuilder(BaseBuilder):
         return edges
 
     def build_initial(self):
+        # Sequential informed initialization: the first root sees only the task;
+        # each later root sees every previously evaluated root, code and fitness.
         roots = sorted((n for n in self.all_nodes() if n.parent_id is None), key=lambda n: n.id)
-        def render(nodes):
-            parts = [self.task_contract]
-            if nodes:
-                parts.append('# Previous Initial Algorithms\n'
-                             'These are complete previously evaluated programs. Their scores describe '
-                             'whole-program performance, not the value of every component.')
-                parts.extend(self.program(n, 'Previous initial algorithm') for n in nodes)
-            parts.extend(['# Design Task\n' + INSTRUCTIONS['Init'], '# Output\n' + OUTPUT])
-            return '\n\n\n'.join(parts)
-        text = render(roots)
+        parts = [self.task_contract]
+        if roots:
+            parts.append('# Previous Initial Algorithms\n'
+                         'Complete previously evaluated programs, in generation order. '
+                         'Fitness: higher is better.')
+            parts.extend(self.program(n, 'Previous initial algorithm') for n in roots)
+        parts.extend(['# Design Task\n' + INSTRUCTIONS['Init'], '# Output\n' + OUTPUT])
+        text = '\n\n\n'.join(parts)
         self.check_capacity(text)
-        return text, {
-            'initialization_policy': INITIALIZATION_POLICY,
-            'initial_root_ids': [n.id for n in roots],
-            'initial_reference_ids': [n.id for n in roots],
-            'history_ids': [], 'history_edge_count': 0,
-            'evidence_relations': [], 'context_omissions': [],
-            'context_node_ids': [n.id for n in roots],
-            'context_code_views': [self.view_record(n) for n in roots],
-            'context_best_fitness': max((n.fitness for n in roots), default=None),
-        }
+        return text, {}
 
     def build(self, parent, operator, donor=None):
         if operator == 'Init':
@@ -141,7 +128,7 @@ class TrajectoryBuilder(BaseBuilder):
         return text, {
             'history_ids': [r['target_id'] for r in relations],
             'history_edge_count': len(relations),
-            'evidence_relations': relations, 'context_omissions': [],
+            'evidence_relations': relations,
             'context_node_ids': list(shown),
             'context_code_views': [self.view_record(n) for n in shown.values()],
             'context_best_fitness': max((n.fitness for n in shown.values()), default=None),

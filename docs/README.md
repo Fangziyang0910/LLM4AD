@@ -1,6 +1,6 @@
 # 科研文档导航
 
-- 当前开发：[V10.10 机制设计](methods/TraceAAD-V10.10-机制设计.md)，基于 V10.9 移除新结构试用与直接子代试错上下文，加入一次有界错误修复，尚未启动正式搜索；[V10.10 运行入口](../experiments/traceaad_v10_10/README.md)。已有实验：[V10.9 运行与排队](../experiments/traceaad_v10_9/README.md)。
+- 当前开发：[V10.10 机制设计](methods/TraceAAD-V10.10-机制设计.md)，基于 V10.9 移除新结构试用与直接子代试错上下文，加入一次有界错误修复；2026-09-11 初始化收缩为 sequential informed initialization；[V10.10 运行入口](../experiments/traceaad_v10_10/README.md)。已有实验：[V10.9 运行与排队](../experiments/traceaad_v10_9/README.md)。
 
 围绕研究问题按需阅读。方法版本、实验状态与历史判断分别在对应材料中维护，版本较新不代表效果更好。
 

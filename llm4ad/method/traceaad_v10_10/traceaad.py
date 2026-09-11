@@ -18,7 +18,7 @@ OPERATOR_PROBABILITIES = {'Refine': 0.25, 'Tune': 0.25, 'Pivot': 0.25, 'Fuse': 0
 REPAIRABLE_FAILURES = {'exec_error', 'runtime_error', 'timeout',
                        'invalid_result', 'nonfinite_fitness'}
 SELECTION_POLICY = 'ess8_quality_only_v1'
-DEDUP_POLICY = 'input_and_initial_root_ast_preserve_docstrings_v2'
+DEDUP_POLICY = 'parent_donor_ast_preserve_docstrings_v1'
 ERROR_HANDLING = 'candidate_error_one_repair_v2'
 
 
@@ -117,11 +117,7 @@ class TraceAADV1010(TraceAADV108):
                 'best_before': self.tree.best().fitness if self.tree.nodes else None,
                 'prompt': text, 'prompt_tokens': tokens, 'prompt_hash': digest(text),
                 'template_hash': self.TEMPLATE_HASH, 'context_policy': 'failed_output_and_error_v1',
-                'context_node_ids': [],
-                'context_code_views': [],
                 'context_best_fitness': previous['parent_fitness'],
-                'history_ids': [], 'history_edge_count': 0,
-                'evidence_relations': [], 'context_omissions': [], 'donor_attempts': [],
                 'rng_state': list(self.rng.getstate()), 'llm_attempts': 0,
             }
         return super()._schedule()
@@ -179,9 +175,7 @@ class TraceAADV1010(TraceAADV108):
         return donor, [{'node_id': donor.id, 'fitness': donor.fitness}]
 
     def _duplicate_inputs(self, code):
-        if self.pending['operator'] == 'Init':
-            return [{'role': 'existing_root', 'node_id': n.id, 'view': 'ast'}
-                    for n in self.tree.all_nodes() if n.parent_id is None and code_key(code) == code_key(n.code)]
+        # Search-stage input-copy filter; initialization accepts any valid program.
         return [{'role': role, 'node_id': self.pending[role + '_id'], 'view': 'ast'}
                 for role in ('parent', 'donor')
                 if self.pending[role + '_id'] is not None and
@@ -194,8 +188,6 @@ class TraceAADV1010(TraceAADV108):
                 record.update(error_type='ParseError', error=parse_error)
             elif record['status'] == 'eval_failed':
                 record.update({k: self.pending['outcome'].get(k) for k in ('error_type', 'error', 'traceback')})
-        if path == self.events_path and record.get('operator') == 'Init' and record.get('status') == 'duplicate_code':
-            record['reason'] = 'identical_to_existing_root'
         super()._append_record(path, record)
         if path == self.events_path:
             self._last_event = record
