@@ -200,16 +200,16 @@ class TraceAADV1010(TraceAADV108):
         return probabilities, stats
 
     def select_donor(self, parent):
+        # Quality-biased sampling with uniform archive coverage.
+        parent_key = code_key(parent.code)
         nodes = [n for n in self.tree.all_nodes()
-                 if n.id != parent.id and code_key(n.code) != code_key(parent.code)]
+                 if n.id != parent.id and code_key(n.code) != parent_key]
         if not nodes:
             return None, []
-        # Include weak whole programs. Relevance is assessed in the transfer task,
-        # not inferred from AST distance or the donor's total score.
-        quality, _ = self._quality_distribution(nodes)
-        weights = [(1 - DONOR_UNIFORM_MIX) * q + DONOR_UNIFORM_MIX / len(nodes)
-                   for q in quality]
-        donor = self.rng.choices(nodes, weights=weights)[0]
+        q, _ = self._quality_distribution(nodes)
+        n = len(nodes)
+        p = [(1 - DONOR_UNIFORM_MIX) * qi + DONOR_UNIFORM_MIX / n for qi in q]
+        donor = self.rng.choices(nodes, weights=p)[0]
         return donor, [{'node_id': donor.id, 'fitness': donor.fitness}]
 
     def _duplicate_inputs(self, code):
