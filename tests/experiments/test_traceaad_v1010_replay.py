@@ -1,5 +1,7 @@
 from collections import Counter
 
+import pytest
+
 from experiments.traceaad_v10_10.analysis import replay_parser
 
 
@@ -74,3 +76,49 @@ def test_replay_classifies_recovery_and_masks(tmp_path):
     assert run['repair_matrix'] == {'invalid_output -> ok': 1}
     assert not run['code_mismatches'] and not run['events_without_response']
     assert run['snapshots'][0]['complete_lines'] == len(events)
+    assert run['interface']['source'] == 'repo'  # no checkpoint in this fixture
+
+
+def test_replay_uses_the_frozen_checkpoint_interface(tmp_path):
+    import hashlib
+    import json
+    frozen_signature = ('def select_next_node(\n        current_node, destination_node, '
+                        'unvisited_nodes, distance_matrix, extra_param):\n    return 7')
+    frozen_program = (
+        'import numpy as np\n\n\n' + frozen_signature + '\n')
+    calls = [call(1, 'Idea: frozen signature.\n```python\n' + frozen_signature + '\n```')]
+    events = [{'candidate_id': 1, 'status': 'ok',
+               'code_hash': hashlib.sha256(
+                   'def select_next_node(\n        current_node, destination_node, '
+                   'unvisited_nodes, distance_matrix, extra_param):\n    return 7'.encode()
+               ).hexdigest()}]
+    write_run(tmp_path, 'tsp_construct', 'batch_rep1', calls, events)
+    (tmp_path / 'tsp_construct' / 'batch_rep1' / 'tree_state.json').write_text(json.dumps(
+        {'mechanism': {'evaluation_config': {'template_program': frozen_program}}}))
+    (tmp_path / 'batch_batch.json').write_text(json.dumps(
+        {'plan': [{'task': 'tsp_construct', 'run_name': 'batch_rep1'}]}))
+
+    report = replay_parser.replay_batch(tmp_path, 'batch')
+    run = report['runs'][0]
+    assert run['interface']['source'] == 'frozen_checkpoint'
+    assert run['interface']['template_sha256'] == hashlib.sha256(
+        frozen_program.encode()).hexdigest()
+    assert run['interface']['repo_template_differs'] is True
+    # The extra_param signature only parses against the frozen interface.
+    assert report['totals']['both_accepted'] == 1
+
+
+def test_interior_journal_corruption_fails_fast(tmp_path):
+    import json
+    run = tmp_path / 'tsp_construct' / 'batch_rep1'
+    write_run(tmp_path, 'tsp_construct', 'batch_rep1',
+              [call(1, ok_response())],
+              [{'candidate_id': 1, 'status': 'ok'}])
+    # A complete (newline-terminated) but unparseable line in the middle.
+    with (run / 'events.jsonl').open('a') as handle:
+        handle.write('{"candidate_id": 2, "status":\n')
+        handle.write(json.dumps({'candidate_id': 3, 'status': 'ok'}) + '\n')
+    (tmp_path / 'batch_batch.json').write_text(json.dumps(
+        {'plan': [{'task': 'tsp_construct', 'run_name': 'batch_rep1'}]}))
+    with pytest.raises(ValueError, match='unparseable'):
+        replay_parser.replay_batch(tmp_path, 'batch')
