@@ -1,7 +1,6 @@
 """V10.10: quality-based search with formation history and one error-conditioned repair."""
 
 import ast
-import json
 import math
 import platform
 import time
@@ -78,7 +77,6 @@ class TraceAADV1010(TraceAADV108):
             quality_ess_target=QUALITY_ESS_TARGET,
             pivot_uniform_probability=PIVOT_UNIFORM_MIX,
             donor_uniform_probability=DONOR_UNIFORM_MIX,
-            tune_policy='parameter_settings_v2',
             task_contract_hash=digest(self.task_contract),
         )
         for source in (Path(__file__), Path(trajectory.__file__)):

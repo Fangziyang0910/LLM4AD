@@ -255,8 +255,11 @@ def test_vrptw_only_offers_feasible_customers_to_heuristic():
 
     from llm4ad.base import InvalidEvaluationResult
 
+    # The legacy evaluate() surface reports invalid constructions as None;
+    # the raising surface used for repair feedback is evaluate_program().
     with pytest.raises(InvalidEvaluationResult, match='no feasible customer'):
-        evaluation.evaluate(choose_first)
+        evaluation.evaluate_program('', choose_first)
+    assert evaluation.evaluate(choose_first) is None
     assert offered
     assert all(2 not in nodes for nodes in offered)
 
