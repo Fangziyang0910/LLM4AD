@@ -1,6 +1,8 @@
 # TraceAAD V10.10
 
-从 V10.9（1091）复制后移除新结构试用和直接子代试错上下文，保留质量分配与形成历史，加入宽容解析、具体错误记录和最多一次修复。2026-09-11 修订：初始化收缩为 sequential informed initialization，删除 Init 阶段 AST 去重与提示中的防御性约束；正常搜索上下文改为统一短形成路径。设计见 [V10.10 机制设计](../../docs/methods/TraceAAD-V10.10-机制设计.md)。正式批次 `20260910_v1010_formal`（2026-09-10 启动）运行的是修订前机制；修订改变机制与检查点指纹，需另起新批次。
+从 V10.9（1091）复制后移除新结构试用和直接子代试错上下文，保留质量分配与形成历史，加入宽容解析、具体错误记录和最多一次修复。2026-09-11 修订：初始化收缩为 sequential informed initialization，删除 Init 阶段 AST 去重与提示中的防御性约束；正常搜索上下文改为统一短形成路径；解析协议改为代码优先——程序单独决定候选能否评价，说明按 tagged/prose/missing 三种来源记录且不再设标签、位置或字数门槛，VRPTW 非法构造携带具体条件、修复反馈附真实时限与候选代码定位，契约写明运行环境版本与整次评价时限（解析策略 `code_first_description_extracted_v1`）。设计见 [V10.10 机制设计](../../docs/methods/TraceAAD-V10.10-机制设计.md)。正式批次 `20260910_v1010_formal`（2026-09-10 启动）运行的是修订前机制；历次修订改变机制与检查点指纹，需另起新批次。
+
+解析修订的离线重放（零 LLM 调用）：`python experiments/traceaad_v10_10/analysis/replay_parser.py`，对 15 路全部已持久化响应重放新旧解析并输出分类、修复链对账与文件快照，报告写入本地 `results/analysis/`。2026-09-11 重放：旧 7,772 次解析失败中 7,676 次被新解析接受（代码通过语法/接口/编译校验），30 次暴露真实代码错误，66 次仍不可提取；新旧均接受的 14,641 次代码文本零差异，零回归。
 
 默认五任务 × 三重复，seed 0/1/2，每路 1000 次真实评价、8 个有效根、32K 总上下文、16K 输出上限。修复后实际调用评价器也计入这 1000 次，LLM 修复调用在 `llm_calls.jsonl` 中标记 `stage=repair`，保留 usage、耗时与 `repair_of`。解析失败与搜索阶段父代/donor 重复过滤不占评价次数；初始化不做重复过滤。
 
@@ -11,7 +13,7 @@
 先核验，再创建独立冻结副本：
 
 ```bash
-.venv/bin/python -m pytest -q tests/method/test_traceaad_v1010.py tests/method/test_traceaad_v109.py tests/experiments/test_traceaad_v1010_launch.py tests/experiments/test_traceaad_v1010_monitor.py
+.venv/bin/python -m pytest -q tests/method/test_traceaad_v1010.py tests/method/test_traceaad_v109.py tests/task/test_vrptw_failure_reasons.py tests/experiments/test_traceaad_v1010_launch.py tests/experiments/test_traceaad_v1010_monitor.py tests/experiments/test_traceaad_v1010_replay.py
 .venv/bin/python -m experiments.traceaad_v10_10.freeze --batch v1010_formal --session-prefix v1010
 ```
 
@@ -34,7 +36,7 @@
 
 监控地址为 `http://127.0.0.1:8765/?version=v10_10`。页面默认展示 V10.10，也可在顶部切换到 V10.9 等历史版本。
 
-遇错后，普通失败候选先按原规则落日志；解析错误和候选代码导致的导入、运行、超时或非法结果才触发下一候选的一次修复。修复保留同一父代、donor 和原操作标签，增加 `repair_of`，不再次消耗父节点的独立设计请求计数。修复失败或重复即结束本次修复链。反馈只含清除路径后最多 2000 字符的核心异常类型和消息，不附调用栈或父代整份代码；不按本地提示长度跳过修复。评价准备故障或框架异常记录后终止。没有剩余评价预算时不发修复请求，未知评价仍阻断。
+遇错后，普通失败候选先按原规则落日志；候选代码提取或校验失败，以及导入、运行、超时或非法结果才触发下一候选的一次修复——响应缺标签、说明为空或说明过长不触发修复。修复保留同一父代、donor 和原操作标签，增加 `repair_of`，不再次消耗父节点的独立设计请求计数。修复失败或重复即结束本次修复链。反馈只含清除路径后最多 2000 字符的核心异常类型和消息，runtime/exec 错误附候选代码最深栈帧行号与函数名，超时附真实时限数字；不附调用栈或父代整份代码；不按本地提示长度跳过修复。评价准备故障或框架异常记录后终止。没有剩余评价预算时不发修复请求，未知评价仍阻断。
 
 ## 2026-09-10 正式启动
 

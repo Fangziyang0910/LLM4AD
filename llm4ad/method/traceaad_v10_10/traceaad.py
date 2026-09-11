@@ -97,6 +97,7 @@ class TraceAADV1010(TraceAADV108):
         self.mechanism['inherited_unused']['history_tokens'] = self.mechanism.pop('history_tokens')
         events = read_journal(self.events_path)
         self._last_event = events[-1] if events else None
+        self._last_response = None  # (candidate_id, response) of the newest durable reply
 
     def _generate_pending(self):
         # Reserve only the output space still available for this complete input.
@@ -132,10 +133,14 @@ class TraceAADV1010(TraceAADV108):
                 not previous.get('repair_of')):
             # Completed failures are durable events. A repair gets its own candidate and
             # receipt, so the existing crash recovery and actual-call budget apply unchanged.
-            with self.llm_calls_path.open() as handle:
-                responses = (json.loads(line) for line in handle)
-                response = next(r['response'] for r in responses
-                                if r['candidate_id'] == previous['candidate_id'] and 'response' in r)
+            if self._last_response and self._last_response[0] == previous['candidate_id']:
+                response = self._last_response[1]
+            else:  # crash recovery: the cache is empty, the journal is the truth
+                with self.llm_calls_path.open() as handle:
+                    responses = (json.loads(line) for line in handle)
+                    response = next(r['response'] for r in responses
+                                    if r['candidate_id'] == previous['candidate_id']
+                                    and 'response' in r)
             text = errors.repair_prompt(self.task_contract, response, previous)
             tokens = self.builder.count(text, chat=True)
             return {
@@ -155,6 +160,8 @@ class TraceAADV1010(TraceAADV108):
         record['stage'] = 'repair' if self.pending and self.pending.get('repair_of') else 'generation'
         if self.pending and self.pending.get('repair_of'):
             record['repair_of'] = self.pending['repair_of']
+        if 'response' in record:
+            self._last_response = (record['candidate_id'], record['response'])
         super()._log_call(record)
 
     def _evaluate_pending(self, parsed):
