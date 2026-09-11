@@ -23,7 +23,7 @@ PIVOT_UNIFORM_MIX = 0.5
 DONOR_UNIFORM_MIX = 0.5
 SELECTION_POLICY = 'ess8_quality_pivot_uniform_v2'
 DEDUP_POLICY = 'parent_donor_ast_preserve_docstrings_v1'
-ERROR_HANDLING = 'candidate_error_one_repair_v2'
+ERROR_HANDLING = 'candidate_error_one_repair_v3'
 
 
 @lru_cache(maxsize=8192)
@@ -47,6 +47,8 @@ class TraceAADV1010(TraceAADV108):
         notes = getattr(self.evaluation, 'design_notes', '').strip()
         if notes:
             self.task_contract += f'\n\n# Evaluator Semantics\n{notes}'
+        self._parse_interface = errors.expected_interface(
+            self._template_func.name, self._template_func.args)
         self.builder = trajectory.TrajectoryBuilder(
             self.llm, self.task_contract,
             max_tokens=self.max_context_tokens - self.mechanism['context_margin'] - 1,
@@ -68,6 +70,7 @@ class TraceAADV1010(TraceAADV108):
         for source in (Path(__file__), Path(trajectory.__file__)):
             self.mechanism['source_hashes'][str(source.resolve())] = digest(source.read_text())
         self.mechanism.update(generation=trajectory.GENERATION,
+                              parse_policy=errors.PARSE_POLICY,
                               error_handling=ERROR_HANDLING, max_repairs=1)
         for source in (Path(errors.__file__),):
             self.mechanism['source_hashes'][str(source.resolve())] = digest(source.read_text())
@@ -95,8 +98,9 @@ class TraceAADV1010(TraceAADV108):
             self.output_tokens = configured
 
     def parse_response(self, response, finish_reason='unknown'):
-        parsed, mode, error = errors.parse_candidate(response, finish_reason, super().parse_response)
-        self._parse_diagnostics = (mode, error)
+        parsed, source, error = errors.parse_candidate(
+            response, finish_reason, self._parse_interface)
+        self._parse_diagnostics = (source, error)
         return parsed
 
     def _schedule(self):

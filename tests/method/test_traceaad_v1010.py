@@ -10,26 +10,90 @@ def method(path, llm=None, **kwargs):
                          **{'budget': 1000, 'n_roots': 1, **kwargs})
 
 
-@pytest.mark.parametrize('text', [
-    response(7).replace('Idea:', 'idea:').replace('```python', '```PY'),
-    'Here is the candidate.\n' + response(7) + '\nExplanation after the code.',
-    response(7).rsplit('```', 1)[0],
+@pytest.mark.parametrize('text, source', [
+    (response(7), 'tagged'),
+    (response(7).replace('Idea:', 'idea:').replace('```python', '```PY'), 'tagged'),
+    (response(7).replace('Idea:', '**Design Idea:**'), 'tagged'),
+    (response(7).replace('Idea: Return the requested constant.', '## Idea\nReturn the requested constant.'), 'tagged'),
+    ('Here is the candidate.\n' + response(7) + '\nExplanation after the code.', 'tagged'),
+    ('Intro sentence.\n' + response(7).replace('Idea: Return the requested constant.\n', '') +
+     '\nIdea: returned after the code.', 'tagged'),
+    (response(7).rsplit('```', 1)[0], 'tagged'),
+    ('Sure, here is the program.\n```python\ndef score(x):\n    return 7\n```\nIt picks constants.', 'prose'),
+    ('```python\ndef score(x):\n    return 7\n```', 'missing'),
 ])
-def test_format_recovery_evaluates_original_code_without_extra_call(tmp_path, text):
+def test_equivalent_formats_extract_the_same_program_without_extra_calls(tmp_path, text, source):
     m = method(tmp_path, FakeLLM(text), budget=1)
     m.run()
     assert m.tree.best().fitness == 7 and len(m.llm.calls) == 1
-    assert read_journal(m.events_path)[0]['parse_mode'] == 'recovered'
+    assert m.tree.nodes[0].code == 'def score(x):\n    return 7'
+    assert read_journal(m.events_path)[0]['parse_mode'] == source
 
 
-@pytest.mark.parametrize('text', [
-    response(7) + '\n```python\ndef score(x):\n return 8\n```',
-    response(7).replace('score(x)', 'score(y)'),
-    response(7).replace('return 7', 'return ('),
-    response(7).replace('Idea:', 'Itdea:'),
+@pytest.mark.parametrize('text, fragment', [
+    (response(7) + '\n```python\ndef score(x):\n    return 8\n```', 'unambiguous'),
+    (response(7).replace('score(x)', 'score(y)'), 'parameters'),
+    (response(7).replace('return 7', 'return ('), 'SyntaxError'),
+    ('No program in this output.', 'unambiguous'),
 ])
-def test_ambiguous_or_invalid_output_is_not_guessed(tmp_path, text):
-    assert method(tmp_path).parse_response(text) is None
+def test_ambiguous_or_invalid_code_is_not_guessed(tmp_path, text, fragment):
+    m = method(tmp_path)
+    assert m.parse_response(text) is None
+    assert fragment in m._parse_diagnostics[1]
+
+
+def test_missing_label_no_longer_masks_a_real_code_error(tmp_path):
+    m = method(tmp_path)
+    text = 'Intro without any label.\n```python\ndef score(x):\n    return (\n```'
+    assert m.parse_response(text) is None
+    assert 'SyntaxError' in m._parse_diagnostics[1]
+
+
+def test_description_length_never_gates_the_program(tmp_path):
+    m = method(tmp_path)
+    long_idea = ' '.join(['word'] * 600)
+    parsed = m.parse_response(f'Idea: {long_idea}\n```python\ndef score(x):\n    return 7\n```')
+    assert parsed is not None and parsed[0] == long_idea
+
+
+def test_parsing_preserves_the_program_as_written(tmp_path):
+    code = ('import numpy as np\n\n\n@np.vectorize\ndef helper(v):\n'
+            '    """Keep this docstring."""  # and this comment\n'
+            '    return v\n\n\ndef score(x):\n'
+            '    return "<think>keep me</think>"')
+    m = method(tmp_path)
+    parsed = m.parse_response(f'<think>reasoning</think>\nIdea: keep the literal.\n'
+                              f'```python\n{code}\n```')
+    assert parsed[1] == code and parsed[2] == code
+    assert m._parse_diagnostics[0] == 'tagged'
+
+
+def test_code_only_output_is_evaluated_and_archived_with_empty_idea(tmp_path):
+    m = method(tmp_path, FakeLLM('```python\ndef score(x):\n    return 7\n```', response(9)),
+               budget=2)
+    m.run()
+    assert m.tree.nodes[0].idea == '' and m.tree.nodes[0].fitness == 7
+    assert read_journal(m.events_path)[0]['parse_mode'] == 'missing'
+    assert read_journal(m.events_path)[0]['status'] == 'ok'
+    assert len(read_journal(m.evaluations_path)) == 2
+
+
+def test_history_step_without_idea_keeps_operator_and_fitness(tmp_path):
+    from test_traceaad_v108 import add
+    m = method(tmp_path)
+    root = add(m.tree, 1)
+    child = m.tree.add(code='def score(x):\n    return 2', idea='', fitness=2,
+                       evaluation_id=2, parent_id=root.id, operator='Tune')
+    text, _ = m.builder.build(child, 'Refine')
+    assert 'Step 1 | Tune | Fitness: 1 -> 2' in text
+    assert '\nIdea:' not in text
+
+
+def test_mechanism_records_the_parse_policy(tmp_path):
+    m = method(tmp_path)
+    assert m.mechanism['parse_policy'] == 'code_first_description_extracted_v1'
+    assert m.mechanism['error_handling'] == 'candidate_error_one_repair_v3'
+    assert m.mechanism['generation'] == 'code_first_one_repair_v1'
 
 
 def test_partial_output_at_token_limit_is_not_salvaged(tmp_path):

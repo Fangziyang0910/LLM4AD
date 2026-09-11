@@ -3,7 +3,7 @@
 from llm4ad.method.traceaad_v10_8.trajectory import TrajectoryBuilder as BaseBuilder, digest
 from .errors import OUTPUT
 
-GENERATION = 'idea_code_tolerant_one_repair_v1'
+GENERATION = 'code_first_one_repair_v1'
 
 CONTEXT_POLICY = 'unified_short_formation_path_v1'
 INITIALIZATION_POLICY = 'sequential_informed_v1'
@@ -43,10 +43,13 @@ class TrajectoryBuilder(BaseBuilder):
     def render_history(self, edges):
         blocks = []
         for step, (source, target) in enumerate(edges, start=1):
-            idea = ' '.join(target.idea.split())
-            blocks.append(f'Step {step} | {target.operator} | '
-                          f'Fitness: {source.fitness} -> {target.fitness}\n'
-                          f'Idea: {idea}')
+            lines = [f'Step {step} | {target.operator} | '
+                     f'Fitness: {source.fitness} -> {target.fitness}']
+            if target.idea:
+                # A step without a description keeps its operator and scores;
+                # no description is invented for it.
+                lines.append('Idea: ' + ' '.join(target.idea.split()))
+            blocks.append('\n'.join(lines))
         return '\n\n'.join(blocks)
 
     def program(self, node, title):
