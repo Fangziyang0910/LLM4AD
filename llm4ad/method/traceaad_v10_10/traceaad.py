@@ -136,11 +136,10 @@ class TraceAADV1010(TraceAADV108):
             if self._last_response and self._last_response[0] == previous['candidate_id']:
                 response = self._last_response[1]
             else:  # crash recovery: the cache is empty, the journal is the truth
-                with self.llm_calls_path.open() as handle:
-                    responses = (json.loads(line) for line in handle)
-                    response = next(r['response'] for r in responses
-                                    if r['candidate_id'] == previous['candidate_id']
-                                    and 'response' in r)
+                records = read_journal(self.llm_calls_path)
+                response = next(record['response'] for record in reversed(records)
+                                if record.get('candidate_id') == previous['candidate_id']
+                                and 'response' in record)
             text = errors.repair_prompt(self.task_contract, response, previous)
             tokens = self.builder.count(text, chat=True)
             return {
@@ -160,9 +159,10 @@ class TraceAADV1010(TraceAADV108):
         record['stage'] = 'repair' if self.pending and self.pending.get('repair_of') else 'generation'
         if self.pending and self.pending.get('repair_of'):
             record['repair_of'] = self.pending['repair_of']
+        super()._log_call(record)
+        # Durable only once the call has actually reached the journal.
         if 'response' in record:
             self._last_response = (record['candidate_id'], record['response'])
-        super()._log_call(record)
 
     def _evaluate_pending(self, parsed):
         p = self.pending
@@ -179,11 +179,19 @@ class TraceAADV1010(TraceAADV108):
                 result = self.secure.evaluate_program_with_details(parsed[2])
                 reason, error_type, error, trace = result.failure_kind, result.error_type, result.error, result.traceback
                 if result.result is not None:
-                    value = float(result.result)
-                    if math.isfinite(value):
-                        fitness = value
+                    try:
+                        value = float(result.result)
+                    except (TypeError, ValueError, OverflowError) as exc:
+                        reason = 'invalid_result'
+                        error_type = type(exc).__name__
+                        error = f'Evaluator returned a non-scalar fitness: {exc}'
                     else:
-                        reason, error = 'nonfinite_fitness', 'Evaluator returned a nonfinite fitness.'
+                        if math.isfinite(value):
+                            fitness = value
+                        else:
+                            reason = 'nonfinite_fitness'
+                            error_type = 'NonfiniteFitness'
+                            error = 'Evaluator returned a nonfinite fitness.'
             except Exception as exc:
                 reason, error_type, error, trace = 'evaluation_error', type(exc).__name__, str(exc), traceback.format_exc()
             outcome = dict(candidate_id=p['candidate_id'], evaluation_id=p['evaluation_id'],

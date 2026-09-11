@@ -17,7 +17,9 @@ ERROR_MESSAGE_MAX_CHARS = 2000
 
 FENCE_LINE_RE = re.compile(r'^[ \t]*```([^\r\n]*)\r?$', re.MULTILINE)
 IDEA_LABEL_RE = re.compile(
-    r'(?im)^[ \t]*(?:#{1,6}[ \t]*)?(?:\*\*)?[ \t]*(?:design[ \t]+)?idea\b(?:\*\*)?[ \t]*:?[ \t]*')
+    r'(?im)^[ \t]*(?:#{1,6}[ \t]*)?(?:\*\*)?[ \t]*(?:design[ \t]+)?idea\b'
+    r'(?:[ \t]*\*\*)?[ \t]*:?[ \t]*(?:\*\*)?[ \t]*')
+CANDIDATE_FRAME_RE = re.compile(r'File "<(?:string|candidate)>", line (\d+), in ([^\r\n]+)')
 
 
 def _signature(args):
@@ -130,7 +132,7 @@ def _display_view(response):
 
 def _candidate_location(traceback_text):
     """Deepest frame of the candidate module in an evaluator traceback."""
-    frames = re.findall(r'File "<string>", line (\d+), in (\w+)', traceback_text or '')
+    frames = CANDIDATE_FRAME_RE.findall(traceback_text or '')
     return frames[-1] if frames else None
 
 

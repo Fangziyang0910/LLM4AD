@@ -85,9 +85,18 @@ class VRPTWEvaluation(Evaluation):
         return cost
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
-        return self.evaluate(callable_func)
+        return self._evaluate_or_raise(callable_func)
 
     def evaluate(self, heuristic):
+        # Legacy direct-call surface: invalid constructions report as None,
+        # while SecureEvaluator's evaluate_program path receives the specific
+        # InvalidEvaluationResult for repair feedback.
+        try:
+            return self._evaluate_or_raise(heuristic)
+        except InvalidEvaluationResult:
+            return None
+
+    def _evaluate_or_raise(self, heuristic):
         dis = np.ones(self.n_instance)
         n_ins = 0
 

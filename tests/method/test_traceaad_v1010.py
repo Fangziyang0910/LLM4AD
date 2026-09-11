@@ -56,6 +56,34 @@ def test_description_length_never_gates_the_program(tmp_path):
     assert parsed is not None and parsed[0] == long_idea
 
 
+@pytest.mark.parametrize('label', [
+    'Idea:',
+    'idea:',
+    '## Idea',
+    '**Idea:**',
+    '**Idea**:',
+    '**Design Idea:**',
+])
+def test_idea_label_variants_do_not_leak_markdown(tmp_path, label):
+    m = method(tmp_path)
+    parsed = m.parse_response(
+        f'{label} A coherent description.\n'
+        '```python\n'
+        'def score(x):\n'
+        '    return 1\n'
+        '```'
+    )
+    assert parsed is not None
+    assert parsed[0] == 'A coherent description.'
+
+
+@pytest.mark.parametrize('frame', ['score', '<module>', '<listcomp>', '<lambda>'])
+def test_candidate_location_accepts_python_frame_names(frame):
+    from llm4ad.method.traceaad_v10_10.errors import _candidate_location
+    traceback_text = f'File "<string>", line 7, in {frame}'
+    assert _candidate_location(traceback_text) == ('7', frame)
+
+
 def test_parsing_preserves_the_program_as_written(tmp_path):
     code = ('import numpy as np\n\n\n@np.vectorize\ndef helper(v):\n'
             '    """Keep this docstring."""  # and this comment\n'
@@ -327,6 +355,49 @@ def test_evaluation_failure_types_keep_diagnostics_and_repair_cap(tmp_path, monk
         assert 'complete evaluation batch' in m.llm.calls[2][0]
     else:
         assert events[1]['error']
+
+
+@pytest.mark.parametrize('result, reason, error_type', [
+    (float('nan'), 'nonfinite_fitness', 'NonfiniteFitness'),
+    (float('inf'), 'nonfinite_fitness', 'NonfiniteFitness'),
+    ('high', 'invalid_result', 'ValueError'),
+])
+def test_nonscalar_and_nonfinite_results_get_specific_reasons(
+        tmp_path, monkeypatch, result, reason, error_type):
+    from llm4ad.base.evaluate import EvaluationOutcome
+    m = method(tmp_path, FakeLLM(response(1), response(2)), budget=2)
+    m._advance()
+    monkeypatch.setattr(m.secure, 'evaluate_program_with_details',
+                        lambda _: EvaluationOutcome(result=result))
+    m.run()
+    event = read_journal(m.events_path)[1]
+    assert event['reason'] == reason and event['error_type'] == error_type
+    assert event['status'] == 'eval_failed' and event['error']
+
+
+def test_vrptw_legacy_evaluate_returns_none_while_program_path_raises():
+    from llm4ad.base import InvalidEvaluationResult
+    from llm4ad.task.optimization.vrptw_construct import VRPTWEvaluation
+    evaluation = VRPTWEvaluation(timeout_seconds=None, problem_size=5, n_instance=1, seed=0)
+
+    def depot_loop(current_node, depot, unvisited_nodes, rest_capacity, current_time,
+                   demands, distance_matrix, time_windows):
+        return depot
+
+    assert evaluation.evaluate(depot_loop) is None
+    with pytest.raises(InvalidEvaluationResult):
+        evaluation.evaluate_program('', depot_loop)
+
+
+def test_last_response_updates_only_after_the_call_is_durable(tmp_path, monkeypatch):
+    from llm4ad.method.traceaad_v10_5.traceaad import TraceAADV105
+    def boom(self, record):  # v10_7 calls TraceAADV105._log_call(self, record) directly
+        raise OSError('journal unavailable')
+    monkeypatch.setattr(TraceAADV105, '_log_call', boom)
+    m = method(tmp_path)
+    with pytest.raises(OSError):
+        m._log_call({'candidate_id': 5, 'response': 'text'})
+    assert m._last_response is None
 
 
 def test_transport_failure_during_repair_resumes_the_same_request(tmp_path):
