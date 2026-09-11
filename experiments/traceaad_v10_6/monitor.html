@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TraceAAD V10.8 · 实验进程可视化</title>
+<title>TraceAAD · 实验进程可视化</title>
 <style>
 :root {
   --bg: #0b0f17;
@@ -710,11 +710,8 @@ table.feed-table td {
     <div class="brand-title">TraceAAD 训练监控与分析面板</div>
     <div class="version-picker-wrap">
       <select id="version-select" class="version-select" onchange="changeVersion(this.value)" title="切换监控实验版本">
-        <option value="v10_8a">V10.8 分配 A：当前规则</option>
-        <option value="v10_8b">V10.8 分配 B：质量优先</option>
-        <option value="v10_8c">V10.8 分配 C：持续集中</option>
-        <option value="v10_8d">V10.8 分配 D：逐渐集中</option>
-        <option value="v10_9" selected>TraceAAD V10.9（迁移与精炼）</option>
+        <option value="v10_10" selected>TraceAAD V10.10（有界错误修复）</option>
+        <option value="v10_9">TraceAAD V10.9（迁移与精炼）</option>
         <option value="v10_8">TraceAAD V10.8（形成轨迹）(当前运行)</option>
         <option value="v10_7r">TraceAAD V10.7R（任务证据正式）</option>
         <option value="v10_7">TraceAAD V10.7（冻结对照）</option>
@@ -919,7 +916,7 @@ let activeView = "overview";
 let refreshTimer = null;
 let countdown = 10;
 let isInitialRender = true;
-let currentVersion = "v10_9";
+let currentVersion = "v10_10";
 let availableVersions = [];
 
 async function loadVersions() {
@@ -940,7 +937,7 @@ async function loadVersions() {
     } else if (latestVer) {
       currentVersion = latestVer;
     } else {
-      currentVersion = availableVersions[0] ? availableVersions[0].id : "v10_9";
+      currentVersion = availableVersions[0] ? availableVersions[0].id : "v10_10";
     }
     renderVersionSelector();
   } catch (e) {
@@ -1458,7 +1455,7 @@ function renderInspector() {
   document.getElementById("v105-eval-time").textContent = telem.avg_eval_seconds ? `${telem.avg_eval_seconds}s` : "–";
   document.getElementById("v105-improve-count").textContent = `${telem.parent_improved_count || 0} 次 / ${telem.frontier_improved_count || 0} 次`;
   
-  const singleCallIdea = ["v10_7", "v10_7r"].includes(currentVersion) || currentVersion.startsWith("v10_8") || currentVersion === "v10_9";
+  const singleCallIdea = ["v10_7", "v10_7r", "v10_9", "v10_10"].includes(currentVersion) || currentVersion.startsWith("v10_8");
   document.getElementById("idea-label").textContent = singleCallIdea
     ? "💡 生成思路 (Idea)" : "💡 实现摘要 (Implementation Summary)";
   if (singleCallIdea) {

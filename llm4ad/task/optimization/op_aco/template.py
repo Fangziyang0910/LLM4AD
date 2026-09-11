@@ -34,3 +34,9 @@ matrix, and ``maxlen``. It must return a finite matrix with the same shape as
 the distance matrix. Larger entries indicate more promising directed edges.
 Use efficient NumPy operations because the function is evaluated many times.
 """.strip()
+
+design_notes = """
+Node 0 is masked as a candidate during sampling, so changing only column 0
+cannot affect sampled moves. Return-to-depot distance still affects
+feasibility, and the returned heuristic is a static prior computed before ACO.
+""".strip()

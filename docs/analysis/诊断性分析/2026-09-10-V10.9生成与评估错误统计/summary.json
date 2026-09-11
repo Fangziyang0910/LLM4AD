@@ -1,0 +1,655 @@
+{
+  "started_at": "2026-09-10T09:19:56.714386+08:00",
+  "batches": {
+    "20260909_v109_initaware": {
+      "runs": [
+        {
+          "task": "tsp_construct",
+          "repeat": 1,
+          "run": "20260909_v109_initaware_tsp_v109_rep1",
+          "status": "running",
+          "completed_candidates": 903,
+          "counts": {
+            "ok": 854,
+            "invalid_output": 4,
+            "duplicate_code": 20,
+            "eval_failed": 25
+          },
+          "evaluation_reasons": {
+            "runtime_error": 17,
+            "timeout": 8
+          },
+          "call_errors": 0,
+          "receipt_count": 879,
+          "committed_evaluations": 879,
+          "last_event_ts": "2026-09-10T09:19:37"
+        },
+        {
+          "task": "cvrp_aco",
+          "repeat": 1,
+          "run": "20260909_v109_initaware_cvrp_v109_rep1",
+          "status": "running",
+          "completed_candidates": 362,
+          "counts": {
+            "ok": 341,
+            "duplicate_code": 6,
+            "eval_failed": 14,
+            "invalid_output": 1
+          },
+          "evaluation_reasons": {
+            "runtime_error": 13,
+            "timeout": 1
+          },
+          "call_errors": 0,
+          "receipt_count": 355,
+          "committed_evaluations": 355,
+          "last_event_ts": "2026-09-10T09:18:46"
+        },
+        {
+          "task": "op_aco",
+          "repeat": 1,
+          "run": "20260909_v109_initaware_op_v109_rep1",
+          "status": "running",
+          "completed_candidates": 573,
+          "counts": {
+            "ok": 554,
+            "duplicate_code": 13,
+            "invalid_output": 2,
+            "eval_failed": 4
+          },
+          "evaluation_reasons": {
+            "runtime_error": 4
+          },
+          "call_errors": 0,
+          "receipt_count": 558,
+          "committed_evaluations": 558,
+          "last_event_ts": "2026-09-10T09:19:00"
+        },
+        {
+          "task": "online_bin_packing",
+          "repeat": 1,
+          "run": "20260909_v109_initaware_obp_v109_rep1",
+          "status": "finished",
+          "completed_candidates": 1066,
+          "counts": {
+            "ok": 998,
+            "eval_failed": 2,
+            "duplicate_code": 52,
+            "invalid_output": 14
+          },
+          "evaluation_reasons": {
+            "runtime_error": 2
+          },
+          "call_errors": 0,
+          "receipt_count": 1000,
+          "committed_evaluations": 1000,
+          "last_event_ts": "2026-09-10T07:20:06"
+        },
+        {
+          "task": "vrptw_construct",
+          "repeat": 1,
+          "run": "20260909_v109_initaware_vrptw_v109_rep1",
+          "status": "running",
+          "completed_candidates": 661,
+          "counts": {
+            "ok": 600,
+            "invalid_output": 22,
+            "duplicate_code": 13,
+            "eval_failed": 26
+          },
+          "evaluation_reasons": {
+            "invalid_result": 10,
+            "runtime_error": 4,
+            "timeout": 12
+          },
+          "call_errors": 0,
+          "receipt_count": 626,
+          "committed_evaluations": 626,
+          "last_event_ts": "2026-09-10T09:18:55"
+        },
+        {
+          "task": "tsp_construct",
+          "repeat": 2,
+          "run": "20260909_v109_initaware_tsp_v109_rep2",
+          "status": "running",
+          "completed_candidates": 719,
+          "counts": {
+            "ok": 652,
+            "invalid_output": 15,
+            "eval_failed": 38,
+            "duplicate_code": 14
+          },
+          "evaluation_reasons": {
+            "runtime_error": 11,
+            "timeout": 27
+          },
+          "call_errors": 0,
+          "receipt_count": 690,
+          "committed_evaluations": 690,
+          "last_event_ts": "2026-09-10T09:17:51"
+        },
+        {
+          "task": "cvrp_aco",
+          "repeat": 2,
+          "run": "20260909_v109_initaware_cvrp_v109_rep2",
+          "status": "running",
+          "completed_candidates": 318,
+          "counts": {
+            "eval_failed": 12,
+            "ok": 292,
+            "duplicate_code": 9,
+            "invalid_output": 5
+          },
+          "evaluation_reasons": {
+            "runtime_error": 12
+          },
+          "call_errors": 0,
+          "receipt_count": 304,
+          "committed_evaluations": 304,
+          "last_event_ts": "2026-09-10T09:19:43"
+        },
+        {
+          "task": "op_aco",
+          "repeat": 2,
+          "run": "20260909_v109_initaware_op_v109_rep2",
+          "status": "running",
+          "completed_candidates": 628,
+          "counts": {
+            "ok": 605,
+            "eval_failed": 10,
+            "duplicate_code": 10,
+            "invalid_output": 3
+          },
+          "evaluation_reasons": {
+            "runtime_error": 10
+          },
+          "call_errors": 0,
+          "receipt_count": 615,
+          "committed_evaluations": 615,
+          "last_event_ts": "2026-09-10T09:19:02"
+        },
+        {
+          "task": "online_bin_packing",
+          "repeat": 2,
+          "run": "20260909_v109_initaware_obp_v109_rep2",
+          "status": "running",
+          "completed_candidates": 1010,
+          "counts": {
+            "ok": 929,
+            "duplicate_code": 69,
+            "eval_failed": 6,
+            "invalid_output": 6
+          },
+          "evaluation_reasons": {
+            "runtime_error": 6
+          },
+          "call_errors": 0,
+          "receipt_count": 935,
+          "committed_evaluations": 935,
+          "last_event_ts": "2026-09-10T09:18:47"
+        },
+        {
+          "task": "vrptw_construct",
+          "repeat": 2,
+          "run": "20260909_v109_initaware_vrptw_v109_rep2",
+          "status": "running",
+          "completed_candidates": 758,
+          "counts": {
+            "ok": 681,
+            "eval_failed": 22,
+            "invalid_output": 19,
+            "duplicate_code": 36
+          },
+          "evaluation_reasons": {
+            "runtime_error": 8,
+            "invalid_result": 5,
+            "timeout": 9
+          },
+          "call_errors": 0,
+          "receipt_count": 703,
+          "committed_evaluations": 703,
+          "last_event_ts": "2026-09-10T09:19:17"
+        },
+        {
+          "task": "tsp_construct",
+          "repeat": 3,
+          "run": "20260909_v109_initaware_tsp_v109_rep3",
+          "status": "finished",
+          "completed_candidates": 1044,
+          "counts": {
+            "ok": 993,
+            "invalid_output": 9,
+            "eval_failed": 7,
+            "duplicate_code": 35
+          },
+          "evaluation_reasons": {
+            "runtime_error": 7
+          },
+          "call_errors": 0,
+          "receipt_count": 1000,
+          "committed_evaluations": 1000,
+          "last_event_ts": "2026-09-10T08:25:23"
+        },
+        {
+          "task": "cvrp_aco",
+          "repeat": 3,
+          "run": "20260909_v109_initaware_cvrp_v109_rep3",
+          "status": "running",
+          "completed_candidates": 308,
+          "counts": {
+            "ok": 289,
+            "eval_failed": 9,
+            "duplicate_code": 9,
+            "invalid_output": 1
+          },
+          "evaluation_reasons": {
+            "runtime_error": 8,
+            "timeout": 1
+          },
+          "call_errors": 0,
+          "receipt_count": 298,
+          "committed_evaluations": 298,
+          "last_event_ts": "2026-09-10T09:19:28"
+        },
+        {
+          "task": "op_aco",
+          "repeat": 3,
+          "run": "20260909_v109_initaware_op_v109_rep3",
+          "status": "running",
+          "completed_candidates": 572,
+          "counts": {
+            "eval_failed": 5,
+            "ok": 542,
+            "duplicate_code": 23,
+            "invalid_output": 2
+          },
+          "evaluation_reasons": {
+            "runtime_error": 5
+          },
+          "call_errors": 0,
+          "receipt_count": 547,
+          "committed_evaluations": 547,
+          "last_event_ts": "2026-09-10T09:18:57"
+        },
+        {
+          "task": "online_bin_packing",
+          "repeat": 3,
+          "run": "20260909_v109_initaware_obp_v109_rep3",
+          "status": "running",
+          "completed_candidates": 771,
+          "counts": {
+            "ok": 717,
+            "duplicate_code": 49,
+            "eval_failed": 5
+          },
+          "evaluation_reasons": {
+            "runtime_error": 5
+          },
+          "call_errors": 0,
+          "receipt_count": 722,
+          "committed_evaluations": 722,
+          "last_event_ts": "2026-09-10T09:19:44"
+        },
+        {
+          "task": "vrptw_construct",
+          "repeat": 3,
+          "run": "20260909_v109_initaware_vrptw_v109_rep3",
+          "status": "running",
+          "completed_candidates": 883,
+          "counts": {
+            "ok": 773,
+            "invalid_output": 41,
+            "duplicate_code": 51,
+            "eval_failed": 18
+          },
+          "evaluation_reasons": {
+            "runtime_error": 17,
+            "invalid_result": 1
+          },
+          "call_errors": 0,
+          "receipt_count": 791,
+          "committed_evaluations": 791,
+          "last_event_ts": "2026-09-10T09:19:58"
+        }
+      ],
+      "journal_prefixes": [
+        {
+          "path": "experiments/traceaad_v10_9/results/tsp_construct/20260909_v109_initaware_tsp_v109_rep1/events.jsonl",
+          "bytes": 4265530,
+          "sha256": "3348ee81cba02c4abf89797a6d283085f0629cf9f223ac9ab71338df4c638284"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/cvrp_aco/20260909_v109_initaware_cvrp_v109_rep1/events.jsonl",
+          "bytes": 1640215,
+          "sha256": "6b449824f3ad19e18b3457fe0600545749be6d9051bc3bd8848c76b1d7c72759"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/op_aco/20260909_v109_initaware_op_v109_rep1/events.jsonl",
+          "bytes": 2773100,
+          "sha256": "1d8b138a29cdb0b425b92f0c7587bfc5c10bc8c2acf4875f8fcebad7fcd979c1"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/online_bin_packing/20260909_v109_initaware_obp_v109_rep1/events.jsonl",
+          "bytes": 5230208,
+          "sha256": "5b0e464d8daf31051930233547a17630557f3b47d1aa1843cf95af4be69da4f3"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/vrptw_construct/20260909_v109_initaware_vrptw_v109_rep1/events.jsonl",
+          "bytes": 3039323,
+          "sha256": "32e830b7d5a373aa49fde42cf4649e3f5430efbb966ef1fed95d38e48b34836d"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/tsp_construct/20260909_v109_initaware_tsp_v109_rep2/events.jsonl",
+          "bytes": 3409770,
+          "sha256": "3e31f9d7ab4a58bf22be77724bc9816046e79f38d36d86dd5f4a71eedaa5ad94"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/cvrp_aco/20260909_v109_initaware_cvrp_v109_rep2/events.jsonl",
+          "bytes": 1326001,
+          "sha256": "1a8b0b5aaf7dc1961315ffa6b9f9f6fee6335dc2fac3ae33bcb5269b1f4f0529"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/op_aco/20260909_v109_initaware_op_v109_rep2/events.jsonl",
+          "bytes": 3001665,
+          "sha256": "505b168cd3159ee01b4caef0328e1891d0881a64d2865beb41d42b8429508225"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/online_bin_packing/20260909_v109_initaware_obp_v109_rep2/events.jsonl",
+          "bytes": 4833461,
+          "sha256": "08dfb8c1d0ecda7bf5aacf8854ec3421b7e26a2f76193323c6ffc5760dc7b850"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/vrptw_construct/20260909_v109_initaware_vrptw_v109_rep2/events.jsonl",
+          "bytes": 3551797,
+          "sha256": "405e489100df267cbb01266c7d036d7fe22e7a7ee9ed1f8c8df1ec375467df8f"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/tsp_construct/20260909_v109_initaware_tsp_v109_rep3/events.jsonl",
+          "bytes": 5102508,
+          "sha256": "d7047e702982d3ce8b3156706d1d9e683dc75d8d83b86526359cb1bf4f52f622"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/cvrp_aco/20260909_v109_initaware_cvrp_v109_rep3/events.jsonl",
+          "bytes": 1307827,
+          "sha256": "d4994a6ce4018b267ccf09bc9f7007922c3c1f2370e43aecdc85b17dc86c0aca"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/op_aco/20260909_v109_initaware_op_v109_rep3/events.jsonl",
+          "bytes": 2706362,
+          "sha256": "616f7e05ed04aebcf2e0fad3aeafd07d1cdcae051aaa0f13486663daf01cf5f4"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/online_bin_packing/20260909_v109_initaware_obp_v109_rep3/events.jsonl",
+          "bytes": 3509729,
+          "sha256": "3399856b2e5f8769587c600df8c1ab3ad41d6519a993d335a68fecfbd5bdaa24"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/vrptw_construct/20260909_v109_initaware_vrptw_v109_rep3/events.jsonl",
+          "bytes": 4205730,
+          "sha256": "6f05977d301709338b197c636cb2341b9904069605fd5c961bcaabe8b5b9c157"
+        }
+      ],
+      "planned_runs": 15,
+      "counts": {
+        "ok": 9820,
+        "invalid_output": 144,
+        "duplicate_code": 409,
+        "eval_failed": 203
+      },
+      "evaluation_reasons": {
+        "runtime_error": 129,
+        "timeout": 58,
+        "invalid_result": 16
+      },
+      "parse_types": {
+        "idea_code_format": 131,
+        "python_syntax": 10,
+        "target_function_missing_or_multiple": 1,
+        "nested_code_fence": 2
+      },
+      "invalid_finish_reasons": {
+        "stop": 144
+      },
+      "operators": {
+        "Init": {
+          "ok": 120,
+          "eval_failed": 5
+        },
+        "Fuse": {
+          "ok": 3384,
+          "duplicate_code": 271,
+          "eval_failed": 62,
+          "invalid_output": 42
+        },
+        "Pivot": {
+          "ok": 1479,
+          "invalid_output": 31,
+          "eval_failed": 62,
+          "duplicate_code": 4
+        },
+        "Refine": {
+          "ok": 2334,
+          "invalid_output": 70,
+          "duplicate_code": 92,
+          "eval_failed": 69
+        },
+        "Tune": {
+          "ok": 2503,
+          "duplicate_code": 42,
+          "eval_failed": 5,
+          "invalid_output": 1
+        }
+      }
+    },
+    "20260909_v109_formal": {
+      "runs": [
+        {
+          "task": "tsp_construct",
+          "repeat": 1,
+          "run": "20260909_v109_formal_tsp_v109_rep1",
+          "status": "superseded",
+          "completed_candidates": 45,
+          "counts": {
+            "ok": 41,
+            "eval_failed": 3,
+            "invalid_output": 1
+          },
+          "evaluation_reasons": {
+            "runtime_error": 3
+          },
+          "call_errors": 0,
+          "receipt_count": 44,
+          "committed_evaluations": 44,
+          "last_event_ts": "2026-09-09T22:52:02"
+        },
+        {
+          "task": "cvrp_aco",
+          "repeat": 1,
+          "run": "20260909_v109_formal_cvrp_v109_rep1",
+          "status": "superseded",
+          "completed_candidates": 19,
+          "counts": {
+            "ok": 15,
+            "eval_failed": 3,
+            "invalid_output": 1
+          },
+          "evaluation_reasons": {
+            "runtime_error": 3
+          },
+          "call_errors": 0,
+          "receipt_count": 18,
+          "committed_evaluations": 18,
+          "last_event_ts": "2026-09-09T22:52:42"
+        },
+        {
+          "task": "op_aco",
+          "repeat": 1,
+          "run": "20260909_v109_formal_op_v109_rep1",
+          "status": "superseded",
+          "completed_candidates": 20,
+          "counts": {
+            "ok": 18,
+            "eval_failed": 2
+          },
+          "evaluation_reasons": {
+            "runtime_error": 2
+          },
+          "call_errors": 0,
+          "receipt_count": 20,
+          "committed_evaluations": 20,
+          "last_event_ts": "2026-09-09T22:51:39"
+        },
+        {
+          "task": "online_bin_packing",
+          "repeat": 1,
+          "run": "20260909_v109_formal_obp_v109_rep1",
+          "status": "superseded",
+          "completed_candidates": 48,
+          "counts": {
+            "ok": 46,
+            "invalid_output": 2
+          },
+          "evaluation_reasons": {},
+          "call_errors": 0,
+          "receipt_count": 46,
+          "committed_evaluations": 46,
+          "last_event_ts": "2026-09-09T22:52:13"
+        },
+        {
+          "task": "vrptw_construct",
+          "repeat": 1,
+          "run": "20260909_v109_formal_vrptw_v109_rep1",
+          "status": "superseded",
+          "completed_candidates": 40,
+          "counts": {
+            "eval_failed": 3,
+            "ok": 33,
+            "invalid_output": 4
+          },
+          "evaluation_reasons": {
+            "invalid_result": 2,
+            "runtime_error": 1
+          },
+          "call_errors": 0,
+          "receipt_count": 36,
+          "committed_evaluations": 36,
+          "last_event_ts": "2026-09-09T22:52:19"
+        },
+        {
+          "task": "tsp_construct",
+          "repeat": 2,
+          "run": "20260909_v109_formal_tsp_v109_rep2",
+          "status": "superseded",
+          "completed_candidates": 43,
+          "counts": {
+            "ok": 41,
+            "eval_failed": 1,
+            "duplicate_code": 1
+          },
+          "evaluation_reasons": {
+            "runtime_error": 1
+          },
+          "call_errors": 0,
+          "receipt_count": 42,
+          "committed_evaluations": 42,
+          "last_event_ts": "2026-09-09T22:52:16"
+        },
+        {
+          "task": "cvrp_aco",
+          "repeat": 2,
+          "run": "20260909_v109_formal_cvrp_v109_rep2",
+          "status": "superseded",
+          "completed_candidates": 14,
+          "counts": {
+            "ok": 14
+          },
+          "evaluation_reasons": {},
+          "call_errors": 0,
+          "receipt_count": 14,
+          "committed_evaluations": 14,
+          "last_event_ts": "2026-09-09T22:51:25"
+        }
+      ],
+      "journal_prefixes": [
+        {
+          "path": "experiments/traceaad_v10_9/results/tsp_construct/20260909_v109_formal_tsp_v109_rep1/events.jsonl",
+          "bytes": 133815,
+          "sha256": "0d9845abec1f67dbbe94fe02be71ca61bb3484949e6e44ade3573f6f9420b698"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/cvrp_aco/20260909_v109_formal_cvrp_v109_rep1/events.jsonl",
+          "bytes": 38257,
+          "sha256": "de953742cfb34cf7472fff08e7d2ea562d55236ddb8c40287abda723ddc501bd"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/op_aco/20260909_v109_formal_op_v109_rep1/events.jsonl",
+          "bytes": 39443,
+          "sha256": "c08cbc37708721d3ab168818518872751993f7b00a1f6243d3e8672e391a38c5"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/online_bin_packing/20260909_v109_formal_obp_v109_rep1/events.jsonl",
+          "bytes": 140086,
+          "sha256": "8ebaa0fd0172d6bdd51d164e34bc7e40766169df674efb381168f1dd90d4a5fe"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/vrptw_construct/20260909_v109_formal_vrptw_v109_rep1/events.jsonl",
+          "bytes": 111216,
+          "sha256": "64233c2635857f9dd6bc23e508f9eba7d29bad695b92aeed7a2cc8e33274a364"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/tsp_construct/20260909_v109_formal_tsp_v109_rep2/events.jsonl",
+          "bytes": 121656,
+          "sha256": "dab3895f1cea9017f7eedad9cd99855205d452b68276af6111cc9b2d299e6b8a"
+        },
+        {
+          "path": "experiments/traceaad_v10_9/results/cvrp_aco/20260909_v109_formal_cvrp_v109_rep2/events.jsonl",
+          "bytes": 23685,
+          "sha256": "77c3b2253e6416dac173d73f8ea6e05881cf919c2f9d7b1990d808a5840b8ce3"
+        }
+      ],
+      "planned_runs": 15,
+      "counts": {
+        "ok": 208,
+        "eval_failed": 12,
+        "invalid_output": 8,
+        "duplicate_code": 1
+      },
+      "evaluation_reasons": {
+        "runtime_error": 10,
+        "invalid_result": 2
+      },
+      "parse_types": {
+        "idea_code_format": 8
+      },
+      "invalid_finish_reasons": {
+        "stop": 8
+      },
+      "operators": {
+        "Init": {
+          "ok": 56,
+          "eval_failed": 7,
+          "invalid_output": 1
+        },
+        "Fuse": {
+          "ok": 51,
+          "invalid_output": 2
+        },
+        "Pivot": {
+          "ok": 37,
+          "eval_failed": 3,
+          "invalid_output": 1
+        },
+        "Refine": {
+          "eval_failed": 2,
+          "ok": 34,
+          "invalid_output": 4
+        },
+        "Tune": {
+          "ok": 30,
+          "duplicate_code": 1
+        }
+      }
+    }
+  },
+  "finished_at": "2026-09-10T09:20:05.222101+08:00"
+}

@@ -1,8 +1,8 @@
-"""TraceAAD V10.6 Training Experiment Live Monitor & Visualizer.
+"""TraceAAD multi-version training experiment monitor.
 
 High-performance, lightweight live observer for official TraceAAD V10.6 runs.
 Features:
-- Full support for V10.6 telemetry (R/P/F 50/15/35, joint marginal parent route, Fuse fallbacks, post-code Implementation Summary)
+- Version-aware telemetry for current and historical TraceAAD experiments
 - Seamless queued runs detection from scheduler batch manifests
 - LLM vs Eval latency breakdown and parent/frontier improvement rates
 - File modification & size guards (zero redundant disk I/O / JSON deserialization)
@@ -10,7 +10,7 @@ Features:
 - Real-time progress across all 15 runs (5 tasks x 3 repeats)
 - Dynamic tmux session detection with windowed velocity blending
 - Individual run inspector (code, implementation summaries, lineages, recent event stream)
-- Multi-version switcher support (V10.7, V10.6, V10.5, V10.4, V10.3, V10.2, V10.1)
+- Multi-version switcher with V10.10 as the default
 
 Usage:
     uv run python -m experiments.traceaad_v10_6.monitor [--port 8765] [--host 0.0.0.0]
@@ -86,19 +86,18 @@ def _version_dir_pattern(version_id: str) -> str | None:
     return KNOWN_VERSIONS.get(version_id, {}).get("dir_pattern")
 
 KNOWN_VERSIONS = {
+    "v10_10": {
+        "id": "v10_10", "name": "TraceAAD V10.10（有界错误修复）",
+        "badge": "V10.10", "default_prefix": "v1010",
+        "path": REPO_ROOT / "experiments" / "traceaad_v10_10" / "results",
+        "is_latest": True, "dir_pattern": r"_v1010_rep\d+$",
+    },
     "v10_9": {
         "id": "v10_9", "name": "TraceAAD V10.9（迁移与精炼）",
         "badge": "V10.9", "default_prefix": "v109",
         "path": REPO_ROOT / "experiments" / "traceaad_v10_9" / "results",
-        "is_latest": True, "dir_pattern": r"_v109_rep\d+$",
+        "is_latest": False, "dir_pattern": r"_v109_rep\d+$",
     },
-    **{f'v10_8{arm.lower()}': {
-        'id': f'v10_8{arm.lower()}', 'name': f'V10.8 分配 {arm}：{label}',
-        'badge': f'V10.8-{arm}', 'default_prefix': 'v108alloc',
-        'path': REPO_ROOT / 'experiments' / 'traceaad_v10_8' / 'results',
-        'is_latest': False, 'dir_pattern': rf'_{arm}_v108_rep\d+$',
-    } for arm, label in [('A', '当前规则'), ('B', '质量优先'),
-                         ('C', '持续集中'), ('D', '逐渐集中')]},
     "v10_8": {
         "id": "v10_8", "name": "TraceAAD V10.8（形成轨迹）",
         "badge": "V10.8", "default_prefix": "v108",
@@ -565,7 +564,7 @@ class MonitorDataEngine:
                         continue
                     if dir_pattern and not re.search(dir_pattern, run_dir.name):
                         continue
-                    if default_prefix in ('v108alloc', 'v109') and manifest and run_dir.name not in planned_names:
+                    if default_prefix in ('v108alloc', 'v109', 'v1010') and manifest and run_dir.name not in planned_names:
                         continue
                     rep_match = re.search(r"_rep(\d+)$", run_dir.name)
                     if not rep_match:
@@ -1282,13 +1281,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--version",
-        default="v10_9",
-        help="Default experiment version (default: v10_9)",
+        default="v10_10",
+        help="Default experiment version (default: v10_10)",
     )
     parser.add_argument(
         "--session-prefix",
-        default="v109",
-        help="Tmux session prefix (default: v109)",
+        default="v1010",
+        help="Tmux session prefix (default: v1010)",
     )
     args = parser.parse_args()
 

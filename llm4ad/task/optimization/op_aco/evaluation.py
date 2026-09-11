@@ -12,7 +12,7 @@ from llm4ad.task.optimization.op_aco.dataset import (
     gen_prizes,
     load_split_instances,
 )
-from llm4ad.task.optimization.op_aco.template import task_description, template_program
+from llm4ad.task.optimization.op_aco.template import design_notes, task_description, template_program
 
 __all__ = ["OPACOEvaluation"]
 
@@ -186,6 +186,7 @@ class OPACOEvaluation(Evaluation):
             use_numba_accelerate=False,
             timeout_seconds=timeout_seconds,
         )
+        self.design_notes = design_notes
         if (
             not isinstance(n_ants, int)
             or isinstance(n_ants, bool)

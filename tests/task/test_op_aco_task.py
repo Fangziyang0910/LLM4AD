@@ -11,6 +11,7 @@ from llm4ad.task.optimization.op_aco import (
 )
 from llm4ad.task.optimization.op_aco.dataset import gen_distance_matrix, gen_prizes
 from llm4ad.task.optimization.op_aco.evaluation import ACO
+from llm4ad.task.optimization.op_aco.template import design_notes
 
 
 def prize_over_distance(prize, distance, maxlen):
@@ -27,6 +28,14 @@ def test_train_split_matches_published_protocol_and_is_reproducible():
     assert metadata["max_len"] == 3.0
     assert first.shape == (5, 50, 2)
     assert np.array_equal(first, second)
+
+
+def test_task_exposes_evaluator_semantics_as_design_notes():
+    notes = ' '.join(design_notes.split())
+    assert 'Node 0 is masked as a candidate' in notes
+    assert 'Return-to-depot distance still affects feasibility' in notes
+    assert 'static prior computed before ACO' in notes
+    assert OPACOEvaluation().design_notes == design_notes
 
 
 @pytest.mark.parametrize(

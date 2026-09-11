@@ -4,7 +4,7 @@ from experiments.traceaad_v10_9.launch import build_plan
 
 
 def test_v109_queued_plan_and_tune_are_visible(tmp_path, monkeypatch):
-    assert monitor.KNOWN_VERSIONS['v10_9']['is_latest']
+    assert monitor.KNOWN_VERSIONS['v10_9']['default_prefix'] == 'v109'
     plan = build_plan('formal', 'v109')
     (tmp_path / 'batch_formal.json').write_text(json.dumps({'plan': plan, 'batch': 'formal'}))
     row = plan[0]

@@ -1,6 +1,6 @@
 # TraceAAD V10.8
 
-[预算分配实验启动记录](launch_allocation_tsp_20260909.md)：TSP × 3 个种子 × A/B/C/D，当前规则、质量优先、持续集中、逐渐集中。CLI `--allocation-arm` 选择组别，默认 A；`launch --allocation-study` 构造按可用容量分配后端的 12 路计划。原 CVRP 启动批已停止并保留为诊断数据。
+[TSP 预算分配消融已提前结项](../../docs/experiments/机制验证/2026-09-10-TSP预算分配消融结项/结果.md)（2026-09-10）：9311/12000 次评价，不再续跑、扩展实验或监控。B 有中期正向信号，C/D 未显示一致增益，尚无完整终局/泛化结论。[启动记录](launch_allocation_tsp_20260909.md)与 `--allocation-arm`、`launch --allocation-study` 源码仅保留供追溯，不再启动本批。原 CVRP 启动批保留为诊断数据。
 
 [机制设计](../../docs/methods/TraceAAD-V10.8-机制设计.md)。已实现可核验近期形成轨迹、按节点分配机会、评价前父代/donor 哈希去重与单次 Idea + Code；[启动记录](launch_20260909.md)属于此前版本，不代表当前修改的实验结果或优于 V10.7R。
 

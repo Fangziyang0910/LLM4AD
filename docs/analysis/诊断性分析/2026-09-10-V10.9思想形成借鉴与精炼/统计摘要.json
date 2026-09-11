@@ -1,0 +1,3116 @@
+{
+  "time": "2026-09-10T10:27:04.229884+08:00",
+  "runs": [
+    {
+      "task": "tsp_construct",
+      "repeat": 1,
+      "path": "experiments/traceaad_v10_9/results/tsp_construct/20260909_v109_initaware_tsp_v109_rep1",
+      "evals": 942,
+      "init_best": -8.060258218042321,
+      "best": -6.685090878796045,
+      "best_at": 785,
+      "stats": {
+        "Init": {
+          "attempts": 8,
+          "ok": 8,
+          "parent_improved": 0,
+          "frontier_improved": 0,
+          "init": 8
+        },
+        "Fuse": {
+          "attempts": 368,
+          "ok": 352,
+          "parent_improved": 23,
+          "frontier_improved": 3,
+          "structural": 350,
+          "equal_parent": 274,
+          "above_both": 5,
+          "duplicate_code": 11,
+          "numeric_only": 2,
+          "eval_failed": 5
+        },
+        "Pivot": {
+          "attempts": 144,
+          "ok": 134,
+          "parent_improved": 17,
+          "frontier_improved": 2,
+          "structural": 134,
+          "equal_parent": 27,
+          "invalid_output": 1,
+          "eval_failed": 9
+        },
+        "Refine": {
+          "attempts": 228,
+          "ok": 203,
+          "parent_improved": 12,
+          "frontier_improved": 2,
+          "structural": 197,
+          "equal_parent": 122,
+          "invalid_output": 5,
+          "numeric_only": 6,
+          "duplicate_code": 7,
+          "eval_failed": 13
+        },
+        "Tune": {
+          "attempts": 223,
+          "ok": 217,
+          "parent_improved": 16,
+          "frontier_improved": 0,
+          "structural": 97,
+          "equal_parent": 189,
+          "numeric_only": 120,
+          "duplicate_code": 5,
+          "eval_failed": 1
+        }
+      },
+      "best_path": [
+        {
+          "node_id": 4,
+          "evaluation_id": 5,
+          "operator": "Init",
+          "fitness": -8.060258218042321,
+          "edit_kind": null,
+          "donor_id": null
+        },
+        {
+          "node_id": 31,
+          "evaluation_id": 32,
+          "operator": "Pivot",
+          "fitness": -6.974713939680253,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 32,
+          "evaluation_id": 33,
+          "operator": "Fuse",
+          "fitness": -7.050436213504021,
+          "edit_kind": "structural",
+          "donor_id": 16
+        },
+        {
+          "node_id": 34,
+          "evaluation_id": 35,
+          "operator": "Fuse",
+          "fitness": -6.8239686184057184,
+          "edit_kind": "structural",
+          "donor_id": 2
+        },
+        {
+          "node_id": 52,
+          "evaluation_id": 53,
+          "operator": "Fuse",
+          "fitness": -6.8239686184057184,
+          "edit_kind": "structural",
+          "donor_id": 37
+        },
+        {
+          "node_id": 82,
+          "evaluation_id": 83,
+          "operator": "Fuse",
+          "fitness": -6.8239686184057184,
+          "edit_kind": "structural",
+          "donor_id": 49
+        },
+        {
+          "node_id": 161,
+          "evaluation_id": 163,
+          "operator": "Fuse",
+          "fitness": -8.522600621590556,
+          "edit_kind": "structural",
+          "donor_id": 41
+        },
+        {
+          "node_id": 195,
+          "evaluation_id": 199,
+          "operator": "Fuse",
+          "fitness": -6.78870135557967,
+          "edit_kind": "structural",
+          "donor_id": 142
+        },
+        {
+          "node_id": 217,
+          "evaluation_id": 221,
+          "operator": "Fuse",
+          "fitness": -6.78870135557967,
+          "edit_kind": "structural",
+          "donor_id": 209
+        },
+        {
+          "node_id": 247,
+          "evaluation_id": 253,
+          "operator": "Refine",
+          "fitness": -6.78870135557967,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 355,
+          "evaluation_id": 362,
+          "operator": "Fuse",
+          "fitness": -6.78870135557967,
+          "edit_kind": "structural",
+          "donor_id": 277
+        },
+        {
+          "node_id": 767,
+          "evaluation_id": 785,
+          "operator": "Pivot",
+          "fitness": -6.685090878796045,
+          "edit_kind": "structural",
+          "donor_id": null
+        }
+      ]
+    },
+    {
+      "task": "cvrp_aco",
+      "repeat": 1,
+      "path": "experiments/traceaad_v10_9/results/cvrp_aco/20260909_v109_initaware_cvrp_v109_rep1",
+      "evals": 404,
+      "init_best": -11.405525671143248,
+      "best": -9.141195719239093,
+      "best_at": 356,
+      "stats": {
+        "Init": {
+          "attempts": 8,
+          "ok": 8,
+          "parent_improved": 0,
+          "frontier_improved": 0,
+          "init": 8
+        },
+        "Fuse": {
+          "attempts": 165,
+          "ok": 150,
+          "parent_improved": 37,
+          "frontier_improved": 8,
+          "structural": 134,
+          "equal_parent": 2,
+          "above_both": 21,
+          "duplicate_code": 5,
+          "numeric_only": 16,
+          "eval_failed": 9,
+          "invalid_output": 1
+        },
+        "Pivot": {
+          "attempts": 66,
+          "ok": 62,
+          "parent_improved": 6,
+          "frontier_improved": 0,
+          "structural": 62,
+          "equal_parent": 1,
+          "eval_failed": 4
+        },
+        "Refine": {
+          "attempts": 82,
+          "ok": 78,
+          "parent_improved": 15,
+          "frontier_improved": 2,
+          "structural": 70,
+          "equal_parent": 0,
+          "eval_failed": 3,
+          "numeric_only": 8,
+          "duplicate_code": 1
+        },
+        "Tune": {
+          "attempts": 90,
+          "ok": 90,
+          "parent_improved": 18,
+          "frontier_improved": 4,
+          "structural": 19,
+          "equal_parent": 0,
+          "numeric_only": 71
+        }
+      },
+      "best_path": [
+        {
+          "node_id": 5,
+          "evaluation_id": 6,
+          "operator": "Init",
+          "fitness": -11.405525671143248,
+          "edit_kind": null,
+          "donor_id": null
+        },
+        {
+          "node_id": 30,
+          "evaluation_id": 31,
+          "operator": "Fuse",
+          "fitness": -12.683166729807422,
+          "edit_kind": "structural",
+          "donor_id": 12
+        },
+        {
+          "node_id": 32,
+          "evaluation_id": 33,
+          "operator": "Fuse",
+          "fitness": -9.58691914774714,
+          "edit_kind": "structural",
+          "donor_id": 16
+        },
+        {
+          "node_id": 34,
+          "evaluation_id": 35,
+          "operator": "Fuse",
+          "fitness": -9.386650211713995,
+          "edit_kind": "structural",
+          "donor_id": 2
+        },
+        {
+          "node_id": 46,
+          "evaluation_id": 47,
+          "operator": "Tune",
+          "fitness": -9.378462160145716,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 49,
+          "evaluation_id": 50,
+          "operator": "Fuse",
+          "fitness": -9.373120768927258,
+          "edit_kind": "structural",
+          "donor_id": 41
+        },
+        {
+          "node_id": 86,
+          "evaluation_id": 89,
+          "operator": "Fuse",
+          "fitness": -9.252778510734156,
+          "edit_kind": "structural",
+          "donor_id": 65
+        },
+        {
+          "node_id": 109,
+          "evaluation_id": 114,
+          "operator": "Tune",
+          "fitness": -9.237373119859095,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 147,
+          "evaluation_id": 154,
+          "operator": "Tune",
+          "fitness": -9.147491561885266,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 171,
+          "evaluation_id": 181,
+          "operator": "Tune",
+          "fitness": -9.205269994299133,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 183,
+          "evaluation_id": 193,
+          "operator": "Tune",
+          "fitness": -9.147491561885266,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 244,
+          "evaluation_id": 255,
+          "operator": "Refine",
+          "fitness": -9.278861377673323,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 300,
+          "evaluation_id": 312,
+          "operator": "Fuse",
+          "fitness": -9.175090086354938,
+          "edit_kind": "structural",
+          "donor_id": 157
+        },
+        {
+          "node_id": 341,
+          "evaluation_id": 356,
+          "operator": "Fuse",
+          "fitness": -9.141195719239093,
+          "edit_kind": "structural",
+          "donor_id": 184
+        }
+      ]
+    },
+    {
+      "task": "op_aco",
+      "repeat": 1,
+      "path": "experiments/traceaad_v10_9/results/op_aco/20260909_v109_initaware_op_v109_rep1",
+      "evals": 615,
+      "init_best": 13.66,
+      "best": 14.8,
+      "best_at": 409,
+      "stats": {
+        "Init": {
+          "attempts": 8,
+          "ok": 8,
+          "parent_improved": 0,
+          "frontier_improved": 0,
+          "init": 8
+        },
+        "Fuse": {
+          "attempts": 246,
+          "ok": 233,
+          "parent_improved": 38,
+          "frontier_improved": 3,
+          "structural": 229,
+          "equal_parent": 27,
+          "above_both": 18,
+          "duplicate_code": 11,
+          "eval_failed": 2,
+          "numeric_only": 4
+        },
+        "Pivot": {
+          "attempts": 94,
+          "ok": 93,
+          "parent_improved": 9,
+          "frontier_improved": 1,
+          "structural": 93,
+          "equal_parent": 0,
+          "eval_failed": 1
+        },
+        "Refine": {
+          "attempts": 140,
+          "ok": 135,
+          "parent_improved": 30,
+          "frontier_improved": 3,
+          "structural": 117,
+          "equal_parent": 4,
+          "invalid_output": 3,
+          "numeric_only": 18,
+          "eval_failed": 1,
+          "duplicate_code": 1
+        },
+        "Tune": {
+          "attempts": 144,
+          "ok": 142,
+          "parent_improved": 20,
+          "frontier_improved": 6,
+          "structural": 41,
+          "equal_parent": 0,
+          "numeric_only": 101,
+          "duplicate_code": 2
+        }
+      },
+      "best_path": [
+        {
+          "node_id": 7,
+          "evaluation_id": 8,
+          "operator": "Init",
+          "fitness": 13.66,
+          "edit_kind": null,
+          "donor_id": null
+        },
+        {
+          "node_id": 50,
+          "evaluation_id": 51,
+          "operator": "Refine",
+          "fitness": 13.901999999999997,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 58,
+          "evaluation_id": 59,
+          "operator": "Tune",
+          "fitness": 14.163999999999998,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 87,
+          "evaluation_id": 88,
+          "operator": "Fuse",
+          "fitness": 14.395999999999997,
+          "edit_kind": "structural",
+          "donor_id": 67
+        },
+        {
+          "node_id": 109,
+          "evaluation_id": 110,
+          "operator": "Refine",
+          "fitness": 14.416000000000002,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 133,
+          "evaluation_id": 134,
+          "operator": "Fuse",
+          "fitness": 14.401999999999997,
+          "edit_kind": "structural",
+          "donor_id": 56
+        },
+        {
+          "node_id": 177,
+          "evaluation_id": 180,
+          "operator": "Refine",
+          "fitness": 14.602,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 207,
+          "evaluation_id": 210,
+          "operator": "Fuse",
+          "fitness": 14.742,
+          "edit_kind": "structural",
+          "donor_id": 203
+        },
+        {
+          "node_id": 223,
+          "evaluation_id": 226,
+          "operator": "Fuse",
+          "fitness": 14.742,
+          "edit_kind": "structural",
+          "donor_id": 169
+        },
+        {
+          "node_id": 231,
+          "evaluation_id": 234,
+          "operator": "Fuse",
+          "fitness": 14.742,
+          "edit_kind": "structural",
+          "donor_id": 60
+        },
+        {
+          "node_id": 405,
+          "evaluation_id": 409,
+          "operator": "Tune",
+          "fitness": 14.8,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        }
+      ]
+    },
+    {
+      "task": "online_bin_packing",
+      "repeat": 1,
+      "path": "experiments/traceaad_v10_9/results/online_bin_packing/20260909_v109_initaware_obp_v109_rep1",
+      "evals": 1000,
+      "init_best": -744.5,
+      "best": -728.25,
+      "best_at": 184,
+      "stats": {
+        "Init": {
+          "attempts": 8,
+          "ok": 8,
+          "parent_improved": 0,
+          "frontier_improved": 0,
+          "init": 8
+        },
+        "Fuse": {
+          "attempts": 396,
+          "ok": 356,
+          "parent_improved": 35,
+          "frontier_improved": 3,
+          "structural": 339,
+          "equal_parent": 89,
+          "above_both": 11,
+          "duplicate_code": 35,
+          "invalid_output": 5,
+          "numeric_only": 17
+        },
+        "Pivot": {
+          "attempts": 159,
+          "ok": 153,
+          "parent_improved": 19,
+          "frontier_improved": 0,
+          "structural": 152,
+          "equal_parent": 19,
+          "eval_failed": 2,
+          "invalid_output": 4,
+          "numeric_only": 1
+        },
+        "Refine": {
+          "attempts": 255,
+          "ok": 240,
+          "parent_improved": 30,
+          "frontier_improved": 1,
+          "structural": 216,
+          "equal_parent": 23,
+          "duplicate_code": 10,
+          "invalid_output": 5,
+          "numeric_only": 24
+        },
+        "Tune": {
+          "attempts": 248,
+          "ok": 241,
+          "parent_improved": 15,
+          "frontier_improved": 2,
+          "numeric_only": 156,
+          "equal_parent": 29,
+          "structural": 85,
+          "duplicate_code": 7
+        }
+      },
+      "best_path": [
+        {
+          "node_id": 2,
+          "evaluation_id": 3,
+          "operator": "Init",
+          "fitness": -744.5,
+          "edit_kind": null,
+          "donor_id": null
+        },
+        {
+          "node_id": 10,
+          "evaluation_id": 11,
+          "operator": "Pivot",
+          "fitness": -3000.0,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 16,
+          "evaluation_id": 17,
+          "operator": "Refine",
+          "fitness": -744.5,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 17,
+          "evaluation_id": 18,
+          "operator": "Refine",
+          "fitness": -756.75,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 64,
+          "evaluation_id": 66,
+          "operator": "Pivot",
+          "fitness": -744.5,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 93,
+          "evaluation_id": 95,
+          "operator": "Fuse",
+          "fitness": -733.75,
+          "edit_kind": "structural",
+          "donor_id": 88
+        },
+        {
+          "node_id": 100,
+          "evaluation_id": 102,
+          "operator": "Refine",
+          "fitness": -732.25,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 102,
+          "evaluation_id": 104,
+          "operator": "Tune",
+          "fitness": -731.25,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 122,
+          "evaluation_id": 124,
+          "operator": "Fuse",
+          "fitness": -731.25,
+          "edit_kind": "structural",
+          "donor_id": 55
+        },
+        {
+          "node_id": 182,
+          "evaluation_id": 184,
+          "operator": "Fuse",
+          "fitness": -728.25,
+          "edit_kind": "structural",
+          "donor_id": 5
+        }
+      ]
+    },
+    {
+      "task": "vrptw_construct",
+      "repeat": 1,
+      "path": "experiments/traceaad_v10_9/results/vrptw_construct/20260909_v109_initaware_vrptw_v109_rep1",
+      "evals": 674,
+      "init_best": -23.97289560302038,
+      "best": -19.616879457202717,
+      "best_at": 654,
+      "stats": {
+        "Init": {
+          "attempts": 8,
+          "ok": 8,
+          "parent_improved": 0,
+          "frontier_improved": 0,
+          "init": 8
+        },
+        "Fuse": {
+          "attempts": 229,
+          "ok": 203,
+          "parent_improved": 47,
+          "frontier_improved": 7,
+          "structural": 194,
+          "equal_parent": 29,
+          "above_both": 22,
+          "duplicate_code": 11,
+          "numeric_only": 9,
+          "invalid_output": 7,
+          "eval_failed": 8
+        },
+        "Pivot": {
+          "attempts": 109,
+          "ok": 88,
+          "parent_improved": 21,
+          "frontier_improved": 0,
+          "structural": 88,
+          "equal_parent": 1,
+          "eval_failed": 12,
+          "invalid_output": 9
+        },
+        "Refine": {
+          "attempts": 189,
+          "invalid_output": 10,
+          "ok": 171,
+          "parent_improved": 37,
+          "frontier_improved": 10,
+          "structural": 161,
+          "equal_parent": 13,
+          "eval_failed": 6,
+          "numeric_only": 10,
+          "duplicate_code": 2
+        },
+        "Tune": {
+          "attempts": 179,
+          "ok": 178,
+          "parent_improved": 41,
+          "frontier_improved": 9,
+          "numeric_only": 125,
+          "equal_parent": 3,
+          "structural": 53,
+          "duplicate_code": 1
+        }
+      },
+      "best_path": [
+        {
+          "node_id": 7,
+          "evaluation_id": 8,
+          "operator": "Init",
+          "fitness": -23.97289560302038,
+          "edit_kind": null,
+          "donor_id": null
+        },
+        {
+          "node_id": 11,
+          "evaluation_id": 12,
+          "operator": "Fuse",
+          "fitness": -29.29340880654096,
+          "edit_kind": "structural",
+          "donor_id": 1
+        },
+        {
+          "node_id": 12,
+          "evaluation_id": 13,
+          "operator": "Pivot",
+          "fitness": -24.82651104418529,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 29,
+          "evaluation_id": 32,
+          "operator": "Tune",
+          "fitness": -24.14340112240687,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 42,
+          "evaluation_id": 45,
+          "operator": "Fuse",
+          "fitness": -22.058587591260334,
+          "edit_kind": "structural",
+          "donor_id": 37
+        },
+        {
+          "node_id": 43,
+          "evaluation_id": 46,
+          "operator": "Refine",
+          "fitness": -21.453107373854678,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 46,
+          "evaluation_id": 49,
+          "operator": "Tune",
+          "fitness": -21.101377146257278,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 107,
+          "evaluation_id": 112,
+          "operator": "Tune",
+          "fitness": -20.827731676167694,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 159,
+          "evaluation_id": 165,
+          "operator": "Pivot",
+          "fitness": -22.050634146624716,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 179,
+          "evaluation_id": 189,
+          "operator": "Tune",
+          "fitness": -20.10030724385188,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 207,
+          "evaluation_id": 219,
+          "operator": "Tune",
+          "fitness": -20.08511861938402,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 236,
+          "evaluation_id": 251,
+          "operator": "Fuse",
+          "fitness": -20.005877943034275,
+          "edit_kind": "structural",
+          "donor_id": 232
+        },
+        {
+          "node_id": 310,
+          "evaluation_id": 329,
+          "operator": "Fuse",
+          "fitness": -20.088956932226058,
+          "edit_kind": "structural",
+          "donor_id": 286
+        },
+        {
+          "node_id": 350,
+          "evaluation_id": 371,
+          "operator": "Refine",
+          "fitness": -20.04947477817203,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 362,
+          "evaluation_id": 383,
+          "operator": "Fuse",
+          "fitness": -19.915579489277803,
+          "edit_kind": "structural",
+          "donor_id": 304
+        },
+        {
+          "node_id": 383,
+          "evaluation_id": 405,
+          "operator": "Fuse",
+          "fitness": -19.915579489277803,
+          "edit_kind": "structural",
+          "donor_id": 380
+        },
+        {
+          "node_id": 387,
+          "evaluation_id": 409,
+          "operator": "Refine",
+          "fitness": -19.874442942312086,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 441,
+          "evaluation_id": 463,
+          "operator": "Fuse",
+          "fitness": -19.95893894364469,
+          "edit_kind": "structural",
+          "donor_id": 306
+        },
+        {
+          "node_id": 512,
+          "evaluation_id": 536,
+          "operator": "Fuse",
+          "fitness": -19.748395324572876,
+          "edit_kind": "structural",
+          "donor_id": 497
+        },
+        {
+          "node_id": 542,
+          "evaluation_id": 566,
+          "operator": "Refine",
+          "fitness": -19.705662559791296,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 554,
+          "evaluation_id": 579,
+          "operator": "Refine",
+          "fitness": -19.705662559791296,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 579,
+          "evaluation_id": 606,
+          "operator": "Tune",
+          "fitness": -19.705662559791296,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 605,
+          "evaluation_id": 632,
+          "operator": "Refine",
+          "fitness": -19.64293712559376,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 627,
+          "evaluation_id": 654,
+          "operator": "Tune",
+          "fitness": -19.616879457202717,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        }
+      ]
+    },
+    {
+      "task": "tsp_construct",
+      "repeat": 2,
+      "path": "experiments/traceaad_v10_9/results/tsp_construct/20260909_v109_initaware_tsp_v109_rep2",
+      "evals": 728,
+      "init_best": -7.148209867356726,
+      "best": -6.073247349041328,
+      "best_at": 616,
+      "stats": {
+        "Init": {
+          "attempts": 8,
+          "ok": 8,
+          "parent_improved": 0,
+          "frontier_improved": 0,
+          "init": 8
+        },
+        "Refine": {
+          "attempts": 193,
+          "ok": 161,
+          "parent_improved": 16,
+          "frontier_improved": 3,
+          "structural": 158,
+          "equal_parent": 9,
+          "invalid_output": 9,
+          "duplicate_code": 3,
+          "eval_failed": 20,
+          "numeric_only": 3
+        },
+        "Fuse": {
+          "attempts": 283,
+          "ok": 258,
+          "parent_improved": 81,
+          "frontier_improved": 14,
+          "structural": 257,
+          "equal_parent": 10,
+          "above_both": 37,
+          "invalid_output": 5,
+          "eval_failed": 12,
+          "duplicate_code": 8,
+          "numeric_only": 1
+        },
+        "Tune": {
+          "attempts": 174,
+          "ok": 170,
+          "parent_improved": 39,
+          "frontier_improved": 6,
+          "numeric_only": 106,
+          "equal_parent": 2,
+          "structural": 64,
+          "duplicate_code": 1,
+          "eval_failed": 3
+        },
+        "Pivot": {
+          "attempts": 101,
+          "ok": 90,
+          "parent_improved": 17,
+          "frontier_improved": 1,
+          "structural": 90,
+          "equal_parent": 1,
+          "duplicate_code": 2,
+          "invalid_output": 3,
+          "eval_failed": 6
+        }
+      },
+      "best_path": [
+        {
+          "node_id": 4,
+          "evaluation_id": 5,
+          "operator": "Init",
+          "fitness": -7.308380125224543,
+          "edit_kind": null,
+          "donor_id": null
+        },
+        {
+          "node_id": 11,
+          "evaluation_id": 12,
+          "operator": "Tune",
+          "fitness": -7.171517921091681,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 23,
+          "evaluation_id": 24,
+          "operator": "Pivot",
+          "fitness": -6.561103523065751,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 90,
+          "evaluation_id": 92,
+          "operator": "Tune",
+          "fitness": -6.517448977073994,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 96,
+          "evaluation_id": 98,
+          "operator": "Fuse",
+          "fitness": -6.425447367098938,
+          "edit_kind": "structural",
+          "donor_id": 59
+        },
+        {
+          "node_id": 99,
+          "evaluation_id": 101,
+          "operator": "Tune",
+          "fitness": -6.455578099533994,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 146,
+          "evaluation_id": 149,
+          "operator": "Fuse",
+          "fitness": -6.341130442850655,
+          "edit_kind": "structural",
+          "donor_id": 98
+        },
+        {
+          "node_id": 151,
+          "evaluation_id": 154,
+          "operator": "Fuse",
+          "fitness": -6.325598984119775,
+          "edit_kind": "structural",
+          "donor_id": 132
+        },
+        {
+          "node_id": 153,
+          "evaluation_id": 156,
+          "operator": "Fuse",
+          "fitness": -6.324238032464626,
+          "edit_kind": "structural",
+          "donor_id": 141
+        },
+        {
+          "node_id": 178,
+          "evaluation_id": 182,
+          "operator": "Refine",
+          "fitness": -6.341130442850655,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 179,
+          "evaluation_id": 183,
+          "operator": "Fuse",
+          "fitness": -6.324238032464626,
+          "edit_kind": "structural",
+          "donor_id": 165
+        },
+        {
+          "node_id": 224,
+          "evaluation_id": 229,
+          "operator": "Pivot",
+          "fitness": -9.131399676704234,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 274,
+          "evaluation_id": 279,
+          "operator": "Fuse",
+          "fitness": -6.312273982329945,
+          "edit_kind": "structural",
+          "donor_id": 262
+        },
+        {
+          "node_id": 308,
+          "evaluation_id": 316,
+          "operator": "Fuse",
+          "fitness": -6.310256920668353,
+          "edit_kind": "structural",
+          "donor_id": 295
+        },
+        {
+          "node_id": 357,
+          "evaluation_id": 365,
+          "operator": "Tune",
+          "fitness": -6.3116058527206285,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 418,
+          "evaluation_id": 427,
+          "operator": "Fuse",
+          "fitness": -6.285246191858215,
+          "edit_kind": "structural",
+          "donor_id": 398
+        },
+        {
+          "node_id": 427,
+          "evaluation_id": 436,
+          "operator": "Refine",
+          "fitness": -6.158578306819651,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 430,
+          "evaluation_id": 439,
+          "operator": "Fuse",
+          "fitness": -6.140569395437704,
+          "edit_kind": "structural",
+          "donor_id": 356
+        },
+        {
+          "node_id": 434,
+          "evaluation_id": 443,
+          "operator": "Tune",
+          "fitness": -6.097027868132602,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 438,
+          "evaluation_id": 447,
+          "operator": "Fuse",
+          "fitness": -6.092794619598296,
+          "edit_kind": "structural",
+          "donor_id": 334
+        },
+        {
+          "node_id": 557,
+          "evaluation_id": 582,
+          "operator": "Fuse",
+          "fitness": -6.088130352064585,
+          "edit_kind": "structural",
+          "donor_id": 528
+        },
+        {
+          "node_id": 590,
+          "evaluation_id": 616,
+          "operator": "Fuse",
+          "fitness": -6.073247349041328,
+          "edit_kind": "structural",
+          "donor_id": 565
+        }
+      ]
+    },
+    {
+      "task": "cvrp_aco",
+      "repeat": 2,
+      "path": "experiments/traceaad_v10_9/results/cvrp_aco/20260909_v109_initaware_cvrp_v109_rep2",
+      "evals": 343,
+      "init_best": -9.968411039646718,
+      "best": -9.052316653780077,
+      "best_at": 327,
+      "stats": {
+        "Init": {
+          "attempts": 9,
+          "eval_failed": 1,
+          "ok": 8,
+          "parent_improved": 0,
+          "frontier_improved": 0,
+          "init": 8
+        },
+        "Refine": {
+          "attempts": 91,
+          "ok": 78,
+          "parent_improved": 21,
+          "frontier_improved": 3,
+          "numeric_only": 4,
+          "equal_parent": 4,
+          "structural": 74,
+          "eval_failed": 4,
+          "duplicate_code": 3,
+          "invalid_output": 6
+        },
+        "Fuse": {
+          "attempts": 124,
+          "ok": 115,
+          "parent_improved": 33,
+          "frontier_improved": 8,
+          "structural": 114,
+          "equal_parent": 3,
+          "above_both": 24,
+          "duplicate_code": 6,
+          "numeric_only": 1,
+          "eval_failed": 3
+        },
+        "Tune": {
+          "attempts": 88,
+          "ok": 85,
+          "parent_improved": 19,
+          "frontier_improved": 3,
+          "numeric_only": 64,
+          "equal_parent": 1,
+          "structural": 21,
+          "eval_failed": 1,
+          "duplicate_code": 2
+        },
+        "Pivot": {
+          "attempts": 48,
+          "eval_failed": 4,
+          "ok": 44,
+          "parent_improved": 6,
+          "frontier_improved": 0,
+          "structural": 44,
+          "equal_parent": 0
+        }
+      },
+      "best_path": [
+        {
+          "node_id": 6,
+          "evaluation_id": 8,
+          "operator": "Init",
+          "fitness": -12.416026971382738,
+          "edit_kind": null,
+          "donor_id": null
+        },
+        {
+          "node_id": 8,
+          "evaluation_id": 10,
+          "operator": "Refine",
+          "fitness": -12.014620956405654,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 23,
+          "evaluation_id": 27,
+          "operator": "Tune",
+          "fitness": -11.691380809888816,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 27,
+          "evaluation_id": 32,
+          "operator": "Fuse",
+          "fitness": -9.980331409937971,
+          "edit_kind": "structural",
+          "donor_id": 20
+        },
+        {
+          "node_id": 37,
+          "evaluation_id": 42,
+          "operator": "Refine",
+          "fitness": -10.660806268518995,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 42,
+          "evaluation_id": 47,
+          "operator": "Refine",
+          "fitness": -10.660806268518995,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 60,
+          "evaluation_id": 65,
+          "operator": "Fuse",
+          "fitness": -9.954703643702048,
+          "edit_kind": "structural",
+          "donor_id": 51
+        },
+        {
+          "node_id": 61,
+          "evaluation_id": 66,
+          "operator": "Tune",
+          "fitness": -9.848531795365478,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 115,
+          "evaluation_id": 120,
+          "operator": "Refine",
+          "fitness": -9.848531795365478,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 130,
+          "evaluation_id": 135,
+          "operator": "Tune",
+          "fitness": -9.561134783148207,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 131,
+          "evaluation_id": 136,
+          "operator": "Refine",
+          "fitness": -9.561134783148207,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 137,
+          "evaluation_id": 143,
+          "operator": "Fuse",
+          "fitness": -9.351557671538771,
+          "edit_kind": "structural",
+          "donor_id": 38
+        },
+        {
+          "node_id": 244,
+          "evaluation_id": 256,
+          "operator": "Fuse",
+          "fitness": -9.351557671538771,
+          "edit_kind": "structural",
+          "donor_id": 145
+        },
+        {
+          "node_id": 276,
+          "evaluation_id": 288,
+          "operator": "Fuse",
+          "fitness": -9.11500846526315,
+          "edit_kind": "structural",
+          "donor_id": 53
+        },
+        {
+          "node_id": 286,
+          "evaluation_id": 299,
+          "operator": "Fuse",
+          "fitness": -9.114378375898712,
+          "edit_kind": "structural",
+          "donor_id": 202
+        },
+        {
+          "node_id": 313,
+          "evaluation_id": 327,
+          "operator": "Refine",
+          "fitness": -9.052316653780077,
+          "edit_kind": "structural",
+          "donor_id": null
+        }
+      ]
+    },
+    {
+      "task": "op_aco",
+      "repeat": 2,
+      "path": "experiments/traceaad_v10_9/results/op_aco/20260909_v109_initaware_op_v109_rep2",
+      "evals": 684,
+      "init_best": 13.035999999999998,
+      "best": 14.751999999999999,
+      "best_at": 471,
+      "stats": {
+        "Init": {
+          "attempts": 9,
+          "ok": 8,
+          "parent_improved": 0,
+          "frontier_improved": 0,
+          "init": 8,
+          "eval_failed": 1
+        },
+        "Refine": {
+          "attempts": 161,
+          "ok": 154,
+          "parent_improved": 18,
+          "frontier_improved": 3,
+          "structural": 145,
+          "equal_parent": 14,
+          "duplicate_code": 4,
+          "numeric_only": 9,
+          "eval_failed": 2,
+          "invalid_output": 1
+        },
+        "Fuse": {
+          "attempts": 244,
+          "eval_failed": 5,
+          "ok": 231,
+          "parent_improved": 44,
+          "frontier_improved": 3,
+          "structural": 218,
+          "equal_parent": 17,
+          "above_both": 23,
+          "duplicate_code": 7,
+          "numeric_only": 13,
+          "invalid_output": 1
+        },
+        "Tune": {
+          "attempts": 179,
+          "ok": 178,
+          "parent_improved": 20,
+          "frontier_improved": 6,
+          "structural": 73,
+          "equal_parent": 2,
+          "numeric_only": 105,
+          "duplicate_code": 1
+        },
+        "Pivot": {
+          "attempts": 106,
+          "ok": 103,
+          "parent_improved": 11,
+          "frontier_improved": 1,
+          "structural": 103,
+          "equal_parent": 0,
+          "eval_failed": 2,
+          "invalid_output": 1
+        }
+      },
+      "best_path": [
+        {
+          "node_id": 0,
+          "evaluation_id": 1,
+          "operator": "Init",
+          "fitness": 12.62,
+          "edit_kind": null,
+          "donor_id": null
+        },
+        {
+          "node_id": 11,
+          "evaluation_id": 15,
+          "operator": "Tune",
+          "fitness": 13.37,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 33,
+          "evaluation_id": 38,
+          "operator": "Fuse",
+          "fitness": 13.841999999999999,
+          "edit_kind": "structural",
+          "donor_id": 28
+        },
+        {
+          "node_id": 34,
+          "evaluation_id": 39,
+          "operator": "Tune",
+          "fitness": 13.87,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 42,
+          "evaluation_id": 47,
+          "operator": "Fuse",
+          "fitness": 14.033999999999997,
+          "edit_kind": "numeric_only",
+          "donor_id": 40
+        },
+        {
+          "node_id": 53,
+          "evaluation_id": 59,
+          "operator": "Refine",
+          "fitness": 14.156,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 58,
+          "evaluation_id": 64,
+          "operator": "Tune",
+          "fitness": 14.288,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 59,
+          "evaluation_id": 65,
+          "operator": "Pivot",
+          "fitness": 14.531999999999996,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 112,
+          "evaluation_id": 119,
+          "operator": "Fuse",
+          "fitness": 14.517999999999997,
+          "edit_kind": "structural",
+          "donor_id": 88
+        },
+        {
+          "node_id": 249,
+          "evaluation_id": 256,
+          "operator": "Fuse",
+          "fitness": 14.517999999999997,
+          "edit_kind": "structural",
+          "donor_id": 183
+        },
+        {
+          "node_id": 341,
+          "evaluation_id": 349,
+          "operator": "Refine",
+          "fitness": 14.517999999999997,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 422,
+          "evaluation_id": 430,
+          "operator": "Fuse",
+          "fitness": 14.719999999999999,
+          "edit_kind": "structural",
+          "donor_id": 414
+        },
+        {
+          "node_id": 423,
+          "evaluation_id": 431,
+          "operator": "Fuse",
+          "fitness": 14.719999999999999,
+          "edit_kind": "structural",
+          "donor_id": 161
+        },
+        {
+          "node_id": 463,
+          "evaluation_id": 471,
+          "operator": "Tune",
+          "fitness": 14.751999999999999,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        }
+      ]
+    },
+    {
+      "task": "online_bin_packing",
+      "repeat": 2,
+      "path": "experiments/traceaad_v10_9/results/online_bin_packing/20260909_v109_initaware_obp_v109_rep2",
+      "evals": 1000,
+      "init_best": -744.5,
+      "best": -729.75,
+      "best_at": 571,
+      "stats": {
+        "Init": {
+          "attempts": 8,
+          "ok": 8,
+          "parent_improved": 0,
+          "frontier_improved": 0,
+          "init": 8
+        },
+        "Refine": {
+          "attempts": 265,
+          "ok": 241,
+          "parent_improved": 20,
+          "frontier_improved": 1,
+          "structural": 205,
+          "equal_parent": 47,
+          "numeric_only": 36,
+          "invalid_output": 4,
+          "duplicate_code": 18,
+          "eval_failed": 2
+        },
+        "Fuse": {
+          "attempts": 404,
+          "ok": 352,
+          "parent_improved": 36,
+          "frontier_improved": 3,
+          "structural": 328,
+          "equal_parent": 126,
+          "above_both": 10,
+          "numeric_only": 24,
+          "duplicate_code": 51,
+          "eval_failed": 1
+        },
+        "Tune": {
+          "attempts": 255,
+          "ok": 249,
+          "parent_improved": 24,
+          "frontier_improved": 4,
+          "numeric_only": 164,
+          "equal_parent": 23,
+          "structural": 85,
+          "duplicate_code": 6
+        },
+        "Pivot": {
+          "attempts": 150,
+          "ok": 144,
+          "parent_improved": 27,
+          "frontier_improved": 0,
+          "structural": 144,
+          "equal_parent": 14,
+          "eval_failed": 3,
+          "duplicate_code": 1,
+          "invalid_output": 2
+        }
+      },
+      "best_path": [
+        {
+          "node_id": 1,
+          "evaluation_id": 2,
+          "operator": "Init",
+          "fitness": -744.5,
+          "edit_kind": null,
+          "donor_id": null
+        },
+        {
+          "node_id": 25,
+          "evaluation_id": 26,
+          "operator": "Fuse",
+          "fitness": -734.25,
+          "edit_kind": "structural",
+          "donor_id": 19
+        },
+        {
+          "node_id": 63,
+          "evaluation_id": 65,
+          "operator": "Pivot",
+          "fitness": -747.25,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 69,
+          "evaluation_id": 71,
+          "operator": "Tune",
+          "fitness": -731.75,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 80,
+          "evaluation_id": 82,
+          "operator": "Tune",
+          "fitness": -731.25,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 97,
+          "evaluation_id": 99,
+          "operator": "Fuse",
+          "fitness": -731.25,
+          "edit_kind": "structural",
+          "donor_id": 69
+        },
+        {
+          "node_id": 152,
+          "evaluation_id": 154,
+          "operator": "Fuse",
+          "fitness": -730.75,
+          "edit_kind": "structural",
+          "donor_id": 91
+        },
+        {
+          "node_id": 233,
+          "evaluation_id": 236,
+          "operator": "Fuse",
+          "fitness": -730.75,
+          "edit_kind": "structural",
+          "donor_id": 198
+        },
+        {
+          "node_id": 237,
+          "evaluation_id": 240,
+          "operator": "Pivot",
+          "fitness": -744.5,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 277,
+          "evaluation_id": 280,
+          "operator": "Fuse",
+          "fitness": -730.25,
+          "edit_kind": "structural",
+          "donor_id": 276
+        },
+        {
+          "node_id": 294,
+          "evaluation_id": 297,
+          "operator": "Fuse",
+          "fitness": -730.25,
+          "edit_kind": "structural",
+          "donor_id": 244
+        },
+        {
+          "node_id": 333,
+          "evaluation_id": 336,
+          "operator": "Fuse",
+          "fitness": -730.25,
+          "edit_kind": "structural",
+          "donor_id": 289
+        },
+        {
+          "node_id": 342,
+          "evaluation_id": 345,
+          "operator": "Fuse",
+          "fitness": -730.25,
+          "edit_kind": "structural",
+          "donor_id": 276
+        },
+        {
+          "node_id": 351,
+          "evaluation_id": 354,
+          "operator": "Fuse",
+          "fitness": -730.25,
+          "edit_kind": "structural",
+          "donor_id": 289
+        },
+        {
+          "node_id": 362,
+          "evaluation_id": 365,
+          "operator": "Refine",
+          "fitness": -730.25,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 370,
+          "evaluation_id": 373,
+          "operator": "Fuse",
+          "fitness": -730.25,
+          "edit_kind": "numeric_only",
+          "donor_id": 291
+        },
+        {
+          "node_id": 404,
+          "evaluation_id": 407,
+          "operator": "Fuse",
+          "fitness": -730.25,
+          "edit_kind": "structural",
+          "donor_id": 276
+        },
+        {
+          "node_id": 518,
+          "evaluation_id": 522,
+          "operator": "Fuse",
+          "fitness": -730.25,
+          "edit_kind": "structural",
+          "donor_id": 399
+        },
+        {
+          "node_id": 567,
+          "evaluation_id": 571,
+          "operator": "Fuse",
+          "fitness": -729.75,
+          "edit_kind": "structural",
+          "donor_id": 297
+        }
+      ]
+    },
+    {
+      "task": "vrptw_construct",
+      "repeat": 2,
+      "path": "experiments/traceaad_v10_9/results/vrptw_construct/20260909_v109_initaware_vrptw_v109_rep2",
+      "evals": 759,
+      "init_best": -26.699836571183265,
+      "best": -20.0621762768549,
+      "best_at": 686,
+      "stats": {
+        "Init": {
+          "attempts": 10,
+          "ok": 8,
+          "parent_improved": 0,
+          "frontier_improved": 0,
+          "init": 8,
+          "eval_failed": 2
+        },
+        "Refine": {
+          "attempts": 201,
+          "ok": 174,
+          "parent_improved": 22,
+          "frontier_improved": 6,
+          "structural": 169,
+          "equal_parent": 17,
+          "eval_failed": 5,
+          "invalid_output": 9,
+          "numeric_only": 5,
+          "duplicate_code": 13
+        },
+        "Fuse": {
+          "attempts": 280,
+          "ok": 240,
+          "parent_improved": 46,
+          "frontier_improved": 7,
+          "structural": 238,
+          "equal_parent": 25,
+          "above_both": 15,
+          "invalid_output": 7,
+          "eval_failed": 7,
+          "duplicate_code": 26,
+          "numeric_only": 2
+        },
+        "Tune": {
+          "attempts": 207,
+          "ok": 202,
+          "parent_improved": 31,
+          "frontier_improved": 7,
+          "numeric_only": 147,
+          "equal_parent": 8,
+          "structural": 55,
+          "eval_failed": 1,
+          "duplicate_code": 3,
+          "invalid_output": 1
+        },
+        "Pivot": {
+          "attempts": 123,
+          "ok": 111,
+          "parent_improved": 21,
+          "frontier_improved": 1,
+          "structural": 111,
+          "equal_parent": 3,
+          "eval_failed": 9,
+          "invalid_output": 3
+        }
+      },
+      "best_path": [
+        {
+          "node_id": 6,
+          "evaluation_id": 9,
+          "operator": "Init",
+          "fitness": -29.351132559532378,
+          "edit_kind": null,
+          "donor_id": null
+        },
+        {
+          "node_id": 8,
+          "evaluation_id": 11,
+          "operator": "Refine",
+          "fitness": -28.57826031069695,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 13,
+          "evaluation_id": 16,
+          "operator": "Refine",
+          "fitness": -27.537995279088076,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 19,
+          "evaluation_id": 24,
+          "operator": "Refine",
+          "fitness": -24.25977522678731,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 25,
+          "evaluation_id": 30,
+          "operator": "Fuse",
+          "fitness": -23.293930976525033,
+          "edit_kind": "structural",
+          "donor_id": 18
+        },
+        {
+          "node_id": 30,
+          "evaluation_id": 36,
+          "operator": "Refine",
+          "fitness": -22.78302775813917,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 43,
+          "evaluation_id": 50,
+          "operator": "Tune",
+          "fitness": -22.747941021675974,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 46,
+          "evaluation_id": 53,
+          "operator": "Refine",
+          "fitness": -21.936571950942522,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 55,
+          "evaluation_id": 62,
+          "operator": "Tune",
+          "fitness": -21.936571950942522,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 59,
+          "evaluation_id": 66,
+          "operator": "Tune",
+          "fitness": -21.75451551036557,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 67,
+          "evaluation_id": 74,
+          "operator": "Tune",
+          "fitness": -21.452923334459264,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 71,
+          "evaluation_id": 79,
+          "operator": "Fuse",
+          "fitness": -21.45937300451572,
+          "edit_kind": "structural",
+          "donor_id": 59
+        },
+        {
+          "node_id": 90,
+          "evaluation_id": 98,
+          "operator": "Refine",
+          "fitness": -21.349835473211595,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 102,
+          "evaluation_id": 110,
+          "operator": "Tune",
+          "fitness": -21.20899478257529,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 125,
+          "evaluation_id": 133,
+          "operator": "Fuse",
+          "fitness": -21.067288498577177,
+          "edit_kind": "structural",
+          "donor_id": 45
+        },
+        {
+          "node_id": 152,
+          "evaluation_id": 161,
+          "operator": "Fuse",
+          "fitness": -21.199110866932642,
+          "edit_kind": "structural",
+          "donor_id": 117
+        },
+        {
+          "node_id": 160,
+          "evaluation_id": 170,
+          "operator": "Fuse",
+          "fitness": -21.067288498577177,
+          "edit_kind": "structural",
+          "donor_id": 125
+        },
+        {
+          "node_id": 192,
+          "evaluation_id": 202,
+          "operator": "Fuse",
+          "fitness": -20.98868669832676,
+          "edit_kind": "structural",
+          "donor_id": 159
+        },
+        {
+          "node_id": 202,
+          "evaluation_id": 212,
+          "operator": "Fuse",
+          "fitness": -20.98868669832676,
+          "edit_kind": "structural",
+          "donor_id": 65
+        },
+        {
+          "node_id": 212,
+          "evaluation_id": 222,
+          "operator": "Tune",
+          "fitness": -20.96829630859264,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 216,
+          "evaluation_id": 226,
+          "operator": "Fuse",
+          "fitness": -20.844830183997324,
+          "edit_kind": "structural",
+          "donor_id": 135
+        },
+        {
+          "node_id": 290,
+          "evaluation_id": 302,
+          "operator": "Fuse",
+          "fitness": -20.844830183997324,
+          "edit_kind": "structural",
+          "donor_id": 273
+        },
+        {
+          "node_id": 305,
+          "evaluation_id": 318,
+          "operator": "Tune",
+          "fitness": -20.781999711101427,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 308,
+          "evaluation_id": 321,
+          "operator": "Refine",
+          "fitness": -20.455780532307504,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 334,
+          "evaluation_id": 347,
+          "operator": "Tune",
+          "fitness": -20.51531646223722,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 357,
+          "evaluation_id": 371,
+          "operator": "Refine",
+          "fitness": -20.249066325092482,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 389,
+          "evaluation_id": 403,
+          "operator": "Fuse",
+          "fitness": -20.249066325092482,
+          "edit_kind": "structural",
+          "donor_id": 255
+        },
+        {
+          "node_id": 393,
+          "evaluation_id": 407,
+          "operator": "Fuse",
+          "fitness": -20.344969246149276,
+          "edit_kind": "structural",
+          "donor_id": 354
+        },
+        {
+          "node_id": 433,
+          "evaluation_id": 448,
+          "operator": "Tune",
+          "fitness": -20.272602862721172,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 458,
+          "evaluation_id": 474,
+          "operator": "Tune",
+          "fitness": -20.17042050115488,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 515,
+          "evaluation_id": 533,
+          "operator": "Fuse",
+          "fitness": -20.17042050115488,
+          "edit_kind": "structural",
+          "donor_id": 35
+        },
+        {
+          "node_id": 664,
+          "evaluation_id": 686,
+          "operator": "Fuse",
+          "fitness": -20.0621762768549,
+          "edit_kind": "structural",
+          "donor_id": 262
+        }
+      ]
+    },
+    {
+      "task": "tsp_construct",
+      "repeat": 3,
+      "path": "experiments/traceaad_v10_9/results/tsp_construct/20260909_v109_initaware_tsp_v109_rep3",
+      "evals": 1000,
+      "init_best": -6.78870135557967,
+      "best": -6.261619955186969,
+      "best_at": 892,
+      "stats": {
+        "Init": {
+          "attempts": 8,
+          "ok": 8,
+          "parent_improved": 0,
+          "frontier_improved": 0,
+          "init": 8
+        },
+        "Fuse": {
+          "attempts": 340,
+          "ok": 315,
+          "parent_improved": 34,
+          "frontier_improved": 2,
+          "structural": 305,
+          "equal_parent": 45,
+          "above_both": 8,
+          "duplicate_code": 23,
+          "numeric_only": 10,
+          "eval_failed": 2
+        },
+        "Pivot": {
+          "attempts": 162,
+          "ok": 156,
+          "parent_improved": 18,
+          "frontier_improved": 0,
+          "structural": 156,
+          "equal_parent": 6,
+          "invalid_output": 3,
+          "eval_failed": 3
+        },
+        "Refine": {
+          "attempts": 259,
+          "ok": 240,
+          "parent_improved": 19,
+          "frontier_improved": 2,
+          "structural": 229,
+          "equal_parent": 15,
+          "invalid_output": 6,
+          "eval_failed": 2,
+          "numeric_only": 11,
+          "duplicate_code": 11
+        },
+        "Tune": {
+          "attempts": 275,
+          "ok": 274,
+          "parent_improved": 30,
+          "frontier_improved": 4,
+          "numeric_only": 202,
+          "equal_parent": 20,
+          "structural": 72,
+          "duplicate_code": 1
+        }
+      },
+      "best_path": [
+        {
+          "node_id": 2,
+          "evaluation_id": 3,
+          "operator": "Init",
+          "fitness": -6.8239686184057184,
+          "edit_kind": null,
+          "donor_id": null
+        },
+        {
+          "node_id": 27,
+          "evaluation_id": 28,
+          "operator": "Tune",
+          "fitness": -6.8239686184057184,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 38,
+          "evaluation_id": 40,
+          "operator": "Fuse",
+          "fitness": -6.403115000118293,
+          "edit_kind": "structural",
+          "donor_id": 1
+        },
+        {
+          "node_id": 64,
+          "evaluation_id": 66,
+          "operator": "Tune",
+          "fitness": -6.4343288284399485,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 75,
+          "evaluation_id": 77,
+          "operator": "Tune",
+          "fitness": -6.403115000118293,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 79,
+          "evaluation_id": 81,
+          "operator": "Fuse",
+          "fitness": -6.31313892334061,
+          "edit_kind": "structural",
+          "donor_id": 51
+        },
+        {
+          "node_id": 82,
+          "evaluation_id": 84,
+          "operator": "Tune",
+          "fitness": -6.296633455505928,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 84,
+          "evaluation_id": 86,
+          "operator": "Tune",
+          "fitness": -6.299662277253914,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 138,
+          "evaluation_id": 140,
+          "operator": "Tune",
+          "fitness": -6.286819260654434,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 295,
+          "evaluation_id": 298,
+          "operator": "Fuse",
+          "fitness": -6.286819260654434,
+          "edit_kind": "structural",
+          "donor_id": 278
+        },
+        {
+          "node_id": 334,
+          "evaluation_id": 338,
+          "operator": "Fuse",
+          "fitness": -6.274959750560314,
+          "edit_kind": "numeric_only",
+          "donor_id": 80
+        },
+        {
+          "node_id": 593,
+          "evaluation_id": 599,
+          "operator": "Fuse",
+          "fitness": -6.274959750560314,
+          "edit_kind": "structural",
+          "donor_id": 350
+        },
+        {
+          "node_id": 647,
+          "evaluation_id": 653,
+          "operator": "Fuse",
+          "fitness": -6.267928858371128,
+          "edit_kind": "structural",
+          "donor_id": 631
+        },
+        {
+          "node_id": 690,
+          "evaluation_id": 697,
+          "operator": "Fuse",
+          "fitness": -6.267928858371128,
+          "edit_kind": "structural",
+          "donor_id": 654
+        },
+        {
+          "node_id": 786,
+          "evaluation_id": 793,
+          "operator": "Fuse",
+          "fitness": -6.267928858371128,
+          "edit_kind": "structural",
+          "donor_id": 720
+        },
+        {
+          "node_id": 885,
+          "evaluation_id": 892,
+          "operator": "Refine",
+          "fitness": -6.261619955186969,
+          "edit_kind": "structural",
+          "donor_id": null
+        }
+      ]
+    },
+    {
+      "task": "cvrp_aco",
+      "repeat": 3,
+      "path": "experiments/traceaad_v10_9/results/cvrp_aco/20260909_v109_initaware_cvrp_v109_rep3",
+      "evals": 332,
+      "init_best": -17.938150272015786,
+      "best": -9.140229137488669,
+      "best_at": 315,
+      "stats": {
+        "Init": {
+          "attempts": 8,
+          "ok": 8,
+          "parent_improved": 0,
+          "frontier_improved": 0,
+          "init": 8
+        },
+        "Fuse": {
+          "attempts": 113,
+          "ok": 99,
+          "parent_improved": 24,
+          "frontier_improved": 6,
+          "structural": 97,
+          "equal_parent": 20,
+          "above_both": 14,
+          "eval_failed": 4,
+          "duplicate_code": 9,
+          "numeric_only": 2,
+          "invalid_output": 1
+        },
+        "Pivot": {
+          "attempts": 57,
+          "ok": 55,
+          "parent_improved": 14,
+          "frontier_improved": 3,
+          "structural": 55,
+          "equal_parent": 0,
+          "eval_failed": 2
+        },
+        "Refine": {
+          "attempts": 77,
+          "ok": 71,
+          "parent_improved": 10,
+          "frontier_improved": 1,
+          "structural": 63,
+          "equal_parent": 7,
+          "numeric_only": 8,
+          "eval_failed": 3,
+          "duplicate_code": 2,
+          "invalid_output": 1
+        },
+        "Tune": {
+          "attempts": 90,
+          "ok": 90,
+          "parent_improved": 28,
+          "frontier_improved": 9,
+          "structural": 19,
+          "equal_parent": 1,
+          "numeric_only": 71
+        }
+      },
+      "best_path": [
+        {
+          "node_id": 5,
+          "evaluation_id": 6,
+          "operator": "Init",
+          "fitness": -18.41515298248706,
+          "edit_kind": null,
+          "donor_id": null
+        },
+        {
+          "node_id": 25,
+          "evaluation_id": 26,
+          "operator": "Pivot",
+          "fitness": -14.645421130322507,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 45,
+          "evaluation_id": 47,
+          "operator": "Tune",
+          "fitness": -9.754917763394078,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 47,
+          "evaluation_id": 49,
+          "operator": "Tune",
+          "fitness": -9.628614602598118,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 58,
+          "evaluation_id": 60,
+          "operator": "Fuse",
+          "fitness": -9.36125602736367,
+          "edit_kind": "structural",
+          "donor_id": 40
+        },
+        {
+          "node_id": 62,
+          "evaluation_id": 64,
+          "operator": "Refine",
+          "fitness": -9.5677739539089,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 78,
+          "evaluation_id": 80,
+          "operator": "Refine",
+          "fitness": -9.578928752943748,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 85,
+          "evaluation_id": 87,
+          "operator": "Tune",
+          "fitness": -9.51777757506612,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 87,
+          "evaluation_id": 89,
+          "operator": "Fuse",
+          "fitness": -9.356297095404576,
+          "edit_kind": "structural",
+          "donor_id": 73
+        },
+        {
+          "node_id": 91,
+          "evaluation_id": 93,
+          "operator": "Fuse",
+          "fitness": -9.356297095404576,
+          "edit_kind": "numeric_only",
+          "donor_id": 70
+        },
+        {
+          "node_id": 158,
+          "evaluation_id": 163,
+          "operator": "Tune",
+          "fitness": -9.261618011521268,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 213,
+          "evaluation_id": 219,
+          "operator": "Fuse",
+          "fitness": -9.281886109160768,
+          "edit_kind": "structural",
+          "donor_id": 30
+        },
+        {
+          "node_id": 273,
+          "evaluation_id": 280,
+          "operator": "Tune",
+          "fitness": -9.16171578517448,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 305,
+          "evaluation_id": 315,
+          "operator": "Tune",
+          "fitness": -9.140229137488669,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        }
+      ]
+    },
+    {
+      "task": "op_aco",
+      "repeat": 3,
+      "path": "experiments/traceaad_v10_9/results/op_aco/20260909_v109_initaware_op_v109_rep3",
+      "evals": 604,
+      "init_best": 12.729999999999999,
+      "best": 14.678,
+      "best_at": 465,
+      "stats": {
+        "Init": {
+          "attempts": 9,
+          "eval_failed": 1,
+          "ok": 8,
+          "parent_improved": 0,
+          "frontier_improved": 0,
+          "init": 8
+        },
+        "Fuse": {
+          "attempts": 214,
+          "ok": 193,
+          "parent_improved": 27,
+          "frontier_improved": 4,
+          "structural": 184,
+          "equal_parent": 39,
+          "above_both": 12,
+          "duplicate_code": 19,
+          "eval_failed": 2,
+          "numeric_only": 9
+        },
+        "Pivot": {
+          "attempts": 91,
+          "ok": 90,
+          "parent_improved": 15,
+          "frontier_improved": 2,
+          "structural": 89,
+          "equal_parent": 0,
+          "eval_failed": 1,
+          "numeric_only": 1
+        },
+        "Refine": {
+          "attempts": 160,
+          "ok": 152,
+          "parent_improved": 21,
+          "frontier_improved": 3,
+          "structural": 137,
+          "equal_parent": 10,
+          "numeric_only": 15,
+          "duplicate_code": 5,
+          "invalid_output": 2,
+          "eval_failed": 1
+        },
+        "Tune": {
+          "attempts": 158,
+          "ok": 156,
+          "parent_improved": 23,
+          "frontier_improved": 3,
+          "structural": 60,
+          "equal_parent": 6,
+          "numeric_only": 96,
+          "duplicate_code": 2
+        }
+      },
+      "best_path": [
+        {
+          "node_id": 1,
+          "evaluation_id": 3,
+          "operator": "Init",
+          "fitness": 12.729999999999999,
+          "edit_kind": null,
+          "donor_id": null
+        },
+        {
+          "node_id": 14,
+          "evaluation_id": 16,
+          "operator": "Tune",
+          "fitness": 12.498,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 15,
+          "evaluation_id": 17,
+          "operator": "Pivot",
+          "fitness": 12.866,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 30,
+          "evaluation_id": 32,
+          "operator": "Refine",
+          "fitness": 13.014000000000001,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 39,
+          "evaluation_id": 41,
+          "operator": "Fuse",
+          "fitness": 13.830000000000002,
+          "edit_kind": "structural",
+          "donor_id": 25
+        },
+        {
+          "node_id": 55,
+          "evaluation_id": 57,
+          "operator": "Tune",
+          "fitness": 14.295999999999998,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 97,
+          "evaluation_id": 100,
+          "operator": "Refine",
+          "fitness": 14.331999999999999,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 113,
+          "evaluation_id": 116,
+          "operator": "Refine",
+          "fitness": 14.459999999999999,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 126,
+          "evaluation_id": 129,
+          "operator": "Fuse",
+          "fitness": 14.354000000000003,
+          "edit_kind": "structural",
+          "donor_id": 26
+        },
+        {
+          "node_id": 155,
+          "evaluation_id": 158,
+          "operator": "Tune",
+          "fitness": 14.539999999999997,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 170,
+          "evaluation_id": 173,
+          "operator": "Refine",
+          "fitness": 14.580000000000002,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 240,
+          "evaluation_id": 243,
+          "operator": "Refine",
+          "fitness": 14.632,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 355,
+          "evaluation_id": 358,
+          "operator": "Fuse",
+          "fitness": 14.632,
+          "edit_kind": "structural",
+          "donor_id": 257
+        },
+        {
+          "node_id": 366,
+          "evaluation_id": 369,
+          "operator": "Fuse",
+          "fitness": 14.632,
+          "edit_kind": "structural",
+          "donor_id": 348
+        },
+        {
+          "node_id": 392,
+          "evaluation_id": 395,
+          "operator": "Fuse",
+          "fitness": 14.632,
+          "edit_kind": "structural",
+          "donor_id": 51
+        },
+        {
+          "node_id": 398,
+          "evaluation_id": 401,
+          "operator": "Refine",
+          "fitness": 14.632,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 413,
+          "evaluation_id": 416,
+          "operator": "Fuse",
+          "fitness": 14.632,
+          "edit_kind": "structural",
+          "donor_id": 402
+        },
+        {
+          "node_id": 414,
+          "evaluation_id": 417,
+          "operator": "Fuse",
+          "fitness": 14.632,
+          "edit_kind": "structural",
+          "donor_id": 309
+        },
+        {
+          "node_id": 461,
+          "evaluation_id": 465,
+          "operator": "Tune",
+          "fitness": 14.678,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        }
+      ]
+    },
+    {
+      "task": "online_bin_packing",
+      "repeat": 3,
+      "path": "experiments/traceaad_v10_9/results/online_bin_packing/20260909_v109_initaware_obp_v109_rep3",
+      "evals": 803,
+      "init_best": -731.25,
+      "best": -724.75,
+      "best_at": 587,
+      "stats": {
+        "Init": {
+          "attempts": 8,
+          "ok": 8,
+          "parent_improved": 0,
+          "frontier_improved": 0,
+          "init": 8
+        },
+        "Fuse": {
+          "attempts": 279,
+          "ok": 242,
+          "parent_improved": 35,
+          "frontier_improved": 6,
+          "structural": 221,
+          "equal_parent": 86,
+          "above_both": 17,
+          "duplicate_code": 36,
+          "numeric_only": 21,
+          "eval_failed": 1
+        },
+        "Pivot": {
+          "attempts": 131,
+          "ok": 128,
+          "parent_improved": 23,
+          "frontier_improved": 0,
+          "structural": 128,
+          "equal_parent": 5,
+          "eval_failed": 2,
+          "duplicate_code": 1
+        },
+        "Refine": {
+          "attempts": 222,
+          "ok": 211,
+          "parent_improved": 14,
+          "frontier_improved": 2,
+          "structural": 197,
+          "equal_parent": 35,
+          "duplicate_code": 9,
+          "numeric_only": 14,
+          "eval_failed": 2
+        },
+        "Tune": {
+          "attempts": 217,
+          "ok": 209,
+          "parent_improved": 20,
+          "frontier_improved": 5,
+          "structural": 74,
+          "equal_parent": 47,
+          "numeric_only": 135,
+          "duplicate_code": 8
+        }
+      },
+      "best_path": [
+        {
+          "node_id": 7,
+          "evaluation_id": 8,
+          "operator": "Init",
+          "fitness": -736.0,
+          "edit_kind": null,
+          "donor_id": null
+        },
+        {
+          "node_id": 8,
+          "evaluation_id": 9,
+          "operator": "Fuse",
+          "fitness": -734.75,
+          "edit_kind": "structural",
+          "donor_id": 0
+        },
+        {
+          "node_id": 17,
+          "evaluation_id": 18,
+          "operator": "Fuse",
+          "fitness": -730.75,
+          "edit_kind": "structural",
+          "donor_id": 14
+        },
+        {
+          "node_id": 27,
+          "evaluation_id": 28,
+          "operator": "Refine",
+          "fitness": -744.5,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 72,
+          "evaluation_id": 73,
+          "operator": "Tune",
+          "fitness": -744.5,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 113,
+          "evaluation_id": 114,
+          "operator": "Refine",
+          "fitness": -729.5,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 136,
+          "evaluation_id": 138,
+          "operator": "Fuse",
+          "fitness": -730.75,
+          "edit_kind": "structural",
+          "donor_id": 54
+        },
+        {
+          "node_id": 164,
+          "evaluation_id": 166,
+          "operator": "Fuse",
+          "fitness": -729.25,
+          "edit_kind": "structural",
+          "donor_id": 70
+        },
+        {
+          "node_id": 177,
+          "evaluation_id": 179,
+          "operator": "Refine",
+          "fitness": -729.0,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 189,
+          "evaluation_id": 191,
+          "operator": "Tune",
+          "fitness": -729.0,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 218,
+          "evaluation_id": 220,
+          "operator": "Tune",
+          "fitness": -729.0,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 223,
+          "evaluation_id": 225,
+          "operator": "Tune",
+          "fitness": -728.5,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 240,
+          "evaluation_id": 242,
+          "operator": "Tune",
+          "fitness": -728.5,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 273,
+          "evaluation_id": 276,
+          "operator": "Refine",
+          "fitness": -728.5,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 317,
+          "evaluation_id": 320,
+          "operator": "Fuse",
+          "fitness": -726.5,
+          "edit_kind": "structural",
+          "donor_id": 306
+        },
+        {
+          "node_id": 333,
+          "evaluation_id": 336,
+          "operator": "Tune",
+          "fitness": -726.5,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 346,
+          "evaluation_id": 349,
+          "operator": "Fuse",
+          "fitness": -726.0,
+          "edit_kind": "structural",
+          "donor_id": 81
+        },
+        {
+          "node_id": 349,
+          "evaluation_id": 352,
+          "operator": "Tune",
+          "fitness": -726.0,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 401,
+          "evaluation_id": 404,
+          "operator": "Tune",
+          "fitness": -725.75,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 417,
+          "evaluation_id": 420,
+          "operator": "Fuse",
+          "fitness": -725.75,
+          "edit_kind": "structural",
+          "donor_id": 377
+        },
+        {
+          "node_id": 453,
+          "evaluation_id": 456,
+          "operator": "Fuse",
+          "fitness": -725.5,
+          "edit_kind": "structural",
+          "donor_id": 425
+        },
+        {
+          "node_id": 482,
+          "evaluation_id": 485,
+          "operator": "Tune",
+          "fitness": -725.5,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 517,
+          "evaluation_id": 522,
+          "operator": "Fuse",
+          "fitness": -725.75,
+          "edit_kind": "structural",
+          "donor_id": 28
+        },
+        {
+          "node_id": 524,
+          "evaluation_id": 529,
+          "operator": "Fuse",
+          "fitness": -725.5,
+          "edit_kind": "structural",
+          "donor_id": 377
+        },
+        {
+          "node_id": 581,
+          "evaluation_id": 587,
+          "operator": "Tune",
+          "fitness": -724.75,
+          "edit_kind": "structural",
+          "donor_id": null
+        }
+      ]
+    },
+    {
+      "task": "vrptw_construct",
+      "repeat": 3,
+      "path": "experiments/traceaad_v10_9/results/vrptw_construct/20260909_v109_initaware_vrptw_v109_rep3",
+      "evals": 853,
+      "init_best": -22.48098253963451,
+      "best": -20.45212622868644,
+      "best_at": 581,
+      "stats": {
+        "Init": {
+          "attempts": 8,
+          "ok": 8,
+          "parent_improved": 0,
+          "frontier_improved": 0,
+          "init": 8
+        },
+        "Fuse": {
+          "attempts": 328,
+          "ok": 272,
+          "parent_improved": 32,
+          "frontier_improved": 6,
+          "structural": 269,
+          "equal_parent": 47,
+          "above_both": 15,
+          "invalid_output": 18,
+          "duplicate_code": 33,
+          "eval_failed": 5,
+          "numeric_only": 3
+        },
+        "Pivot": {
+          "attempts": 137,
+          "ok": 127,
+          "parent_improved": 22,
+          "frontier_improved": 1,
+          "structural": 127,
+          "equal_parent": 0,
+          "invalid_output": 5,
+          "eval_failed": 5
+        },
+        "Refine": {
+          "attempts": 263,
+          "ok": 217,
+          "parent_improved": 23,
+          "frontier_improved": 5,
+          "structural": 210,
+          "equal_parent": 13,
+          "duplicate_code": 13,
+          "numeric_only": 7,
+          "invalid_output": 25,
+          "eval_failed": 8
+        },
+        "Tune": {
+          "attempts": 219,
+          "ok": 211,
+          "parent_improved": 21,
+          "frontier_improved": 3,
+          "structural": 68,
+          "equal_parent": 5,
+          "numeric_only": 143,
+          "duplicate_code": 8
+        }
+      },
+      "best_path": [
+        {
+          "node_id": 0,
+          "evaluation_id": 1,
+          "operator": "Init",
+          "fitness": -22.48098253963451,
+          "edit_kind": null,
+          "donor_id": null
+        },
+        {
+          "node_id": 50,
+          "evaluation_id": 51,
+          "operator": "Refine",
+          "fitness": -21.86964292753837,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 71,
+          "evaluation_id": 72,
+          "operator": "Fuse",
+          "fitness": -21.048455236079235,
+          "edit_kind": "structural",
+          "donor_id": 64
+        },
+        {
+          "node_id": 78,
+          "evaluation_id": 79,
+          "operator": "Fuse",
+          "fitness": -21.159343462348158,
+          "edit_kind": "structural",
+          "donor_id": 29
+        },
+        {
+          "node_id": 124,
+          "evaluation_id": 126,
+          "operator": "Pivot",
+          "fitness": -22.928643141393238,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 174,
+          "evaluation_id": 177,
+          "operator": "Fuse",
+          "fitness": -20.650608592596804,
+          "edit_kind": "structural",
+          "donor_id": 131
+        },
+        {
+          "node_id": 198,
+          "evaluation_id": 202,
+          "operator": "Refine",
+          "fitness": -20.604831328074557,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 259,
+          "evaluation_id": 265,
+          "operator": "Refine",
+          "fitness": -20.5632918704161,
+          "edit_kind": "numeric_only",
+          "donor_id": null
+        },
+        {
+          "node_id": 279,
+          "evaluation_id": 285,
+          "operator": "Fuse",
+          "fitness": -20.512073362854593,
+          "edit_kind": "structural",
+          "donor_id": 270
+        },
+        {
+          "node_id": 354,
+          "evaluation_id": 361,
+          "operator": "Fuse",
+          "fitness": -20.512073362854593,
+          "edit_kind": "structural",
+          "donor_id": 285
+        },
+        {
+          "node_id": 490,
+          "evaluation_id": 498,
+          "operator": "Refine",
+          "fitness": -20.498062923043193,
+          "edit_kind": "structural",
+          "donor_id": null
+        },
+        {
+          "node_id": 571,
+          "evaluation_id": 581,
+          "operator": "Fuse",
+          "fitness": -20.45212622868644,
+          "edit_kind": "structural",
+          "donor_id": 564
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "Init": {
+      "attempts": 125,
+      "ok": 120,
+      "parent_improved": 0,
+      "frontier_improved": 0,
+      "init": 120,
+      "eval_failed": 5
+    },
+    "Fuse": {
+      "attempts": 4013,
+      "ok": 3611,
+      "parent_improved": 572,
+      "frontier_improved": 83,
+      "structural": 3477,
+      "equal_parent": 839,
+      "above_both": 252,
+      "duplicate_code": 291,
+      "numeric_only": 134,
+      "eval_failed": 66,
+      "invalid_output": 45
+    },
+    "Pivot": {
+      "attempts": 1678,
+      "ok": 1578,
+      "parent_improved": 246,
+      "frontier_improved": 12,
+      "structural": 1576,
+      "equal_parent": 77,
+      "invalid_output": 31,
+      "eval_failed": 65,
+      "numeric_only": 2,
+      "duplicate_code": 4
+    },
+    "Refine": {
+      "attempts": 2786,
+      "ok": 2526,
+      "parent_improved": 308,
+      "frontier_improved": 47,
+      "structural": 2348,
+      "equal_parent": 333,
+      "invalid_output": 86,
+      "numeric_only": 178,
+      "duplicate_code": 102,
+      "eval_failed": 72
+    },
+    "Tune": {
+      "attempts": 2746,
+      "ok": 2692,
+      "parent_improved": 365,
+      "frontier_improved": 71,
+      "structural": 886,
+      "equal_parent": 336,
+      "numeric_only": 1806,
+      "duplicate_code": 47,
+      "eval_failed": 6,
+      "invalid_output": 1
+    }
+  },
+  "scope": "1091 initaware batch only; complete event lines read once per run; unequal ongoing budgets; no reevaluation; best_path follows host parent links and omits donor ancestry",
+  "counting": "ok = successfully evaluated and archived; parent/frontier improvements use logged flags; above_both uses fitness > max(parent, donor) + 1e-9; numeric_only uses logged AST classification"
+}

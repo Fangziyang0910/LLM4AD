@@ -41,43 +41,61 @@ def test_v108_remains_available_after_v109_registration():
     assert KNOWN_VERSIONS['v10_8']['default_prefix'] == 'v108'
 
 
-def test_allocation_monitor_keeps_three_repeats_per_arm_and_queued_slots(tmp_path, monkeypatch):
+def test_default_monitor_excludes_allocation_and_keeps_formal_runs(tmp_path, monkeypatch):
     from experiments.traceaad_v10_8.launch import build_plan
     from experiments.traceaad_v10_6 import monitor
-    plan = build_plan('study', 'v108alloc', allocation_study=True)
-    (tmp_path / 'batch_study.json').write_text(json.dumps({'batch': 'study', 'plan': plan}))
-    row = plan[0]
-    run = tmp_path / row['task'] / row['run_name']
-    run.mkdir(parents=True)
-    (run / 'run_config.json').write_text(json.dumps({'method': 'v108', 'method_params': {'allocation_arm': 'A'}}))
-    old = tmp_path / row['task'] / 'zzz_diagnostic_A_v108_rep1'
-    old.mkdir()
-    (old / 'run_config.json').write_text((run / 'run_config.json').read_text())
-    (tmp_path / 'batch_excluded.json').write_text(json.dumps({
-        'status': 'excluded_startup_diagnostic', 'plan': [{**row, 'run_name': old.name}]}))
-    monkeypatch.setattr(monitor, '_get_active_tmux_sessions', lambda: {'v108alloc_launcher', row['session']})
-    for arm in 'ABCD':
-        engine = MonitorDataEngine(results_root=tmp_path, default_version=f'v10_8{arm.lower()}')
-        overview = engine.get_overview()
-        assert overview['global_summary']['total_runs'] == 3
-        assert overview['scheduler']['active']
-        runs = [r for task in overview['tasks'] for r in task['runs']]
-        assert all(f'_{arm}_v108_rep' in r['name'] for r in runs)
-        assert all(r['name'] in {item['run_name'] for item in plan} for r in runs)
-        assert overview['global_summary']['running_runs'] == (1 if arm == 'A' else 0)
+    for version, metadata in monitor.KNOWN_VERSIONS.items():
+        root = tmp_path / version
+        root.mkdir()
+        monkeypatch.setitem(metadata, 'path', root)
+    root = tmp_path / 'v10_8'
+    formal = build_plan('20260909_v108_formal', 'v108')
+    allocation = build_plan('20260909_v108_allocation_tsp', 'v108alloc', allocation_study=True)
+    (root / 'batch_formal.json').write_text(json.dumps({'batch': 'formal', 'plan': formal}))
+    (root / 'batch_allocation.json').write_text(json.dumps({'batch': 'allocation', 'plan': allocation}))
+    for row in [formal[0], *allocation]:
+        run = root / row['task'] / row['run_name']
+        run.mkdir(parents=True)
+        (run / 'run_config.json').write_text(json.dumps({'method': 'v108'}))
+    monkeypatch.setattr(monitor, '_get_active_tmux_sessions',
+                        lambda: {'v108_launcher', 'v108alloc_launcher', formal[0]['session']})
+    engine = MonitorDataEngine(default_version='v10_8')
+    versions = {v['id'] for v in engine.get_available_versions()}
+    assert {'v10_8', 'v10_9', 'v10_10'} <= versions
+    assert versions.isdisjoint(f'v10_8{arm}' for arm in 'abcd')
+    html = monitor.HTML_FILE.read_text(encoding='utf-8')
+    assert all(f'value="v10_8{arm}"' not in html for arm in 'abcd')
+
+    parsed_runs = []
+    parse_summary = engine._parse_run_summary_cached
+
+    def track_parse(run_dir, *args):
+        parsed_runs.append(run_dir.name)
+        return parse_summary(run_dir, *args)
+
+    monkeypatch.setattr(engine, '_parse_run_summary_cached', track_parse)
+    engine.refresh()
+    assert parsed_runs == [formal[0]['run_name']]
+    overview = engine.get_overview()
+    assert overview['global_summary']['total_runs'] == 15
+    assert overview['global_summary']['running_runs'] == 1
+    assert overview['global_summary']['queued_runs'] == 14
+    assert overview['scheduler']['session'] == 'v108_launcher'
+    assert {r['name'] for task in overview['tasks'] for r in task['runs']} == {
+        row['run_name'] for row in formal}
 
 
-def test_paused_allocation_keeps_progress_and_appears_queued(tmp_path, monkeypatch):
+def test_paused_v108_keeps_progress_and_appears_queued(tmp_path, monkeypatch):
     from experiments.traceaad_v10_6 import monitor
     from experiments.traceaad_v10_8.launch import build_plan
-    plan=build_plan('paused','v108alloc',allocation_study=True)
+    plan=build_plan('paused','v108')
     for r in plan:r['status']='paused'
     (tmp_path/'batch_paused.json').write_text(json.dumps({'plan':plan,'waiting_for':['formal']}))
     r=plan[0];run=tmp_path/r['task']/r['run_name'];run.mkdir(parents=True)
-    (run/'run_config.json').write_text(json.dumps({'method':'v108','method_params':{'allocation_arm':'A'}}))
+    (run/'run_config.json').write_text(json.dumps({'method':'v108'}))
     (run/'tree_state.json').write_text(json.dumps({'version':1081,'budget_used':25,'nodes':[]}))
     monkeypatch.setattr(monitor,'_get_active_tmux_sessions',lambda:set())
-    e=monitor.MonitorDataEngine(results_root=tmp_path,default_version='v10_8a',default_session_prefix='v108alloc')
+    e=monitor.MonitorDataEngine(results_root=tmp_path,default_version='v10_8',default_session_prefix='v108')
     for _ in range(2):
         detail=e.get_run_detail(r['task'],r['run_name'])
         assert detail['summary']['status']=='queued' and detail['summary']['budget_used']==25

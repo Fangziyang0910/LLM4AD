@@ -1,0 +1,152 @@
+[
+  {
+    "task": "tsp_construct",
+    "repeat": 1,
+    "missing_idea": 312,
+    "format_variants": {
+      "bold_or_heading": 207,
+      "other": 45,
+      "code_first": 60
+    }
+  },
+  {
+    "task": "cvrp_aco",
+    "repeat": 1,
+    "missing_idea": 161,
+    "format_variants": {
+      "bold_or_heading": 30,
+      "code_first": 62,
+      "other": 69
+    }
+  },
+  {
+    "task": "op_aco",
+    "repeat": 1,
+    "missing_idea": 204,
+    "format_variants": {
+      "code_first": 63,
+      "bold_or_heading": 111,
+      "other": 30
+    }
+  },
+  {
+    "task": "online_bin_packing",
+    "repeat": 1,
+    "missing_idea": 387,
+    "format_variants": {
+      "code_first": 117,
+      "bold_or_heading": 203,
+      "other": 67
+    }
+  },
+  {
+    "task": "vrptw_construct",
+    "repeat": 1,
+    "missing_idea": 268,
+    "format_variants": {
+      "bold_or_heading": 87,
+      "code_first": 83,
+      "other": 98
+    }
+  },
+  {
+    "task": "tsp_construct",
+    "repeat": 2,
+    "missing_idea": 275,
+    "format_variants": {
+      "bold_or_heading": 113,
+      "code_first": 69,
+      "other": 93
+    }
+  },
+  {
+    "task": "cvrp_aco",
+    "repeat": 2,
+    "missing_idea": 227,
+    "format_variants": {
+      "code_first": 86,
+      "bold_or_heading": 46,
+      "other": 95
+    }
+  },
+  {
+    "task": "op_aco",
+    "repeat": 2,
+    "missing_idea": 184,
+    "format_variants": {
+      "other": 44,
+      "code_first": 105,
+      "bold_or_heading": 35
+    }
+  },
+  {
+    "task": "online_bin_packing",
+    "repeat": 2,
+    "missing_idea": 251,
+    "format_variants": {
+      "bold_or_heading": 46,
+      "other": 131,
+      "code_first": 74
+    }
+  },
+  {
+    "task": "vrptw_construct",
+    "repeat": 2,
+    "missing_idea": 329,
+    "format_variants": {
+      "bold_or_heading": 98,
+      "code_first": 100,
+      "other": 131
+    }
+  },
+  {
+    "task": "tsp_construct",
+    "repeat": 3,
+    "missing_idea": 228,
+    "format_variants": {
+      "bold_or_heading": 99,
+      "code_first": 48,
+      "other": 81
+    }
+  },
+  {
+    "task": "cvrp_aco",
+    "repeat": 3,
+    "missing_idea": 162,
+    "format_variants": {
+      "other": 59,
+      "code_first": 62,
+      "bold_or_heading": 41
+    }
+  },
+  {
+    "task": "op_aco",
+    "repeat": 3,
+    "missing_idea": 213,
+    "format_variants": {
+      "bold_or_heading": 46,
+      "code_first": 106,
+      "other": 61
+    }
+  },
+  {
+    "task": "online_bin_packing",
+    "repeat": 3,
+    "missing_idea": 276,
+    "format_variants": {
+      "other": 128,
+      "code_first": 83,
+      "bold_or_heading": 65
+    }
+  },
+  {
+    "task": "vrptw_construct",
+    "repeat": 3,
+    "missing_idea": 251,
+    "format_variants": {
+      "bold_or_heading": 70,
+      "code_first": 95,
+      "other": 86
+    }
+  }
+]

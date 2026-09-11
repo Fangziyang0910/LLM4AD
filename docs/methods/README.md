@@ -1,6 +1,6 @@
 # 方法设计导航
 
-近期迭代：[V10.9：轨迹支持思想形成、迁移与精炼](TraceAAD-V10.9-机制设计.md)，实现/验证与实验状态见[运行说明](../../experiments/traceaad_v10_9/README.md)。
+近期开发：[V10.10：轨迹搜索与一次有界错误修复](TraceAAD-V10.10-机制设计.md)，从 [V10.9](TraceAAD-V10.9-机制设计.md)复制后移除新结构试用与直接子代试错上下文，并增加最小错误处理；尚未启动正式搜索，见[运行说明](../../experiments/traceaad_v10_10/README.md)。
 
 按版本保存设计，版本号不表示效果排序。表中的实现入口只表示当前仓库存在对应文件，不表示实验已完成或机制已验证；结果与运行状态以实验记录为准。
 
@@ -8,6 +8,8 @@
 
 | 版本 | 设计 | 实现与分析入口 |
 | --- | --- | --- |
+| V10.10 | [机制设计](TraceAAD-V10.10-机制设计.md) | [实现目录](../../llm4ad/method/traceaad_v10_10)；[运行说明](../../experiments/traceaad_v10_10/README.md)，已实现，正式实验待启动 |
+| V10.9 | [机制设计](TraceAAD-V10.9-机制设计.md) | [实现目录](../../llm4ad/method/traceaad_v10_9)；[运行说明](../../experiments/traceaad_v10_9/README.md) |
 | V9 | [机制设计](TraceAAD-V9-机制设计.md) | 历史设计；当前无同名实现目录；[分析](../analysis/版本综合分析/TraceAAD-V9机制分析.md) |
 | V9.7 | [机制设计](TraceAAD-V9.7-机制设计.md) | [实现目录](../../llm4ad/method/traceaad_v9_7)；[分析](../analysis/版本综合分析/V9.7机制诊断/结论.md) |
 | V9.14 | [机制设计](TraceAAD-V9.14-机制设计.md) | [实现目录](../../llm4ad/method/traceaad_v9_14) |
