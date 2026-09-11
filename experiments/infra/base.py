@@ -169,6 +169,7 @@ def build_llm_client(
     top_p: float | None = SAMPLING_TOP_P,
     top_k: int | None = SAMPLING_TOP_K,
     enable_thinking: bool = False,
+    chars_per_token: float | None = None,
 ) -> OpenAIAPI:
     set_no_proxy(no_proxy)
     extra_body = None if top_k is None else {"top_k": top_k}
@@ -182,6 +183,7 @@ def build_llm_client(
         top_p=top_p,
         extra_body=extra_body,
         enable_thinking=enable_thinking,
+        chars_per_token=chars_per_token,
     )
 
 
@@ -227,6 +229,7 @@ def llm_payload(
     top_p: float | None = SAMPLING_TOP_P,
     top_k: int | None = SAMPLING_TOP_K,
     enable_thinking: bool = False,
+    chars_per_token: float | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "base_url": base_url,
@@ -242,6 +245,8 @@ def llm_payload(
         payload["top_p"] = top_p
     if top_k is not None:
         payload["top_k"] = top_k
+    if chars_per_token is not None:
+        payload["chars_per_token"] = chars_per_token
     return payload
 
 

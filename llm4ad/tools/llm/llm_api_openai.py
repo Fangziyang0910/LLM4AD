@@ -50,6 +50,7 @@ class OpenAIAPI(LLM):
         stop: str | Sequence[str] | None = None,
         enable_thinking: bool | None = False,
         extra_body: dict[str, Any] | None = None,
+        chars_per_token: float | None = None,
         do_auto_trim: bool = True,
         debug_mode: bool = False,
         **client_kwargs: Any,
@@ -64,6 +65,9 @@ class OpenAIAPI(LLM):
         self.top_p = top_p
         self.stop = stop
         self.enable_thinking = enable_thinking
+        # Gateways without a /tokenize endpoint count locally by characters.
+        # Choose the ratio conservatively (overestimate tokens) for the budget math.
+        self.chars_per_token = chars_per_token
         self.extra_body = copy.deepcopy(extra_body) if extra_body else {}
         self._client = openai.OpenAI(
             api_key=api_key,
@@ -116,13 +120,21 @@ class OpenAIAPI(LLM):
 
     def count_tokens(self, text: str) -> int:
         """Count raw text tokens with the tokenizer serving this model."""
+        if self.chars_per_token is not None:
+            return max(1, int(len(text) / self.chars_per_token))
         return self._request_token_count({"model": self.model, "prompt": text})
 
     def count_prompt_tokens(self, prompt: str | Any) -> int:
         """Count the exact chat-templated tokens used by ``draw_sample``."""
+        messages = self._build_messages(prompt, None)
+        if self.chars_per_token is not None:
+            # Chat-template markup is not part of the message text; a fixed
+            # overhead keeps the approximation on the conservative side.
+            text = '\n'.join(str(m.get('content', '')) for m in messages if isinstance(m, dict))
+            return max(1, int(len(text) / self.chars_per_token) + 32)
         payload: dict[str, Any] = {
             "model": self.model,
-            "messages": self._build_messages(prompt, None),
+            "messages": messages,
             "add_generation_prompt": True,
         }
         extra_body = self._merged_extra_body(None)

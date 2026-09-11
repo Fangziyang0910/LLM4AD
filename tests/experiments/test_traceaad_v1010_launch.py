@@ -67,6 +67,30 @@ def test_llm_pipeline_carries_the_thinking_flag(tmp_path):
         client.close()
 
 
+def test_approx_token_count_skips_the_server_and_key_resolves(monkeypatch):
+    import os
+    from experiments.infra.base import build_llm_client, llm_payload
+    from llm4ad.tools.env import resolve_llm_api_key
+    client = build_llm_client(base_url='https://api.x5m5x.com/v1', model='m',
+                              no_proxy='x', max_tokens=64, chars_per_token=3.0)
+    try:
+        def boom(payload):
+            raise AssertionError('server tokenize must not be called')
+        monkeypatch.setattr(client, '_request_token_count', boom)
+        assert client.count_tokens('x' * 3000) == 1000
+        # _build_messages strips the trailing space: 1199 chars -> 399 + overhead 32.
+        assert client.count_prompt_tokens('hello world ' * 100) == 399 + 32
+    finally:
+        client.close()
+    payload = llm_payload(base_url='https://api.x5m5x.com/v1', model='m', no_proxy='n',
+                          max_tokens=64, chars_per_token=3.0)
+    assert payload['chars_per_token'] == 3.0
+    assert 'chars_per_token' not in llm_payload(base_url='u', model='m', no_proxy='n',
+                                                max_tokens=64)
+    assert resolve_llm_api_key(base_url='https://api.x5m5x.com/v1') == \
+        os.environ.get('X5M5X_API_KEY', 'EMPTY')
+
+
 def test_live_launcher_requires_frozen_source():
     with pytest.raises(ValueError, match='freeze the reviewed source'):
         launch.verify_runtime()

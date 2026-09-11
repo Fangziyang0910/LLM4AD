@@ -51,6 +51,8 @@ def add_common_run_args(
     parser.add_argument("--eval-workers", type=int)
     parser.add_argument("--thinking", action="store_true",
                         help="enable model thinking mode for generation requests")
+    parser.add_argument("--approx-chars-per-token", type=float,
+                        help="count tokens locally by characters (for gateways without /tokenize)")
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,6 +137,7 @@ def setup_experiment_run(
                     no_proxy=profile.no_proxy,
                     max_tokens=args.output_tokens,
                     enable_thinking=getattr(args, "thinking", False),
+                    chars_per_token=getattr(args, "approx_chars_per_token", None),
                 ),
                 "task_eval": task_config,
                 "method_params": params,
@@ -150,6 +153,7 @@ def setup_experiment_run(
         no_proxy=profile.no_proxy,
         max_tokens=args.output_tokens,
         enable_thinking=getattr(args, "thinking", False),
+        chars_per_token=getattr(args, "approx_chars_per_token", None),
     )
 
     return RunContext(
