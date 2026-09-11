@@ -275,6 +275,31 @@ def test_new_structure_has_no_birth_or_attempt_bonus(tmp_path, operator):
         assert min(before) >= .5 / len(nodes)
 
 
+def test_quality_distribution_is_affine_invariant_and_targets_ess8(tmp_path):
+    from test_traceaad_v108 import add
+    base = method(tmp_path / 'base')
+    shifted = method(tmp_path / 'shifted')
+    p1, s1 = base._quality_distribution([add(base.tree, f) for f in range(1, 101)])
+    p2, s2 = shifted._quality_distribution(
+        [add(shifted.tree, 10 * f + 1000) for f in range(1, 101)])
+    assert p1 == pytest.approx(p2)
+    assert s1['quality_ess'] == pytest.approx(8) and s2['quality_ess'] == pytest.approx(8)
+
+
+def test_pivot_mixes_uniform_and_allocation_metadata_is_explicit(tmp_path):
+    from test_traceaad_v108 import add
+    m = method(tmp_path)
+    nodes = [add(m.tree, i) for i in range(4)]
+    q, _ = m._quality_distribution(nodes)
+    assert m.node_distribution(nodes, 'Refine')[0] == pytest.approx(q)
+    assert m.node_distribution(nodes, 'Pivot')[0] == pytest.approx(
+        [0.5 * qi + 0.5 / 4 for qi in q])
+    assert m.mechanism['quality_ess_target'] == 8
+    assert m.mechanism['pivot_uniform_probability'] == 0.5
+    assert m.mechanism['donor_uniform_probability'] == 0.5
+    assert 'allocation_arm' not in m.mechanism and 'count_exponent' not in m.mechanism
+
+
 @pytest.mark.parametrize('operator', ['Refine', 'Tune', 'Fuse', 'Pivot'])
 def test_child_trials_do_not_change_generation_context(tmp_path, operator):
     from test_traceaad_v108 import add

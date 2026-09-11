@@ -8,8 +8,9 @@ import traceback
 from functools import lru_cache
 from pathlib import Path
 
+from llm4ad.method.traceaad_v10_3.traceaad import calibrate_beta
 from llm4ad.method.traceaad_v10_8.traceaad import TraceAADV108
-from llm4ad.method.traceaad_v10_5.traceaad import read_journal, UnknownEvaluation
+from llm4ad.method.traceaad_v10_5.traceaad import ess, read_journal, UnknownEvaluation
 from . import trajectory
 from .trajectory import digest
 from . import errors
@@ -17,7 +18,10 @@ from . import errors
 OPERATOR_PROBABILITIES = {'Refine': 0.25, 'Tune': 0.25, 'Pivot': 0.25, 'Fuse': 0.25}
 REPAIRABLE_FAILURES = {'exec_error', 'runtime_error', 'timeout',
                        'invalid_result', 'nonfinite_fitness'}
-SELECTION_POLICY = 'ess8_quality_only_v1'
+QUALITY_ESS_TARGET = 8.0
+PIVOT_UNIFORM_MIX = 0.5
+DONOR_UNIFORM_MIX = 0.5
+SELECTION_POLICY = 'ess8_quality_pivot_uniform_v2'
 DEDUP_POLICY = 'parent_donor_ast_preserve_docstrings_v1'
 ERROR_HANDLING = 'candidate_error_one_repair_v2'
 
@@ -37,7 +41,8 @@ class TraceAADV1010(TraceAADV108):
     CONTEXT_POLICY = trajectory.CONTEXT_POLICY
 
     def __init__(self, **kwargs):
-        # The formal policy is fixed; inherit C's attainable ESS handling.
+        # allocation_arm only satisfies the inherited V10.8 constructor.
+        # V10.10 defines its fixed allocation policy locally below.
         super().__init__(allocation_arm='C', **kwargs)
         notes = getattr(self.evaluation, 'design_notes', '').strip()
         if notes:
@@ -53,8 +58,10 @@ class TraceAADV1010(TraceAADV108):
             initialization_policy=trajectory.INITIALIZATION_POLICY,
             operator_probabilities=self.OPERATOR_PROBABILITIES,
             context_policy=self.CONTEXT_POLICY, selection_policy=SELECTION_POLICY,
-            dedup_policy=DEDUP_POLICY, allocation_policy=SELECTION_POLICY,
-            donor_uniform_probability=0.5,
+            dedup_policy=DEDUP_POLICY,
+            quality_ess_target=QUALITY_ESS_TARGET,
+            pivot_uniform_probability=PIVOT_UNIFORM_MIX,
+            donor_uniform_probability=DONOR_UNIFORM_MIX,
             tune_policy='parameter_settings_v2',
             task_contract_hash=digest(self.task_contract),
         )
@@ -64,9 +71,13 @@ class TraceAADV1010(TraceAADV108):
                               error_handling=ERROR_HANDLING, max_repairs=1)
         for source in (Path(errors.__file__),):
             self.mechanism['source_hashes'][str(source.resolve())] = digest(source.read_text())
-        for key in ('ess_fraction', 'ess_minimum', 'history_tokens'):
-            self.mechanism['inherited_unused'][key] = self.mechanism.pop(key)
-        self.mechanism.pop('reference_fit_attempts', None)
+        # The fixed policy above replaces the inherited V10.8 ablation axes;
+        # unused parameters must not participate in the checkpoint identity.
+        for key in ('allocation_arm', 'allocation_policy', 'count_exponent',
+                    'quality_ess_schedule', 'ess_fraction', 'ess_minimum',
+                    'reference_fit_attempts'):
+            self.mechanism.pop(key, None)
+        self.mechanism['inherited_unused']['history_tokens'] = self.mechanism.pop('history_tokens')
         events = read_journal(self.events_path)
         self._last_event = events[-1] if events else None
 
@@ -162,6 +173,32 @@ class TraceAADV1010(TraceAADV108):
     def eligible_nodes(self):
         return self.tree.all_nodes()
 
+    def _quality_distribution(self, nodes):
+        scores = [node.fitness for node in nodes]
+        beta, attainable_target, quality_ess = calibrate_beta(scores, 0.0, QUALITY_ESS_TARGET)
+        best = max(scores)
+        weights = [math.exp(beta * (node.fitness - best)) for node in nodes]
+        total = sum(weights)
+        q = [w / total for w in weights]
+        return q, {
+            'eligible_nodes': len(nodes),
+            'beta': beta,
+            'ess_target': min(len(nodes), QUALITY_ESS_TARGET),
+            'attainable_ess_target': attainable_target,
+            'quality_ess': quality_ess,
+        }
+
+    def node_distribution(self, nodes, operator):
+        q, stats = self._quality_distribution(nodes)
+        if operator == 'Pivot':
+            n = len(nodes)
+            probabilities = [(1 - PIVOT_UNIFORM_MIX) * qi + PIVOT_UNIFORM_MIX / n
+                             for qi in q]
+        else:
+            probabilities = q
+        stats['parent_ess'] = ess(probabilities)
+        return probabilities, stats
+
     def select_donor(self, parent):
         nodes = [n for n in self.tree.all_nodes()
                  if n.id != parent.id and code_key(n.code) != code_key(parent.code)]
@@ -169,8 +206,9 @@ class TraceAADV1010(TraceAADV108):
             return None, []
         # Include weak whole programs. Relevance is assessed in the transfer task,
         # not inferred from AST distance or the donor's total score.
-        quality, _ = super().node_distribution(nodes, 'Fuse')
-        weights = [0.5 * p + 0.5 / len(nodes) for p in quality]
+        quality, _ = self._quality_distribution(nodes)
+        weights = [(1 - DONOR_UNIFORM_MIX) * q + DONOR_UNIFORM_MIX / len(nodes)
+                   for q in quality]
         donor = self.rng.choices(nodes, weights=weights)[0]
         return donor, [{'node_id': donor.id, 'fitness': donor.fitness}]
 

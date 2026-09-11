@@ -39,7 +39,8 @@ def main():
     try:
         method = TraceAADV1010(evaluation=ctx.evaluation, llm=ctx.llm,
                              run_dir=ctx.run_dir, seed=args.seed, task_name=args.task, **params)
-        ctx.run(method.run, header=['v1010: quality selection; operator-specific context; at most one error-conditioned repair'])
+        ctx.run(method.run, header=['v1010: ESS-8 quality parent selection; Pivot 50% uniform; '
+                                    'operator-specific context; at most one error-conditioned repair'])
     finally:
         ctx.llm.close()
 

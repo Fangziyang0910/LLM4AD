@@ -6,7 +6,7 @@
 
 输入不再固定限制为 16128 tokens。普通生成和错误修复都使用 `min(16384, 32768 - 256 - 实际输入tokens)` 作为本次输出上限；完整输入不做裁剪。服务的总窗口仍需容纳输入和实际输出。
 
-当前配方：Refine、Tune、Fuse、Pivot 各 25%。Tune/Pivot 只看当前完整程序和成绩（Pivot 将其作为参考），Refine 补充形成历史，Fuse 优先展示完整宿主与 donor、再展示规定的形成历史；donor 没有可用计算时允许直接改善宿主。提示聚焦改进、参数设置与有针对性的借鉴；初始化为 sequential informed initialization，按生成顺序展示全部已有根的完整代码与实测 fitness，不做重复规避；donor 只抽一次。历史固定使用完整源代码与 diff，取消独立历史 token 配额及其在线统计，只检查最终组装输入容量。删除在线 AST 修改分类，原始代码可供离线分析。
+当前配方：Refine、Tune、Fuse、Pivot 各 25%。父代选择在全档案上使用 ESS-8 Boltzmann 质量分布，Pivot 与均匀抽样 1:1 混合，selection counts 只记录不参与概率。Tune/Pivot 只看当前完整程序和成绩（Pivot 将其作为参考），Refine 补充形成历史，Fuse 优先展示完整宿主与 donor、再展示规定的形成历史；donor 没有可用计算时允许直接改善宿主。提示聚焦改进、参数设置与有针对性的借鉴；初始化为 sequential informed initialization，按生成顺序展示全部已有根的完整代码与实测 fitness，不做重复规避；donor 只抽一次。历史固定使用完整源代码与 diff，取消独立历史 token 配额及其在线统计，只检查最终组装输入容量。删除在线 AST 修改分类，原始代码可供离线分析。
 
 先核验，再创建独立冻结副本：
 
