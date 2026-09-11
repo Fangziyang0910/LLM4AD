@@ -9,9 +9,8 @@ GENERATION = 'idea_code_tolerant_one_repair_v1'
 CONTEXT_POLICY = 'operator_context_single_capacity_check_v3'
 INITIALIZATION_POLICY = 'sequential_informed_v1'
 INSTRUCTIONS = {
-    'Init': 'Design a competitive coherent decision method with meaningful task-dependent computations. '
-            'When previous initial algorithms are shown, study their decision rules and evaluated '
-            'performance, then design another competitive candidate algorithm.',
+    'Init': 'Design a competitive candidate algorithm for the task, using the previously '
+            'evaluated initial algorithms and their fitness as context when available.',
     'Refine': 'Continue improving the current algorithm within its existing design. '
               'Make one focused modification based on the current code and its formation history.',
     'Tune': 'Identify the main algorithm parameters and improve their settings while preserving '
@@ -96,14 +95,16 @@ class TrajectoryBuilder(BaseBuilder):
 
     def build_initial(self):
         # Sequential informed initialization: the first root sees only the task;
-        # each later root sees every previously evaluated root, code and fitness.
+        # each later root sees every previously evaluated root, raw code and fitness.
         roots = sorted((n for n in self.all_nodes() if n.parent_id is None), key=lambda n: n.id)
         parts = [self.task_contract]
         if roots:
             parts.append('# Previous Initial Algorithms\n'
                          'Complete previously evaluated programs, in generation order. '
                          'Fitness: higher is better.')
-            parts.extend(self.program(n, 'Previous initial algorithm') for n in roots)
+            parts.extend(f'# Previous Initial Algorithm\n'
+                         f'Fitness: {n.fitness}\n'
+                         f'```python\n{n.code}\n```' for n in roots)
         parts.extend(['# Design Task\n' + INSTRUCTIONS['Init'], '# Output\n' + OUTPUT])
         text = '\n\n\n'.join(parts)
         self.check_capacity(text)

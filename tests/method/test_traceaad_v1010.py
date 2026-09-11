@@ -199,7 +199,6 @@ def test_later_roots_see_previous_root_code_and_fitness_in_order(tmp_path):
     assert 'Previous Initial Algorithms' in pending['prompt']
     assert m.tree.nodes[0].code in pending['prompt']
     assert 'Fitness: 1' in pending['prompt']
-    assert 'study their decision rules' in pending['prompt']
     m.pending = pending
     m._persist_pending()
     m._advance()
@@ -333,8 +332,10 @@ def test_context_is_assembled_once_without_independent_history_quota(tmp_path):
     from test_traceaad_v108 import add
     m = method(tmp_path, n_roots=8)
     roots = [add(m.tree, i) for i in range(3)]
+    roots.append(add(m.tree, 5, code='def score(x):\n    # Algorithm 1 transfer source\n    return x'))
     text, meta = m.builder.build(None, 'Init')
     assert meta == {}
+    assert '# Algorithm 1 transfer source' in text
     assert [text.index(n.code) for n in roots] == sorted(text.index(n.code) for n in roots)
     host = add(m.tree, 4, roots[0].id)
     _, meta = m.builder.build(host, 'Fuse', roots[1])
