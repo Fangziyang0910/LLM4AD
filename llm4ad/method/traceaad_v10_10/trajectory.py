@@ -8,17 +8,34 @@ GENERATION = 'code_first_one_repair_v1'
 CONTEXT_POLICY = 'unified_short_formation_path_v1'
 INITIALIZATION_POLICY = 'sequential_informed_v1'
 INSTRUCTIONS = {
-    'Init': 'Design a competitive candidate algorithm for the task, using the previously '
-            'evaluated initial algorithms and their fitness as context when available.',
-    'Refine': 'Improve the current algorithm within its existing design.',
-    'Tune': 'Improve the parameter settings while preserving the current decision method.',
-    'Pivot': 'Develop a competitive alternative decision method.',
-    'Fuse': 'Improve the current algorithm by drawing on useful computations from the donor. '
-            'Aim to outperform both inputs; if the donor has no useful computation, '
-            'improve the host without forced mixing.',
+    'Init': (
+        'Study the task and the previously evaluated initial algorithms when available. '
+        'Design a competitive candidate around a promising decision mechanism.'
+    ),
+    'Refine': (
+        'Build on the current decision method. Use its code and formation history to '
+        'identify the most valuable next improvement and implement it as one coherent refinement.'
+    ),
+    'Tune': (
+        'Preserve the current decision method and computational structure. Calibrate a '
+        'small coherent set of influential coefficients, thresholds, exponents, or schedules '
+        'to improve its performance.'
+    ),
+    'Pivot': (
+        'Use the task, current algorithm, and formation history to develop a competitive '
+        'alternative built around a different primary decision mechanism.'
+    ),
+    'Fuse': (
+        'Identify a host limitation that donor computations can address, then adapt and '
+        'integrate the relevant computations into one coherent host-centered algorithm '
+        'that aims to outperform both inputs.'
+    ),
 }
-HISTORY_TITLE = '# Formation History — oldest to newest'
-HISTORY_NOTE = 'Use the available formation history to guide the next design.'
+HISTORY_TITLE = '# Formation History of the Current Algorithm — oldest to newest'
+HISTORY_NOTE = (
+    'Use the sequence of design ideas and observed fitness changes to understand '
+    'how the current algorithm developed and guide this design.'
+)
 TEMPLATE_HASH = digest(str(INSTRUCTIONS) + HISTORY_TITLE + HISTORY_NOTE + OUTPUT)
 
 
@@ -58,11 +75,12 @@ class TrajectoryBuilder(BaseBuilder):
     def assemble(self, parent, operator, donor, history=''):
         parts = [self.task_contract]
         if parent is not None:
-            parts.append(self.program(parent, 'Current Algorithm'))
-        if donor is not None:
-            parts.append(self.program(donor, 'Donor'))
+            title = 'Host Algorithm' if operator == 'Fuse' else 'Current Algorithm'
+            parts.append(self.program(parent, title))
         if history:
             parts.append(f'{HISTORY_TITLE}\n{HISTORY_NOTE}\n\n{history}')
+        if donor is not None:
+            parts.append(self.program(donor, 'Donor Algorithm'))
         parts.extend(['# Design Task\n' + INSTRUCTIONS[operator], '# Output\n' + OUTPUT])
         return '\n\n\n'.join(parts)
 

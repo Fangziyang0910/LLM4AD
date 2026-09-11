@@ -8,7 +8,7 @@
 
 输入不再固定限制为 16128 tokens。普通生成和错误修复都使用 `min(16384, 32768 - 256 - 实际输入tokens)` 作为本次输出上限；完整输入不做裁剪。服务的总窗口仍需容纳输入和实际输出。
 
-当前配方：Refine、Tune、Fuse、Pivot 各 25%。父代选择在全档案上使用 ESS-8 Boltzmann 质量分布，Pivot 与均匀抽样 1:1 混合，selection counts 只记录不参与概率。四个算子统一使用「当前程序完整代码 + 成绩 + 最近八条短形成路径」，每步历史为该步生成算法的 Idea、算子与前后 fitness；Fuse 额外加入本轮 donor 的完整代码与成绩，donor 无可用计算时允许直接改善宿主。初始化为 sequential informed initialization，按生成顺序展示全部已有根的完整代码与实测 fitness，不做重复规避；donor 只抽一次。历史不展开祖先代码、diff 或历史 donor，一次组装后检查总容量。删除在线 AST 修改分类，原始代码可供离线分析。
+当前配方：Refine、Tune、Fuse、Pivot 各 25%。父代选择在全档案上使用 ESS-8 Boltzmann 质量分布，Pivot 与均匀抽样 1:1 混合，selection counts 只记录不参与概率。四个算子统一使用「当前程序完整代码 + 成绩 + 最近八条短形成路径」，每步历史为该步生成算法的 Idea、算子与前后 fitness；Fuse 额外加入本轮 donor 的完整代码与成绩。算子指令按「设计对象 + 认知操作 + 结果目标」书写（如 Fuse 要求识别宿主不足与 donor 计算的对应关系后定向迁移整合），组装顺序为任务接口、当前程序（Fuse 中标题 Host Algorithm）、当前算法的形成路径、donor（仅 Fuse，标题 Donor Algorithm）、算子指令、输出契约。输出契约顺序中性：单个代码块的完整实现 + 描述该代码所实现算法的 Idea，可前置、后置或省略。初始化为 sequential informed initialization，按生成顺序展示全部已有根的完整代码与实测 fitness，不做重复规避；donor 只抽一次。历史不展开祖先代码、diff 或历史 donor，一次组装后检查总容量。删除在线 AST 修改分类，原始代码可供离线分析。
 
 先核验，再创建独立冻结副本：
 

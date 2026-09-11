@@ -494,6 +494,25 @@ def test_history_depth_keeps_the_most_recent_edges(tmp_path):
     assert 'Step 8' in text and chain[0].idea not in text
 
 
+def test_fuse_context_roles_and_assembly_order(tmp_path):
+    from test_traceaad_v108 import add
+    m = method(tmp_path)
+    root = add(m.tree, 1)
+    host = add(m.tree, 2, root.id)
+    donor = add(m.tree, 4, root.id)
+    text, _ = m.builder.build(host, 'Fuse', donor)
+    assert '# Host Algorithm' in text and '# Donor Algorithm' in text
+    assert '# Current Algorithm' not in text
+    assert (text.index('# Host Algorithm')
+            < text.index('# Formation History of the Current Algorithm')
+            < text.index('# Donor Algorithm')
+            < text.index('# Design Task'))
+    assert 'if the donor has no useful computation' not in text
+    plain, _ = m.builder.build(host, 'Refine')
+    assert '# Current Algorithm' in plain and '# Host Algorithm' not in plain
+    assert '# Donor' not in plain
+
+
 def test_prompt_is_decoupled_from_ancestor_code_length(tmp_path):
     from test_traceaad_v108 import add
     m = method(tmp_path)

@@ -6,11 +6,12 @@ from llm4ad.method.traceaad_v10_3.schema import normalize_code
 from llm4ad.method.traceaad_v10_3.traceaad import THINK_BLOCK_RE
 
 OUTPUT = (
-    "Describe the algorithm's main decision method and key computations, using up to "
-    "about 500 words as needed. Present it as Idea, followed by one Python code block "
-    "containing the complete implementation. Include all required imports and helpers, "
-    "define variables before use, and respect the given input shapes, target signature "
-    "and return contract."
+    'Return one complete Python implementation in a single code block, together with '
+    'an Idea description of the algorithm implemented by that code. The Idea may use '
+    'up to about 500 words as needed and should explain the primary decision mechanism, '
+    'the key computations, and how they determine the returned output. Preserve the '
+    'target function signature and return contract, and include all required imports '
+    'and helpers.'
 )
 PARSE_POLICY = 'code_first_description_extracted_v1'
 ERROR_MESSAGE_MAX_CHARS = 2000
