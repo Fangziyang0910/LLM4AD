@@ -1,12 +1,12 @@
 # TraceAAD V10.10
 
-从 V10.9（1091）复制后移除新结构试用和直接子代试错上下文，保留质量分配与形成历史，加入宽容解析、具体错误记录和最多一次修复。2026-09-11 修订：初始化收缩为 sequential informed initialization，删除 Init 阶段 AST 去重与提示中的防御性约束。设计见 [V10.10 机制设计](../../docs/methods/TraceAAD-V10.10-机制设计.md)。正式批次 `20260910_v1010_formal`（2026-09-10 启动）运行的是修订前机制；修订改变机制与检查点指纹，需另起新批次。
+从 V10.9（1091）复制后移除新结构试用和直接子代试错上下文，保留质量分配与形成历史，加入宽容解析、具体错误记录和最多一次修复。2026-09-11 修订：初始化收缩为 sequential informed initialization，删除 Init 阶段 AST 去重与提示中的防御性约束；正常搜索上下文改为统一短形成路径。设计见 [V10.10 机制设计](../../docs/methods/TraceAAD-V10.10-机制设计.md)。正式批次 `20260910_v1010_formal`（2026-09-10 启动）运行的是修订前机制；修订改变机制与检查点指纹，需另起新批次。
 
 默认五任务 × 三重复，seed 0/1/2，每路 1000 次真实评价、8 个有效根、32K 总上下文、16K 输出上限。修复后实际调用评价器也计入这 1000 次，LLM 修复调用在 `llm_calls.jsonl` 中标记 `stage=repair`，保留 usage、耗时与 `repair_of`。解析失败与搜索阶段父代/donor 重复过滤不占评价次数；初始化不做重复过滤。
 
 输入不再固定限制为 16128 tokens。普通生成和错误修复都使用 `min(16384, 32768 - 256 - 实际输入tokens)` 作为本次输出上限；完整输入不做裁剪。服务的总窗口仍需容纳输入和实际输出。
 
-当前配方：Refine、Tune、Fuse、Pivot 各 25%。父代选择在全档案上使用 ESS-8 Boltzmann 质量分布，Pivot 与均匀抽样 1:1 混合，selection counts 只记录不参与概率。Tune/Pivot 只看当前完整程序和成绩（Pivot 将其作为参考），Refine 补充形成历史，Fuse 优先展示完整宿主与 donor、再展示规定的形成历史；donor 没有可用计算时允许直接改善宿主。提示聚焦改进、参数设置与有针对性的借鉴；初始化为 sequential informed initialization，按生成顺序展示全部已有根的完整代码与实测 fitness，不做重复规避；donor 只抽一次。历史固定使用完整源代码与 diff，取消独立历史 token 配额及其在线统计，只检查最终组装输入容量。删除在线 AST 修改分类，原始代码可供离线分析。
+当前配方：Refine、Tune、Fuse、Pivot 各 25%。父代选择在全档案上使用 ESS-8 Boltzmann 质量分布，Pivot 与均匀抽样 1:1 混合，selection counts 只记录不参与概率。四个算子统一使用「当前程序完整代码 + 成绩 + 最近八条短形成路径」，每步历史为该步生成算法的 Idea、算子与前后 fitness；Fuse 额外加入本轮 donor 的完整代码与成绩，donor 无可用计算时允许直接改善宿主。初始化为 sequential informed initialization，按生成顺序展示全部已有根的完整代码与实测 fitness，不做重复规避；donor 只抽一次。历史不展开祖先代码、diff 或历史 donor，一次组装后检查总容量。删除在线 AST 修改分类，原始代码可供离线分析。
 
 先核验，再创建独立冻结副本：
 

@@ -301,32 +301,55 @@ def test_pivot_mixes_uniform_and_allocation_metadata_is_explicit(tmp_path):
 
 
 @pytest.mark.parametrize('operator', ['Refine', 'Tune', 'Fuse', 'Pivot'])
-def test_child_trials_do_not_change_generation_context(tmp_path, operator):
+def test_all_operators_share_the_host_formation_path(tmp_path, operator):
     from test_traceaad_v108 import add
     m = method(tmp_path)
     root = add(m.tree, 1)
-    host = add(m.tree, 2, root.id)
+    mid = add(m.tree, 2, root.id)
+    host = add(m.tree, 3, mid.id)
     donor = add(m.tree, 4, root.id) if operator == 'Fuse' else None
     before = m.builder.build(host, operator, donor)
     add(m.tree, 0, host.id, code='def score(x):\n    return x - 500', operator='Tune')
     add(m.tree, 300, host.id, code='def score(x):\n    return x + 300')
-    after = m.builder.build(host, operator, donor)
-    assert after == before
-    text, meta = after
-    edges = {(r['source_id'], r['target_id'], r['role']) for r in meta['evidence_relations']}
-    if operator in ('Tune', 'Pivot'):
-        assert not edges and meta['history_ids'] == []
-        assert 'history_tokens' not in meta
-        assert meta['context_node_ids'] == [host.id]
-        assert 'Formation History' not in text
-        if operator == 'Pivot':
-            assert '# Reference Algorithm' in text
-    else:
-        assert (root.id, host.id, 'Host formation') in edges
+    assert m.builder.build(host, operator, donor) == before
+    text, meta = before
+    assert meta['history_edges'] == [[root.id, mid.id], [mid.id, host.id]]
+    assert meta['context_node_ids'] == ([host.id, donor.id] if donor else [host.id])
+    assert meta['context_best_fitness'] == (4 if donor else 3)
+    assert text.index('Step 1') < text.index('Step 2')
+    assert mid.idea in text and host.idea in text and root.idea not in text
+    assert 'Fitness: 1 -> 2' in text and 'Fitness: 2 -> 3' in text
+    assert host.code in text and mid.code not in text and root.code not in text
     if donor:
-        assert (root.id, donor.id, 'Donor formation') in edges
-    assert 'direct trials' not in text.lower()
-    assert meta['context_best_fitness'] == (4 if donor else 2)
+        assert donor.code in text and '# Donor' in text
+    else:
+        assert '# Donor' not in text
+
+
+def test_history_depth_keeps_the_most_recent_edges(tmp_path):
+    from test_traceaad_v108 import add
+    m = method(tmp_path)
+    chain = [add(m.tree, 0)]
+    for value in range(1, 10):
+        chain.append(add(m.tree, value, chain[-1].id))
+    text, meta = m.builder.build(chain[-1], 'Refine')
+    assert m.builder.max_events == 8
+    assert meta['history_edges'] == [[a.id, b.id] for a, b in zip(chain[1:-1], chain[2:])]
+    assert 'Step 8' in text and chain[0].idea not in text
+
+
+def test_prompt_is_decoupled_from_ancestor_code_length(tmp_path):
+    from test_traceaad_v108 import add
+    m = method(tmp_path)
+    root = add(m.tree, 1)
+    mid = add(m.tree, 2, root.id)
+    host = add(m.tree, 3, mid.id)
+    before, _ = m.builder.build(host, 'Refine')
+    mid.code = ('def score(x):\n' +
+                '\n'.join(f'    unused_{i} = {i}' for i in range(300)) +
+                '\n    return 2')
+    after, _ = m.builder.build(host, 'Refine')
+    assert after == before
 
 
 def test_operator_recipe_is_used_by_scheduler_and_journal(tmp_path):
@@ -353,7 +376,7 @@ def test_long_input_uses_remaining_output_space(tmp_path, repair):
     assert m.output_tokens == 16384
 
 
-def test_context_is_assembled_once_without_independent_history_quota(tmp_path):
+def test_context_assembly_init_raw_roots_and_fuse_capacity(tmp_path):
     from test_traceaad_v108 import add
     m = method(tmp_path, n_roots=8)
     roots = [add(m.tree, i) for i in range(3)]
@@ -364,8 +387,8 @@ def test_context_is_assembled_once_without_independent_history_quota(tmp_path):
     assert [text.index(n.code) for n in roots] == sorted(text.index(n.code) for n in roots)
     host = add(m.tree, 4, roots[0].id)
     _, meta = m.builder.build(host, 'Fuse', roots[1])
-    assert meta['history_edge_count'] == 1
-    assert 'history_tokens' not in meta
+    assert meta['history_edges'] == [[roots[0].id, host.id]]
+    assert 'history_tokens' not in meta and 'context_code_views' not in meta
     m.builder.max_tokens = 1
     assert m.select_donor(host)[0] is not None
     with pytest.raises(ValueError, match='complete prompt exceeds'):

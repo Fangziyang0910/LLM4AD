@@ -26,7 +26,7 @@ def main():
     args = build_parser().parse_args()
     params = {key: getattr(args, key) for key in (
         'budget', 'n_roots', 'context_margin', 'max_context_tokens', 'output_tokens')}
-    params.update(traj_gens=3)
+    params.update(traj_gens=8)
     ctx = setup_experiment_run(
         args, method='v1010', method_dir=Path(__file__).resolve().parent,
         resume_file='tree_state.json',
@@ -40,7 +40,7 @@ def main():
         method = TraceAADV1010(evaluation=ctx.evaluation, llm=ctx.llm,
                              run_dir=ctx.run_dir, seed=args.seed, task_name=args.task, **params)
         ctx.run(method.run, header=['v1010: ESS-8 quality parent selection; Pivot 50% uniform; '
-                                    'operator-specific context; at most one error-conditioned repair'])
+                                    'unified short formation path; at most one error-conditioned repair'])
     finally:
         ctx.llm.close()
 
