@@ -9,6 +9,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import numpy
+from llm4ad.base import TextFunctionProgramConverter
 
 from llm4ad.method.traceaad_v10_3.traceaad import calibrate_beta
 from llm4ad.method.traceaad_v10_8.traceaad import TraceAADV108
@@ -46,6 +47,18 @@ class TraceAADV1010(TraceAADV108):
         # allocation_arm only satisfies the inherited V10.8 constructor.
         # V10.10 defines its fixed allocation policy locally below.
         super().__init__(allocation_arm='C', **kwargs)
+        target = TextFunctionProgramConverter.text_to_function(
+            self.evaluation.template_program)
+        if target is None:
+            raise ValueError('evaluation template must define one target function')
+        self.task_contract = (
+            '# Task Contract\n\n' + self.evaluation.task_description.strip() +
+            '\n\nThe evaluator uses a fixed program template and calls the target '
+            'function below. Design this function; the system supplies the template '
+            'imports and evaluation scaffold.\n\nTarget function:\n```python\n' +
+            str(target).strip() + '\n```\n\nKeep the function name, arguments, '
+            'and return contract unchanged.\n'
+        )
         notes = getattr(self.evaluation, 'design_notes', '').strip()
         if notes:
             self.task_contract += f'\n\n# Evaluator Semantics\n{notes}'
@@ -62,6 +75,7 @@ class TraceAADV1010(TraceAADV108):
         self.task_contract += f'\n\n# Evaluation Runtime\n{runtime}'
         self._parse_interface = errors.expected_interface(
             self._template_func.name, self._template_func.args)
+        self._template_program = self.evaluation.template_program
         self.builder = trajectory.TrajectoryBuilder(
             self.llm, self.task_contract,
             max_tokens=self.max_context_tokens - self.mechanism['context_margin'] - 1,
@@ -112,7 +126,8 @@ class TraceAADV1010(TraceAADV108):
 
     def parse_response(self, response, finish_reason='unknown'):
         parsed, source, error = errors.parse_candidate(
-            response, finish_reason, self._parse_interface)
+            response, finish_reason, self._parse_interface,
+            self._template_program)
         self._parse_diagnostics = (source, error)
         return parsed
 

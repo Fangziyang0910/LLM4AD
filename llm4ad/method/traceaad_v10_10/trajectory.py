@@ -1,9 +1,10 @@
 """Unified short formation path for normal search generation."""
 
 from llm4ad.method.traceaad_v10_8.trajectory import TrajectoryBuilder as BaseBuilder, digest
+from llm4ad.base import TextFunctionProgramConverter
 from .errors import OUTPUT
 
-GENERATION = 'code_first_one_repair_v1'
+GENERATION = 'target_function_idea500_template_rebuild_one_repair_v2'
 
 CONTEXT_POLICY = 'unified_short_formation_path_v1'
 INITIALIZATION_POLICY = 'sequential_informed_v1'
@@ -57,6 +58,12 @@ class TrajectoryBuilder(BaseBuilder):
             current = source
         return list(reversed(edges))
 
+    def function_view(self, node):
+        program = TextFunctionProgramConverter.text_to_program(node.code)
+        if program is None or len(program.functions) != 1:
+            raise ValueError(f'cannot extract target function for node {node.id}')
+        return str(program.functions[0]).strip()
+
     def render_history(self, edges):
         blocks = []
         for step, (source, target) in enumerate(edges, start=1):
@@ -70,7 +77,7 @@ class TrajectoryBuilder(BaseBuilder):
         return '\n\n'.join(blocks)
 
     def program(self, node, title):
-        return f'# {title}\nFitness: {node.fitness}\n```python\n{node.code}\n```'
+        return f'# {title}\nFitness: {node.fitness}\n```python\n{self.function_view(node)}\n```'
 
     def assemble(self, parent, operator, donor, history=''):
         parts = [self.task_contract]
@@ -95,7 +102,7 @@ class TrajectoryBuilder(BaseBuilder):
                          'Fitness: higher is better.')
             parts.extend(f'# Previous Initial Algorithm\n'
                          f'Fitness: {n.fitness}\n'
-                         f'```python\n{n.code}\n```' for n in roots)
+                         f'```python\n{self.function_view(n)}\n```' for n in roots)
         parts.extend(['# Design Task\n' + INSTRUCTIONS['Init'], '# Output\n' + OUTPUT])
         text = '\n\n\n'.join(parts)
         self.check_capacity(text)

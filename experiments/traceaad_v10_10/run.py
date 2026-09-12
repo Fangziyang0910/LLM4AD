@@ -1,4 +1,4 @@
-"""Run V10.10: Quality-based search with formation history, code-first parsing and one error-conditioned repair."""
+"""Run V10.10: quality search with function-level generation and one repair."""
 
 import argparse
 from pathlib import Path
@@ -40,8 +40,8 @@ def main():
         method = TraceAADV1010(evaluation=ctx.evaluation, llm=ctx.llm,
                              run_dir=ctx.run_dir, seed=args.seed, task_name=args.task, **params)
         ctx.run(method.run, header=['v1010: ESS-8 quality parent selection; Pivot 50% uniform; '
-                                    'unified short formation path; code-first parsing with a '
-                                    'recorded description; at most one error-conditioned repair'])
+                                    'unified short formation path; function-level generation; '
+                                    'at most one error-conditioned repair'])
     finally:
         ctx.llm.close()
 

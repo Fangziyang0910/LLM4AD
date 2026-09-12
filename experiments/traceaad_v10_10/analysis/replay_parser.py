@@ -1,4 +1,4 @@
-"""Replay frozen V10.10 responses through the code-first parser (read-only).
+"""Replay frozen V10.10 responses through the template-rebuild parser (read-only).
 
 Zero LLM calls: every persisted response of the selected batch is re-parsed
 with the current parser and compared with the outcome recorded at generation
@@ -67,13 +67,17 @@ def template_interface(task: str, run_dir: Path | None = None):
                 frozen = hashlib.sha256(program_text.encode()).hexdigest()
                 repo_text = _repo_template_text(task)
                 return _interface_from_template(program_text), {
+                    'template_program': program_text,
                     'source': 'frozen_checkpoint',
                     'template_sha256': frozen,
                     'repo_template_differs': (
                         None if repo_text is None
                         else hashlib.sha256(repo_text.encode()).hexdigest() != frozen),
                 }
-    return _interface_from_template(_repo_template_text(task)), {'source': 'repo'}
+    program_text = _repo_template_text(task)
+    return _interface_from_template(program_text), {
+        'source': 'repo', 'template_program': program_text,
+    }
 
 
 def read_complete_lines(path: Path) -> dict:
@@ -160,7 +164,8 @@ def replay_run(run_dir: Path, task: str) -> dict:
             classifications['transport_error_call'] += 1
             continue
         parsed, source, new_error = errors.parse_candidate(
-            call['response'], call.get('finish_reason') or 'unknown', interface)
+            call['response'], call.get('finish_reason') or 'unknown', interface,
+            interface_info['template_program'])
         event = events.get(call['candidate_id'])
         outcome = classify(event, new_error)
         classifications[outcome] += 1

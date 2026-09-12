@@ -1,25 +1,27 @@
-"""Code-first candidate parsing: the program alone decides evaluability."""
+"""Parse a target function and rebuild it inside the frozen task template."""
 import ast
 import re
 
 from llm4ad.method.traceaad_v10_3.schema import normalize_code
 from llm4ad.method.traceaad_v10_3.traceaad import THINK_BLOCK_RE
+from llm4ad.base import TextFunctionProgramConverter
 
 OUTPUT = (
-    'Return one complete Python implementation in a single code block, together with '
-    'an Idea description of the algorithm implemented by that code. The Idea may use '
-    'up to about 500 words as needed and should explain the primary decision mechanism, '
-    'the key computations, and how they determine the returned output. Preserve the '
-    'target function signature and return contract, and include all required imports '
-    'and helpers.'
+    'Return two labeled parts in this order. First write `Idea:` followed by a concise '
+    'description of at most about 500 words covering the algorithm implemented by the target '
+    'function, its main decision mechanism, and key computations. Then write `Code:` followed '
+    'by one fenced Python block containing the target function implementation. The function '
+    'should keep its name, arguments, and return contract. The system places it into the fixed '
+    'template before evaluation.'
 )
-PARSE_POLICY = 'code_first_description_extracted_v1'
+PARSE_POLICY = 'target_function_rebuilt_from_template_v1'
 ERROR_MESSAGE_MAX_CHARS = 2000
 
 FENCE_LINE_RE = re.compile(r'^[ \t]*```([^\r\n]*)\r?$', re.MULTILINE)
 IDEA_LABEL_RE = re.compile(
     r'(?im)^[ \t]*(?:#{1,6}[ \t]*)?(?:\*\*)?[ \t]*(?:design[ \t]+)?idea\b'
     r'(?:[ \t]*\*\*)?[ \t]*:?[ \t]*(?:\*\*)?[ \t]*')
+CODE_LABEL_RE = re.compile(r'(?im)^[ \t]*(?:#{1,6}[ \t]*)?(?:\*\*)?code(?: implementation)?(?:\*\*)?[ \t]*:?[ \t]*$')
 CANDIDATE_FRAME_RE = re.compile(r'File "<(?:string|candidate)>", line (\d+), in ([^\r\n]+)')
 
 
@@ -70,12 +72,14 @@ def _extract_description(before, after):
         # The last explicit label wins, so a description placed after the code
         # is not discarded in favour of an introductory sentence.
         match = labels[-1]
-        return match.string[match.end():].strip(), 'tagged'
+        description = match.string[match.end():].strip()
+        description = CODE_LABEL_RE.sub('', description).strip()
+        return description, 'tagged'
     prose = '\n\n'.join(part.strip() for part in (before, after) if part.strip())
     return (prose, 'prose') if prose else ('', 'missing')
 
 
-def parse_candidate(response, finish_reason, interface):
+def parse_candidate(response, finish_reason, interface, template_program):
     """Extract one complete program and its description from a response.
 
     The program alone decides whether the candidate can be evaluated; the
@@ -87,15 +91,20 @@ def parse_candidate(response, finish_reason, interface):
         return None, 'failed', f'Unsupported finish reason: {finish_reason}'
     text, to_raw = _strip_thinking_outside_code(response)
     fences = list(FENCE_LINE_RE.finditer(text))
-    if (not fences or len(fences) > 2 or
-            fences[0][1].strip().lower() not in ('', 'python', 'py') or
-            (len(fences) == 2 and fences[1][1].strip())):
+    python_fences = [f for f in fences if f[1].strip().lower() in ('python', 'py')]
+    if len(python_fences) == 1:
+        code_fence = python_fences[0]
+        code_index = fences.index(code_fence)
+        closing_fence = fences[code_index + 1] if code_index + 1 < len(fences) else None
+    elif len(python_fences) == 0 and len(fences) == 2 and all(not f[1].strip() for f in fences):
+        code_fence, closing_fence = fences
+    else:
         return None, 'failed', 'Expected one unambiguous Python code block.'
-    if len(fences) == 1 and finish_reason == 'length':
+    if closing_fence is None and finish_reason == 'length':
         return None, 'failed', 'Output reached the token limit with an unclosed code block.'
-    code_end = fences[1].start() if len(fences) == 2 else len(text)
-    after_start = fences[1].end() if len(fences) == 2 else len(text)
-    code = response[to_raw(fences[0].end()):to_raw(code_end)]
+    code_end = closing_fence.start() if closing_fence is not None else len(text)
+    after_start = closing_fence.end() if closing_fence is not None else len(text)
+    code = response[to_raw(code_fence.end()):to_raw(code_end)]
     canonical = normalize_code(code)
     if not canonical:
         return None, 'failed', 'The code block is empty.'
@@ -114,7 +123,17 @@ def parse_candidate(response, finish_reason, interface):
     except (SyntaxError, ValueError) as exc:
         return None, 'failed', f'{type(exc).__name__}: {exc}'
     idea, source = _extract_description(text[:fences[0].start()], text[after_start:])
-    return (idea, canonical, canonical), source, None
+    # The target function is the evolvable object. Rebuild the executable
+    # candidate from the frozen task template so imports and task scaffolding
+    # remain system-owned.
+    target_source = ast.unparse(targets[0])
+    function = TextFunctionProgramConverter.text_to_function(target_source)
+    program = TextFunctionProgramConverter.function_to_program(
+        function, template_program)
+    if program is None:
+        return None, 'failed', 'Could not rebuild candidate from the task template.'
+    rebuilt = normalize_code(str(program))
+    return (idea, canonical, rebuilt), source, None
 
 
 def _display_view(response):
@@ -155,5 +174,6 @@ def repair_prompt(task_contract, response, event):
                 if event.get('parent_fitness') is not None else '')
     return (f'{task_contract}\n{baseline}\n# Failed output\n{_display_view(response)}\n\n'
             f"# Failure during {event['operator']}\n{feedback}\n\n"
-            "# Repair\nCorrect the reported failure while preserving the candidate's "
-            f'intended decision method.\n\n{OUTPUT}')
+            "# Repair\nUse the reported failure to produce a corrected target function. "
+            "Preserve the intended decision method and make the smallest correction that "
+            f'restores valid execution.\n\n{OUTPUT}')

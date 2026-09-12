@@ -92,7 +92,8 @@ def test_parsing_preserves_the_program_as_written(tmp_path):
     m = method(tmp_path)
     parsed = m.parse_response(f'<think>reasoning</think>\nIdea: keep the literal.\n'
                               f'```python\n{code}\n```')
-    assert parsed[1] == code and parsed[2] == code
+    assert parsed[1] == code
+    assert parsed[2] == "def score(x):\n    return '<think>keep me</think>'"
     assert m._parse_diagnostics[0] == 'tagged'
 
 
@@ -119,9 +120,9 @@ def test_history_step_without_idea_keeps_operator_and_fitness(tmp_path):
 
 def test_mechanism_records_the_parse_policy(tmp_path):
     m = method(tmp_path)
-    assert m.mechanism['parse_policy'] == 'code_first_description_extracted_v1'
+    assert m.mechanism['parse_policy'] == 'target_function_rebuilt_from_template_v1'
     assert m.mechanism['error_handling'] == 'candidate_error_one_repair_v3'
-    assert m.mechanism['generation'] == 'code_first_one_repair_v1'
+    assert m.mechanism['generation'] == 'target_function_idea500_template_rebuild_one_repair_v2'
 
 
 def test_contract_and_mechanism_state_the_real_runtime(tmp_path):
@@ -558,8 +559,9 @@ def test_context_assembly_init_raw_roots_and_fuse_capacity(tmp_path):
     roots.append(add(m.tree, 5, code='def score(x):\n    # Algorithm 1 transfer source\n    return x'))
     text, meta = m.builder.build(None, 'Init')
     assert meta == {}
-    assert '# Algorithm 1 transfer source' in text
-    assert [text.index(n.code) for n in roots] == sorted(text.index(n.code) for n in roots)
+    assert 'def score(x):' in text
+    assert [text.index(m.builder.function_view(n)) for n in roots] == sorted(
+        text.index(m.builder.function_view(n)) for n in roots)
     host = add(m.tree, 4, roots[0].id)
     _, meta = m.builder.build(host, 'Fuse', roots[1])
     assert meta['history_edges'] == [[roots[0].id, host.id]]
