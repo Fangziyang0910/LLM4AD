@@ -75,12 +75,12 @@ class BackendProfile:
 BACKENDS: dict[BackendName, BackendProfile] = {
     "local": BackendProfile(
         base_url="http://127.0.0.1:8001/v1",
-        model="Qwen3.8-27B",
+        model="Qwen3.6-27B",
         no_proxy="127.0.0.1,localhost,::1",
     ),
     "server1": BackendProfile(
         base_url="http://222.201.145.8:8080/v1",
-        model="qwen3.8-27b-awq",
+        model="qwen3.6-27b-awq-int4",
         no_proxy="222.201.145.8,localhost,127.0.0.1,::1",
     ),
     "server3": BackendProfile(
