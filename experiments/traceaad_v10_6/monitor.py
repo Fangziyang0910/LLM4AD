@@ -227,6 +227,18 @@ class MonitorDataEngine:
 
     def get_available_versions(self) -> list[dict[str, Any]]:
         versions: list[dict[str, Any]] = []
+        # A monitor launched with ``--results-dir`` may point at a frozen
+        # remote batch that is not part of the local historical registry.
+        # Keep that explicitly selected default visible in the selector.
+        if self.default_version not in KNOWN_VERSIONS and self.default_results_root.is_dir():
+            versions.append(
+                {
+                    "id": self.default_version,
+                    "name": f"TraceAAD {self.default_version.upper()}",
+                    "badge": self.default_version.upper(),
+                    "is_latest": True,
+                }
+            )
         for vid, info in KNOWN_VERSIONS.items():
             if info["path"].is_dir():
                 versions.append(
