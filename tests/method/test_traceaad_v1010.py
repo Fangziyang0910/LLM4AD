@@ -97,6 +97,33 @@ def test_parsing_preserves_the_program_as_written(tmp_path):
     assert m._parse_diagnostics[0] == 'tagged'
 
 
+def test_evaluation_and_context_views_strip_generated_comments(tmp_path):
+    m = method(tmp_path)
+    parsed = m.parse_response(
+        'Idea: A compact final algorithm description.\n'
+        '```python\n'
+        'def score(x):\n'
+        '    # Explain a routine step\n'
+        '    value = 7  # generated explanation\n'
+        '    return value\n'
+        '```'
+    )
+    assert parsed is not None
+    assert '#' not in parsed[2]
+    root = m.tree.add(code='def score(x):\n    # archived explanation\n    return 7',
+                      idea='idea', fitness=7, evaluation_id=1, parent_id=None, operator='Init')
+    assert '#' not in m.builder.function_view(root)
+
+
+def test_output_prompt_describes_final_idea_and_compact_code(tmp_path):
+    m = method(tmp_path)
+    text, _ = m.builder.build(None, 'Init')
+    assert 'concise final description' in text
+    assert 'Place explanations in Idea' in text
+    assert 'keep the function body comment-free' in text
+    assert 'focused on executable statements' in text
+
+
 def test_code_only_output_is_evaluated_and_archived_with_empty_idea(tmp_path):
     m = method(tmp_path, FakeLLM('```python\ndef score(x):\n    return 7\n```', response(9)),
                budget=2)
@@ -120,9 +147,9 @@ def test_history_step_without_idea_keeps_operator_and_fitness(tmp_path):
 
 def test_mechanism_records_the_parse_policy(tmp_path):
     m = method(tmp_path)
-    assert m.mechanism['parse_policy'] == 'target_function_rebuilt_from_template_v1'
+    assert m.mechanism['parse_policy'] == 'target_function_rebuilt_from_template_v2'
     assert m.mechanism['error_handling'] == 'candidate_error_one_repair_v3'
-    assert m.mechanism['generation'] == 'target_function_idea500_template_rebuild_one_repair_v2'
+    assert m.mechanism['generation'] == 'target_function_idea500_template_rebuild_one_repair_v3'
 
 
 def test_contract_and_mechanism_state_the_real_runtime(tmp_path):

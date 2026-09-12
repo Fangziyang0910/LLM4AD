@@ -1,12 +1,13 @@
 """Unified short formation path for normal search generation."""
 
+import ast
+
 from llm4ad.method.traceaad_v10_8.trajectory import TrajectoryBuilder as BaseBuilder, digest
-from llm4ad.base import TextFunctionProgramConverter
 from .errors import OUTPUT
 
-GENERATION = 'target_function_idea500_template_rebuild_one_repair_v2'
+GENERATION = 'target_function_idea500_template_rebuild_one_repair_v3'
 
-CONTEXT_POLICY = 'unified_short_formation_path_v1'
+CONTEXT_POLICY = 'unified_short_formation_path_compact_code_v2'
 INITIALIZATION_POLICY = 'sequential_informed_v1'
 INSTRUCTIONS = {
     'Init': (
@@ -59,10 +60,16 @@ class TrajectoryBuilder(BaseBuilder):
         return list(reversed(edges))
 
     def function_view(self, node):
-        program = TextFunctionProgramConverter.text_to_program(node.code)
-        if program is None or len(program.functions) != 1:
+        try:
+            tree = ast.parse(node.code)
+        except (SyntaxError, ValueError) as exc:
+            raise ValueError(f'cannot parse target function for node {node.id}') from exc
+        functions = [item for item in tree.body
+                     if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))]
+        if len(functions) != 1:
             raise ValueError(f'cannot extract target function for node {node.id}')
-        return str(program.functions[0]).strip()
+        # ast.unparse removes generated comments while retaining executable behavior.
+        return ast.unparse(functions[0]).strip()
 
     def render_history(self, edges):
         blocks = []

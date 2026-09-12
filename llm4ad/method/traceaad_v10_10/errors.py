@@ -7,14 +7,17 @@ from llm4ad.method.traceaad_v10_3.traceaad import THINK_BLOCK_RE
 from llm4ad.base import TextFunctionProgramConverter
 
 OUTPUT = (
-    'Return two labeled parts in this order. First write `Idea:` followed by a concise '
-    'description of at most about 500 words covering the algorithm implemented by the target '
-    'function, its main decision mechanism, and key computations. Then write `Code:` followed '
-    'by one fenced Python block containing the target function implementation. The function '
-    'should keep its name, arguments, and return contract. The system places it into the fixed '
-    'template before evaluation.'
+    'Return two labeled parts in this order. First write `Idea:` followed by a concise final '
+    'description of the algorithm implemented by the target function. State the primary '
+    'decision rule, the key computations or parameters, and the meaningful change relative '
+    'to the supplied algorithm. Describe the chosen design directly as the code implements '
+    'it. Then write `Code:` followed by one fenced Python block containing a compact, '
+    'executable target function. Keep the function name, arguments, and return contract. '
+    'Place explanations in Idea, keep the function body comment-free, and keep Code focused '
+    'on executable statements; the system places the function into the fixed template before '
+    'evaluation.'
 )
-PARSE_POLICY = 'target_function_rebuilt_from_template_v1'
+PARSE_POLICY = 'target_function_rebuilt_from_template_v2'
 ERROR_MESSAGE_MAX_CHARS = 2000
 
 FENCE_LINE_RE = re.compile(r'^[ \t]*```([^\r\n]*)\r?$', re.MULTILINE)
