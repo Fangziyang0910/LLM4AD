@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import threading
@@ -86,11 +87,17 @@ def _version_dir_pattern(version_id: str) -> str | None:
     return KNOWN_VERSIONS.get(version_id, {}).get("dir_pattern")
 
 KNOWN_VERSIONS = {
-    "v10_10": {
-        "id": "v10_10", "name": "TraceAAD V10.10（有界错误修复）",
-        "badge": "V10.10", "default_prefix": "v1010",
+    "v10_10_new": {
+        "id": "v10_10_new", "name": "TraceAAD V10.10 新版（09-11 正式）",
+        "badge": "V10.10 新版", "default_prefix": "v1010f",
         "path": REPO_ROOT / "experiments" / "traceaad_v10_10" / "results",
-        "is_latest": True, "dir_pattern": r"_v1010_rep\d+$",
+        "is_latest": True, "dir_pattern": r"^20260911_v1010_formal_.*_v1010_rep\d+$",
+    },
+    "v10_10": {
+        "id": "v10_10", "name": "TraceAAD V10.10 旧版（09-10 正式）",
+        "badge": "V10.10 旧版", "default_prefix": "v1010",
+        "path": REPO_ROOT / "experiments" / "traceaad_v10_10" / "results",
+        "is_latest": False, "dir_pattern": r"^20260910_v1010_formal_.*_v1010_rep\d+$",
     },
     "v10_9": {
         "id": "v10_9", "name": "TraceAAD V10.9（迁移与精炼）",
@@ -133,47 +140,20 @@ KNOWN_VERSIONS = {
         "path": REPO_ROOT / "experiments" / "traceaad_v10_6" / "results",
         "is_latest": False,
     },
-    "v10_5": {
-        "id": "v10_5",
-        "name": "TraceAAD V10.5",
-        "badge": "V10.5",
-        "default_prefix": "v105",
-        "path": REPO_ROOT / "experiments" / "traceaad_v10_5" / "results",
-        "is_latest": False,
-    },
-    "v10_4": {
-        "id": "v10_4",
-        "name": "TraceAAD V10.4",
-        "badge": "V10.4",
-        "default_prefix": "v104",
-        "path": REPO_ROOT / "experiments" / "traceaad_v10_4" / "results",
-        "is_latest": False,
-    },
-    "v10_3": {
-        "id": "v10_3",
-        "name": "TraceAAD V10.3",
-        "badge": "V10.3",
-        "default_prefix": "v103",
-        "path": REPO_ROOT / "experiments" / "traceaad_v10_3" / "results",
-        "is_latest": False,
-    },
-    "v10_2": {
-        "id": "v10_2",
-        "name": "TraceAAD V10.2",
-        "badge": "V10.2",
-        "default_prefix": "v102",
-        "path": REPO_ROOT / "experiments" / "traceaad_v10_2" / "results",
-        "is_latest": False,
-    },
-    "v10_1": {
-        "id": "v10_1",
-        "name": "TraceAAD V10.1",
-        "badge": "V10.1",
-        "default_prefix": "v101",
-        "path": REPO_ROOT / "experiments" / "traceaad_v10_1" / "results",
-        "is_latest": False,
-    },
 }
+
+# 2026-09-12 基线定点重跑批（rerun2）：EoH×VRPTW + MCTS-AHD×CVRP/OP，各 3 重复。
+RERUN2_RUN_GLOB = "20260912_rerun2_*"
+RERUN2_SESSION_PREFIX = "rerun2_"
+RERUN2_BUDGET = 1000
+TASK_LABEL = {
+    "tsp_construct": "TSP",
+    "cvrp_aco": "CVRP",
+    "op_aco": "OP",
+    "online_bin_packing": "OBP",
+    "vrptw_construct": "VRPTW",
+}
+METHOD_LABEL = {"eoh": "EoH", "mcts_ahd": "MCTS-AHD", "reevo": "ReEvo", "pathwise": "PathWise", "calm": "CALM"}
 
 
 def _format_duration(seconds: float | None) -> str:
@@ -267,6 +247,125 @@ class MonitorDataEngine:
                 }
             )
         return versions
+
+    def get_rerun2(self, max_age_sec: float = 3.0) -> dict[str, Any]:
+        """Progress of the 2026-09-12 targeted baseline rerun batch (rerun2)."""
+        now_ts = time.time()
+        with self._lock:
+            cached = self._cache_overview.get("__rerun2__")
+            if cached is not None and (now_ts - self._cache_overview_ts.get("__rerun2__", 0.0)) < max_age_sec:
+                return cached
+        active = _get_active_tmux_sessions()
+        task_short = {"vrptw_construct": "vrptw", "cvrp_aco": "cvrp", "op_aco": "op"}
+        method_short = {"eoh": "eoh", "mcts_ahd": "mcts"}
+        runs: list[dict[str, Any]] = []
+        for run_dir in sorted(REPO_ROOT.glob(f"experiments/*/*/{RERUN2_RUN_GLOB}")):
+            method = run_dir.parent.name
+            task = run_dir.parent.parent.name
+            record: dict[str, Any] = {
+                "run_name": run_dir.name,
+                "task": task,
+                "task_label": TASK_LABEL.get(task, task),
+                "method": method,
+                "method_label": METHOD_LABEL.get(method, method),
+            }
+            config_path = run_dir / "run_config.json"
+            if config_path.is_file():
+                try:
+                    config = json.loads(config_path.read_text(encoding="utf-8"))
+                except json.JSONDecodeError:
+                    config = {}
+                record.update(
+                    repeat=config.get("repeat"),
+                    seed=config.get("seed"),
+                    backend=config.get("backend"),
+                    model=config.get("llm", {}).get("model"),
+                )
+            repeat = record.get("repeat")
+            session = None
+            if repeat is not None and method in method_short and task in task_short:
+                session = f"{RERUN2_SESSION_PREFIX}{task_short[task]}_{method_short[method]}_r{repeat}"
+                record["session"] = session
+            summary = self._read_json(run_dir / "logs" / "run_summary.json")
+            state = self._last_jsonl_line(run_dir / "logs" / "method_state.jsonl")
+            samples = state.get("sample_count", state.get("sample_order"))
+            record["samples"] = samples
+            record["budget"] = RERUN2_BUDGET
+            if "generation" in state:
+                record["generation"] = state["generation"]
+            if summary is not None:
+                record["status"] = summary.get("status") or "unknown"
+            elif session is not None and _is_run_session_alive(session, active)[0]:
+                record["status"] = "running"
+            else:
+                record["status"] = "idle"
+            record["best"] = self._last_best_score(run_dir / "tmux_run.log")
+            log = run_dir / "tmux_run.log"
+            record["updated_sec_ago"] = (
+                round(now_ts - log.stat().st_mtime, 1) if log.is_file() else None
+            )
+            runs.append(record)
+        total_samples = sum(r.get("samples") or 0 for r in runs)
+        payload = {
+            "runs": runs,
+            "summary": {
+                "total_runs": len(runs),
+                "running": sum(1 for r in runs if r["status"] == "running"),
+                "finished": sum(1 for r in runs if r["status"] == "finished"),
+                "stopped": sum(1 for r in runs if r["status"] in ("error", "interrupted", "idle")),
+                "samples": total_samples,
+                "budget": len(runs) * RERUN2_BUDGET,
+            },
+        }
+        with self._lock:
+            self._cache_overview["__rerun2__"] = payload
+            self._cache_overview_ts["__rerun2__"] = now_ts
+        return payload
+
+    @staticmethod
+    def _read_json(path: Path) -> dict[str, Any] | None:
+        if not path.is_file():
+            return None
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return None
+
+    @staticmethod
+    def _last_jsonl_line(path: Path) -> dict[str, Any]:
+        if not path.is_file():
+            return {}
+        try:
+            with path.open("rb") as handle:
+                handle.seek(0, os.SEEK_END)
+                size = handle.tell()
+                window = min(size, 65536)
+                handle.seek(size - window)
+                tail = handle.read().decode("utf-8", errors="ignore").strip()
+            lines = [line for line in tail.splitlines() if line.strip()]
+            return json.loads(lines[-1]) if lines else {}
+        except (OSError, json.JSONDecodeError):
+            return {}
+
+    @staticmethod
+    def _last_best_score(path: Path) -> float | None:
+        if not path.is_file():
+            return None
+        try:
+            with path.open("rb") as handle:
+                handle.seek(0, os.SEEK_END)
+                size = handle.tell()
+                window = min(size, 262144)
+                handle.seek(size - window)
+                tail = handle.read().decode("utf-8", errors="ignore")
+            for line in reversed(tail.splitlines()):
+                marker = "Current best score:"
+                idx = line.rfind(marker)
+                if idx >= 0:
+                    return float(line[idx + len(marker):].strip())
+        except (OSError, ValueError):
+            return None
+        return None
 
     def _resolve_version_meta(
         self, version: str | None
@@ -437,7 +536,6 @@ class MonitorDataEngine:
         """
         manifests = sorted(root_dir.glob("batch_*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
         pattern = _version_dir_pattern(version_id) if version_id else None
-        fallback = None
         for m in manifests:
             try:
                 data = json.loads(m.read_text(encoding="utf-8"))
@@ -447,14 +545,12 @@ class MonitorDataEngine:
                     continue
             except Exception:
                 continue
-            if fallback is None:
-                fallback = data
             if pattern is None:
                 return data
             if any(re.search(pattern, item.get("run_name") or "")
                    for item in data.get("plan", [])):
                 return data
-        return fallback
+        return None
 
     def _find_queued_run_in_manifest(
         self, root_dir: Path, task: str, run_name: str, default_prefix: str,
@@ -564,7 +660,7 @@ class MonitorDataEngine:
                         continue
                     if dir_pattern and not re.search(dir_pattern, run_dir.name):
                         continue
-                    if default_prefix in ('v108alloc', 'v109', 'v1010') and manifest and run_dir.name not in planned_names:
+                    if default_prefix in ('v108alloc', 'v109', 'v1010', 'v1010f') and manifest and run_dir.name not in planned_names:
                         continue
                     rep_match = re.search(r"_rep(\d+)$", run_dir.name)
                     if not rep_match:
@@ -742,7 +838,7 @@ class MonitorDataEngine:
         started_at_str = tree_data.get("started_at") or cfg.get("created_at")
         started_at = datetime.fromisoformat(started_at_str) if started_at_str else None
 
-        expected_session = f"{method}_{task_info['short']}_r{rep}"
+        expected_session = f"{default_prefix}_{task_info['short']}_r{rep}"
         # Allocation arms share a task and seed; their sessions are in the manifest.
         if cfg.get('method_params', {}).get('allocation_arm') and default_prefix == 'v108alloc':
             arm = cfg['method_params']['allocation_arm']
@@ -1196,6 +1292,9 @@ def make_request_handler(engine: MonitorDataEngine) -> type[BaseHTTPRequestHandl
                 data = engine.get_overview(version=version)
                 return self._send_json(data)
 
+            if path == "/api/rerun2":
+                return self._send_json(engine.get_rerun2())
+
             if path == "/api/run":
                 task = params.get("task", [""])[0]
                 name = params.get("name", [""])[0]
@@ -1281,13 +1380,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--version",
-        default="v10_10",
-        help="Default experiment version (default: v10_10)",
+        default="v10_10_new",
+        help="Default experiment version (default: v10_10_new)",
     )
     parser.add_argument(
         "--session-prefix",
-        default="v1010",
-        help="Tmux session prefix (default: v1010)",
+        default="v1010f",
+        help="Tmux session prefix (default: v1010f)",
     )
     args = parser.parse_args()
 

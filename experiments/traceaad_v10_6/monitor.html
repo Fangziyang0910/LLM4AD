@@ -706,21 +706,17 @@ table.feed-table td {
 
 <header>
   <div class="brand">
-    <span class="brand-badge" id="brand-badge">V10.8</span>
+    <span class="brand-badge" id="brand-badge">V10.10 新版</span>
     <div class="brand-title">TraceAAD 训练监控与分析面板</div>
     <div class="version-picker-wrap">
       <select id="version-select" class="version-select" onchange="changeVersion(this.value)" title="切换监控实验版本">
-        <option value="v10_10" selected>TraceAAD V10.10（有界错误修复）</option>
+        <option value="v10_10_new" selected>TraceAAD V10.10 新版（09-11 正式）</option>
+        <option value="v10_10">TraceAAD V10.10 旧版（09-10 正式）</option>
         <option value="v10_9">TraceAAD V10.9（迁移与精炼）</option>
-        <option value="v10_8">TraceAAD V10.8（形成轨迹）(当前运行)</option>
+        <option value="v10_8">TraceAAD V10.8（形成轨迹）</option>
         <option value="v10_7r">TraceAAD V10.7R（任务证据正式）</option>
         <option value="v10_7">TraceAAD V10.7（冻结对照）</option>
         <option value="v10_6">TraceAAD V10.6</option>
-        <option value="v10_5">TraceAAD V10.5</option>
-        <option value="v10_4">TraceAAD V10.4</option>
-        <option value="v10_3">TraceAAD V10.3</option>
-        <option value="v10_2">TraceAAD V10.2</option>
-        <option value="v10_1">TraceAAD V10.1</option>
       </select>
     </div>
   </div>
@@ -768,6 +764,29 @@ table.feed-table td {
       <div class="kpi-label"><span>平均速率 & 调度器</span></div>
       <div class="kpi-val" id="kpi-speed-val">–</div>
       <div class="kpi-sub" id="kpi-sched-sub">基于 Qwen3.8-27B 采样与任务沙箱</div>
+    </div>
+  </section>
+
+  <section id="rerun2-panel" class="panel" style="margin-bottom: 18px; display: none;">
+    <div class="panel-header">
+      <span>🎯 基线定点重跑 rerun2（Qwen3.6-27B · 09-12 发射）</span>
+      <span id="rerun2-summary" style="color: var(--text-faint); font-size: 12px;"></span>
+    </div>
+    <div class="panel-body" style="padding: 0;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+        <thead>
+          <tr style="color: var(--text-faint); text-align: left;">
+            <th style="padding: 8px 12px; border-bottom: 1px solid var(--line);">组合</th>
+            <th style="padding: 8px 12px; border-bottom: 1px solid var(--line);">rep</th>
+            <th style="padding: 8px 12px; border-bottom: 1px solid var(--line);">后端</th>
+            <th style="padding: 8px 12px; border-bottom: 1px solid var(--line);">状态</th>
+            <th style="padding: 8px 12px; border-bottom: 1px solid var(--line); width: 26%;">评价进度</th>
+            <th style="padding: 8px 12px; border-bottom: 1px solid var(--line);">当前 best</th>
+            <th style="padding: 8px 12px; border-bottom: 1px solid var(--line);">更新</th>
+          </tr>
+        </thead>
+        <tbody id="rerun2-tbody"></tbody>
+      </table>
     </div>
   </section>
 
@@ -916,7 +935,7 @@ let activeView = "overview";
 let refreshTimer = null;
 let countdown = 10;
 let isInitialRender = true;
-let currentVersion = "v10_10";
+let currentVersion = "v10_10_new";
 let availableVersions = [];
 
 async function loadVersions() {
@@ -937,7 +956,7 @@ async function loadVersions() {
     } else if (latestVer) {
       currentVersion = latestVer;
     } else {
-      currentVersion = availableVersions[0] ? availableVersions[0].id : "v10_10";
+      currentVersion = availableVersions[0] ? availableVersions[0].id : "v10_10_new";
     }
     renderVersionSelector();
   } catch (e) {
@@ -1006,6 +1025,7 @@ async function fetchState(manual = false) {
       if (badge) badge.textContent = globalState.version;
     }
     renderOverview();
+    fetchRerun2();
     if (activeView === "inspector") {
       populateRunSelector();
       loadRunDetail();
@@ -1013,6 +1033,58 @@ async function fetchState(manual = false) {
   } catch (err) {
     console.error("Fetch state error:", err);
   }
+}
+
+async function fetchRerun2() {
+  try {
+    const res = await fetch("/api/rerun2");
+    if (!res.ok) return;
+    const data = await res.json();
+    renderRerun2(data);
+  } catch (err) {
+    console.error("Fetch rerun2 error:", err);
+  }
+}
+
+function renderRerun2(data) {
+  const panel = document.getElementById("rerun2-panel");
+  const tbody = document.getElementById("rerun2-tbody");
+  const summaryEl = document.getElementById("rerun2-summary");
+  if (!panel || !tbody) return;
+  if (!data.runs.length) {
+    panel.style.display = "none";
+    return;
+  }
+  panel.style.display = "";
+  const s = data.summary;
+  const pct = s.budget ? ((s.samples / s.budget) * 100).toFixed(1) : "0";
+  summaryEl.textContent = `${s.running} 运行 · ${s.finished} 完成 · ${s.stopped} 停 · 总进度 ${s.samples}/${s.budget}（${pct}%）`;
+  const statusColor = { running: "var(--status-run)", finished: "var(--status-fin)" };
+  const repColor = { 1: "var(--rep1)", 2: "var(--rep2)", 3: "var(--rep3)" };
+  tbody.innerHTML = data.runs.map(r => {
+    const samples = r.samples == null ? 0 : r.samples;
+    const pctRun = Math.min(100, (samples / (r.budget || 1000)) * 100).toFixed(1);
+    const genInfo = r.generation != null ? ` · 代${r.generation}` : "";
+    const best = r.best == null ? "–" : r.best.toFixed(4);
+    const updated = r.updated_sec_ago == null ? "–" : (r.updated_sec_ago < 90 ? `${Math.round(r.updated_sec_ago)}秒前` : `${Math.round(r.updated_sec_ago / 60)}分前`);
+    const color = statusColor[r.status] || "var(--status-stall)";
+    return `<tr style="border-bottom: 1px solid var(--line);">
+      <td style="padding: 7px 12px; font-weight: 600;">${r.task_label} <span style="color: var(--text-muted); font-weight: 400;">× ${r.method_label}</span></td>
+      <td style="padding: 7px 12px; color: ${repColor[r.repeat] || "var(--text-main)"};">rep${r.repeat ?? "?"}</td>
+      <td style="padding: 7px 12px; color: var(--text-muted);">${r.backend ?? "–"}<div style="font-size: 10.5px; color: var(--text-faint);">${r.model ?? ""}</div></td>
+      <td style="padding: 7px 12px; color: ${color}; font-weight: 600;">${r.status}</td>
+      <td style="padding: 7px 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="flex: 1; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden;">
+            <div style="height: 100%; width: ${pctRun}%; background: ${color};"></div>
+          </div>
+          <span style="min-width: 110px; text-align: right; color: var(--text-muted);">${samples}/${r.budget || 1000}${genInfo}</span>
+        </div>
+      </td>
+      <td style="padding: 7px 12px; font-family: monospace;">${best}</td>
+      <td style="padding: 7px 12px; color: var(--text-faint);">${updated}</td>
+    </tr>`;
+  }).join("");
 }
 
 function startAutoRefresh() {
@@ -1455,7 +1527,7 @@ function renderInspector() {
   document.getElementById("v105-eval-time").textContent = telem.avg_eval_seconds ? `${telem.avg_eval_seconds}s` : "–";
   document.getElementById("v105-improve-count").textContent = `${telem.parent_improved_count || 0} 次 / ${telem.frontier_improved_count || 0} 次`;
   
-  const singleCallIdea = ["v10_7", "v10_7r", "v10_9", "v10_10"].includes(currentVersion) || currentVersion.startsWith("v10_8");
+  const singleCallIdea = ["v10_7", "v10_7r", "v10_9", "v10_10", "v10_10_new"].includes(currentVersion) || currentVersion.startsWith("v10_8");
   document.getElementById("idea-label").textContent = singleCallIdea
     ? "💡 生成思路 (Idea)" : "💡 实现摘要 (Implementation Summary)";
   if (singleCallIdea) {

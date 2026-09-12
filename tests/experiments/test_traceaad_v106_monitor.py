@@ -65,9 +65,10 @@ def test_v106_monitor_multi_version_query() -> None:
     versions = engine.get_available_versions()
     version_ids = [v["id"] for v in versions]
     assert "v10_6" in version_ids
-    assert "v10_5" in version_ids
-    assert "v10_4" in version_ids
-    assert "v10_3" in version_ids
+    # 2026-09-12 起 V10.6 以前的版本不再纳入可视化。
+    assert "v10_5" not in version_ids
+    assert "v10_4" not in version_ids
+    assert "v10_3" not in version_ids
 
 
 def test_is_run_session_alive() -> None:

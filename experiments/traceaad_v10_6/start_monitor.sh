@@ -8,7 +8,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-SESSION_NAME="v106_monitor"
+SESSION_NAME="v1010_monitor"
 PORT="8765"
 FOREGROUND=0
 RESTART=0
@@ -29,7 +29,7 @@ done
 
 cd "${REPO_ROOT}"
 
-# If restart requested, kill existing v106_monitor
+# If restart requested, kill existing v1010_monitor
 if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
     if [ "$RESTART" -eq 1 ]; then
         echo "Restarting existing tmux session: ${SESSION_NAME}..."
@@ -46,7 +46,7 @@ if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
 fi
 
 # Stop other monitor sessions to prevent port conflict on default port
-for other_sess in v108_monitor v107_monitor v105_monitor v104_monitor v103_monitor v102_monitor; do
+for other_sess in v106_monitor v108_monitor v107_monitor v105_monitor v104_monitor v103_monitor v102_monitor; do
     if tmux has-session -t "${other_sess}" 2>/dev/null; then
         echo "Stopping previous monitor session ${other_sess} to free port ${PORT}..."
         tmux kill-session -t "${other_sess}" 2>/dev/null || true
@@ -63,21 +63,21 @@ if command -v fuser >/dev/null 2>&1; then
     fi
 fi
 
-CMD="uv run python -m experiments.traceaad_v10_6.monitor --version v10_9 --session-prefix v109 --port ${PORT}"
+CMD="uv run python -m experiments.traceaad_v10_6.monitor --version v10_10_new --session-prefix v1010f --port ${PORT}"
 
 if [ "$FOREGROUND" -eq 1 ]; then
     echo "Starting monitor in foreground on port ${PORT}..."
     exec ${CMD}
 fi
 
-echo "Starting TraceAAD V10.9 monitor in background tmux session: ${SESSION_NAME} (port ${PORT})..."
+echo "Starting TraceAAD V10.10 新版 monitor in background tmux session: ${SESSION_NAME} (port ${PORT})..."
 tmux new-session -d -s "${SESSION_NAME}" "${CMD}"
 
 # Wait a moment and check status
 sleep 2
 if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
     echo "=========================================================="
-    echo "🚀 TraceAAD V10.9 可视化监控启动成功!"
+    echo "🚀 TraceAAD V10.10 新版 可视化监控启动成功!"
     echo "  Web UI: http://127.0.0.1:${PORT}"
     echo "  Attach: tmux attach -t ${SESSION_NAME}"
     echo "  Stop:   tmux kill-session -t ${SESSION_NAME}"
