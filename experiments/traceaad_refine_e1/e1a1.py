@@ -22,7 +22,7 @@ LABELS = {
     'online_bin_packing': 'OBP',
     'vrptw_construct': 'VRPTW',
 }
-DOC = ROOT / 'docs/experiments/机制验证/2026-09-07-V10.6-Refine局部可迁移性验证'
+DOC = ROOT / 'docs/experiments/机制验证/04-算子动力学与两步价值/2026-09-07-E1-Refine局部响应迁移性'
 
 
 def kernel_predictions(pid, visible, history, nodes, behavior, bidx, prior, rng, permutations=PERMUTATIONS):
@@ -239,7 +239,7 @@ def plot(summary):
     ax.set_ylabel('Brier(QB) - Brier(Q); lower is better')
     ax.set_title('E1-A.1: behavioral increment within quality neighborhoods')
     fig.tight_layout()
-    fig.savefig(DOC / 'E1-A.1预测增量.png', dpi=180)
+    fig.savefig(DOC / 'e1a1_gain.png', dpi=180)
     plt.close(fig)
 
 
@@ -307,7 +307,7 @@ def main(out=DEFAULT):
     np.save(out / 'e1a1_permutation_macro_brier.npy', np.array(summary['permutation']['macro_brier_values']))
     dump(out / 'e1a1_summary.json', summary)
     dump(out / 'e1a1_config.json', config)
-    dump(DOC / 'E1-A.1汇总.json', {'config': config, 'summary': summary})
+    dump(DOC / 'e1a1_summary.json', {'config': config, 'summary': summary})
     write_report(out, summary, subsets, max(q_differences))
     plot(summary)
     print(json.dumps({'gate': summary['increment_gate_passed'], **summary['gate_components']}, ensure_ascii=False))

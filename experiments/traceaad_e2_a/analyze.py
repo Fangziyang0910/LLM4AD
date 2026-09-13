@@ -17,7 +17,7 @@ LABELS = {
     'online_bin_packing': 'OBP', 'vrptw_construct': 'VRPTW',
 }
 OUTCOMES = ['frontier_gain', 'frontier', 'parent_positive_gain', 'valid', 'parent_signed_gain_valid']
-DOC = ROOT / 'docs/experiments/机制验证/2026-09-07-E2-A-轨迹状态与算子响应'
+DOC = ROOT / 'docs/experiments/机制验证/04-算子动力学与两步价值/2026-09-07-E2A-轨迹状态与算子响应'
 SEED = 20260907
 
 
@@ -399,7 +399,7 @@ def write_report(manifest, behavior_rows, behavior, qsummary, profile_coverage):
         f'辅助超父结果没有显示Pivot优势：非停滞层Refine/Pivot分别有 {parent_low["Refine"]["positive"]}/{parent_low["Pivot"]["positive"]} 次正增益，停滞层为 {parent_high["Refine"]["positive"]}/{parent_high["Pivot"]["positive"]}；'
         f'严格三项停滞子集也只有Refine {strict_parent["Refine"]["positive"]}/{strict_parent["Refine"]["n"]}、Pivot {strict_parent["Pivot"]["positive"]}/{strict_parent["Pivot"]["n"]}。这些事件太少，不能形成稳定负效应估计，但方向并不支持花费生成预算启动E2-B。', '',
         f'给定候选有效时，signed parent gain的三任务宏平均交互为 {behavior["task_macro_interaction"]["parent_signed_gain_valid"]:.6f}，bootstrap区间 [{behavior["bootstrap"]["parent_signed_gain_valid"]["ci95"][0]:.6f}, {behavior["bootstrap"]["parent_signed_gain_valid"]["ci95"][1]:.6f}]，且三个任务方向均为负。valid是处理后的变量，不能把这个条件分析当作无偏因果效应；它只能说明现有suffix没有出现值得据此投入E2-B的正向质量迹象。', '',
-        '![E2-A逐任务交互](E2-A交互.png)', '',
+        '![E2-A逐任务交互](interaction.png)', '',
         '图中同时给出frontier gain与parent positive gain的逐任务交互。正值表示停滞状态下Pivot相对Refine的优势比非停滞状态更大。', '',
         '### 分任务主结果', '',
         '| 任务 | Frontier交互 | Parent-positive交互 | 停滞Refine/Pivot n |', '| --- | ---: | ---: | ---: |']
@@ -428,9 +428,9 @@ def write_report(manifest, behavior_rows, behavior, qsummary, profile_coverage):
         'E1已经关闭静态行为邻域的Refine响应共享；E2-A只检验行为作为轨迹传感器的一个固定状态定义。未通过不否定行为移动、重访对Pivot/Fuse或多步continuation的其他作用，但后续问题必须用新的独立数据或固定锚点回答，不能继续在本suffix寻找切点。', '',
         '## 5. 成本与复现', '',
         f'行为画像覆盖：{sum(r["valid_profiles"] for r in profile_coverage["runs"])}/{sum(r["nodes"] for r in profile_coverage["runs"])} 个archive节点；复用E1成功画像 {profile_coverage["reused_success_profiles"]} 个，新画像任务 {profile_coverage["new_profile_jobs"]} 个。新增画像worker池墙钟 {profile_coverage["new_profile_wall_seconds"]/60:.1f} 分钟，不含随后距离矩阵汇总时间。', '',
-        '[固定实验设计](实验设计.md)；[执行入口](../../../../experiments/traceaad_e2_a/README.md)。机器可读产物位于 `experiments/_logs/traceaad_e2_a_20260907/`。', '']
+        '[执行入口](../../../../experiments/traceaad_e2_a/README.md)。机器可读产物位于 `experiments/_logs/traceaad_e2_a_20260907/`。', '']
     DOC.mkdir(parents=True, exist_ok=True)
-    (DOC / '结果.md').write_text('\n'.join(lines))
+    (DOC / 'README.md').write_text('\n'.join(lines))
 
 
 def plot(behavior):
@@ -449,8 +449,7 @@ def plot(behavior):
         ax.axhline(0, color='gray', ls='--', lw=1)
         ax.set_title(title); ax.set_ylabel('Interaction: (Pivot-Refine) stagnant minus nonstagnant')
     fig.suptitle('E2-A prospective trajectory-state interaction')
-    fig.tight_layout()
-    fig.savefig(DOC / 'E2-A交互.png', dpi=180)
+    fig.savefig(DOC / 'interaction.png', dpi=180)
     plt.close(fig)
 
 
@@ -470,7 +469,7 @@ def main(out=DEFAULT):
     combined = {'config': config, 'snapshot': manifest, 'profile_coverage': profile_coverage,
                 'behavior': behavior, 'q_audit': qsummary}
     dump(out / 'summary.json', combined)
-    dump(DOC / 'E2-A汇总.json', combined)
+    dump(DOC / 'summary.json', combined)
     write_report(manifest, rows, behavior, qsummary, profile_coverage)
     plot(behavior)
     print(json.dumps({'interaction_gate': behavior['interaction_gate_passed'],

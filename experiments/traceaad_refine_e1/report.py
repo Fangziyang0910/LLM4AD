@@ -9,7 +9,7 @@ from .prepare import DEFAULT,dump,ROOT
 from .replay import MODELS
 
 LABELS={'tsp_construct':'TSP','cvrp_aco':'CVRP','op_aco':'OP','online_bin_packing':'OBP','vrptw_construct':'VRPTW'}
-DOC=ROOT/'docs/experiments/机制验证/2026-09-07-V10.6-Refine局部可迁移性验证'
+DOC=ROOT/'docs/experiments/机制验证/04-算子动力学与两步价值/2026-09-07-E1-Refine局部响应迁移性'
 
 
 def auxiliary_table(out):
@@ -97,7 +97,7 @@ def main(out=DEFAULT):
         '[运行入口与实际协议](../../../../experiments/traceaad_refine_e1/README.md)。本地原始工件位于 `experiments/_logs/refine_e1_20260907/`：`snapshot.json`、`experiment_config.json`、`validation.json`、`profiles/`、`stability.json`、`embedding_metadata.json`、`replay_predictions.jsonl`、`summary*.json`、`costs.json`。','']
     DOC.mkdir(parents=True,exist_ok=True)
     (DOC/'E1-A-结果.md').write_text('\n'.join(lines))
-    dump(DOC/'E1-A汇总.json',dict(config=json.loads((out/'experiment_config.json').read_text()),environment=json.loads((out/'environment.json').read_text()),auxiliary=json.loads((out/'auxiliary_summary.json').read_text()),snapshot=snap,stability=stability,summary=s,new_parents=new,complete_profiles=complete,embedding=emb,costs=dict(costs),seed_sensitivity=[{k:v for k,v in r.items() if k not in ["original","alternate"]} for r in seeds],screening_gate=gate))
+    dump(DOC/'e1a_summary.json',dict(config=json.loads((out/'experiment_config.json').read_text()),environment=json.loads((out/'environment.json').read_text()),auxiliary=json.loads((out/'auxiliary_summary.json').read_text()),snapshot=snap,stability=stability,summary=s,new_parents=new,complete_profiles=complete,embedding=emb,costs=dict(costs),seed_sensitivity=[{k:v for k,v in r.items() if k not in ["original","alternate"]} for r in seeds],screening_gate=gate))
     # Standalone research figure: each dot is one independent run.
     import matplotlib
     matplotlib.use('Agg')
@@ -110,7 +110,7 @@ def main(out=DEFAULT):
         ax.plot([i-.23,i+.23],[np.mean(d)]*2,color='#cc6600',lw=3)
     ax.axhline(0,color='gray',ls='--',lw=1);ax.set_xticks(range(5),LABELS.values());ax.set_ylabel('Brier(M3) - Brier(M1); lower is better')
     ax.set_title('E1-A: behavior-neighborhood prediction vs fitness/count/stage');fig.tight_layout()
-    fig.savefig(DOC/'E1-A预测增量.png',dpi=180);plt.close(fig)
+    fig.savefig(DOC/'e1a_gain.png',dpi=180);plt.close(fig)
     print(decision)
 
 if __name__=='__main__':main()
