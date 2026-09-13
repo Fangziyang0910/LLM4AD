@@ -16,9 +16,9 @@
 | 超时/运行失败类别 | 是，失败事件 | 不进入有效节点的形成路径 | 该次无有效节点，耗掉评价预算 |
 | 代码渐近复杂度、规模增长曲线 | 未测量 | 无明确数值 | 否 |
 
-依据：[V10.5 prompt](../../../../llm4ad/method/traceaad_v10_5/prompts.py)、[选择与评价循环](../../../../llm4ad/method/traceaad_v10_5/traceaad.py)、[节点结构](../../../../llm4ad/method/traceaad_v10_3/schema.py)。准确说法是：**记录了耗时，但决策闭环基本仍只看到 fitness。** 父节点计数惩罚与 Pivot 均匀分支属于分配机制，不是对候选运行成本的利用。
+依据：[V10.5 prompt](../../../llm4ad/method/traceaad_v10_5/prompts.py)、[选择与评价循环](../../../llm4ad/method/traceaad_v10_5/traceaad.py)、[节点结构](../../../llm4ad/method/traceaad_v10_3/schema.py)。准确说法是：**记录了耗时，但决策闭环基本仍只看到 fitness。** 父节点计数惩罚与 Pivot 均匀分支属于分配机制，不是对候选运行成本的利用。
 
-另一个遗漏是 CVRP Task Contract 只笼统要求 efficient NumPy，没有明确给出当前 120 秒评价上限、启发式矩阵每实例只预计算一次、固定 ACO 30 ants × 100 iterations 的实际调用关系。“within runtime limits”本身不能替代这些必要任务信息。[任务描述](../../../../llm4ad/task/optimization/cvrp_aco/template.py)、[评价实现](../../../../llm4ad/task/optimization/cvrp_aco/evaluation.py)。
+另一个遗漏是 CVRP Task Contract 只笼统要求 efficient NumPy，没有明确给出当前 120 秒评价上限、启发式矩阵每实例只预计算一次、固定 ACO 30 ants × 100 iterations 的实际调用关系。“within runtime limits”本身不能替代这些必要任务信息。[任务描述](../../../llm4ad/task/optimization/cvrp_aco/template.py)、[评价实现](../../../llm4ad/task/optimization/cvrp_aco/evaluation.py)。
 
 ## 2. CVRP rep3 为什么慢
 
@@ -38,7 +38,7 @@ rep3 输出比 rep2 长，服务端点和并发负载也不同。当前日志不
 
 同样地，不能直接用各路当前 best 比效果。在共同 200 次真实评价处，rep1/2/3 best 路长分别为 **9.3081 / 9.0690 / 9.4095**。此时 rep3 确实较差，但这没有识别“复杂造成质量差”的因果关系。
 
-来源：[冻结快照](snapshot.json)，可由 [diagnose.py](diagnose.py) 重读日志；重复执行会生成新的时间快照，不应与本文冻结数值混用。
+来源：根据当时运行日志提取的冻结时间快照；重复执行会生成新的时间快照，不应与本文冻结数值混用。
 
 ### 2.2 三次超时是终止性错误，不只是计算比较重
 
@@ -48,7 +48,7 @@ rep3 输出比 rep2 长，服务端点和并发负载也不同。当前日志不
 | 121 | Pivot | 120.14s | `while remaining.size > 0` 中从未更新 `remaining` |
 | 217 | Refine | 120.06s | `_build_edges` 的 `while customers` 中只删除局部 `rem`，不更新外层 `customers` |
 
-候选原文已从日志提取：[120](rep3_candidate_120.py)、[121](rep3_candidate_121.py)、[217](rep3_candidate_217.py)。例如第一个训练实例总需求为 253，车辆容量为 50，candidate120 不能在清空 visited 之前访问完所有客户。
+候选原文已从日志核查确认（candidate 120、121、217）。例如第一个训练实例总需求为 253，车辆容量为 50，candidate120 不能在清空 visited 之前访问完所有客户。
 
 这三次合计约 360 秒，不是整个生成流程变慢的主要来源，却是明确可修复的失败模式。把它们统一标成“复杂度高”会选错干预：需要的是正确的单调进度与终止逻辑、可定位的 timeout 反馈，而非单纯压缩代码。
 
@@ -65,7 +65,7 @@ rep3 输出比 rep2 长，服务端点和并发负载也不同。当前日志不
 | rep3 node194：加入路线构造与 2-opt | 9.1985 | 6074 | 15.94ms |
 | rep3 node197：简化方案 | 11.2232 | 1832 | 8.34ms |
 
-计时和原代码见 [snapshot.json](snapshot.json) 与同目录 `rep*_node*.py`。candidate241 与 `rep3_node194_complex.py`、candidate244 与 `rep3_node197_simplified.py` 分别逐字相同，归档时仅保留节点命名副本。node194 的代码约为 node158 两倍长，但测到的函数时间仅小幅增加；它改善了本次两位输入的质量，却没有超过当时的全局 best。node197 则说明简化并不自动带来更好质量。
+根据计时与原代码核对：candidate241 与 node194、candidate244 与 node197 分别逐字相同。node194 的代码约为 node158 两倍长，但测到的函数时间仅小幅增加；它改善了本次两位输入的质量，却没有超过当时的全局 best。node197 则说明简化并不自动带来更好质量。
 
 **数十毫秒的 prior 构造，不能解释数十秒的 evaluator 或 LLM 耗时。** 当前评价还包括 10 个实例的 ACO、spawn worker 的启动/import、进程调度与收尾。生成的 prior 也会影响 ACO 所构造路线的长度和工作量，所以不能反过来假定所有 ACO 时间都是与算法无关的常数。
 
@@ -73,7 +73,7 @@ rep3 输出比 rep2 长，服务端点和并发负载也不同。当前日志不
 
 ## 3. MEoH 到底支持什么
 
-详细原文与作者实现核查另见 [MEoH 阅读笔记](../../专题调研/MEoH多目标机制与单目标收益核查.md)。依据为 [论文 v2](https://arxiv.org/html/2409.16867v2) 主文、附录、作者代码，而非方法名称的推断。
+详细原文与作者实现核查另见 [MEoH 阅读笔记](../专题调研/MEoH多目标机制与单目标收益核查.md)。依据为 [论文 v2](https://arxiv.org/html/2409.16867v2) 主文、附录、作者代码，而非方法名称的推断。
 
 MEoH 把质量和求解时间组成双目标，在选父和种群截断时使用 Pareto 支配与 AST 相似性；非支配节点的 dominance-dissimilarity 分数相同。当前作者代码测 BPP 完整装箱、TSP 完整 GLS 的耗时，不能等同本项目的外层 evaluator wall time 或一次 prior 调用时间。[作者 BPP 评价器](https://raw.githubusercontent.com/Optima-CityU/LLM4AD/main/llm4ad/task/optimization/online_bin_packing_2O/evaluation.py)、[作者 TSP GLS](https://raw.githubusercontent.com/Optima-CityU/LLM4AD/main/llm4ad/task/optimization/tsp_gls_2O/gls.py)。作者当前代码与论文实验快照也存在设置差异。
 
