@@ -28,16 +28,25 @@ def test_v1011_runs_function_through_template(tmp_path):
     assert method.tree.best().code.startswith('def score')
 
 
-def test_v1011_rejects_external_program_content_and_long_idea(tmp_path):
+def test_v1011_rejects_external_program_content_and_very_long_idea(tmp_path):
     method = TraceAADV1011(evaluation=TinyEvaluation(), llm=FakeLLM(),
                            run_dir=tmp_path, budget=1, n_roots=1)
     assert method.parse_response(
         'Idea: valid summary\nCode:\n```python\nimport math\ndef score(x):\n    return 1\n```') is None
-    long_idea = ' '.join(['word'] * 201)
+    long_idea = 'word ' * 1700
     assert method.parse_response(
         f'Idea: {long_idea}\nCode:\n```python\ndef score(x):\n    return 1\n```') is None
     assert method.parse_response(
         'Idea: valid summary\nCode:\n```python\ndef score(x):\n    return 1\n```\nExtra explanation') is None
+
+
+def test_v1011_allows_a_concise_idea_below_the_token_limit(tmp_path):
+    method = TraceAADV1011(evaluation=TinyEvaluation(), llm=FakeLLM(),
+                           run_dir=tmp_path, budget=1, n_roots=1)
+    idea = ' '.join(['mechanism'] * 180)
+    parsed = method.parse_response(
+        f'Idea: {idea}\nCode:\n```python\ndef score(x):\n    return 1\n```')
+    assert parsed[0] == idea
 
 
 def test_v1011_returns_target_function_and_keeps_small_comments(tmp_path):

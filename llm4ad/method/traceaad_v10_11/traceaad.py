@@ -98,7 +98,8 @@ class TraceAADV1011:
     def parse_response(self, response, finish_reason="unknown"):
         parsed, error = errors.parse_candidate(response, finish_reason,
                                                 self._parse_interface,
-                                                self._template_program)
+                                                self._template_program,
+                                                token_counter=self.llm.count_tokens)
         self._parse_error = error
         return parsed
 
@@ -287,7 +288,8 @@ class TraceAADV1011:
                       budget_used=self.budget_used, evaluation_id=self.pending.get("outcome", {}).get("evaluation_id"),
                       eval_seconds=self.pending.get("outcome", {}).get("eval_seconds"),
                       llm_seconds=completion["seconds"], node_id=node.id if node else None,
-                      fitness=node.fitness if node else None)
+                      fitness=node.fitness if node else None,
+                      idea_tokens=parsed[3] if parsed is not None else None)
         if node and self.pending["parent_id"] is not None:
             record.update(parent_improved=node.fitness > self.pending["parent_fitness"],
                           frontier_improved=node.fitness > self.pending["best_before"])

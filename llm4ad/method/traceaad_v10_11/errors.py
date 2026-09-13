@@ -10,10 +10,25 @@ THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 FENCE_RE = re.compile(r"^[ \t]*```(?:python|py)?[ \t]*\r?$", re.MULTILINE | re.IGNORECASE)
 OUTPUT = (
     "Return exactly:\n"
-    "Idea: <one short paragraph, at most 200 words, describing the new mechanism>\n"
+    "Idea: <one short paragraph summarizing the core mechanism and the main change from the current method>\n"
     "Code:\n```python\n<the complete definition of the target function from the template>\n```\n\n"
     "Use the exact function name and signature shown in the template."
 )
+MAX_IDEA_TOKENS = 500
+
+
+def estimated_tokens(text):
+    """Conservative local estimate used when a model tokenizer is unavailable."""
+    return max(1, (len(text) + 3) // 4)
+
+
+def count_idea_tokens(text, token_counter=None):
+    if token_counter is not None:
+        try:
+            return int(token_counter(text))
+        except Exception:
+            pass
+    return estimated_tokens(text)
 
 
 def signature(args):
@@ -28,7 +43,7 @@ def expected_interface(name, args_text):
     return name, args_text, signature(args)
 
 
-def parse_candidate(response, finish_reason, interface, template_program):
+def parse_candidate(response, finish_reason, interface, template_program, token_counter=None):
     if finish_reason not in ("stop", "length", "unknown"):
         return None, "unsupported finish reason"
     text = THINK_BLOCK_RE.sub("", response)
@@ -43,8 +58,9 @@ def parse_candidate(response, finish_reason, interface, template_program):
     if idea_match is None or not idea_match.group(1).strip():
         return None, "Idea is required"
     idea = idea_match.group(1).strip()
-    if len(idea.split()) > 200:
-        return None, "idea_length_error: Idea must be at most 200 words"
+    idea_tokens = count_idea_tokens(idea, token_counter)
+    if idea_tokens > MAX_IDEA_TOKENS:
+        return None, f"idea_length_error: Idea exceeds 500 tokens ({idea_tokens} tokens)"
     code = text[fences[0].end():fences[1].start()]
     canonical = normalize_code(code)
     if not canonical:
@@ -71,7 +87,7 @@ def parse_candidate(response, finish_reason, interface, template_program):
         compile(rebuilt, "<candidate-template>", "exec")
     except (SyntaxError, ValueError) as exc:
         return None, f"template_error: {type(exc).__name__}: {exc}"
-    return (idea, normalize_code(ast.unparse(targets[0])), rebuilt), None
+    return (idea, normalize_code(ast.unparse(targets[0])), rebuilt, idea_tokens), None
 
 
 def repair_prompt(task_contract, response, event):
