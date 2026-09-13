@@ -140,16 +140,12 @@ V9.6 到 V9.7 同时改变路线分配、生成意图与历史组成，只能评
 | OP | OP50 均值 15.003，低于 V9 与 MCTS-AHD | improve 稀疏，早期耗尽较低前沿；强局部化没有找到更高质量区域 |
 | OBP | 多数版本差在 1% 内，方向混合 | 分数离散和平局使多路线维持更久；过程差异没有转化为稳定质量差 |
 
-![Best-so-far](traceaad_v97_mechanism_value/fig1_best_so_far.png)
-
 ### 5.3 搜索效率、天花板与稳定性
 
 - **TSP**：三次最后刷新在第 769/912/974 次评价。V9.7 从约第 100 次评价起领先 V9.6，前 250 次已获得约 94% 的搜索增益，之后仍有小幅刷新。优势同时包含较高前期效率与更高终点。
 - **CVRP**：最后刷新均值约为第 806 次；V8 更晚刷新且 CVRP50 更好，V9.7 在 CVRP100/200 更好。V9.7 的运行间标准差高于 V8，不能称为更稳。
 - **OP**：前 250 次已获得约 98% 的搜索增益，90% 增益平均在第 82 次评价达到；后续预算很少提高全局最好。
 - **OBP**：三次最后刷新都在第 732 次之后，但总增益小，曲线形态没有转化为稳定版本差。
-
-![刷新时点](traceaad_v97_mechanism_value/fig2_refresh_timing.png)
 
 V9.7 不是跨任务统一的 sample-efficiency 方法。TSP/CVRP 更接近“抬高可达前沿并保留后期精炼”，OP 更接近“较早耗尽一个较低前沿”。
 
@@ -171,8 +167,6 @@ V9.7 不是跨任务统一的 sample-efficiency 方法。TSP/CVRP 更接近“�
 - trial 级中位 $\Delta q$ 在四任务上一致右移；
 - TSP/CVRP/OP 落入最差十分位的改写从 `16%/23%/16%` 降到 `6%/4%/8%`；
 - 修改比例从约 `0.71–0.80` 降到 `0.36–0.64`。
-
-![固定锚点生成行为](traceaad_v97_mechanism_value/fig5_probe_behavior.png)
 
 因此，来时路提供的是**当前设计怎样形成的局部约束**。它帮助模型保留已经形成的有效结构，减少与当前程序不相容的大幅重写。该作用已被识别到单步生成层；完整搜索层的净贡献依任务画像，见 §6.4。
 
@@ -213,8 +207,6 @@ PP/CO 完整搜索消融（V9.7 协议、同 seed 配对，4 任务 × 3 seed ×
 | OBP | 29.1% / 6.3% | 5.3% / 36.9% | 21.9% |
 
 Explore 在四任务上都更少产生普通 improve，却更常改变静态机制代理，且全局突破的中位增量高于 Refine。V9.8 的固定锚点 History × Intent 实验进一步确认：在 code-only 和 parent-path 两种上下文中，Explore 都形成更大的代码修改和更多静态宏簇切换，即时有向质量低于 Refine。两种指令确实改变 proposal behavior。
-
-![Refine 与 Explore 生成统计](traceaad_v97_mechanism_value/fig3_generation_stats.png)
 
 静态宏簇是任务内、解释型代理，不能等同于真实算法 family；完整搜索中的 Refine 与 Explore 又面对不同锚点。因此，当前只支持“意图改变提议分布”，不支持“Explore 已稳定发现更优算法簇”。
 
@@ -484,9 +476,3 @@ $$
 并由少量 Explore 在同一路线内部提供结构迁移。路线层几乎没有持续估计多路线价值，锚点层却保持区域内的局部宽度；真实评价和原子更新又避免了长期信用的不可观测性。
 
 因此，V9.7 当前支持的最强结论是：**改进来时路可以成为有效的生成条件，而一个简单、局部化、即时反馈的搜索体制能够把这种生成能力兑现成强综合结果。** 它尚未证明轨迹感知分配已经解决。下一阶段的目标是在不破坏这条深精炼主链的前提下，识别何时应继续集中、何时应重新开放，以及哪些跨簇入口值得获得有限发展机会。
-
-## 分析工件
-
-- V9.7 搜索几何：`analyze_v97_search_geometry.py` 与 [`summary.json`](traceaad_v97_search_geometry/summary.json)
-- V9.7 机制价值：`analyze_v97_mechanism_value.py` 与 [`traceaad_v97_mechanism_value/`](traceaad_v97_mechanism_value)
-- V9.7 区域重访：`analyze_v97_region_revisit.py` 与 [`summary.json`](traceaad_v97_region_revisit/summary.json)
