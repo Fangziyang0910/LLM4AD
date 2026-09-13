@@ -142,7 +142,7 @@ KNOWN_VERSIONS = {
     },
 }
 
-# 2026-09-12 基线定点重跑批（rerun2）：EoH×VRPTW + MCTS-AHD×CVRP/OP，各 3 重复。
+# 2026-09-12 对比方法定点重跑批（rerun2）：EoH×VRPTW + MCTS-AHD×CVRP/OP，各 3 重复。
 RERUN2_RUN_GLOB = "20260912_rerun2_*"
 RERUN2_SESSION_PREFIX = "rerun2_"
 RERUN2_BUDGET = 1000

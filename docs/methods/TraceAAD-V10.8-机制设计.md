@@ -509,8 +509,8 @@ $$
 | S2 | [docs/knowledge/生成上下文经验.md](../knowledge/生成上下文经验.md) | 单步与完整搜索边界、失败子代经验 |
 | S3 | [docs/knowledge/预算分配经验.md](../knowledge/预算分配经验.md) | 代理、回传和重决策频率教训 |
 | S4 | [docs/knowledge/TraceAAD机制尝试.md](../knowledge/TraceAAD机制尝试.md) | 历代失败性质及混杂边界 |
-| S5 | [docs/experiments/机制验证/2026-08-21-父代来时路完整搜索/结果.md](../experiments/机制验证/2026-08-21-父代来时路完整搜索/结果.md) | 逐 seed 数值和汇总纠错 |
-| S6 | [docs/experiments/机制验证/2026-09-07-E2-B-Pivot两步选择价值/结果.md](../experiments/机制验证/2026-09-07-E2-B-Pivot两步选择价值/结果.md) | 两步价值与恢复收益区别 |
+| S5 | [docs/experiments/机制验证/01-提示与上下文/2026-08-21-父代来时路搜索/README.md](../experiments/机制验证/01-提示与上下文/2026-08-21-父代来时路搜索/README.md) | 逐 seed 数值和汇总纠错 |
+| S6 | [docs/experiments/机制验证/04-算子动力学与两步价值/2026-09-07-E2B-Pivot两步选择价值/README.md](../experiments/机制验证/04-算子动力学与两步价值/2026-09-07-E2B-Pivot两步选择价值/README.md) | 两步价值与恢复收益区别 |
 | S7 | [docs/analysis/诊断性分析/2026-09-07-V10.6二次Idea配对核查/结论.md](../analysis/诊断性分析/2026-09-07-V10.6二次Idea配对核查/结论.md) | 二次摘要的局部收益与错误 |
 | S8 | [docs/methods/TraceAAD-V10.7R-机制设计.md](TraceAAD-V10.7R-机制设计.md) | V10.7R 前置基线及验证状态 |
 | S9 | [llm4ad/method/traceaad_v10_7/traceaad.py](../../llm4ad/method/traceaad_v10_7/traceaad.py) | V10.7R 的单候选执行流程 |

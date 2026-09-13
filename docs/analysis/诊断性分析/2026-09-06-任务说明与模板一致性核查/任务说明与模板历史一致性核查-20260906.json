@@ -67,7 +67,7 @@
     {
       "method": "eoh",
       "task": "tsp_construct",
-      "path": "experiments/eoh/results/tsp_construct/20260824_rerun_tsp_eoh_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/eoh/results/tsp_construct/formal_tsp_eoh_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -78,7 +78,7 @@
     {
       "method": "eoh",
       "task": "tsp_construct",
-      "path": "experiments/eoh/results/tsp_construct/20260824_rerun_tsp_eoh_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/eoh/results/tsp_construct/formal_tsp_eoh_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -89,7 +89,7 @@
     {
       "method": "eoh",
       "task": "tsp_construct",
-      "path": "experiments/eoh/results/tsp_construct/20260824_rerun_tsp_eoh_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/eoh/results/tsp_construct/formal_tsp_eoh_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -100,7 +100,7 @@
     {
       "method": "reevo",
       "task": "tsp_construct",
-      "path": "experiments/reevo/results/tsp_construct/20260824_rerun_tsp_reevo_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/reevo/results/tsp_construct/formal_tsp_reevo_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -111,7 +111,7 @@
     {
       "method": "reevo",
       "task": "tsp_construct",
-      "path": "experiments/reevo/results/tsp_construct/20260824_rerun_tsp_reevo_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/reevo/results/tsp_construct/formal_tsp_reevo_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -122,7 +122,7 @@
     {
       "method": "reevo",
       "task": "tsp_construct",
-      "path": "experiments/reevo/results/tsp_construct/20260824_rerun_tsp_reevo_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/reevo/results/tsp_construct/formal_tsp_reevo_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -133,7 +133,7 @@
     {
       "method": "mcts_ahd",
       "task": "tsp_construct",
-      "path": "experiments/mcts_ahd/results/tsp_construct/20260824_rerun_tsp_mcts_ahd_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/mcts_ahd/results/tsp_construct/formal_tsp_mcts_ahd_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -144,7 +144,7 @@
     {
       "method": "mcts_ahd",
       "task": "tsp_construct",
-      "path": "experiments/mcts_ahd/results/tsp_construct/20260824_rerun_tsp_mcts_ahd_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/mcts_ahd/results/tsp_construct/formal_tsp_mcts_ahd_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -155,7 +155,7 @@
     {
       "method": "mcts_ahd",
       "task": "tsp_construct",
-      "path": "experiments/mcts_ahd/results/tsp_construct/20260824_rerun_tsp_mcts_ahd_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/mcts_ahd/results/tsp_construct/formal_tsp_mcts_ahd_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -166,7 +166,7 @@
     {
       "method": "pathwise",
       "task": "tsp_construct",
-      "path": "experiments/pathwise/results/tsp_construct/20260824_rerun_tsp_pathwise_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/pathwise/results/tsp_construct/formal_tsp_pathwise_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "initialization",
       "historical_description_present": true,
@@ -177,7 +177,7 @@
     {
       "method": "pathwise",
       "task": "tsp_construct",
-      "path": "experiments/pathwise/results/tsp_construct/20260824_rerun_tsp_pathwise_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/pathwise/results/tsp_construct/formal_tsp_pathwise_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "initialization",
       "historical_description_present": true,
@@ -188,7 +188,7 @@
     {
       "method": "pathwise",
       "task": "tsp_construct",
-      "path": "experiments/pathwise/results/tsp_construct/20260824_rerun_tsp_pathwise_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/pathwise/results/tsp_construct/formal_tsp_pathwise_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "initialization",
       "historical_description_present": true,
@@ -199,7 +199,7 @@
     {
       "method": "calm",
       "task": "tsp_construct",
-      "path": "experiments/calm/results/tsp_construct/20260824_rerun_tsp_calm_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/calm/results/tsp_construct/formal_tsp_calm_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -212,7 +212,7 @@
     {
       "method": "calm",
       "task": "tsp_construct",
-      "path": "experiments/calm/results/tsp_construct/20260824_rerun_tsp_calm_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/calm/results/tsp_construct/formal_tsp_calm_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -225,7 +225,7 @@
     {
       "method": "calm",
       "task": "tsp_construct",
-      "path": "experiments/calm/results/tsp_construct/20260824_rerun_tsp_calm_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/calm/results/tsp_construct/formal_tsp_calm_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -238,7 +238,7 @@
     {
       "method": "eoh",
       "task": "cvrp_aco",
-      "path": "experiments/eoh/results/cvrp_aco/20260824_rerun_cvrp_eoh_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/eoh/results/cvrp_aco/formal_cvrp_eoh_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -249,7 +249,7 @@
     {
       "method": "eoh",
       "task": "cvrp_aco",
-      "path": "experiments/eoh/results/cvrp_aco/20260824_rerun_cvrp_eoh_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/eoh/results/cvrp_aco/formal_cvrp_eoh_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -260,7 +260,7 @@
     {
       "method": "eoh",
       "task": "cvrp_aco",
-      "path": "experiments/eoh/results/cvrp_aco/20260824_rerun_cvrp_eoh_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/eoh/results/cvrp_aco/formal_cvrp_eoh_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -271,7 +271,7 @@
     {
       "method": "reevo",
       "task": "cvrp_aco",
-      "path": "experiments/reevo/results/cvrp_aco/20260824_rerun_cvrp_reevo_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/reevo/results/cvrp_aco/formal_cvrp_reevo_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -282,7 +282,7 @@
     {
       "method": "reevo",
       "task": "cvrp_aco",
-      "path": "experiments/reevo/results/cvrp_aco/20260824_rerun_cvrp_reevo_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/reevo/results/cvrp_aco/formal_cvrp_reevo_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -293,7 +293,7 @@
     {
       "method": "reevo",
       "task": "cvrp_aco",
-      "path": "experiments/reevo/results/cvrp_aco/20260824_rerun_cvrp_reevo_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/reevo/results/cvrp_aco/formal_cvrp_reevo_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -304,7 +304,7 @@
     {
       "method": "mcts_ahd",
       "task": "cvrp_aco",
-      "path": "experiments/mcts_ahd/results/cvrp_aco/20260824_rerun_cvrp_mcts_ahd_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/mcts_ahd/results/cvrp_aco/formal_cvrp_mcts_ahd_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -315,7 +315,7 @@
     {
       "method": "mcts_ahd",
       "task": "cvrp_aco",
-      "path": "experiments/mcts_ahd/results/cvrp_aco/20260824_rerun_cvrp_mcts_ahd_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/mcts_ahd/results/cvrp_aco/formal_cvrp_mcts_ahd_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -326,7 +326,7 @@
     {
       "method": "mcts_ahd",
       "task": "cvrp_aco",
-      "path": "experiments/mcts_ahd/results/cvrp_aco/20260824_rerun_cvrp_mcts_ahd_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/mcts_ahd/results/cvrp_aco/formal_cvrp_mcts_ahd_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -337,7 +337,7 @@
     {
       "method": "pathwise",
       "task": "cvrp_aco",
-      "path": "experiments/pathwise/results/cvrp_aco/20260824_rerun_cvrp_pathwise_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/pathwise/results/cvrp_aco/formal_cvrp_pathwise_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "initialization",
       "historical_description_present": true,
@@ -348,7 +348,7 @@
     {
       "method": "pathwise",
       "task": "cvrp_aco",
-      "path": "experiments/pathwise/results/cvrp_aco/20260824_rerun_cvrp_pathwise_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/pathwise/results/cvrp_aco/formal_cvrp_pathwise_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "initialization",
       "historical_description_present": true,
@@ -359,7 +359,7 @@
     {
       "method": "pathwise",
       "task": "cvrp_aco",
-      "path": "experiments/pathwise/results/cvrp_aco/20260824_rerun_cvrp_pathwise_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/pathwise/results/cvrp_aco/formal_cvrp_pathwise_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "initialization",
       "historical_description_present": true,
@@ -370,7 +370,7 @@
     {
       "method": "calm",
       "task": "cvrp_aco",
-      "path": "experiments/calm/results/cvrp_aco/20260824_rerun_cvrp_calm_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/calm/results/cvrp_aco/formal_cvrp_calm_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -383,7 +383,7 @@
     {
       "method": "calm",
       "task": "cvrp_aco",
-      "path": "experiments/calm/results/cvrp_aco/20260824_rerun_cvrp_calm_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/calm/results/cvrp_aco/formal_cvrp_calm_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -396,7 +396,7 @@
     {
       "method": "calm",
       "task": "cvrp_aco",
-      "path": "experiments/calm/results/cvrp_aco/20260824_rerun_cvrp_calm_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/calm/results/cvrp_aco/formal_cvrp_calm_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -409,7 +409,7 @@
     {
       "method": "eoh",
       "task": "op_aco",
-      "path": "experiments/eoh/results/op_aco/20260824_rerun_op_eoh_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/eoh/results/op_aco/formal_op_eoh_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -420,7 +420,7 @@
     {
       "method": "eoh",
       "task": "op_aco",
-      "path": "experiments/eoh/results/op_aco/20260824_rerun_op_eoh_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/eoh/results/op_aco/formal_op_eoh_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -431,7 +431,7 @@
     {
       "method": "eoh",
       "task": "op_aco",
-      "path": "experiments/eoh/results/op_aco/20260824_rerun_op_eoh_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/eoh/results/op_aco/formal_op_eoh_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -442,7 +442,7 @@
     {
       "method": "reevo",
       "task": "op_aco",
-      "path": "experiments/reevo/results/op_aco/20260824_rerun_op_reevo_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/reevo/results/op_aco/formal_op_reevo_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -453,7 +453,7 @@
     {
       "method": "reevo",
       "task": "op_aco",
-      "path": "experiments/reevo/results/op_aco/20260824_rerun_op_reevo_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/reevo/results/op_aco/formal_op_reevo_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -464,7 +464,7 @@
     {
       "method": "reevo",
       "task": "op_aco",
-      "path": "experiments/reevo/results/op_aco/20260824_rerun_op_reevo_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/reevo/results/op_aco/formal_op_reevo_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -475,7 +475,7 @@
     {
       "method": "mcts_ahd",
       "task": "op_aco",
-      "path": "experiments/mcts_ahd/results/op_aco/20260824_rerun_op_mcts_ahd_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/mcts_ahd/results/op_aco/formal_op_mcts_ahd_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -486,7 +486,7 @@
     {
       "method": "mcts_ahd",
       "task": "op_aco",
-      "path": "experiments/mcts_ahd/results/op_aco/20260824_rerun_op_mcts_ahd_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/mcts_ahd/results/op_aco/formal_op_mcts_ahd_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -497,7 +497,7 @@
     {
       "method": "mcts_ahd",
       "task": "op_aco",
-      "path": "experiments/mcts_ahd/results/op_aco/20260824_rerun_op_mcts_ahd_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/mcts_ahd/results/op_aco/formal_op_mcts_ahd_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -508,7 +508,7 @@
     {
       "method": "pathwise",
       "task": "op_aco",
-      "path": "experiments/pathwise/results/op_aco/20260824_rerun_op_pathwise_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/pathwise/results/op_aco/formal_op_pathwise_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "initialization",
       "historical_description_present": true,
@@ -519,7 +519,7 @@
     {
       "method": "pathwise",
       "task": "op_aco",
-      "path": "experiments/pathwise/results/op_aco/20260824_rerun_op_pathwise_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/pathwise/results/op_aco/formal_op_pathwise_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "initialization",
       "historical_description_present": true,
@@ -530,7 +530,7 @@
     {
       "method": "pathwise",
       "task": "op_aco",
-      "path": "experiments/pathwise/results/op_aco/20260824_rerun_op_pathwise_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/pathwise/results/op_aco/formal_op_pathwise_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "initialization",
       "historical_description_present": true,
@@ -541,7 +541,7 @@
     {
       "method": "calm",
       "task": "op_aco",
-      "path": "experiments/calm/results/op_aco/20260824_rerun_op_calm_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/calm/results/op_aco/formal_op_calm_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -554,7 +554,7 @@
     {
       "method": "calm",
       "task": "op_aco",
-      "path": "experiments/calm/results/op_aco/20260824_rerun_op_calm_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/calm/results/op_aco/formal_op_calm_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -567,7 +567,7 @@
     {
       "method": "calm",
       "task": "op_aco",
-      "path": "experiments/calm/results/op_aco/20260824_rerun_op_calm_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/calm/results/op_aco/formal_op_calm_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -580,7 +580,7 @@
     {
       "method": "eoh",
       "task": "online_bin_packing",
-      "path": "experiments/eoh/results/online_bin_packing/20260824_rerun_obp_eoh_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/eoh/results/online_bin_packing/formal_obp_eoh_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -591,7 +591,7 @@
     {
       "method": "eoh",
       "task": "online_bin_packing",
-      "path": "experiments/eoh/results/online_bin_packing/20260824_rerun_obp_eoh_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/eoh/results/online_bin_packing/formal_obp_eoh_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -602,7 +602,7 @@
     {
       "method": "eoh",
       "task": "online_bin_packing",
-      "path": "experiments/eoh/results/online_bin_packing/20260824_rerun_obp_eoh_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/eoh/results/online_bin_packing/formal_obp_eoh_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -613,7 +613,7 @@
     {
       "method": "reevo",
       "task": "online_bin_packing",
-      "path": "experiments/reevo/results/online_bin_packing/20260824_rerun_obp_reevo_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/reevo/results/online_bin_packing/formal_obp_reevo_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -624,7 +624,7 @@
     {
       "method": "reevo",
       "task": "online_bin_packing",
-      "path": "experiments/reevo/results/online_bin_packing/20260824_rerun_obp_reevo_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/reevo/results/online_bin_packing/formal_obp_reevo_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -635,7 +635,7 @@
     {
       "method": "reevo",
       "task": "online_bin_packing",
-      "path": "experiments/reevo/results/online_bin_packing/20260824_rerun_obp_reevo_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/reevo/results/online_bin_packing/formal_obp_reevo_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -646,7 +646,7 @@
     {
       "method": "mcts_ahd",
       "task": "online_bin_packing",
-      "path": "experiments/mcts_ahd/results/online_bin_packing/20260824_rerun_obp_mcts_ahd_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/mcts_ahd/results/online_bin_packing/formal_obp_mcts_ahd_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -657,7 +657,7 @@
     {
       "method": "mcts_ahd",
       "task": "online_bin_packing",
-      "path": "experiments/mcts_ahd/results/online_bin_packing/20260824_rerun_obp_mcts_ahd_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/mcts_ahd/results/online_bin_packing/formal_obp_mcts_ahd_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -668,7 +668,7 @@
     {
       "method": "mcts_ahd",
       "task": "online_bin_packing",
-      "path": "experiments/mcts_ahd/results/online_bin_packing/20260824_rerun_obp_mcts_ahd_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/mcts_ahd/results/online_bin_packing/formal_obp_mcts_ahd_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -679,7 +679,7 @@
     {
       "method": "pathwise",
       "task": "online_bin_packing",
-      "path": "experiments/pathwise/results/online_bin_packing/20260824_rerun_obp_pathwise_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/pathwise/results/online_bin_packing/formal_obp_pathwise_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "initialization",
       "historical_description_present": true,
@@ -690,7 +690,7 @@
     {
       "method": "pathwise",
       "task": "online_bin_packing",
-      "path": "experiments/pathwise/results/online_bin_packing/20260824_rerun_obp_pathwise_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/pathwise/results/online_bin_packing/formal_obp_pathwise_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "initialization",
       "historical_description_present": true,
@@ -701,7 +701,7 @@
     {
       "method": "pathwise",
       "task": "online_bin_packing",
-      "path": "experiments/pathwise/results/online_bin_packing/20260824_rerun_obp_pathwise_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/pathwise/results/online_bin_packing/formal_obp_pathwise_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "initialization",
       "historical_description_present": true,
@@ -712,7 +712,7 @@
     {
       "method": "calm",
       "task": "online_bin_packing",
-      "path": "experiments/calm/results/online_bin_packing/20260824_rerun_obp_calm_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/calm/results/online_bin_packing/formal_obp_calm_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -725,7 +725,7 @@
     {
       "method": "calm",
       "task": "online_bin_packing",
-      "path": "experiments/calm/results/online_bin_packing/20260824_rerun_obp_calm_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/calm/results/online_bin_packing/formal_obp_calm_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -738,7 +738,7 @@
     {
       "method": "calm",
       "task": "online_bin_packing",
-      "path": "experiments/calm/results/online_bin_packing/20260824_rerun_obp_calm_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/calm/results/online_bin_packing/formal_obp_calm_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -751,7 +751,7 @@
     {
       "method": "eoh",
       "task": "vrptw_construct",
-      "path": "experiments/eoh/results/vrptw_construct/20260822_142500_vrptw_eoh_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/eoh/results/vrptw_construct/formal_vrptw_eoh_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -762,7 +762,7 @@
     {
       "method": "eoh",
       "task": "vrptw_construct",
-      "path": "experiments/eoh/results/vrptw_construct/20260822_142500_vrptw_eoh_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/eoh/results/vrptw_construct/formal_vrptw_eoh_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -773,7 +773,7 @@
     {
       "method": "eoh",
       "task": "vrptw_construct",
-      "path": "experiments/eoh/results/vrptw_construct/20260822_142500_vrptw_eoh_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/eoh/results/vrptw_construct/formal_vrptw_eoh_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -784,7 +784,7 @@
     {
       "method": "reevo",
       "task": "vrptw_construct",
-      "path": "experiments/reevo/results/vrptw_construct/20260822_142500_vrptw_reevo_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/reevo/results/vrptw_construct/formal_vrptw_reevo_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -795,7 +795,7 @@
     {
       "method": "reevo",
       "task": "vrptw_construct",
-      "path": "experiments/reevo/results/vrptw_construct/20260822_142500_vrptw_reevo_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/reevo/results/vrptw_construct/formal_vrptw_reevo_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -806,7 +806,7 @@
     {
       "method": "reevo",
       "task": "vrptw_construct",
-      "path": "experiments/reevo/results/vrptw_construct/20260822_142500_vrptw_reevo_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/reevo/results/vrptw_construct/formal_vrptw_reevo_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -817,7 +817,7 @@
     {
       "method": "mcts_ahd",
       "task": "vrptw_construct",
-      "path": "experiments/mcts_ahd/results/vrptw_construct/20260822_142500_vrptw_mcts_ahd_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/mcts_ahd/results/vrptw_construct/formal_vrptw_mcts_ahd_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -828,7 +828,7 @@
     {
       "method": "mcts_ahd",
       "task": "vrptw_construct",
-      "path": "experiments/mcts_ahd/results/vrptw_construct/20260822_142500_vrptw_mcts_ahd_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/mcts_ahd/results/vrptw_construct/formal_vrptw_mcts_ahd_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -839,7 +839,7 @@
     {
       "method": "mcts_ahd",
       "task": "vrptw_construct",
-      "path": "experiments/mcts_ahd/results/vrptw_construct/20260822_142500_vrptw_mcts_ahd_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/mcts_ahd/results/vrptw_construct/formal_vrptw_mcts_ahd_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -850,7 +850,7 @@
     {
       "method": "pathwise",
       "task": "vrptw_construct",
-      "path": "experiments/pathwise/results/vrptw_construct/20260822_142500_vrptw_pathwise_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/pathwise/results/vrptw_construct/formal_vrptw_pathwise_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "initialization",
       "historical_description_present": true,
@@ -861,7 +861,7 @@
     {
       "method": "pathwise",
       "task": "vrptw_construct",
-      "path": "experiments/pathwise/results/vrptw_construct/20260822_142500_vrptw_pathwise_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/pathwise/results/vrptw_construct/formal_vrptw_pathwise_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "initialization",
       "historical_description_present": true,
@@ -872,7 +872,7 @@
     {
       "method": "pathwise",
       "task": "vrptw_construct",
-      "path": "experiments/pathwise/results/vrptw_construct/20260822_142500_vrptw_pathwise_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/pathwise/results/vrptw_construct/formal_vrptw_pathwise_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "initialization",
       "historical_description_present": true,
@@ -883,7 +883,7 @@
     {
       "method": "calm",
       "task": "vrptw_construct",
-      "path": "experiments/calm/results/vrptw_construct/20260822_142500_vrptw_calm_rep1/logs/llm_calls.jsonl",
+      "path": "experiments/calm/results/vrptw_construct/formal_vrptw_calm_rep1/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -896,7 +896,7 @@
     {
       "method": "calm",
       "task": "vrptw_construct",
-      "path": "experiments/calm/results/vrptw_construct/20260822_142500_vrptw_calm_rep2/logs/llm_calls.jsonl",
+      "path": "experiments/calm/results/vrptw_construct/formal_vrptw_calm_rep2/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,
@@ -909,7 +909,7 @@
     {
       "method": "calm",
       "task": "vrptw_construct",
-      "path": "experiments/calm/results/vrptw_construct/20260822_142500_vrptw_calm_rep3/logs/llm_calls.jsonl",
+      "path": "experiments/calm/results/vrptw_construct/formal_vrptw_calm_rep3/logs/llm_calls.jsonl",
       "line": 1,
       "stage": "generate",
       "historical_description_present": true,

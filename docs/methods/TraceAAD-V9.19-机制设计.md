@@ -490,4 +490,4 @@ $$
 
 ## 11. 主实验
 
-按[主实验配置](../experiments/整体比较/版本与基线/配置.md)执行：任务为 `tsp_construct`、`cvrp_aco`、`op_aco`、`online_bin_packing`、`vrptw_construct`；每任务 3 次独立搜索；每次 1000 个 primary evaluator slots；训练集优化，held-out 评估不同规模新实例。正式结果同时报告 BehaveSim 额外计算成本。全部重复与测试完成后更新结果页。
+按[主实验配置](../experiments/主实验/主实验配置说明.md)执行：任务为 `tsp_construct`、`cvrp_aco`、`op_aco`、`online_bin_packing`、`vrptw_construct`；每任务 3 次独立搜索；每次 1000 个 primary evaluator slots；训练集优化，held-out 评估不同规模新实例。正式结果同时报告 BehaveSim 额外计算成本。全部重复与测试完成后更新结果页。

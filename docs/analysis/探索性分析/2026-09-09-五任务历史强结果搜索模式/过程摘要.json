@@ -7026,7 +7026,7 @@
     {
       "method": "mcts_ahd",
       "task": "op_aco",
-      "source": "experiments/mcts_ahd/results/op_aco/20260824_rerun_op_mcts_ahd_rep1",
+      "source": "experiments/mcts_ahd/results/op_aco/formal_op_mcts_ahd_rep1",
       "archived_nodes": 994,
       "best": {
         "id": 871,
@@ -7228,7 +7228,7 @@
     {
       "method": "mcts_ahd",
       "task": "op_aco",
-      "source": "experiments/mcts_ahd/results/op_aco/20260824_rerun_op_mcts_ahd_rep2",
+      "source": "experiments/mcts_ahd/results/op_aco/formal_op_mcts_ahd_rep2",
       "archived_nodes": 988,
       "best": {
         "id": 606,
@@ -7334,7 +7334,7 @@
     {
       "method": "mcts_ahd",
       "task": "op_aco",
-      "source": "experiments/mcts_ahd/results/op_aco/20260824_rerun_op_mcts_ahd_rep3",
+      "source": "experiments/mcts_ahd/results/op_aco/formal_op_mcts_ahd_rep3",
       "archived_nodes": 988,
       "best": {
         "id": 582,
@@ -7496,7 +7496,7 @@
     {
       "method": "calm",
       "task": "online_bin_packing",
-      "source": "experiments/calm/results/online_bin_packing/20260824_rerun_obp_calm_rep1",
+      "source": "experiments/calm/results/online_bin_packing/formal_obp_calm_rep1",
       "archived_nodes": 209,
       "best": {
         "id": 197,
@@ -7600,7 +7600,7 @@
     {
       "method": "calm",
       "task": "online_bin_packing",
-      "source": "experiments/calm/results/online_bin_packing/20260824_rerun_obp_calm_rep2",
+      "source": "experiments/calm/results/online_bin_packing/formal_obp_calm_rep2",
       "archived_nodes": 199,
       "best": {
         "id": 72,
@@ -7696,7 +7696,7 @@
     {
       "method": "calm",
       "task": "online_bin_packing",
-      "source": "experiments/calm/results/online_bin_packing/20260824_rerun_obp_calm_rep3",
+      "source": "experiments/calm/results/online_bin_packing/formal_obp_calm_rep3",
       "archived_nodes": 166,
       "best": {
         "id": 57,

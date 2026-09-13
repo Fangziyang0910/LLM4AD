@@ -49,10 +49,10 @@ LINESTYLES = {
 }
 
 RESULT_PAGES = {
-    "TSP": REPO_ROOT / "docs/experiments/tsp_construct/结果汇总.md",
-    "CVRP": REPO_ROOT / "docs/experiments/cvrp_aco/结果汇总.md",
-    "OP": REPO_ROOT / "docs/experiments/op_aco/结果汇总.md",
-    "OBP": REPO_ROOT / "docs/experiments/online_bin_packing/结果汇总.md",
+    "TSP": REPO_ROOT / "docs/experiments/tsp_construct/主实验汇总.md",
+    "CVRP": REPO_ROOT / "docs/experiments/cvrp_aco/主实验汇总.md",
+    "OP": REPO_ROOT / "docs/experiments/op_aco/主实验汇总.md",
+    "OBP": REPO_ROOT / "docs/experiments/online_bin_packing/主实验汇总.md",
 }
 V95_RESULTS = {
     "TSP": REPO_ROOT

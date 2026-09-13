@@ -62,7 +62,7 @@
 
 入口：
 
-- [BehaveSim 校正结果](../../experiments/机制验证/2026-08-26-BehaveSim行为度量校正/结果.md)
+- [BehaveSim 校正结果](../../experiments/机制验证/03-算法行为几何/2026-08-26-BehaveSim度量校正/README.md)
 - [`aggregate.json`](../../../experiments/_logs/behavesim_v3/aggregate.json)
 - [`behavesim_profiler.py`](../../../experiments/analysis/behavesim_profiler.py)
 
@@ -221,7 +221,7 @@ $$
 - `experiments/analysis/analyze_behavesim_landscape.py`
 - `tests/analysis/test_behavesim_landscape.py`
 - 原始输出：`experiments/_logs/behavesim_landscape/`
-- 协议与结果：`docs/experiments/机制验证/2026-08-27-BehaveSim语义景观/`
+- 协议与结果：`docs/experiments/机制验证/03-算法行为几何/2026-08-27-BehaveSim语义景观分析/`
 
 主程序可以拆成这些函数：
 

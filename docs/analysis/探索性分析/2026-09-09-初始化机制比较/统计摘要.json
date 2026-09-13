@@ -5604,7 +5604,7 @@
     {
       "method": "mcts_ahd",
       "task": "tsp_construct",
-      "path": "experiments/mcts_ahd/results/tsp_construct/20260824_rerun_tsp_mcts_ahd_rep1",
+      "path": "experiments/mcts_ahd/results/tsp_construct/formal_tsp_mcts_ahd_rep1",
       "initial_sample_boundary": 5,
       "initial_best": -6.8239686184057184,
       "operators": {
@@ -5621,7 +5621,7 @@
     {
       "method": "mcts_ahd",
       "task": "tsp_construct",
-      "path": "experiments/mcts_ahd/results/tsp_construct/20260824_rerun_tsp_mcts_ahd_rep2",
+      "path": "experiments/mcts_ahd/results/tsp_construct/formal_tsp_mcts_ahd_rep2",
       "initial_sample_boundary": 4,
       "initial_best": -7.6057746738025465,
       "operators": {
@@ -5638,7 +5638,7 @@
     {
       "method": "mcts_ahd",
       "task": "tsp_construct",
-      "path": "experiments/mcts_ahd/results/tsp_construct/20260824_rerun_tsp_mcts_ahd_rep3",
+      "path": "experiments/mcts_ahd/results/tsp_construct/formal_tsp_mcts_ahd_rep3",
       "initial_sample_boundary": 5,
       "initial_best": -6.820211505568105,
       "operators": {
@@ -5655,7 +5655,7 @@
     {
       "method": "mcts_ahd",
       "task": "cvrp_aco",
-      "path": "experiments/mcts_ahd/results/cvrp_aco/20260824_rerun_cvrp_mcts_ahd_rep1",
+      "path": "experiments/mcts_ahd/results/cvrp_aco/formal_cvrp_mcts_ahd_rep1",
       "initial_sample_boundary": 4,
       "initial_best": -14.458230321578975,
       "operators": {
@@ -5672,7 +5672,7 @@
     {
       "method": "mcts_ahd",
       "task": "cvrp_aco",
-      "path": "experiments/mcts_ahd/results/cvrp_aco/20260824_rerun_cvrp_mcts_ahd_rep2",
+      "path": "experiments/mcts_ahd/results/cvrp_aco/formal_cvrp_mcts_ahd_rep2",
       "initial_sample_boundary": 4,
       "initial_best": -13.014599813515844,
       "operators": {
@@ -5689,7 +5689,7 @@
     {
       "method": "mcts_ahd",
       "task": "cvrp_aco",
-      "path": "experiments/mcts_ahd/results/cvrp_aco/20260824_rerun_cvrp_mcts_ahd_rep3",
+      "path": "experiments/mcts_ahd/results/cvrp_aco/formal_cvrp_mcts_ahd_rep3",
       "initial_sample_boundary": 4,
       "initial_best": -14.28175937937649,
       "operators": {
@@ -5706,7 +5706,7 @@
     {
       "method": "mcts_ahd",
       "task": "op_aco",
-      "path": "experiments/mcts_ahd/results/op_aco/20260824_rerun_op_mcts_ahd_rep1",
+      "path": "experiments/mcts_ahd/results/op_aco/formal_op_mcts_ahd_rep1",
       "initial_sample_boundary": 4,
       "initial_best": 9.486,
       "operators": {
@@ -5723,7 +5723,7 @@
     {
       "method": "mcts_ahd",
       "task": "op_aco",
-      "path": "experiments/mcts_ahd/results/op_aco/20260824_rerun_op_mcts_ahd_rep2",
+      "path": "experiments/mcts_ahd/results/op_aco/formal_op_mcts_ahd_rep2",
       "initial_sample_boundary": 4,
       "initial_best": 8.924,
       "operators": {
@@ -5740,7 +5740,7 @@
     {
       "method": "mcts_ahd",
       "task": "op_aco",
-      "path": "experiments/mcts_ahd/results/op_aco/20260824_rerun_op_mcts_ahd_rep3",
+      "path": "experiments/mcts_ahd/results/op_aco/formal_op_mcts_ahd_rep3",
       "initial_sample_boundary": 7,
       "initial_best": 12.825999999999999,
       "operators": {
@@ -5760,7 +5760,7 @@
     {
       "method": "mcts_ahd",
       "task": "online_bin_packing",
-      "path": "experiments/mcts_ahd/results/online_bin_packing/20260824_rerun_obp_mcts_ahd_rep1",
+      "path": "experiments/mcts_ahd/results/online_bin_packing/formal_obp_mcts_ahd_rep1",
       "initial_sample_boundary": 4,
       "initial_best": -744.5,
       "operators": {
@@ -5777,7 +5777,7 @@
     {
       "method": "mcts_ahd",
       "task": "online_bin_packing",
-      "path": "experiments/mcts_ahd/results/online_bin_packing/20260824_rerun_obp_mcts_ahd_rep2",
+      "path": "experiments/mcts_ahd/results/online_bin_packing/formal_obp_mcts_ahd_rep2",
       "initial_sample_boundary": 20,
       "initial_best": -744.5,
       "operators": {
@@ -5810,7 +5810,7 @@
     {
       "method": "mcts_ahd",
       "task": "online_bin_packing",
-      "path": "experiments/mcts_ahd/results/online_bin_packing/20260824_rerun_obp_mcts_ahd_rep3",
+      "path": "experiments/mcts_ahd/results/online_bin_packing/formal_obp_mcts_ahd_rep3",
       "initial_sample_boundary": 23,
       "initial_best": -744.5,
       "operators": {
@@ -5845,7 +5845,7 @@
     }
   ],
   "calm_obp_initialization": {
-    "batch": "20260824_rerun",
+    "batch": "formal",
     "seed_cost": 759.25,
     "first_llm_sample_order": 25,
     "best_before_first_llm": [

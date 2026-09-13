@@ -25,7 +25,7 @@ results-report (Skill, optional follow-up)
 ## 适用场景
 
 - 多模型对比，需要严谨统计
-- 多 seed / 多 subject / 多 fold 结果汇总
+- 多 seed / 多 subject / 多 fold 主实验汇总
 - 需要真实科研图，而不是只给 figure specs
 - 需要为后续 `results-report` 提供可信分析底座
 
