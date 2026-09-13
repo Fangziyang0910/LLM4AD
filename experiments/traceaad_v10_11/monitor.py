@@ -94,7 +94,7 @@ KNOWN_VERSIONS = {
         "default_prefix": "v1011q38",
         "path": REPO_ROOT / "experiments" / "traceaad_v10_11" / "results",
         "is_latest": True,
-        "dir_pattern": r"^20260913_v1011_q38_.*_v1011_rep\d+$",
+        "dir_pattern": r"^.+_v1011_q38_.*_v1011_rep\d+$",
     },
     "v10_11_q36": {
         "id": "v10_11_q36",
@@ -103,7 +103,7 @@ KNOWN_VERSIONS = {
         "default_prefix": "v1011q36",
         "path": REPO_ROOT / "experiments" / "traceaad_v10_11" / "results",
         "is_latest": False,
-        "dir_pattern": r"^20260913_v1011_q36_.*_v1011_rep\d+$",
+        "dir_pattern": r"^.+_v1011_q36_.*_v1011_rep\d+$",
     },
 }
 
