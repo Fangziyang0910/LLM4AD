@@ -474,10 +474,10 @@ result = evaluate(eval_cfg=eval_config, target_cfg=target_config)
 
 ## Advanced Topics
 
-**Multi-backend execution**: See [references/execution-backends.md](references/execution-backends.md)
-**Configuration deep-dive**: See [references/configuration.md](references/configuration.md)
-**Adapter and interceptor system**: See [references/adapter-system.md](references/adapter-system.md)
-**Custom benchmark integration**: See [references/custom-benchmarks.md](references/custom-benchmarks.md)
+**Multi-backend execution**: See [references/execution-backends.md](../../../docs/04-文献与基线/execution-backends.md)
+**Configuration deep-dive**: See [references/configuration.md](../../../docs/04-文献与基线/configuration.md)
+**Adapter and interceptor system**: See [references/adapter-system.md](../../../docs/04-文献与基线/adapter-system.md)
+**Custom benchmark integration**: See [references/custom-benchmarks.md](../../../docs/04-文献与基线/custom-benchmarks.md)
 
 ## Requirements
 

@@ -419,8 +419,8 @@ TrainingArguments(learning_rate=1e-4)
 
 ## References
 
-- **[Advanced Usage](references/advanced-usage.md)** - DoRA, LoftQ, rank stabilization, custom modules
-- **[Troubleshooting](references/troubleshooting.md)** - Common errors, debugging, optimization
+- **[Advanced Usage](../../../docs/04-文献与基线/advanced-usage.md)** - DoRA, LoftQ, rank stabilization, custom modules
+- **[Troubleshooting](../../../docs/04-文献与基线/troubleshooting.md)** - Common errors, debugging, optimization
 
 ## Resources
 

@@ -374,10 +374,10 @@ When this skill is loaded:
 
 ## References
 
-- **Architecture deep dive**: See [references/architecture.md](references/architecture.md)
-- **API reference**: See [references/api.md](references/api.md)
-- **Step-by-step tutorials**: See [references/tutorials.md](references/tutorials.md)
-- **Real-world examples**: See [references/examples.md](references/examples.md)
-- **GitHub issues & solutions**: See [references/issues.md](references/issues.md)
-- **Design patterns**: See [references/design-patterns.md](references/design-patterns.md)
-- **Release history**: See [references/releases.md](references/releases.md)
+- **Architecture deep dive**: See [references/architecture.md](../../../docs/04-文献与基线/architecture.md)
+- **API reference**: See [references/api.md](../../../docs/04-文献与基线/api.md)
+- **Step-by-step tutorials**: See [references/tutorials.md](../../../docs/04-文献与基线/tutorials.md)
+- **Real-world examples**: See [references/examples.md](../../../docs/04-文献与基线/examples.md)
+- **GitHub issues & solutions**: See [references/issues.md](../../../docs/04-文献与基线/issues.md)
+- **Design patterns**: See [references/design-patterns.md](../../../docs/04-文献与基线/design-patterns.md)
+- **Release history**: See [references/releases.md](../../../docs/04-文献与基线/releases.md)

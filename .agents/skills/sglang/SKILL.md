@@ -428,9 +428,9 @@ response = client.chat.completions.create(
 
 ## References
 
-- **[Structured Generation Guide](references/structured-generation.md)** - JSON schemas, regex, grammars, validation
-- **[RadixAttention Deep Dive](references/radix-attention.md)** - How it works, optimization, benchmarks
-- **[Production Deployment](references/deployment.md)** - Multi-GPU, monitoring, autoscaling
+- **[Structured Generation Guide](../../../docs/04-文献与基线/structured-generation.md)** - JSON schemas, regex, grammars, validation
+- **[RadixAttention Deep Dive](../../../docs/04-文献与基线/radix-attention.md)** - How it works, optimization, benchmarks
+- **[Production Deployment](../../../docs/04-文献与基线/deployment.md)** - Multi-GPU, monitoring, autoscaling
 
 ## Resources
 

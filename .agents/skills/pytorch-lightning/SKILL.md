@@ -313,11 +313,11 @@ trainer = L.Trainer(accelerator='gpu', devices=1)
 
 ## Advanced topics
 
-**Callbacks**: See [references/callbacks.md](references/callbacks.md) for EarlyStopping, ModelCheckpoint, custom callbacks, and callback hooks.
+**Callbacks**: See [references/callbacks.md](../../../docs/04-文献与基线/callbacks.md) for EarlyStopping, ModelCheckpoint, custom callbacks, and callback hooks.
 
-**Distributed strategies**: See [references/distributed.md](references/distributed.md) for DDP, FSDP, DeepSpeed ZeRO integration, multi-node setup.
+**Distributed strategies**: See [references/distributed.md](../../../docs/04-文献与基线/distributed.md) for DDP, FSDP, DeepSpeed ZeRO integration, multi-node setup.
 
-**Hyperparameter tuning**: See [references/hyperparameter-tuning.md](references/hyperparameter-tuning.md) for integration with Optuna, Ray Tune, and WandB sweeps.
+**Hyperparameter tuning**: See [references/hyperparameter-tuning.md](../../../docs/04-文献与基线/hyperparameter-tuning.md) for integration with Optuna, Ray Tune, and WandB sweeps.
 
 ## Hardware requirements
 

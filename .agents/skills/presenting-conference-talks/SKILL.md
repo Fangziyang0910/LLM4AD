@@ -294,5 +294,5 @@ prs.save("talk.pptx")
 
 ## References
 
-- [references/slide-templates.md](references/slide-templates.md) — Complete Beamer template code and python-pptx generation script
+- [references/slide-templates.md](../../../docs/04-文献与基线/slide-templates.md) — Complete Beamer template code and python-pptx generation script
 - Mike Dahlin, "Giving a Conference Talk" — https://www.cs.utexas.edu/~dahlin/professional/goodTalk.pdf

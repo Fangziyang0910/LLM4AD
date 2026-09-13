@@ -39,7 +39,7 @@ This blueprint synthesizes guidance from established systems researchers:
 6. **Yi Ding** — "How to write good systems papers?"
 7. **hzwer & DingXiaoH** — WritingAIPaper (GitHub 1.3k+ stars)
 
-Full citations and URLs: see [references/section-blueprints.md](references/section-blueprints.md).
+Full citations and URLs: see [references/section-blueprints.md](../../../docs/04-文献与基线/section-blueprints.md).
 
 ---
 
@@ -147,7 +147,7 @@ Three sentences (Irene Zhang formula):
 
 ## Writing Patterns
 
-Four reusable patterns for structuring systems papers. See [references/writing-patterns.md](references/writing-patterns.md) for detailed examples.
+Four reusable patterns for structuring systems papers. See [references/writing-patterns.md](../../../docs/04-文献与基线/writing-patterns.md) for detailed examples.
 
 ### Pattern 1: Gap Analysis (Lucid, ASPLOS'23)
 Enumerate gaps G1–Gn in Introduction → map to answers A1–An in Design. Creates a clear contract with the reader.
@@ -255,13 +255,13 @@ Step 6: Use ml-paper-writing for citation verification and LaTeX formatting
 ## References
 
 ### Writing Guidance
-- [references/section-blueprints.md](references/section-blueprints.md) — Detailed per-section paragraph templates with authoritative source quotes and best-paper structural examples
-- [references/writing-patterns.md](references/writing-patterns.md) — Four writing patterns with concrete paper examples
+- [references/section-blueprints.md](../../../docs/04-文献与基线/section-blueprints.md) — Detailed per-section paragraph templates with authoritative source quotes and best-paper structural examples
+- [references/writing-patterns.md](../../../docs/04-文献与基线/writing-patterns.md) — Four writing patterns with concrete paper examples
 
 ### Venue-Specific
-- [references/checklist.md](references/checklist.md) — 7-stage pre-submission checklist covering structure, writing quality, evaluation rigor, design quality, academic integrity, venue-specific requirements (OSDI/NSDI/ASPLOS/SOSP/EuroSys), and final pass
-- [references/systems-conferences.md](references/systems-conferences.md) — Conference overview, deadlines, track descriptions, formatting requirements, submission rules, and format conversion guides
-- [references/reviewer-guidelines.md](references/reviewer-guidelines.md) — How systems conference reviewers evaluate papers, with venue-specific criteria and common concerns
+- [references/checklist.md](../../../docs/04-文献与基线/checklist.md) — 7-stage pre-submission checklist covering structure, writing quality, evaluation rigor, design quality, academic integrity, venue-specific requirements (OSDI/NSDI/ASPLOS/SOSP/EuroSys), and final pass
+- [references/systems-conferences.md](../../../docs/04-文献与基线/systems-conferences.md) — Conference overview, deadlines, track descriptions, formatting requirements, submission rules, and format conversion guides
+- [references/reviewer-guidelines.md](../../../docs/04-文献与基线/reviewer-guidelines.md) — How systems conference reviewers evaluate papers, with venue-specific criteria and common concerns
 
 ### LaTeX Templates
 - [templates/osdi2026/](templates/osdi2026/) — OSDI 2026 (USENIX format)

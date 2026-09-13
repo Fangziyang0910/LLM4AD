@@ -22,7 +22,7 @@ LABELS = {
     'online_bin_packing': 'OBP',
     'vrptw_construct': 'VRPTW',
 }
-DOC = ROOT / 'docs/experiments/机制验证/04-算子动力学与两步价值/2026-09-07-E1-Refine局部响应迁移性'
+DOC = ROOT / 'docs/02-机制验证/04-算子动力学与两步价值/2026-09-07-E1-Refine局部响应迁移性'
 
 
 def kernel_predictions(pid, visible, history, nodes, behavior, bidx, prior, rng, permutations=PERMUTATIONS):

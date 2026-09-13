@@ -319,9 +319,9 @@ For detailed API documentation, tutorials, and advanced usage, see the `referenc
 
 | File | Contents |
 |------|----------|
-| [references/README.md](references/README.md) | Overview and quick start guide |
-| [references/api.md](references/api.md) | Complete API reference for HookedTransformer, ActivationCache, HookPoints |
-| [references/tutorials.md](references/tutorials.md) | Step-by-step tutorials for activation patching, circuit analysis, logit lens |
+| [references/README.md](../../../docs/04-文献与基线/README.md) | Overview and quick start guide |
+| [references/api.md](../../../docs/04-文献与基线/api.md) | Complete API reference for HookedTransformer, ActivationCache, HookPoints |
+| [references/tutorials.md](../../../docs/04-文献与基线/tutorials.md) | Step-by-step tutorials for activation patching, circuit analysis, logit lens |
 
 ## External Resources
 

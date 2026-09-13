@@ -433,8 +433,8 @@ config = BaseQuantizeConfig(
 
 ## References
 
-- **[Advanced Usage](references/advanced-usage.md)** - Custom backends, mixed precision, optimization
-- **[Troubleshooting](references/troubleshooting.md)** - Common issues, debugging, benchmarks
+- **[Advanced Usage](../../../docs/04-文献与基线/advanced-usage.md)** - Custom backends, mixed precision, optimization
+- **[Troubleshooting](../../../docs/04-文献与基线/troubleshooting.md)** - Common issues, debugging, benchmarks
 
 ## Resources
 

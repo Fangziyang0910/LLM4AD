@@ -292,7 +292,7 @@ if __name__ == "__main__":
 - **Save generation scripts** — reproducibility is critical
 - **Specify every label exactly** — Gemini may misspell or rearrange text
 
-**Full prompt examples per style**: See [references/diagram-generation.md](references/diagram-generation.md)
+**Full prompt examples per style**: See [references/diagram-generation.md](../../../docs/04-文献与基线/diagram-generation.md)
 
 ---
 
@@ -423,7 +423,7 @@ for bar, s in zip(bars, scores):
 fig.savefig("figures/fig_leaderboard.pdf")
 ```
 
-**Full pattern library** (scaling laws, violin plots, multi-panel, radar): See [references/data-visualization.md](references/data-visualization.md)
+**Full pattern library** (scaling laws, violin plots, multi-panel, radar): See [references/data-visualization.md](../../../docs/04-文献与基线/data-visualization.md)
 
 ---
 
@@ -439,7 +439,7 @@ fig.savefig("figures/fig_leaderboard.pdf")
 
 **Always export PDF** for vector quality. PNG only for AI-generated diagrams.
 
-**Venue-specific details, LaTeX integration, font matching, accessibility checklist**: See [references/style-guide.md](references/style-guide.md)
+**Venue-specific details, LaTeX integration, font matching, accessibility checklist**: See [references/style-guide.md](../../../docs/04-文献与基线/style-guide.md)
 
 ---
 

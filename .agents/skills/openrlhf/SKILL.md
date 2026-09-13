@@ -216,13 +216,13 @@ Enable vLLM acceleration:
 
 ## Advanced topics
 
-**Hybrid Engine GPU sharing**: See [references/hybrid-engine.md](references/hybrid-engine.md) for vLLM sleep mode, DeepSpeed sleep mode, and optimal node allocation.
+**Hybrid Engine GPU sharing**: See [references/hybrid-engine.md](../../../docs/04-文献与基线/hybrid-engine.md) for vLLM sleep mode, DeepSpeed sleep mode, and optimal node allocation.
 
-**Algorithm comparison**: See [references/algorithm-comparison.md](references/algorithm-comparison.md) for PPO vs GRPO vs RLOO vs REINFORCE++ benchmarks and hyperparameters.
+**Algorithm comparison**: See [references/algorithm-comparison.md](../../../docs/04-文献与基线/algorithm-comparison.md) for PPO vs GRPO vs RLOO vs REINFORCE++ benchmarks and hyperparameters.
 
-**Multi-node setup**: See [references/multi-node-training.md](references/multi-node-training.md) for Ray cluster configuration and fault tolerance.
+**Multi-node setup**: See [references/multi-node-training.md](../../../docs/04-文献与基线/multi-node-training.md) for Ray cluster configuration and fault tolerance.
 
-**Custom reward functions**: See [references/custom-rewards.md](references/custom-rewards.md) for reinforced fine-tuning and agent RLHF.
+**Custom reward functions**: See [references/custom-rewards.md](../../../docs/04-文献与基线/custom-rewards.md) for reinforced fine-tuning and agent RLHF.
 
 ## Hardware requirements
 

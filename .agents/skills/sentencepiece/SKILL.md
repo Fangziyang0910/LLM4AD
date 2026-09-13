@@ -223,8 +223,8 @@ inputs = tokenizer('translate English to French: Hello', return_tensors='pt')
 
 ## References
 
-- **[Training Guide](references/training.md)** - Detailed options, corpus preparation
-- **[Algorithms](references/algorithms.md)** - BPE vs Unigram, subword regularization
+- **[Training Guide](../../../docs/04-文献与基线/training.md)** - Detailed options, corpus preparation
+- **[Algorithms](../../../docs/04-文献与基线/algorithms.md)** - BPE vs Unigram, subword regularization
 
 ## Resources
 

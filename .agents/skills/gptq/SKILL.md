@@ -436,9 +436,9 @@ model = AutoGPTQForCausalLM.from_quantized(
 
 ## References
 
-- **[Calibration Guide](references/calibration.md)** - Dataset selection, quantization process, quality optimization
-- **[Integration Guide](references/integration.md)** - Transformers, PEFT, vLLM, TensorRT-LLM
-- **[Troubleshooting](references/troubleshooting.md)** - Common issues, performance optimization
+- **[Calibration Guide](../../../docs/04-文献与基线/calibration.md)** - Dataset selection, quantization process, quality optimization
+- **[Integration Guide](../../../docs/04-文献与基线/integration.md)** - Transformers, PEFT, vLLM, TensorRT-LLM
+- **[Troubleshooting](../../../docs/04-文献与基线/troubleshooting.md)** - Common issues, performance optimization
 
 ## Resources
 

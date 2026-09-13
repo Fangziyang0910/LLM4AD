@@ -410,8 +410,8 @@ def my_function(data):
 
 ## References
 
-- **[Advanced Usage](references/advanced-usage.md)** - Custom evaluators, distributed tracing, hub prompts
-- **[Troubleshooting](references/troubleshooting.md)** - Common issues, debugging, performance
+- **[Advanced Usage](../../../docs/04-文献与基线/advanced-usage.md)** - Custom evaluators, distributed tracing, hub prompts
+- **[Troubleshooting](../../../docs/04-文献与基线/troubleshooting.md)** - Common issues, debugging, performance
 
 ## Resources
 

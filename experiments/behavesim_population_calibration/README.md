@@ -10,4 +10,4 @@ OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 .venv/bin/python -m experiments.behaves
 ```
 
 Raw profiles stay under `experiments/_logs`. The reviewed protocol and result
-summary live under `docs/experiments/机制验证/03-算法行为几何/2026-09-07-BehaveSim群体几何校准/`.
+summary live under `docs/02-机制验证/03-算法行为几何/2026-09-07-BehaveSim群体几何校准/`.

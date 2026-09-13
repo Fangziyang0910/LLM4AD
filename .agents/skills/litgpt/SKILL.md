@@ -441,13 +441,13 @@ Apply LoRA to fewer layers:
 
 ## Advanced topics
 
-**Supported architectures**: See [references/supported-models.md](references/supported-models.md) for complete list of 20+ model families with sizes and capabilities.
+**Supported architectures**: See [references/supported-models.md](../../../docs/04-文献与基线/supported-models.md) for complete list of 20+ model families with sizes and capabilities.
 
-**Training recipes**: See [references/training-recipes.md](references/training-recipes.md) for proven hyperparameter configurations for pretraining and fine-tuning.
+**Training recipes**: See [references/training-recipes.md](../../../docs/04-文献与基线/training-recipes.md) for proven hyperparameter configurations for pretraining and fine-tuning.
 
-**FSDP configuration**: See [references/distributed-training.md](references/distributed-training.md) for multi-GPU training with Fully Sharded Data Parallel.
+**FSDP configuration**: See [references/distributed-training.md](../../../docs/04-文献与基线/distributed-training.md) for multi-GPU training with Fully Sharded Data Parallel.
 
-**Custom architectures**: See [references/custom-models.md](references/custom-models.md) for implementing new model architectures in LitGPT style.
+**Custom architectures**: See [references/custom-models.md](../../../docs/04-文献与基线/custom-models.md) for implementing new model architectures in LitGPT style.
 
 ## Hardware requirements
 

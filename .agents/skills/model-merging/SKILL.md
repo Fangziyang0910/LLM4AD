@@ -377,7 +377,7 @@ for alpha in candidates:
 best_alpha = max(candidates, key=lambda a: generation_consistency(a, responses))
 ```
 
-See **[references/coefficient-tuning.md](references/coefficient-tuning.md)** for the full algorithm, similarity metrics, multi-coefficient search, and end-to-end pipeline.
+See **[references/coefficient-tuning.md](../../../docs/04-文献与基线/coefficient-tuning.md)** for the full algorithm, similarity metrics, multi-coefficient search, and end-to-end pipeline.
 
 ### 3. Method Selection
 

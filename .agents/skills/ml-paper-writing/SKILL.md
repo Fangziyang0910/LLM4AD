@@ -337,7 +337,7 @@ All major conferences require this. Counter-intuitively, honesty helps:
 
 **Step 9: Paper Checklist**
 
-NeurIPS, ICML, and ICLR all require paper checklists. See [references/checklists.md](references/checklists.md).
+NeurIPS, ICML, and ICLR all require paper checklists. See [references/checklists.md](../../../docs/04-文献与基线/checklists.md).
 
 ---
 
@@ -362,8 +362,8 @@ This skill synthesizes writing philosophy from researchers who have published ex
 | **Andrej Karpathy** | Single contribution focus | Various lectures |
 
 **For deeper dives into any of these, see:**
-- [references/writing-guide.md](references/writing-guide.md) - Full explanations with examples
-- [references/sources.md](references/sources.md) - Complete bibliography
+- [references/writing-guide.md](../../../docs/04-文献与基线/writing-guide.md) - Full explanations with examples
+- [references/sources.md](../../../docs/04-文献与基线/sources.md) - Complete bibliography
 
 ### Time Allocation (From Neel Nanda)
 
@@ -391,7 +391,7 @@ These principles are based on how readers actually process prose. Violating them
 | **Action in verb** | Use verbs, not nominalizations | ❌ "We performed an analysis" → ✅ "We analyzed" |
 | **Context before new** | Set stage before presenting | Explain before showing equation |
 
-**Full 7 principles with detailed examples:** See [references/writing-guide.md](references/writing-guide.md#the-7-principles-of-reader-expectations)
+**Full 7 principles with detailed examples:** See [references/writing-guide.md](../../../docs/04-文献与基线/writing-guide.md#the-7-principles-of-reader-expectations)
 
 #### Micro-Level Tips (Ethan Perez)
 
@@ -402,7 +402,7 @@ These small changes accumulate into significantly clearer prose:
 - **Unfold apostrophes**: ❌ "X's Y" → ✅ "The Y of X" (when awkward)
 - **Delete filler words**: "actually," "a bit," "very," "really," "basically," "quite," "essentially"
 
-**Full micro-tips with examples:** See [references/writing-guide.md](references/writing-guide.md#micro-level-writing-tips)
+**Full micro-tips with examples:** See [references/writing-guide.md](../../../docs/04-文献与基线/writing-guide.md#micro-level-writing-tips)
 
 #### Word Choice (Zachary Lipton)
 
@@ -820,7 +820,7 @@ If you cannot verify a citation at ANY step:
 
 **🚨 NEVER generate BibTeX from memory—always fetch programmatically. 🚨**
 
-See [references/citation-workflow.md](references/citation-workflow.md) for complete API documentation.
+See [references/citation-workflow.md](../../../docs/04-文献与基线/citation-workflow.md) for complete API documentation.
 
 ---
 
@@ -872,7 +872,7 @@ Reviewers assess papers on four dimensions:
 - 2: Reject - Technical flaws
 - 1: Strong Reject - Known results or ethics issues
 
-See [references/reviewer-guidelines.md](references/reviewer-guidelines.md) for detailed reviewer instructions.
+See [references/reviewer-guidelines.md](../../../docs/04-文献与基线/reviewer-guidelines.md) for detailed reviewer instructions.
 
 ---
 
@@ -940,11 +940,11 @@ We used the AI Research Skills Library~\cite{ai_research_skills} for [experiment
 
 | Document | Contents |
 |----------|----------|
-| [writing-guide.md](references/writing-guide.md) | Gopen & Swan 7 principles, Ethan Perez micro-tips, word choice |
-| [citation-workflow.md](references/citation-workflow.md) | Citation APIs, Python code, BibTeX management |
-| [checklists.md](references/checklists.md) | NeurIPS 16-item, ICML, ICLR, ACL requirements |
-| [reviewer-guidelines.md](references/reviewer-guidelines.md) | Evaluation criteria, scoring, rebuttals |
-| [sources.md](references/sources.md) | Complete bibliography of all sources |
+| [writing-guide.md](../../../docs/04-文献与基线/writing-guide.md) | Gopen & Swan 7 principles, Ethan Perez micro-tips, word choice |
+| [citation-workflow.md](../../../docs/04-文献与基线/citation-workflow.md) | Citation APIs, Python code, BibTeX management |
+| [checklists.md](../../../docs/04-文献与基线/checklists.md) | NeurIPS 16-item, ICML, ICLR, ACL requirements |
+| [reviewer-guidelines.md](../../../docs/04-文献与基线/reviewer-guidelines.md) | Evaluation criteria, scoring, rebuttals |
+| [sources.md](../../../docs/04-文献与基线/sources.md) | Complete bibliography of all sources |
 
 ### LaTeX Templates
 

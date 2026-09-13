@@ -417,13 +417,13 @@ config = PPOConfig(
 
 ## Advanced topics
 
-**SFT training guide**: See [references/sft-training.md](references/sft-training.md) for dataset formats, chat templates, packing strategies, and multi-GPU training.
+**SFT training guide**: See [references/sft-training.md](../../../docs/04-文献与基线/sft-training.md) for dataset formats, chat templates, packing strategies, and multi-GPU training.
 
-**DPO variants**: See [references/dpo-variants.md](references/dpo-variants.md) for IPO, cDPO, RPO, and other DPO loss functions with recommended hyperparameters.
+**DPO variants**: See [references/dpo-variants.md](../../../docs/04-文献与基线/dpo-variants.md) for IPO, cDPO, RPO, and other DPO loss functions with recommended hyperparameters.
 
-**Reward modeling**: See [references/reward-modeling.md](references/reward-modeling.md) for outcome vs process rewards, Bradley-Terry loss, and reward model evaluation.
+**Reward modeling**: See [references/reward-modeling.md](../../../docs/04-文献与基线/reward-modeling.md) for outcome vs process rewards, Bradley-Terry loss, and reward model evaluation.
 
-**Online RL methods**: See [references/online-rl.md](references/online-rl.md) for PPO, GRPO, RLOO, and OnlineDPO with detailed configurations.
+**Online RL methods**: See [references/online-rl.md](../../../docs/04-文献与基线/online-rl.md) for PPO, GRPO, RLOO, and OnlineDPO with detailed configurations.
 
 ## Hardware requirements
 

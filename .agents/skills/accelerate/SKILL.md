@@ -298,11 +298,11 @@ set_seed(42)
 
 ## Advanced topics
 
-**Megatron integration**: See [references/megatron-integration.md](references/megatron-integration.md) for tensor parallelism, pipeline parallelism, and sequence parallelism setup.
+**Megatron integration**: See [references/megatron-integration.md](../../../docs/04-文献与基线/megatron-integration.md) for tensor parallelism, pipeline parallelism, and sequence parallelism setup.
 
-**Custom plugins**: See [references/custom-plugins.md](references/custom-plugins.md) for creating custom distributed plugins and advanced configuration.
+**Custom plugins**: See [references/custom-plugins.md](../../../docs/04-文献与基线/custom-plugins.md) for creating custom distributed plugins and advanced configuration.
 
-**Performance tuning**: See [references/performance.md](references/performance.md) for profiling, memory optimization, and best practices.
+**Performance tuning**: See [references/performance.md](../../../docs/04-文献与基线/performance.md) for profiling, memory optimization, and best practices.
 
 ## Hardware requirements
 

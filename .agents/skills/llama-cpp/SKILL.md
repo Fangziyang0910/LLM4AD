@@ -245,9 +245,9 @@ cat prompts.txt | ./llama-cli \
 
 ## References
 
-- **[Quantization Guide](references/quantization.md)** - GGUF formats, conversion, quality comparison
-- **[Server Deployment](references/server.md)** - API endpoints, Docker, monitoring
-- **[Optimization](references/optimization.md)** - Performance tuning, hybrid CPU+GPU
+- **[Quantization Guide](../../../docs/04-文献与基线/quantization.md)** - GGUF formats, conversion, quality comparison
+- **[Server Deployment](../../../docs/04-文献与基线/server.md)** - API endpoints, Docker, monitoring
+- **[Optimization](../../../docs/04-文献与基线/optimization.md)** - Performance tuning, hybrid CPU+GPU
 
 ## Resources
 
