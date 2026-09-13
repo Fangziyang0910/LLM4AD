@@ -1,0 +1,38 @@
+"""Run TraceAAD V10.11."""
+
+import argparse
+from pathlib import Path
+
+from experiments.infra.runner import FORMAL_BUDGET, add_common_run_args, setup_experiment_run
+from llm4ad.method.traceaad_v10_11 import TraceAADV1011
+
+
+def build_parser():
+    parser = argparse.ArgumentParser(description=__doc__)
+    add_common_run_args(parser, default_output_tokens=16384, default_budget=FORMAL_BUDGET)
+    parser.add_argument('--n-roots', type=int, default=8)
+    parser.add_argument('--traj-gens', type=int, default=8)
+    parser.add_argument('--context-margin', type=int, default=256)
+    parser.add_argument('--max-context-tokens', type=int, default=32768)
+    return parser
+
+
+def main():
+    args = build_parser().parse_args()
+    params = {key: getattr(args, key) for key in (
+        'budget', 'n_roots', 'traj_gens', 'context_margin', 'max_context_tokens', 'output_tokens')}
+    ctx = setup_experiment_run(
+        args, method='v1011', method_dir=Path(__file__).resolve().parent,
+        resume_file='tree_state.json', method_params=params,
+        budget_basis='Actual evaluator calls, including failures and repairs; '
+                     'LLM-only failures and parent/donor copies consume no evaluator slot.')
+    try:
+        method = TraceAADV1011(evaluation=ctx.evaluation, llm=ctx.llm,
+                               run_dir=ctx.run_dir, seed=args.seed, **params)
+        ctx.run(method.run, header=['v1011: compact function-level search'])
+    finally:
+        ctx.llm.close()
+
+
+if __name__ == '__main__':
+    main()
