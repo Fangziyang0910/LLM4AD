@@ -14,13 +14,16 @@ def build_parser():
     parser.add_argument('--traj-gens', type=int, default=8)
     parser.add_argument('--context-margin', type=int, default=256)
     parser.add_argument('--max-context-tokens', type=int, default=32768)
+    parser.add_argument('--history-code', action='store_true',
+                        help='include each historical trajectory program in generation context')
     return parser
 
 
 def main():
     args = build_parser().parse_args()
     params = {key: getattr(args, key) for key in (
-        'budget', 'n_roots', 'traj_gens', 'context_margin', 'max_context_tokens', 'output_tokens')}
+        'budget', 'n_roots', 'traj_gens', 'context_margin', 'max_context_tokens',
+        'output_tokens', 'history_code')}
     ctx = setup_experiment_run(
         args, method='v1011', method_dir=Path(__file__).resolve().parent,
         resume_file='tree_state.json', method_params=params,

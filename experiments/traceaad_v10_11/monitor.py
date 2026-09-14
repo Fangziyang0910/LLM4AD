@@ -10,7 +10,7 @@ Features:
 - Real-time progress across all 15 runs (5 tasks x 3 repeats)
 - Dynamic tmux session detection with windowed velocity blending
 - Individual run inspector (code, implementation summaries, lineages, recent event stream)
-- Single-version V10.11 view
+- Two-batch V10.11 comparison view
 
 Usage:
     python -m experiments.traceaad_v10_11.monitor [--port 8765] [--host 0.0.0.0]
@@ -89,21 +89,21 @@ def _version_dir_pattern(version_id: str) -> str | None:
 KNOWN_VERSIONS = {
     "v10_11_q38": {
         "id": "v10_11_q38",
-        "name": "TraceAAD V10.11 · Qwen3.8",
-        "badge": "V10.11 Qwen3.8",
-        "default_prefix": "v1011q38",
-        "path": REPO_ROOT / "experiments" / "traceaad_v10_11" / "results",
-        "is_latest": True,
-        "dir_pattern": r"^.+_v1011_q38_.*_v1011_rep\d+$",
-    },
-    "v10_11_q36": {
-        "id": "v10_11_q36",
-        "name": "TraceAAD V10.11 · Qwen3.6",
-        "badge": "V10.11 Qwen3.6",
-        "default_prefix": "v1011q36",
+        "name": "TraceAAD V10.11 · Qwen3.8 · 无历史代码",
+        "badge": "V10.11 Qwen3.8 · 无 Code",
+        "default_prefix": "v1011q38r2",
         "path": REPO_ROOT / "experiments" / "traceaad_v10_11" / "results",
         "is_latest": False,
-        "dir_pattern": r"^.+_v1011_q36_.*_v1011_rep\d+$",
+        "dir_pattern": r"^.+_v1011_q38_restart2_.*_v1011_rep\d+$",
+    },
+    "v10_11_q38_history_code": {
+        "id": "v10_11_q38_history_code",
+        "name": "TraceAAD V10.11 · Qwen3.8 · 带历史代码",
+        "badge": "V10.11 Qwen3.8 · 带 Code",
+        "default_prefix": "v1011q38hc",
+        "path": REPO_ROOT / "experiments" / "traceaad_v10_11" / "results",
+        "is_latest": True,
+        "dir_pattern": r"^.+_v1011_q38_history_code_.*_v1011_rep\d+$",
     },
 }
 
@@ -184,8 +184,8 @@ class MonitorDataEngine:
     def __init__(
         self,
         results_root: Path | None = None,
-        default_version: str = "v10_11_q38",
-        default_session_prefix: str = "v1011q38",
+        default_version: str = "v10_11_q38_history_code",
+        default_session_prefix: str = "v1011q38hc",
     ):
         self.default_results_root = results_root or KNOWN_VERSIONS.get(
             default_version, {}
@@ -385,6 +385,8 @@ class MonitorDataEngine:
         self, task: str, run_name: str, version: str | None = None
     ) -> dict[str, Any] | None:
         vid, root_dir, prefix, _ = self._resolve_version_meta(version)
+        manifest = self._load_latest_batch_manifest(root_dir, vid)
+        prefix = (manifest or {}).get("session_prefix") or prefix
         run_dir = root_dir / task / run_name
         if not run_dir.is_dir():
             # Check if this is a queued run described in manifest
@@ -523,6 +525,7 @@ class MonitorDataEngine:
         """
         manifests = sorted(root_dir.glob("batch_*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
         pattern = _version_dir_pattern(version_id) if version_id else None
+        candidates = []
         for m in manifests:
             try:
                 data = json.loads(m.read_text(encoding="utf-8"))
@@ -532,11 +535,15 @@ class MonitorDataEngine:
                     continue
             except Exception:
                 continue
-            if pattern is None:
-                return data
-            if any(re.search(pattern, item.get("run_name") or "")
-                   for item in data.get("plan", [])):
-                return data
+            if pattern is not None and not any(
+                    re.search(pattern, item.get("run_name") or "")
+                    for item in data.get("plan", [])):
+                continue
+            created = data.get("created_at") or ""
+            candidates.append((created, m.stat().st_mtime, data))
+        if candidates:
+            candidates.sort(key=lambda row: (row[0], row[1]), reverse=True)
+            return candidates[0][2]
         return None
 
     def _find_queued_run_in_manifest(
@@ -610,6 +617,7 @@ class MonitorDataEngine:
         active_tmux = _get_active_tmux_sessions()
         now = datetime.now()
         manifest = self._load_latest_batch_manifest(root_dir, version_id)
+        session_prefix = (manifest or {}).get("session_prefix") or default_prefix
 
         # Pre-group manifest plan items by (task, rep)
         planned_names = {item.get('run_name') for item in manifest.get('plan', [])} if manifest else set()
@@ -647,14 +655,15 @@ class MonitorDataEngine:
                         continue
                     if dir_pattern and not re.search(dir_pattern, run_dir.name):
                         continue
-                    if default_prefix in ('v108alloc', 'v109', 'v1010', 'v1010f') and manifest and run_dir.name not in planned_names:
+                    if version_id.startswith('v10_11') and (
+                            not manifest or run_dir.name not in planned_names):
                         continue
                     rep_match = re.search(r"_rep(\d+)$", run_dir.name)
                     if not rep_match:
                         continue
                     rep = int(rep_match.group(1))
                     run_summary = self._parse_run_summary_cached(
-                        run_dir, task_info, rep, active_tmux, now, version_id, default_prefix
+                        run_dir, task_info, rep, active_tmux, now, version_id, session_prefix
                     )
                     runs_by_rep[rep] = run_summary
 
@@ -701,7 +710,7 @@ class MonitorDataEngine:
         avg_speed = (sum(all_speeds) / len(all_speeds)) if all_speeds else 0.0
 
         sched_session = None
-        for candidate in (f"{default_prefix}_launcher", f"{default_prefix}_sched"):
+        for candidate in (f"{session_prefix}_launcher", f"{session_prefix}_sched"):
             if candidate in active_tmux:
                 sched_session = candidate
                 break
@@ -713,7 +722,7 @@ class MonitorDataEngine:
             "updated_at": now.isoformat(timespec="seconds"),
             "scheduler": {
                 "active": scheduler_active,
-                "session": sched_session or f"{default_prefix}_launcher",
+                "session": sched_session or f"{session_prefix}_launcher",
                 "batch": manifest.get("batch") if manifest else None,
             },
             "global_summary": {
@@ -764,7 +773,9 @@ class MonitorDataEngine:
             budget = base["budget"]
             budget_used = base["budget_used"]
             sec_per_eval = base.get("sec_per_eval")
-            expected_session = base.get("expected_session") or f"{base.get('method') or default_prefix}_{task_info['short']}_r{rep}"
+            expected_session = base.get("expected_session") or f"{default_prefix}_{task_info['short']}_r{rep}"
+            if not expected_session.startswith(default_prefix + "_"):
+                expected_session = f"{default_prefix}_{task_info['short']}_r{rep}"
             is_in_tmux, actual_session = _is_run_session_alive(expected_session, active_tmux)
 
             if base.get("has_finished_summary") or budget_used >= budget:
@@ -1367,13 +1378,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--version",
-        default="v10_11_q38",
-        help="Default experiment batch (default: v10_11_q38)",
+        default="v10_11_q38_history_code",
+        help="Default experiment batch (default: v10_11_q38_history_code)",
     )
     parser.add_argument(
         "--session-prefix",
-        default="v1011q38",
-        help="Tmux session prefix (default: v1011q38)",
+        default="v1011q38hc",
+        help="Tmux session prefix (default: v1011q38hc)",
     )
     args = parser.parse_args()
 

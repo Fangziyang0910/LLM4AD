@@ -1,6 +1,7 @@
 """TraceAAD V10.11: compact function-level search engine."""
 
 import ast
+import copy
 import json
 import math
 import os
@@ -32,7 +33,7 @@ class TraceAADV1011:
 
     def __init__(self, *, evaluation, llm, run_dir, budget=1000, n_roots=8,
                  traj_gens=8, output_tokens=16384, max_context_tokens=32768,
-                 context_margin=256, seed=0):
+                 context_margin=256, history_code=False, seed=0):
         if budget < n_roots or n_roots < 1 or traj_gens < 0:
             raise ValueError("invalid budget, root, or history settings")
         self.evaluation, self.llm = evaluation, llm
@@ -40,6 +41,7 @@ class TraceAADV1011:
         self.budget, self.n_roots, self.traj_gens = budget, n_roots, traj_gens
         self.output_tokens, self.max_context_tokens = output_tokens, max_context_tokens
         self.context_margin = context_margin
+        self.history_code = history_code
         self.secure = SecureEvaluator(evaluation)
         self._template_program = evaluation.template_program
         template = TextFunctionProgramConverter.text_to_program(self._template_program)
@@ -48,16 +50,14 @@ class TraceAADV1011:
         self._template_func = template.functions[0]
         self._parse_interface = errors.expected_interface(self._template_func.name,
                                                           self._template_func.args)
+        target_stub = copy.deepcopy(self._template_func)
+        target_stub.body = "    pass"
         self.task_contract = (
             "# Task\n\n" + evaluation.task_description.strip() +
-            "\n\nImplement the target function below. The fixed template supplies the surrounding "
-            "module and evaluator; the function body is your design space.\n\nTarget function:\n```python\n" +
-            str(self._template_func).strip() +
-            "\n```"
+            "\n\nImplement the target function described below. Its body and any supporting "
+            "code are your design space.\n\nTarget function:\n```python\n" +
+            str(target_stub).strip() + "\n```"
         )
-        notes = getattr(evaluation, "design_notes", "").strip()
-        if notes:
-            self.task_contract += "\n\n# Evaluator Semantics\n" + notes
         self.tree = SearchTree()
         self.rng = random.Random(seed)
         self.parent_selection_counts = {}
@@ -79,7 +79,9 @@ class TraceAADV1011:
         self.pending = None
         self.mechanism = {
             "method": self.METHOD, "budget": budget, "n_roots": n_roots,
+            "parser_protocol": "target_function_anchored_module_v2",
             "traj_gens": traj_gens, "context_margin": context_margin,
+            "history_code": history_code,
             "output_tokens": output_tokens, "max_context_tokens": max_context_tokens,
             "operator_probabilities": OPERATOR_PROBABILITIES,
             "quality_ess_target": 8.0, "pivot_uniform_probability": 0.5,
@@ -92,7 +94,7 @@ class TraceAADV1011:
             llm, self.task_contract,
             max_tokens=max_context_tokens - context_margin - 1,
             max_events=traj_gens, lookup=self.tree.nodes.get,
-            all_nodes=self.tree.all_nodes,
+            all_nodes=self.tree.all_nodes, include_history_code=history_code,
         )
 
     def parse_response(self, response, finish_reason="unknown"):
@@ -277,7 +279,7 @@ class TraceAADV1011:
             self.budget_used = outcome["evaluation_id"]
             status, reason = ("ok", None) if outcome["fitness"] is not None else ("eval_failed", outcome["reason"])
             if outcome["fitness"] is not None:
-                node = self.tree.add(code=parsed[1], idea=parsed[0], fitness=outcome["fitness"],
+                node = self.tree.add(code=parsed[2], idea=parsed[0], fitness=outcome["fitness"],
                                      evaluation_id=self.budget_used, parent_id=self.pending["parent_id"],
                                      operator=self.pending["operator"], donor_id=self.pending["donor_id"])
         if self.pending["parent_id"] is not None:
@@ -290,6 +292,9 @@ class TraceAADV1011:
                       llm_seconds=completion["seconds"], node_id=node.id if node else None,
                       fitness=node.fitness if node else None,
                       idea_tokens=parsed[3] if parsed is not None else None)
+        if self.pending.get("outcome") is not None:
+            record.update(error_type=self.pending["outcome"].get("error_type"),
+                          error=self.pending["outcome"].get("error"))
         if node and self.pending["parent_id"] is not None:
             record.update(parent_improved=node.fitness > self.pending["parent_fitness"],
                           frontier_improved=node.fitness > self.pending["best_before"])

@@ -3,7 +3,6 @@
 import ast
 import re
 
-from llm4ad.base import TextFunctionProgramConverter
 from .core import normalize_code
 
 THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
@@ -11,8 +10,10 @@ FENCE_RE = re.compile(r"^[ \t]*```(?:python|py)?[ \t]*\r?$", re.MULTILINE | re.I
 OUTPUT = (
     "Return exactly:\n"
     "Idea: <one short paragraph summarizing the core mechanism and the main change from the current method>\n"
-    "Code:\n```python\n<the complete definition of the target function from the template>\n```\n\n"
-    "Use the exact function name and signature shown in the template."
+    "Code:\n```python\n<the complete candidate Python program, including the target function>\n```\n\n"
+    "Keep the Idea to no more than 200 words.\n"
+    "Use the exact target function name and signature shown in the template. "
+    "Imports and helper definitions are allowed, but the target function is required."
 )
 MAX_IDEA_TOKENS = 500
 
@@ -43,6 +44,33 @@ def expected_interface(name, args_text):
     return name, args_text, signature(args)
 
 
+def _target_functions(tree, name):
+    return [node for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name]
+
+
+def _merge_candidate(template_program, generated_tree, target):
+    """Keep the fixed template preface and add generated module dependencies."""
+    template_tree = ast.parse(template_program)
+    template_targets = _target_functions(template_tree, target.name)
+    if len(template_targets) != 1:
+        return None
+    template_target = template_targets[0]
+    preface = [node for node in template_tree.body if node is not template_target]
+    seen = {ast.dump(node, include_attributes=False) for node in preface}
+    dependencies = []
+    for node in generated_tree.body:
+        if node is target:
+            continue
+        key = ast.dump(node, include_attributes=False)
+        if key not in seen:
+            dependencies.append(node)
+            seen.add(key)
+    module = ast.Module(body=preface + dependencies + [target], type_ignores=[])
+    ast.fix_missing_locations(module)
+    return normalize_code(ast.unparse(module))
+
+
 def parse_candidate(response, finish_reason, interface, template_program, token_counter=None):
     if finish_reason not in ("stop", "length", "unknown"):
         return None, "unsupported finish reason"
@@ -70,29 +98,26 @@ def parse_candidate(response, finish_reason, interface, template_program, token_
     except (SyntaxError, ValueError) as exc:
         return None, f"syntax_error: {type(exc).__name__}: {exc}"
     name, args_text, expected = interface
-    targets = [node for node in tree.body
-               if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name]
-    if len(tree.body) != 1 or len(targets) != 1:
-        return None, f"code_shape_error: code must contain only the `{name}(...)` function definition"
+    targets = _target_functions(tree, name)
+    if len(targets) != 1:
+        return None, f"target_function_error: expected exactly one top-level `{name}(...)` function"
     if signature(targets[0].args) != expected:
         return None, f"signature_error: `{name}` must declare the parameters ({args_text})"
-    target = TextFunctionProgramConverter.text_to_function(ast.unparse(targets[0]))
-    if target is None:
-        return None, "code_shape_error: could not extract the target function"
-    program = TextFunctionProgramConverter.function_to_program(target, template_program)
-    if program is None:
-        return None, "template_error: could not rebuild the candidate from the task template"
-    rebuilt = normalize_code(str(program))
+    target = targets[0]
+    rebuilt = _merge_candidate(template_program, tree, target)
+    if rebuilt is None:
+        return None, "template_error: could not find one target function in the task template"
     try:
         compile(rebuilt, "<candidate-template>", "exec")
     except (SyntaxError, ValueError) as exc:
         return None, f"template_error: {type(exc).__name__}: {exc}"
-    return (idea, normalize_code(ast.unparse(targets[0])), rebuilt, idea_tokens), None
+    return (idea, normalize_code(ast.unparse(target)), rebuilt, idea_tokens), None
 
 
 def repair_prompt(task_contract, response, event):
     message = (event.get("error") or event.get("reason") or "Evaluation failed").strip()
+    error_type = event.get("error_type") or "Error"
     return (f"{task_contract}\n\n# Failed output\n{THINK_BLOCK_RE.sub('', response)}\n\n"
-            f"# Failure\n{event.get('error_type', 'Error')}: {message[:2000]}\n\n"
+            f"# Failure\n{error_type}: {message[:2000]}\n\n"
             "# Repair\nCorrect the failure while preserving the intended decision method, then return the required output format.\n\n"
             + OUTPUT)

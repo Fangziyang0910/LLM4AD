@@ -32,13 +32,15 @@ OPERATOR_INSTRUCTIONS = {
 
 
 class TrajectoryBuilder:
-    def __init__(self, llm, task_contract, *, max_tokens, max_events, lookup, all_nodes):
+    def __init__(self, llm, task_contract, *, max_tokens, max_events, lookup, all_nodes,
+                 include_history_code=False):
         self.llm = llm
         self.task_contract = task_contract
         self.max_tokens = max_tokens
         self.max_events = max_events
         self.lookup = lookup
         self.all_nodes = all_nodes
+        self.include_history_code = include_history_code
         self._counts = {}
 
     def count(self, text, *, chat=False):
@@ -50,11 +52,7 @@ class TrajectoryBuilder:
 
     def function_view(self, node):
         tree = ast.parse(node.code)
-        functions = [item for item in tree.body
-                     if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))]
-        if len(functions) != 1:
-            raise ValueError(f"node {node.id} must contain one target function")
-        return ast.unparse(functions[0]).strip()
+        return ast.unparse(tree).strip()
 
     def formation_edges(self, current):
         edges = []
@@ -96,6 +94,8 @@ class TrajectoryBuilder:
                     history.append(f"Step {index} | {target.operator} | Fitness: {source.fitness} -> {target.fitness}")
                     if target.idea:
                         history.append("Idea: " + " ".join(target.idea.split()))
+                    if self.include_history_code:
+                        history.append("Code:\n```python\n" + self.function_view(target) + "\n```")
                 parts.append("\n\n".join(history))
         if donor is not None:
             parts.append(self.program(donor, "Donor Algorithm"))

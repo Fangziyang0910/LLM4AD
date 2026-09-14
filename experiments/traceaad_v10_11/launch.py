@@ -55,11 +55,12 @@ def healthy_slots(available, checked, backend_pool):
     return available
 
 
-def build_plan(batch, prefix, thinking=False):
+def build_plan(batch, prefix, thinking=False, history_code=False):
     return [dict(task=task, repeat=repeat, seed=repeat-1, backend=None,
                  run_name=f'{batch}_{TASK_SHORT[task]}_v1011_rep{repeat}',
                  session=f'{prefix}_{TASK_SHORT[task]}_r{repeat}', attempts=0, status='queued',
-                 **({'thinking': True} if thinking else {}))
+                 **({'thinking': True} if thinking else {}),
+                 **({'history_code': True} if history_code else {}))
             for repeat in range(1, 4) for task in TASKS]
 
 
@@ -68,7 +69,10 @@ def launch_item(row):
                       backend=row['backend'], session=row['session'], run_name=row['run_name'],
                       run_dir=RESULTS_ROOT / row['task'] / row['run_name'],
                       module='experiments.traceaad_v10_11.run',
-                      extra_args=('--thinking',) if row.get('thinking') else ())
+                      extra_args=tuple(arg for arg, enabled in (
+                          ('--thinking', row.get('thinking')),
+                          ('--history-code', row.get('history_code')),
+                      ) if enabled))
 
 
 def refresh(plan, max_attempts):
@@ -111,6 +115,8 @@ def main():
     parser.add_argument('--max-attempts', type=int, default=3)
     parser.add_argument('--thinking', action='store_true',
                         help='stamp every run of this batch with model thinking mode')
+    parser.add_argument('--history-code', action='store_true',
+                        help='include historical programs in each formation path')
     args = parser.parse_args()
     if args.interval < 1 or args.max_attempts < 1:
         parser.error('interval and max-attempts must be positive')
@@ -130,13 +136,17 @@ def main():
                 raise ValueError('batch identity mismatch')
             if tuple(payload.get('backends', ())) != backend_pool:
                 raise ValueError('batch backend pool mismatch')
+            if bool(payload.get('history_code')) != args.history_code:
+                raise ValueError('batch history-code mismatch')
             if not args.dry_run and payload['source_identity'] != identity:
                 raise ValueError('batch frozen source mismatch')
         else:
             payload = dict(method='v1011', batch=args.batch, session_prefix=args.session_prefix,
                            source_identity=identity, created_at=datetime.now().astimezone().isoformat(),
-                           thinking=args.thinking, backends=backend_pool, direct=args.direct,
-                           plan=build_plan(args.batch, args.session_prefix, args.thinking))
+                           thinking=args.thinking, history_code=args.history_code,
+                           backends=backend_pool, direct=args.direct,
+                           plan=build_plan(args.batch, args.session_prefix, args.thinking,
+                                           args.history_code))
             if any(item_is_running(launch_item(r)) or launch_item(r).run_dir.exists()
                    for r in payload['plan']):
                 raise ValueError('existing session or run directory without matching batch manifest')
