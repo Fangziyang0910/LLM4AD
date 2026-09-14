@@ -30,17 +30,17 @@ def code_key(code):
 
 class TraceAADV1011:
     METHOD = "v1011"
+    PROMPT_POLICY = "generic_design_v1"
 
     def __init__(self, *, evaluation, llm, run_dir, budget=1000, n_roots=8,
-                 traj_gens=8, output_tokens=16384, max_context_tokens=32768,
-                 context_margin=256, history_code=False, seed=0):
+                 traj_gens=8, output_tokens=8192, max_input_tokens=24576,
+                 history_code=False, seed=0):
         if budget < n_roots or n_roots < 1 or traj_gens < 0:
             raise ValueError("invalid budget, root, or history settings")
         self.evaluation, self.llm = evaluation, llm
         self.run_dir = Path(run_dir)
         self.budget, self.n_roots, self.traj_gens = budget, n_roots, traj_gens
-        self.output_tokens, self.max_context_tokens = output_tokens, max_context_tokens
-        self.context_margin = context_margin
+        self.output_tokens, self.max_input_tokens = output_tokens, max_input_tokens
         self.history_code = history_code
         self.secure = SecureEvaluator(evaluation)
         self._template_program = evaluation.template_program
@@ -79,10 +79,11 @@ class TraceAADV1011:
         self.pending = None
         self.mechanism = {
             "method": self.METHOD, "budget": budget, "n_roots": n_roots,
+            "prompt_policy": self.PROMPT_POLICY,
             "parser_protocol": "target_function_anchored_module_v2",
-            "traj_gens": traj_gens, "context_margin": context_margin,
+            "traj_gens": traj_gens,
             "history_code": history_code,
-            "output_tokens": output_tokens, "max_context_tokens": max_context_tokens,
+            "output_tokens": output_tokens, "max_input_tokens": max_input_tokens,
             "operator_probabilities": OPERATOR_PROBABILITIES,
             "quality_ess_target": 8.0, "pivot_uniform_probability": 0.5,
             "donor_uniform_probability": 0.5,
@@ -92,7 +93,7 @@ class TraceAADV1011:
         }
         self.builder = trajectory.TrajectoryBuilder(
             llm, self.task_contract,
-            max_tokens=max_context_tokens - context_margin - 1,
+            max_tokens=max_input_tokens,
             max_events=traj_gens, lookup=self.tree.nodes.get,
             all_nodes=self.tree.all_nodes, include_history_code=history_code,
         )
@@ -205,13 +206,16 @@ class TraceAADV1011:
         self.pending["llm_attempts"] += 1
         self._persist_pending()
         started = time.time()
+        request_tokens = self.output_tokens
         record = {"ts": datetime.now().isoformat(timespec="seconds"),
                   "call_id": f"{self.pending['candidate_id']}:{self.pending['llm_attempts']}",
                   "candidate_id": self.pending["candidate_id"], "operator": self.pending["operator"],
                   "prompt": self.pending["prompt"], "prompt_tokens": self.pending["prompt_tokens"],
-                  "prompt_hash": self.pending["prompt_hash"], "max_tokens": self.output_tokens}
+                  "prompt_hash": self.pending["prompt_hash"], "max_tokens": request_tokens}
         try:
-            details = self.llm.draw_sample_with_details(self.pending["prompt"], max_tokens=self.output_tokens)
+            details = self.llm.draw_sample_with_details(
+                self.pending["prompt"], max_tokens=request_tokens
+            )
         except Exception:
             record.update(seconds=time.time() - started, error=traceback.format_exc())
             self._log_call(record)

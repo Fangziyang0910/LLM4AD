@@ -9,11 +9,10 @@ from llm4ad.method.traceaad_v10_11 import TraceAADV1011
 
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
-    add_common_run_args(parser, default_output_tokens=16384, default_budget=FORMAL_BUDGET)
+    add_common_run_args(parser, default_output_tokens=8192, default_budget=FORMAL_BUDGET)
     parser.add_argument('--n-roots', type=int, default=8)
     parser.add_argument('--traj-gens', type=int, default=8)
-    parser.add_argument('--context-margin', type=int, default=256)
-    parser.add_argument('--max-context-tokens', type=int, default=32768)
+    parser.add_argument('--max-input-tokens', type=int, default=24576)
     parser.add_argument('--history-code', action='store_true',
                         help='include each historical trajectory program in generation context')
     return parser
@@ -22,7 +21,7 @@ def build_parser():
 def main():
     args = build_parser().parse_args()
     params = {key: getattr(args, key) for key in (
-        'budget', 'n_roots', 'traj_gens', 'context_margin', 'max_context_tokens',
+        'budget', 'n_roots', 'traj_gens', 'max_input_tokens',
         'output_tokens', 'history_code')}
     ctx = setup_experiment_run(
         args, method='v1011', method_dir=Path(__file__).resolve().parent,

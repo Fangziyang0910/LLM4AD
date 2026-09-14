@@ -7,28 +7,35 @@ from .errors import OUTPUT
 
 OPERATOR_INSTRUCTIONS = {
     "Init": (
-        "Study the task and any previous initial algorithms. Identify a promising decision "
-        "mechanism and implement one competitive candidate around it."
+        "Develop a promising algorithmic idea for the task and implement it "
+        "as a competitive algorithm."
     ),
     "Refine": (
-        "Use the current code and formation history to identify the most valuable next "
-        "improvement. Implement one coherent refinement of its decision mechanism."
+        "Build on the current algorithm's main idea. Use its code and design "
+        "history to make a focused improvement to its computations or their "
+        "organization."
     ),
     "Tune": (
-        "Preserve the current decision method and computational structure. Calibrate a "
-        "small coherent set of influential coefficients, thresholds, exponents, or schedules "
-        "to improve the decision."
+        "Preserve the algorithm's main idea and computational structure. "
+        "Calibrate influential parameters according to how they affect its "
+        "decisions, aiming to improve performance."
     ),
     "Pivot": (
-        "Use the task, current algorithm, and formation history to develop a competitive "
-        "alternative. Build it around a different primary decision mechanism."
+        "Identify a limitation of the current approach in relation to the task. "
+        "Develop and implement a competitive alternative based on a different "
+        "main idea that addresses this limitation."
     ),
     "Fuse": (
-        "Compare the host and donor to identify a host limitation that a donor computation "
-        "can address. Adapt the relevant donor computation into one coherent host-centered "
-        "mechanism and implement the fusion."
+        "Compare the current and reference algorithms to identify useful ideas "
+        "that can complement one another. Adapt and combine their computations "
+        "into a coherent algorithm that aims to outperform both."
     ),
 }
+
+INIT_REFERENCE_INSTRUCTION = (
+    "Use the previously evaluated algorithms and their results to develop "
+    "another promising approach."
+)
 
 
 class TrajectoryBuilder:
@@ -72,23 +79,27 @@ class TrajectoryBuilder:
     def build_initial(self):
         roots = sorted((node for node in self.all_nodes() if node.parent_id is None),
                        key=lambda node: node.id)
-        parts = [self.task_contract, "# Search Context\nFitness is higher for better algorithms."]
+        parts = [self.task_contract, "Fitness: higher is better."]
         if roots:
             parts.append("# Previous Initial Algorithms\nEarlier evaluated functions, in generation order.")
             parts.extend(self.program(node, "Previous Initial Algorithm") for node in roots)
-        parts.extend(["# Design Task\n" + OPERATOR_INSTRUCTIONS["Init"], "# Output\n" + OUTPUT])
+        instruction = OPERATOR_INSTRUCTIONS["Init"]
+        if roots:
+            instruction += " " + INIT_REFERENCE_INSTRUCTION
+        parts.extend(["# Design Task\n" + instruction, "# Output\n" + OUTPUT])
         text = "\n\n\n".join(parts)
         self.check_capacity(text)
         return text
 
     def build(self, parent, operator, donor=None):
-        parts = [self.task_contract, "# Search Context\nFitness is higher for better algorithms."]
+        parts = [self.task_contract, "Fitness: higher is better."]
         if parent is not None:
-            parts.append(self.program(parent, "Host Algorithm" if operator == "Fuse" else "Current Algorithm"))
+            parts.append(self.program(parent, "Current Algorithm"))
             edges = self.formation_edges(parent)
             if edges:
                 history = [
-                    "# Formation History",
+                    "# Design History of the Current Algorithm",
+                    "Use the recorded design changes and their results to guide this design.",
                 ]
                 for index, (source, target) in enumerate(edges, 1):
                     history.append(f"Step {index} | {target.operator} | Fitness: {source.fitness} -> {target.fitness}")
@@ -98,7 +109,7 @@ class TrajectoryBuilder:
                         history.append("Code:\n```python\n" + self.function_view(target) + "\n```")
                 parts.append("\n\n".join(history))
         if donor is not None:
-            parts.append(self.program(donor, "Donor Algorithm"))
+            parts.append(self.program(donor, "Reference Algorithm"))
         parts.extend(["# Design Task\n" + OPERATOR_INSTRUCTIONS[operator], "# Output\n" + OUTPUT])
         text = "\n\n\n".join(parts)
         self.check_capacity(text)

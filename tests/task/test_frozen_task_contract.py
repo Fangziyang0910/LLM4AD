@@ -167,7 +167,7 @@ def test_frozen_aco_search_params_in_build_task():
 
 def test_frozen_search_seed_convention():
     from experiments.infra.base import TASKS, build_launch_plan
-    from experiments.traceaad_v10_10.launch import build_plan
+    from experiments.traceaad_v10_11.launch import build_plan
 
     args = argparse.Namespace(batch="contract_check", repeats=3, session_prefix="check")
     plan = build_launch_plan(args, module="m", method="check")

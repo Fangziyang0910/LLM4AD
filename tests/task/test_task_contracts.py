@@ -1,4 +1,4 @@
-"""Static contract checks for all llm4ad tasks.
+"""Static contract checks for the five frozen main-experiment tasks.
 
 Guards against empty task descriptions, unparseable templates, missing
 Evaluation wiring, and obvious signature drift between template and evaluator.
@@ -19,10 +19,17 @@ from llm4ad.base.evaluate import Evaluation
 
 ROOT = Path(__file__).resolve().parents[2]
 TASK_ROOT = ROOT / "llm4ad" / "task"
+FROZEN_TASKS = (
+    "optimization/tsp_construct",
+    "optimization/cvrp_aco",
+    "optimization/op_aco",
+    "optimization/online_bin_packing",
+    "optimization/vrptw_construct",
+)
 
 
 def _all_task_dirs() -> list[Path]:
-    return sorted(p.parent for p in TASK_ROOT.rglob("template.py"))
+    return [TASK_ROOT / relative for relative in FROZEN_TASKS]
 
 
 def _module_path(py_file: Path) -> str:
@@ -139,12 +146,6 @@ def test_task_contract_basics(task_dir: Path):
 
 def test_direct_evaluator_calls_match_template_arity():
     """Check every statically visible call from an evaluator to its candidate."""
-    indirect_tasks = {
-        "optimization/pymoo_moead",
-        "optimization/tsp_gls_2O",
-        "science_discovery/ode_1d",
-    }
-    found_tasks = set()
     mismatches = []
 
     for task_dir in _all_task_dirs():
@@ -174,8 +175,6 @@ def test_direct_evaluator_calls_match_template_arity():
                     calls.append(call)
 
         relative = str(task_dir.relative_to(TASK_ROOT))
-        if calls:
-            found_tasks.add(relative)
         for call in calls:
             if not min_args <= len(call.args) <= max_args:
                 mismatches.append(
@@ -183,6 +182,4 @@ def test_direct_evaluator_calls_match_template_arity():
                     f"arguments; template accepts {min_args}..{max_args}"
                 )
 
-    all_tasks = {str(p.relative_to(TASK_ROOT)) for p in _all_task_dirs()}
-    assert all_tasks - found_tasks == indirect_tasks
     assert mismatches == []

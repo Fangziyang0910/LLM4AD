@@ -9,11 +9,13 @@ THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 FENCE_RE = re.compile(r"^[ \t]*```(?:python|py)?[ \t]*\r?$", re.MULTILINE | re.IGNORECASE)
 OUTPUT = (
     "Return exactly:\n"
-    "Idea: <one short paragraph summarizing the core mechanism and the main change from the current method>\n"
-    "Code:\n```python\n<the complete candidate Python program, including the target function>\n```\n\n"
+    "Idea: <one short paragraph describing how the algorithm computes its output and the main change from any supplied algorithms>\n"
+    "Code:\n```python\n"
+    "<the complete Python implementation, including the target function "
+    "and any supporting code>\n```\n\n"
     "Keep the Idea to no more than 200 words.\n"
-    "Use the exact target function name and signature shown in the template. "
-    "Imports and helper definitions are allowed, but the target function is required."
+    "Use the exact target function name and signature shown above. "
+    "Include imports and helper definitions as needed."
 )
 MAX_IDEA_TOKENS = 500
 
