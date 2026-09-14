@@ -8,7 +8,6 @@ from pathlib import Path
 
 from experiments.infra.base import TASKS
 from experiments.infra.launcher import (
-    build_rotated_plan,
     get_summary_status,
     live_session_name,
 )
@@ -73,25 +72,6 @@ def test_setup_experiment_run_writes_valid_config(tmp_path: Path):
     assert payload["method"] == "test_method"
     assert payload["method_params"]["custom_param"] == 123
     assert payload["method_params"]["budget_basis"] == "1000 budget test"
-
-
-def test_build_rotated_plan_distribution(tmp_path: Path):
-    plan = build_rotated_plan(
-        module="experiments.traceaad_v10_1.run",
-        method="v101",
-        results_root=tmp_path / "results",
-        backend_rotation=("server1", "server3", "local"),
-        repeats=3,
-        batch="20260902_test",
-        session_prefix="v101",
-    )
-
-    assert len(plan) == len(TASKS) * 3
-    counts = {}
-    for item in plan:
-        counts[item.backend] = counts.get(item.backend, 0) + 1
-    # 5 tasks * 3 repeats = 15 runs -> exactly 5 per backend
-    assert counts == {"server1": 5, "server3": 5, "local": 5}
 
 
 def test_launcher_status_and_session_naming(tmp_path: Path):

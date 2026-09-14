@@ -9,12 +9,8 @@ PORT="${1:-8765}"
 if tmux has-session -t "${SESSION}" 2>/dev/null; then
     tmux kill-session -t "${SESSION}"
 fi
-if tmux has-session -t v1010_monitor 2>/dev/null; then
-    tmux kill-session -t v1010_monitor
-fi
-
 cd "${ROOT}"
-CMD="${ROOT}/.venv/bin/python -u -m experiments.traceaad_v10_11.monitor --version v10_11_q38_history_code --session-prefix v1011q38hc --host 0.0.0.0 --port ${PORT}"
+CMD="${ROOT}/.venv/bin/python -u -m experiments.traceaad_v10_11.monitor --host 0.0.0.0 --port ${PORT}"
 tmux new-session -d -s "${SESSION}" "${CMD}"
 sleep 2
 if tmux has-session -t "${SESSION}" 2>/dev/null; then

@@ -42,12 +42,12 @@ def prepare_resume(item, profiles):
         write_json(config_path, config)
 
 
-def allocate_anywhere(allocate, plan, available):
+def allocate_anywhere(allocate, plan, available, backend_pool):
     # The frozen allocator still expects a pinned backend. Clear only the
     # scheduling copy; return the original rows for its normal persistence.
     by_name = {row['run_name']: row for row in plan}
     candidates = [{**row, 'backend': None} if row['status'] == 'queued' else row for row in plan]
-    return [(by_name[row['run_name']], backend) for row, backend in allocate(candidates, available)]
+    return [(by_name[row['run_name']], backend) for row, backend in allocate(candidates, available, backend_pool)]
 
 
 def main():
@@ -71,7 +71,7 @@ def main():
         raise ValueError('launcher was not imported from the frozen runtime')
     base = importlib.import_module('experiments.infra.base')
     allocate, launch_items = launcher.allocate, launcher.launch_items
-    launcher.allocate = lambda plan, available: allocate_anywhere(allocate, plan, available)
+    launcher.allocate = lambda plan, available, backend_pool: allocate_anywhere(allocate, plan, available, backend_pool)
 
     def start(items, *, dry_run):
         for item in items:

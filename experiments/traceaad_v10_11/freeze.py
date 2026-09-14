@@ -18,8 +18,25 @@ def freeze(batch, prefix='v1011'):
     results = root / 'experiments/traceaad_v10_11/results'
     runtime = results / f'runtime_{batch}'
     runtime.mkdir(parents=True, exist_ok=False)
-    sources = [root / 'llm4ad', root / 'experiments/infra', root / 'experiments/traceaad_v10_11']
-    files = [root / 'experiments/__init__.py']
+    # Import closure of experiments.traceaad_v10_11.run only: retired method
+    # packages and unrelated task families are deliberately not frozen.
+    sources = [
+        root / 'llm4ad/base',
+        root / 'llm4ad/tools',
+        root / 'llm4ad/method/traceaad_v10_11',
+        root / 'experiments/infra',
+        root / 'experiments/traceaad_v10_11',
+    ]
+    sources += [root / 'llm4ad/task/optimization' / task for task in (
+        'tsp_construct', 'cvrp_aco', 'op_aco', 'online_bin_packing', 'vrptw_construct')]
+    files = [
+        root / 'experiments/__init__.py',
+        root / 'llm4ad/__init__.py',
+        root / 'llm4ad/method/__init__.py',
+        root / 'llm4ad/task/__init__.py',
+        root / 'llm4ad/task/optimization/__init__.py',
+        root / 'llm4ad/task/optimization/generated_data_config.py',
+    ]
     for directory in sources:
         for folder, dirs, names in os.walk(directory):
             dirs[:] = sorted(d for d in dirs if d not in ('results', '__pycache__', 'data'))
@@ -42,7 +59,6 @@ def freeze(batch, prefix='v1011'):
                    git_base=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip(),
                    files=hashes, launch_command=command)
     (runtime / 'runtime_manifest.json').write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n')
-    (results / f'source_{batch}.json').write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n')
     return payload
 
 
@@ -52,7 +68,7 @@ def main():
     parser.add_argument('--session-prefix', default='v1011')
     args = parser.parse_args()
     result = freeze(args.batch, args.session_prefix)
-    print(json.dumps({k: v for k, v in result.items() if k not in ('files', 'datasets')}, indent=2))
+    print(json.dumps({k: v for k, v in result.items() if k != 'files'}, indent=2))
 
 
 if __name__ == '__main__':

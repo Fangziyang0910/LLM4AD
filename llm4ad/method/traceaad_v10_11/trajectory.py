@@ -1,8 +1,8 @@
 """Prompt construction for the function-level TraceAAD search."""
 
 import ast
-import hashlib
 
+from .core import digest
 from .errors import OUTPUT
 
 OPERATOR_INSTRUCTIONS = {
@@ -50,11 +50,10 @@ class TrajectoryBuilder:
         self.include_history_code = include_history_code
         self._counts = {}
 
-    def count(self, text, *, chat=False):
-        key = (chat, hashlib.sha256(text.encode()).hexdigest())
+    def count(self, text):
+        key = digest(text)
         if key not in self._counts:
-            self._counts[key] = (self.llm.count_prompt_tokens(text) if chat
-                                 else self.llm.count_tokens(text))
+            self._counts[key] = self.llm.count_prompt_tokens(text)
         return self._counts[key]
 
     def function_view(self, node):
@@ -76,20 +75,22 @@ class TrajectoryBuilder:
     def program(self, node, title):
         return f"# {title}\nFitness: {node.fitness}\n```python\n{self.function_view(node)}\n```"
 
-    def build_initial(self):
-        roots = sorted((node for node in self.all_nodes() if node.parent_id is None),
-                       key=lambda node: node.id)
-        parts = [self.task_contract, "Fitness: higher is better."]
-        if roots:
-            parts.append("# Previous Initial Algorithms\nEarlier evaluated functions, in generation order.")
-            parts.extend(self.program(node, "Previous Initial Algorithm") for node in roots)
-        instruction = OPERATOR_INSTRUCTIONS["Init"]
-        if roots:
-            instruction += " " + INIT_REFERENCE_INSTRUCTION
+    def _complete(self, parts, instruction):
         parts.extend(["# Design Task\n" + instruction, "# Output\n" + OUTPUT])
         text = "\n\n\n".join(parts)
         self.check_capacity(text)
         return text
+
+    def build_initial(self):
+        roots = sorted((node for node in self.all_nodes() if node.parent_id is None),
+                       key=lambda node: node.id)
+        parts = [self.task_contract, "Fitness: higher is better."]
+        instruction = OPERATOR_INSTRUCTIONS["Init"]
+        if roots:
+            parts.append("# Previous Initial Algorithms\nEarlier evaluated functions, in generation order.")
+            parts.extend(self.program(node, "Previous Initial Algorithm") for node in roots)
+            instruction += " " + INIT_REFERENCE_INSTRUCTION
+        return self._complete(parts, instruction)
 
     def build(self, parent, operator, donor=None):
         parts = [self.task_contract, "Fitness: higher is better."]
@@ -102,19 +103,21 @@ class TrajectoryBuilder:
                     "Use the recorded design changes and their results to guide this design.",
                 ]
                 for index, (source, target) in enumerate(edges, 1):
-                    history.append(f"Step {index} | {target.operator} | Fitness: {source.fitness} -> {target.fitness}")
+                    history.append(
+                        f"Step {index} | {target.operator} | "
+                        f"Fitness: {source.fitness} -> {target.fitness}"
+                    )
                     if target.idea:
                         history.append("Idea: " + " ".join(target.idea.split()))
-                    if self.include_history_code:
+                    # The newest step is the parent itself, already shown in full
+                    # as the Current Algorithm; do not send that code twice.
+                    if self.include_history_code and target.id != parent.id:
                         history.append("Code:\n```python\n" + self.function_view(target) + "\n```")
                 parts.append("\n\n".join(history))
         if donor is not None:
             parts.append(self.program(donor, "Reference Algorithm"))
-        parts.extend(["# Design Task\n" + OPERATOR_INSTRUCTIONS[operator], "# Output\n" + OUTPUT])
-        text = "\n\n\n".join(parts)
-        self.check_capacity(text)
-        return text
+        return self._complete(parts, OPERATOR_INSTRUCTIONS[operator])
 
     def check_capacity(self, text):
-        if self.count(text, chat=True) > self.max_tokens:
+        if self.count(text) > self.max_tokens:
             raise ValueError("complete prompt exceeds the model context budget")

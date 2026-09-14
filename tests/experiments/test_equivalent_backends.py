@@ -29,10 +29,11 @@ def test_route_update_preserves_search_and_is_restartable(tmp_path):
 def test_frozen_allocator_adapter_preserves_original_rows():
     rows = [{'run_name': 'paused', 'backend': 'busy', 'status': 'queued'},
             {'run_name': 'active', 'backend': 'busy', 'status': 'running'}]
-    def pinned_allocator(plan, available):
+    def pinned_allocator(plan, available, backend_pool):
         assert plan[1] is rows[1]
+        assert backend_pool == ('free', 'other')
         return [(r, b) for r in plan if r['status'] == 'queued'
                 for b, n in available.items() if n and r['backend'] in (None, b)]
-    assignments = allocate_anywhere(pinned_allocator, rows, {'free': 1})
+    assignments = allocate_anywhere(pinned_allocator, rows, {'free': 1}, ('free', 'other'))
     assert assignments == [(rows[0], 'free')]
     assert assignments[0][0] is rows[0] and rows[0]['backend'] == 'busy'

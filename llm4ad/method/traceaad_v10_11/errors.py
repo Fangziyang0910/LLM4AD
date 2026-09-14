@@ -46,6 +46,26 @@ def expected_interface(name, args_text):
     return name, args_text, signature(args)
 
 
+def template_target(template_program):
+    try:
+        tree = ast.parse(template_program)
+    except (SyntaxError, ValueError) as exc:
+        raise ValueError("evaluation template must define exactly one function") from exc
+    funcs = [node for node in tree.body
+             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))]
+    if len(funcs) != 1:
+        raise ValueError("evaluation template must define exactly one function")
+    func = funcs[0]
+    args_text = ast.unparse(func.args)
+    returns = f" -> {ast.unparse(func.returns)}" if func.returns else ""
+    lines = [f"def {func.name}({args_text}){returns}:"]
+    docstring = ast.get_docstring(func)
+    if docstring:
+        lines.append(f'    """{docstring}"""')
+    lines.append("    pass")
+    return expected_interface(func.name, args_text), "\n".join(lines)
+
+
 def _target_functions(tree, name):
     return [node for node in tree.body
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name]
@@ -57,8 +77,8 @@ def _merge_candidate(template_program, generated_tree, target):
     template_targets = _target_functions(template_tree, target.name)
     if len(template_targets) != 1:
         return None
-    template_target = template_targets[0]
-    preface = [node for node in template_tree.body if node is not template_target]
+    template_fn = template_targets[0]
+    preface = [node for node in template_tree.body if node is not template_fn]
     seen = {ast.dump(node, include_attributes=False) for node in preface}
     dependencies = []
     for node in generated_tree.body:

@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import subprocess
 import threading
@@ -79,46 +78,23 @@ TASKS_METADATA = [
 ]
 
 TASK_MAP = {t["key"]: t for t in TASKS_METADATA}
-REP_RE = re.compile(r"_rep(\d+)$")
 
 
-def _version_dir_pattern(version_id: str) -> str | None:
-    """Run-dir filter separating batches that share one results root."""
-    return KNOWN_VERSIONS.get(version_id, {}).get("dir_pattern")
-
-KNOWN_VERSIONS = {
-    "v10_11_q38": {
-        "id": "v10_11_q38",
-        "name": "TraceAAD V10.11 · Qwen3.8 · 无历史代码",
-        "badge": "V10.11 Qwen3.8 · 无 Code",
-        "default_prefix": "v1011q38r2",
-        "path": REPO_ROOT / "experiments" / "traceaad_v10_11" / "results",
-        "is_latest": False,
-        "dir_pattern": r"^.+_v1011_q38_restart2_.*_v1011_rep\d+$",
-    },
-    "v10_11_q38_history_code": {
-        "id": "v10_11_q38_history_code",
-        "name": "TraceAAD V10.11 · Qwen3.8 · 带历史代码",
-        "badge": "V10.11 Qwen3.8 · 带 Code",
-        "default_prefix": "v1011q38hc",
-        "path": REPO_ROOT / "experiments" / "traceaad_v10_11" / "results",
-        "is_latest": True,
-        "dir_pattern": r"^.+_v1011_q38_history_code_.*_v1011_rep\d+$",
-    },
-}
-
-# 2026-09-12 对比方法定点重跑批（rerun2）：EoH×VRPTW + MCTS-AHD×CVRP/OP，各 3 重复。
-RERUN2_RUN_GLOB = "20260912_rerun2_*"
-RERUN2_SESSION_PREFIX = "rerun2_"
-RERUN2_BUDGET = 1000
-TASK_LABEL = {
-    "tsp_construct": "TSP",
-    "cvrp_aco": "CVRP",
-    "op_aco": "OP",
-    "online_bin_packing": "OBP",
-    "vrptw_construct": "VRPTW",
-}
-METHOD_LABEL = {"eoh": "EoH", "mcts_ahd": "MCTS-AHD", "reevo": "ReEvo", "pathwise": "PathWise", "calm": "CALM"}
+def _load_batch_manifests(root_dir: Path) -> list[dict[str, Any]]:
+    """Non-superseded batch manifests in a results root, newest first."""
+    manifests: list[dict[str, Any]] = []
+    for path in sorted(root_dir.glob("batch_*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not (isinstance(data, dict) and "plan" in data):
+            continue
+        if data.get("status") in ("excluded_startup_diagnostic", "superseded"):
+            continue
+        manifests.append(data)
+    manifests.sort(key=lambda d: d.get("created_at") or "", reverse=True)
+    return manifests
 
 
 def _format_duration(seconds: float | None) -> str:
@@ -163,33 +139,40 @@ def _get_active_tmux_sessions() -> set[str]:
 def _is_run_session_alive(base_session: str, active_tmux: set[str]) -> tuple[bool, str]:
     if base_session in active_tmux:
         return True, base_session
-    prefix = f"{base_session}_r"
-    for s in active_tmux:
-        if s.startswith(prefix):
-            return True, s
-    # V10.11 uses one scheduler prefix per model batch (for example
-    # v1011q38_tsp_r1 and v1011q36_tsp_r1).  Match the task/repeat suffix
-    # across those batch prefixes while keeping the monitor V10.11-only.
-    if base_session.startswith("v1011_"):
-        suffix = base_session[len("v1011"):]
-        candidates = sorted(
-            s for s in active_tmux if s.startswith("v1011") and s.endswith(suffix)
-        )
-        if candidates:
-            return True, candidates[0]
     return False, base_session
+
+
+def _load_tree_nodes(run_dir: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """(tree_state, nodes) — nodes live in nodes.jsonl, with the stopped
+    pre-refactor batches still carrying them inside tree_state.json."""
+    tree_data: dict[str, Any] = {}
+    tree_p = run_dir / "tree_state.json"
+    if tree_p.exists():
+        try:
+            tree_data = json.loads(tree_p.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    nodes = tree_data.get("nodes") or []
+    nodes_p = run_dir / "nodes.jsonl"
+    if nodes_p.exists():
+        nodes = []
+        try:
+            for line in nodes_p.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    nodes.append(json.loads(line))
+        except Exception:
+            pass
+    return tree_data, nodes
 
 
 class MonitorDataEngine:
     def __init__(
         self,
         results_root: Path | None = None,
-        default_version: str = "v10_11_q38_history_code",
-        default_session_prefix: str = "v1011q38hc",
+        default_version: str | None = None,
+        default_session_prefix: str | None = None,
     ):
-        self.default_results_root = results_root or KNOWN_VERSIONS.get(
-            default_version, {}
-        ).get("path", DEFAULT_RESULTS_ROOT)
+        self.default_results_root = results_root or DEFAULT_RESULTS_ROOT
         self.default_version = default_version
         self.default_session_prefix = default_session_prefix
 
@@ -201,169 +184,42 @@ class MonitorDataEngine:
         self._lock = threading.Lock()
 
     def get_available_versions(self) -> list[dict[str, Any]]:
+        """One monitor version per live batch manifest, newest first."""
         versions: list[dict[str, Any]] = []
-        # A monitor launched with ``--results-dir`` may point at a frozen
-        # remote batch that is not part of the local historical registry.
-        # Keep that explicitly selected default visible in the selector.
-        if self.default_version not in KNOWN_VERSIONS and self.default_results_root.is_dir():
+        for manifest in _load_batch_manifests(self.default_results_root):
+            batch = manifest.get("batch") or "batch"
             versions.append(
                 {
-                    "id": self.default_version,
-                    "name": f"TraceAAD {self.default_version.upper()}",
-                    "badge": self.default_version.upper(),
-                    "is_latest": True,
+                    "id": batch,
+                    "name": f"TraceAAD V10.11 · {batch}",
+                    "badge": batch,
+                    "is_latest": not versions,
                 }
             )
-        for vid, info in KNOWN_VERSIONS.items():
-            if info["path"].is_dir():
-                versions.append(
-                    {
-                        "id": vid,
-                        "name": info["name"],
-                        "badge": info["badge"],
-                        "is_latest": info["is_latest"],
-                    }
-                )
         if not versions:
+            fallback = self.default_version or "v1011"
             versions.append(
                 {
-                    "id": self.default_version,
-                    "name": f"TraceAAD {self.default_version.upper()}",
-                    "badge": self.default_version.upper(),
+                    "id": fallback,
+                    "name": f"TraceAAD {fallback.upper()}",
+                    "badge": fallback.upper(),
                     "is_latest": True,
                 }
             )
         return versions
 
-    def get_rerun2(self, max_age_sec: float = 3.0) -> dict[str, Any]:
-        """Progress of the 2026-09-12 targeted baseline rerun batch (rerun2)."""
-        now_ts = time.time()
-        with self._lock:
-            cached = self._cache_overview.get("__rerun2__")
-            if cached is not None and (now_ts - self._cache_overview_ts.get("__rerun2__", 0.0)) < max_age_sec:
-                return cached
-        active = _get_active_tmux_sessions()
-        task_short = {"vrptw_construct": "vrptw", "cvrp_aco": "cvrp", "op_aco": "op"}
-        method_short = {"eoh": "eoh", "mcts_ahd": "mcts"}
-        runs: list[dict[str, Any]] = []
-        for run_dir in sorted(REPO_ROOT.glob(f"experiments/*/*/{RERUN2_RUN_GLOB}")):
-            method = run_dir.parent.name
-            task = run_dir.parent.parent.name
-            record: dict[str, Any] = {
-                "run_name": run_dir.name,
-                "task": task,
-                "task_label": TASK_LABEL.get(task, task),
-                "method": method,
-                "method_label": METHOD_LABEL.get(method, method),
-            }
-            config_path = run_dir / "run_config.json"
-            if config_path.is_file():
-                try:
-                    config = json.loads(config_path.read_text(encoding="utf-8"))
-                except json.JSONDecodeError:
-                    config = {}
-                record.update(
-                    repeat=config.get("repeat"),
-                    seed=config.get("seed"),
-                    backend=config.get("backend"),
-                    model=config.get("llm", {}).get("model"),
-                )
-            repeat = record.get("repeat")
-            session = None
-            if repeat is not None and method in method_short and task in task_short:
-                session = f"{RERUN2_SESSION_PREFIX}{task_short[task]}_{method_short[method]}_r{repeat}"
-                record["session"] = session
-            summary = self._read_json(run_dir / "logs" / "run_summary.json")
-            state = self._last_jsonl_line(run_dir / "logs" / "method_state.jsonl")
-            samples = state.get("sample_count", state.get("sample_order"))
-            record["samples"] = samples
-            record["budget"] = RERUN2_BUDGET
-            if "generation" in state:
-                record["generation"] = state["generation"]
-            if summary is not None:
-                record["status"] = summary.get("status") or "unknown"
-            elif session is not None and _is_run_session_alive(session, active)[0]:
-                record["status"] = "running"
-            else:
-                record["status"] = "idle"
-            record["best"] = self._last_best_score(run_dir / "tmux_run.log")
-            log = run_dir / "tmux_run.log"
-            record["updated_sec_ago"] = (
-                round(now_ts - log.stat().st_mtime, 1) if log.is_file() else None
-            )
-            runs.append(record)
-        total_samples = sum(r.get("samples") or 0 for r in runs)
-        payload = {
-            "runs": runs,
-            "summary": {
-                "total_runs": len(runs),
-                "running": sum(1 for r in runs if r["status"] == "running"),
-                "finished": sum(1 for r in runs if r["status"] == "finished"),
-                "stopped": sum(1 for r in runs if r["status"] in ("error", "interrupted", "idle")),
-                "samples": total_samples,
-                "budget": len(runs) * RERUN2_BUDGET,
-            },
-        }
-        with self._lock:
-            self._cache_overview["__rerun2__"] = payload
-            self._cache_overview_ts["__rerun2__"] = now_ts
-        return payload
-
-    @staticmethod
-    def _read_json(path: Path) -> dict[str, Any] | None:
-        if not path.is_file():
-            return None
-        try:
-            return json.loads(path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            return None
-
-    @staticmethod
-    def _last_jsonl_line(path: Path) -> dict[str, Any]:
-        if not path.is_file():
-            return {}
-        try:
-            with path.open("rb") as handle:
-                handle.seek(0, os.SEEK_END)
-                size = handle.tell()
-                window = min(size, 65536)
-                handle.seek(size - window)
-                tail = handle.read().decode("utf-8", errors="ignore").strip()
-            lines = [line for line in tail.splitlines() if line.strip()]
-            return json.loads(lines[-1]) if lines else {}
-        except (OSError, json.JSONDecodeError):
-            return {}
-
-    @staticmethod
-    def _last_best_score(path: Path) -> float | None:
-        if not path.is_file():
-            return None
-        try:
-            with path.open("rb") as handle:
-                handle.seek(0, os.SEEK_END)
-                size = handle.tell()
-                window = min(size, 262144)
-                handle.seek(size - window)
-                tail = handle.read().decode("utf-8", errors="ignore")
-            for line in reversed(tail.splitlines()):
-                marker = "Current best score:"
-                idx = line.rfind(marker)
-                if idx >= 0:
-                    return float(line[idx + len(marker):].strip())
-        except (OSError, ValueError):
-            return None
-        return None
-
-    def _resolve_version_meta(
-        self, version: str | None
-    ) -> tuple[str, Path, str, str]:
-        vid = version or self.default_version
-        if vid in KNOWN_VERSIONS:
-            vmeta = KNOWN_VERSIONS[vid]
-            # Use explicit root if specified and matches default
-            path = self.default_results_root if (vid == self.default_version) else vmeta["path"]
-            return vid, path, vmeta["default_prefix"], vmeta["badge"]
-        return vid, self.default_results_root, self.default_session_prefix, vid.upper()
+    def _resolve_version_meta(self, version: str | None = None) -> tuple[str, Path, str, str]:
+        """Map a version id (= batch name) to (vid, root, session_prefix, badge)."""
+        manifests = _load_batch_manifests(self.default_results_root)
+        want = version or self.default_version
+        chosen = next((m for m in manifests if want and m.get("batch") == want), None)
+        if chosen is None:
+            chosen = manifests[0] if manifests else None
+        if chosen is not None:
+            batch = chosen["batch"]
+            return batch, self.default_results_root, chosen.get("session_prefix") or "v1011", batch
+        fallback = want or "v1011"
+        return fallback, self.default_results_root, self.default_session_prefix or "v1011", fallback.upper()
 
     def get_overview(
         self, version: str | None = None, max_age_sec: float = 3.0
@@ -425,35 +281,15 @@ class MonitorDataEngine:
         _, root_dir, _, _ = self._resolve_version_meta(version)
         run_dir = root_dir / task / run_name
         tree_p = run_dir / "tree_state.json"
-        if not tree_p.exists():
+        nodes_p = run_dir / "nodes.jsonl"
+        if not tree_p.exists() and not nodes_p.exists():
             return None
         try:
-            tree_data = json.loads(tree_p.read_text(encoding="utf-8"))
-            nodes_by_id = {n["id"]: n for n in tree_data.get("nodes", [])}
+            _, tree_nodes = _load_tree_nodes(run_dir)
+            nodes_by_id = {n["id"]: n for n in tree_nodes}
             target = nodes_by_id.get(node_id)
             if not target:
                 return None
-
-            if not target.get("operator") and target.get("origin_operator"):
-                target["operator"] = target["origin_operator"]
-            if target.get("evaluation_id") is None:
-                events_p = run_dir / "events.jsonl"
-                if events_p.exists():
-                    try:
-                        eval_c = 0
-                        for line in events_p.read_text(encoding="utf-8").splitlines():
-                            if not line.strip():
-                                continue
-                            ev = json.loads(line)
-                            if ev.get("slot_consumed"):
-                                eval_c += 1
-                            if ev.get("node_id") == node_id:
-                                target["evaluation_id"] = ev.get("evaluation_id") or eval_c
-                                break
-                    except Exception:
-                        pass
-                if target.get("evaluation_id") is None:
-                    target["evaluation_id"] = target["id"] + 1
 
             ancestors = []
             curr = target
@@ -465,7 +301,7 @@ class MonitorDataEngine:
                 ancestors.append(
                     {
                         "id": curr["id"],
-                        "operator": curr.get("operator") or curr.get("origin_operator") or "Init",
+                        "operator": curr.get("operator") or "Init",
                         "fitness": curr.get("fitness"),
                         "idea": (curr.get("idea") or "")[:120],
                     }
@@ -478,26 +314,6 @@ class MonitorDataEngine:
         except Exception:
             return None
 
-    def refresh(self, version: str | None = None) -> None:
-        if version is not None:
-            vids = [version]
-        else:
-            vids = [v["id"] for v in self.get_available_versions()]
-            if self.default_version not in vids:
-                vids.append(self.default_version)
-
-        for vid in vids:
-            try:
-                v_id, root_dir, prefix, badge = self._resolve_version_meta(vid)
-                if not root_dir.is_dir():
-                    continue
-                overview = self._scan_overview(root_dir, v_id, prefix, badge)
-                with self._lock:
-                    self._cache_overview[v_id] = overview
-                    self._cache_overview_ts[v_id] = time.time()
-            except Exception as e:
-                print(f"[monitor] Failed to refresh version {vid}: {e}", flush=True)
-
     def _get_run_mtime(self, run_dir: Path) -> tuple[Any, ...]:
         def _stat(p: Path) -> tuple[float, int] | None:
             try:
@@ -509,42 +325,22 @@ class MonitorDataEngine:
         return (
             _stat(run_dir / "run_config.json"),
             _stat(run_dir / "tree_state.json"),
+            _stat(run_dir / "nodes.jsonl"),
             _stat(run_dir / "events.jsonl"),
-            _stat(run_dir / "logs" / "summary.json"),
             _stat(run_dir / "logs" / "run_summary.json"),
         )
 
     def _load_latest_batch_manifest(
         self, root_dir: Path, version_id: str | None = None
     ) -> dict[str, Any] | None:
-        """Find the most recent manifest belonging to this version's batch.
-
-        Batches that share one results root are separated by matching plan
-        run names against the version's dir pattern; falls back to the
-        latest manifest when the version has no pattern.
-        """
-        manifests = sorted(root_dir.glob("batch_*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
-        pattern = _version_dir_pattern(version_id) if version_id else None
-        candidates = []
-        for m in manifests:
-            try:
-                data = json.loads(m.read_text(encoding="utf-8"))
-                if not (isinstance(data, dict) and "plan" in data):
-                    continue
-                if data.get('status') in ('excluded_startup_diagnostic', 'superseded'):
-                    continue
-            except Exception:
-                continue
-            if pattern is not None and not any(
-                    re.search(pattern, item.get("run_name") or "")
-                    for item in data.get("plan", [])):
-                continue
-            created = data.get("created_at") or ""
-            candidates.append((created, m.stat().st_mtime, data))
-        if candidates:
-            candidates.sort(key=lambda row: (row[0], row[1]), reverse=True)
-            return candidates[0][2]
-        return None
+        """The manifest of this version's batch (version id == batch name),
+        falling back to the newest manifest for custom results roots."""
+        manifests = _load_batch_manifests(root_dir)
+        if version_id:
+            for data in manifests:
+                if data.get("batch") == version_id:
+                    return data
+        return manifests[0] if manifests else None
 
     def _find_queued_run_in_manifest(
         self, root_dir: Path, task: str, run_name: str, default_prefix: str,
@@ -568,15 +364,11 @@ class MonitorDataEngine:
             "requested_operator_counts": {"Init": 0, "Refine": 0, "Tune": 0, "Pivot": 0, "Fuse": 0},
             "executed_operator_counts": {"Init": 0, "Refine": 0, "Tune": 0, "Pivot": 0, "Fuse": 0},
             "fuse_fallbacks": 0,
-            "parent_routes": {},
-            "pivot_routes": {"quality": 0, "uniform": 0},
             "parent_improved_count": 0,
             "frontier_improved_count": 0,
             "avg_llm_seconds": None,
             "avg_eval_seconds": None,
             "avg_prompt_tokens": None,
-            "avg_summary_tokens": None,
-            "summary_present_count": 0,
         }
         return {
             "name": item.get("run_name") or f"queued_{task_info['short']}_rep{rep}",
@@ -607,8 +399,7 @@ class MonitorDataEngine:
             "status_counts": {"ok": 0, "eval_failed": 0, "invalid_output": 0},
             "curve": [],
             "breakthroughs": [],
-            "v106_telemetry": telemetry_placeholder,
-            "v105_telemetry": telemetry_placeholder,
+            "telemetry": telemetry_placeholder,
         }
 
     def _scan_overview(
@@ -622,11 +413,8 @@ class MonitorDataEngine:
         # Pre-group manifest plan items by (task, rep)
         planned_names = {item.get('run_name') for item in manifest.get('plan', [])} if manifest else set()
         manifest_by_task_rep: dict[tuple[str, int], dict[str, Any]] = {}
-        dir_pattern = _version_dir_pattern(version_id)
         if manifest:
             for item in manifest.get("plan", []):
-                if dir_pattern and not re.search(dir_pattern, item.get('run_name', '')):
-                    continue
                 t_k = item.get("task")
                 r_num = item.get("repeat")
                 if t_k and r_num:
@@ -642,7 +430,6 @@ class MonitorDataEngine:
         all_etas: list[float] = []
         all_speeds: list[float] = []
 
-        dir_pattern = _version_dir_pattern(version_id)
         for task_info in TASKS_METADATA:
             task_key = task_info["key"]
             task_dir = root_dir / task_key
@@ -653,10 +440,7 @@ class MonitorDataEngine:
                 for run_dir in sorted(task_dir.iterdir()):
                     if not run_dir.is_dir() or not (run_dir / "run_config.json").exists():
                         continue
-                    if dir_pattern and not re.search(dir_pattern, run_dir.name):
-                        continue
-                    if version_id.startswith('v10_11') and (
-                            not manifest or run_dir.name not in planned_names):
+                    if manifest and run_dir.name not in planned_names:
                         continue
                     rep_match = re.search(r"_rep(\d+)$", run_dir.name)
                     if not rep_match:
@@ -742,17 +526,6 @@ class MonitorDataEngine:
             "tasks": tasks_data,
         }
 
-    def _apply_waiting_queue(self, summary, run_dir, version_id):
-        if summary['status'] != 'stalled':
-            return summary
-        manifest = self._load_latest_batch_manifest(run_dir.parent.parent, version_id)
-        if manifest and manifest.get('waiting_for') and any(
-                row.get('run_name') == run_dir.name and row.get('status') in ('queued', 'paused')
-                for row in manifest.get('plan', [])):
-            summary.update(status='queued', eta_formatted='排队中（保留进度）', eta_seconds=None,
-                           eta_finish_time='–')
-        return summary
-
     def _parse_run_summary_cached(
         self,
         run_dir: Path,
@@ -802,11 +575,11 @@ class MonitorDataEngine:
                 if (status == "running" and eta_sec)
                 else "–"
             )
-            return self._apply_waiting_queue(base, run_dir, version_id)
+            return base
 
         summary = self._parse_run_summary_raw(run_dir, task_info, rep, active_tmux, now, default_prefix)
         self._cache_summaries[version_id][run_dir.name] = {"_stamp": stamp, "summary": summary}
-        return self._apply_waiting_queue(summary, run_dir, version_id)
+        return summary
 
     def _parse_run_summary_raw(
         self,
@@ -823,24 +596,12 @@ class MonitorDataEngine:
         backend = cfg.get("backend", "unknown")
         method = cfg.get("method") or default_prefix
 
-        tree_p = run_dir / "tree_state.json"
-        tree_data: dict[str, Any] = {}
-        if tree_p.exists():
-            try:
-                tree_data = json.loads(tree_p.read_text(encoding="utf-8"))
-            except Exception:
-                pass
-
-        nodes = tree_data.get("nodes", [])
+        tree_data, nodes = _load_tree_nodes(run_dir)
         budget_used = tree_data.get("budget_used", len(nodes))
         started_at_str = tree_data.get("started_at") or cfg.get("created_at")
         started_at = datetime.fromisoformat(started_at_str) if started_at_str else None
 
         expected_session = f"{default_prefix}_{task_info['short']}_r{rep}"
-        # Allocation arms share a task and seed; their sessions are in the manifest.
-        if cfg.get('method_params', {}).get('allocation_arm') and default_prefix == 'v108alloc':
-            arm = cfg['method_params']['allocation_arm']
-            expected_session = f'{default_prefix}_{arm}_r{rep}'
         is_in_tmux, actual_session = _is_run_session_alive(expected_session, active_tmux)
 
         events_p = run_dir / "events.jsonl"
@@ -848,21 +609,15 @@ class MonitorDataEngine:
         op_counts = {"Init": 0, "Refine": 0, "Tune": 0, "Pivot": 0, "Fuse": 0}
         req_op_counts = {"Init": 0, "Refine": 0, "Tune": 0, "Pivot": 0, "Fuse": 0}
         fuse_fallbacks = 0
-        parent_routes: dict[str, int] = {}
-        pivot_routes = {"quality": 0, "uniform": 0}
         parent_improved_count = 0
         frontier_improved_count = 0
         llm_times: list[float] = []
         eval_times: list[float] = []
         prompt_tokens_list: list[int] = []
-        summary_tokens_list: list[int] = []
-        summary_present_count = 0
 
         status_counts = {"ok": 0, "eval_failed": 0, "invalid_output": 0}
         recent_timestamps: list[datetime] = []
 
-        node_to_eval: dict[int, int] = {}
-        eval_counter = 0
         fit_by_id: dict[int, float] = {}
         running_best_fitness: float | None = None
 
@@ -873,14 +628,7 @@ class MonitorDataEngine:
                         continue
                     try:
                         ev = json.loads(line)
-                        if ev.get("slot_consumed"):
-                            eval_counter += 1
-
-                        nid = ev.get("node_id")
-                        if nid is not None and nid not in node_to_eval:
-                            node_to_eval[nid] = ev.get("evaluation_id") or (eval_counter if eval_counter > 0 else (nid + 1))
-
-                        op = ev.get("operator") or ev.get("origin_operator")
+                        op = ev.get("operator")
                         req_op = ev.get("requested_operator") or op
                         if op in op_counts:
                             op_counts[op] += 1
@@ -889,13 +637,8 @@ class MonitorDataEngine:
                         if req_op == "Fuse" and op == "Refine":
                             fuse_fallbacks += 1
 
-                        p_route = ev.get("selection", {}).get("parent_route")
-                        if p_route:
-                            parent_routes[p_route] = parent_routes.get(p_route, 0) + 1
-                        if op == "Pivot" and p_route in pivot_routes:
-                            pivot_routes[p_route] += 1
-
                         fit = ev.get("fitness")
+                        nid = ev.get("node_id")
                         pid = ev.get("parent_id")
                         p_imp = ev.get("parent_improved")
                         f_imp = ev.get("frontier_improved")
@@ -921,10 +664,6 @@ class MonitorDataEngine:
                             eval_times.append(float(ev["eval_seconds"]))
                         if ev.get("prompt_tokens") is not None:
                             prompt_tokens_list.append(int(ev["prompt_tokens"]))
-                        if ev.get("summary_tokens") is not None:
-                            summary_tokens_list.append(int(ev["summary_tokens"]))
-                        if ev.get("summary_status") == "present":
-                            summary_present_count += 1
 
                         st = ev.get("status", "unknown")
                         status_counts[st] = status_counts.get(st, 0) + 1
@@ -939,7 +678,7 @@ class MonitorDataEngine:
                 pass
 
         has_finished_summary = False
-        for s_name in ("run_summary.json", "summary.json"):
+        for s_name in ("run_summary.json",):
             summary_p = run_dir / "logs" / s_name
             if summary_p.exists():
                 try:
@@ -979,30 +718,17 @@ class MonitorDataEngine:
             elif status == "finished":
                 eta_seconds = 0.0
 
-        for n in nodes:
-            nid = n.get("id")
-            if n.get("evaluation_id") is None:
-                n["evaluation_id"] = node_to_eval.get(nid) or ((nid + 1) if nid is not None else 1)
-            if not n.get("operator") and n.get("origin_operator"):
-                n["operator"] = n["origin_operator"]
-
         best_fitness = None
         breakthroughs: list[dict[str, Any]] = []
 
         sorted_nodes = sorted(
             nodes, key=lambda n: n.get("evaluation_id") or 0
         )
-        seen_codes = set()
         for n in sorted_nodes:
             eid = n.get("evaluation_id")
             fit = n.get("fitness")
             if eid is None or fit is None:
                 continue
-            # Archived V10.8 runs retain their original scoring convention.
-            if method == "v108" and tree_data.get("version", 1080) == 1080:
-                if n.get("code") in seen_codes:
-                    continue
-                seen_codes.add(n.get("code"))
             if best_fitness is None or fit > best_fitness:
                 best_fitness = fit
                 breakthroughs.append(
@@ -1011,7 +737,7 @@ class MonitorDataEngine:
                         "fitness": fit,
                         "display": self._format_metric(fit, task_info),
                         "node_id": n.get("id"),
-                        "operator": n.get("operator") or n.get("origin_operator") or "Init",
+                        "operator": n.get("operator") or "Init",
                         "idea": (n.get("idea") or "")[:120],
                     }
                 )
@@ -1030,21 +756,16 @@ class MonitorDataEngine:
         avg_llm = round(sum(llm_times) / len(llm_times), 1) if llm_times else None
         avg_eval = round(sum(eval_times) / len(eval_times), 2) if eval_times else None
         avg_tokens = int(sum(prompt_tokens_list) / len(prompt_tokens_list)) if prompt_tokens_list else None
-        avg_summary_tokens = int(sum(summary_tokens_list) / len(summary_tokens_list)) if summary_tokens_list else None
 
         telemetry_payload = {
             "requested_operator_counts": req_op_counts,
             "executed_operator_counts": op_counts,
             "fuse_fallbacks": fuse_fallbacks,
-            "parent_routes": parent_routes,
-            "pivot_routes": pivot_routes,
             "parent_improved_count": parent_improved_count,
             "frontier_improved_count": frontier_improved_count,
             "avg_llm_seconds": avg_llm,
             "avg_eval_seconds": avg_eval,
             "avg_prompt_tokens": avg_tokens,
-            "avg_summary_tokens": avg_summary_tokens,
-            "summary_present_count": summary_present_count,
         }
 
         return {
@@ -1077,9 +798,6 @@ class MonitorDataEngine:
             "curve": curve,
             "breakthroughs": breakthroughs,
             "telemetry": telemetry_payload,
-            "v108_telemetry": telemetry_payload,
-            "v106_telemetry": telemetry_payload,
-            "v105_telemetry": telemetry_payload,
         }
 
     def _parse_run_detail(
@@ -1093,44 +811,28 @@ class MonitorDataEngine:
 
         summary = self._parse_run_summary_raw(run_dir, task_info, rep, active_tmux, now, default_prefix)
 
-        tree_p = run_dir / "tree_state.json"
-        tree_data: dict[str, Any] = {}
-        if tree_p.exists():
-            try:
-                tree_data = json.loads(tree_p.read_text(encoding="utf-8"))
-            except Exception:
-                pass
-
-        nodes = tree_data.get("nodes", [])
+        tree_data, nodes = _load_tree_nodes(run_dir)
 
         events_p = run_dir / "events.jsonl"
         recent_events: list[dict[str, Any]] = []
         scatter_points: list[dict[str, Any]] = []
-        node_to_eval: dict[int, int] = {}
         fit_by_id: dict[int, float] = {}
         running_best_fitness: float | None = None
 
         if events_p.exists():
             try:
                 lines = events_p.read_text(encoding="utf-8").splitlines()
-                eval_counter = 0
 
-                for i, line in enumerate(lines):
+                for line in lines:
                     if not line.strip():
                         continue
                     try:
                         ev = json.loads(line)
-                        if ev.get("slot_consumed"):
-                            eval_counter += 1
-
                         fit = ev.get("fitness")
                         nid = ev.get("node_id")
                         pid = ev.get("parent_id")
                         p_imp = ev.get("parent_improved")
                         f_imp = ev.get("frontier_improved")
-
-                        if nid is not None and nid not in node_to_eval:
-                            node_to_eval[nid] = ev.get("evaluation_id") or (eval_counter if eval_counter > 0 else (nid + 1))
 
                         if fit is not None:
                             if f_imp is None:
@@ -1142,18 +844,11 @@ class MonitorDataEngine:
                             if nid is not None:
                                 fit_by_id[nid] = fit
 
-                            step_val = ev.get("evaluation_id")
-                            if step_val is None:
-                                step_val = ev.get("step")
-                            if step_val is None:
-                                step_val = eval_counter if eval_counter > 0 else i
-
-                            op_val = ev.get("operator") or ev.get("origin_operator") or "Init"
                             scatter_points.append(
                                 {
-                                    "step": step_val,
+                                    "step": ev.get("evaluation_id"),
                                     "fitness": fit,
-                                    "operator": op_val,
+                                    "operator": ev.get("operator") or "Init",
                                     "status": ev.get("status", "ok"),
                                     "node_id": nid,
                                     "parent_improved": p_imp,
@@ -1168,8 +863,7 @@ class MonitorDataEngine:
                         continue
                     try:
                         raw_ev = json.loads(line)
-                        p_route = raw_ev.get("selection", {}).get("parent_route")
-                        op_val = raw_ev.get("operator") or raw_ev.get("origin_operator") or "Init"
+                        op_val = raw_ev.get("operator") or "Init"
                         req_op_val = raw_ev.get("requested_operator") or op_val
 
                         p_imp = raw_ev.get("parent_improved")
@@ -1184,10 +878,8 @@ class MonitorDataEngine:
                         recent_events.append(
                             {
                                 "candidate_id": raw_ev.get("candidate_id"),
-                                "step": raw_ev.get("step"),
                                 "operator": op_val,
                                 "requested_operator": req_op_val,
-                                "parent_route": p_route,
                                 "status": raw_ev.get("status", "ok"),
                                 "fitness": fit,
                                 "node_id": nid,
@@ -1195,8 +887,6 @@ class MonitorDataEngine:
                                 "llm_seconds": raw_ev.get("llm_seconds"),
                                 "eval_seconds": raw_ev.get("eval_seconds"),
                                 "prompt_tokens": raw_ev.get("prompt_tokens"),
-                                "summary_tokens": raw_ev.get("summary_tokens"),
-                                "summary_status": raw_ev.get("summary_status"),
                                 "parent_improved": p_imp,
                                 "frontier_improved": f_imp,
                                 "reason": raw_ev.get("reason"),
@@ -1208,13 +898,6 @@ class MonitorDataEngine:
             except Exception:
                 pass
 
-        for n in nodes:
-            nid = n.get("id")
-            if n.get("evaluation_id") is None:
-                n["evaluation_id"] = node_to_eval.get(nid) or ((nid + 1) if nid is not None else 1)
-            if not n.get("operator") and n.get("origin_operator"):
-                n["operator"] = n["origin_operator"]
-
         best_node = None
         if nodes:
             milestones = summary.get("breakthroughs", [])
@@ -1222,12 +905,6 @@ class MonitorDataEngine:
                          if milestones else None)
             if not best_node:
                 best_node = max(nodes, key=lambda n: n.get("fitness") or float("-inf"))
-            if best_node:
-                if not best_node.get("operator") and best_node.get("origin_operator"):
-                    best_node["operator"] = best_node["origin_operator"]
-                if best_node.get("evaluation_id") is None:
-                    nid = best_node.get("id")
-                    best_node["evaluation_id"] = node_to_eval.get(nid) or ((nid + 1) if nid is not None else 1)
 
         nodes_compact = []
         for n in nodes:
@@ -1235,7 +912,7 @@ class MonitorDataEngine:
                 {
                     "id": n.get("id"),
                     "evaluation_id": n.get("evaluation_id"),
-                    "operator": n.get("operator") or n.get("origin_operator") or "Init",
+                    "operator": n.get("operator") or "Init",
                     "fitness": n.get("fitness"),
                     "parent_id": n.get("parent_id"),
                     "donor_id": n.get("donor_id"),
@@ -1286,12 +963,9 @@ def make_request_handler(engine: MonitorDataEngine) -> type[BaseHTTPRequestHandl
                     }
                 )
 
-            if path == "/api/state" or path == "/api/overview":
+            if path == "/api/state":
                 data = engine.get_overview(version=version)
                 return self._send_json(data)
-
-            if path == "/api/rerun2":
-                return self._send_json(engine.get_rerun2())
 
             if path == "/api/run":
                 task = params.get("task", [""])[0]
@@ -1320,42 +994,26 @@ def make_request_handler(engine: MonitorDataEngine) -> type[BaseHTTPRequestHandl
 
             return self.send_error(404, "Endpoint not found")
 
-        def do_HEAD(self) -> None:  # noqa: N802
-            parsed = urlparse(self.path)
-            path = parsed.path
-            if path in ("/", "/index.html", "/api/versions", "/api/state", "/api/overview", "/api/run", "/api/node"):
-                self.send_response(200)
-                if path.endswith(".html") or path == "/":
-                    self.send_header("Content-Type", "text/html; charset=utf-8")
-                else:
-                    self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.end_headers()
-            else:
-                self.send_error(404)
-
-        def _serve_file(self, file_path: Path, content_type: str) -> None:
-            if not file_path.exists():
-                return self.send_error(404, f"File {file_path.name} not found")
+        def _serve_file(self, path: Path, content_type: str) -> None:
             try:
-                content = file_path.read_bytes()
-                self.send_response(200)
-                self.send_header("Content-Type", content_type)
-                self.send_header("Content-Length", str(len(content)))
-                self.send_header("Cache-Control", "no-cache, must-revalidate")
-                self.end_headers()
-                self.wfile.write(content)
-            except Exception as e:
-                self.send_error(500, f"Error serving file: {e}")
+                body = path.read_bytes()
+            except OSError:
+                self.send_error(404, "File not found")
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
 
-        def _send_json(self, data: Any) -> None:
+        def _send_json(self, payload: Any) -> None:
             try:
-                payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
+                body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Content-Length", str(len(payload)))
-                self.send_header("Cache-Control", "no-cache, must-revalidate")
+                self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
-                self.wfile.write(payload)
+                self.wfile.write(body)
             except Exception as e:
                 self.send_error(500, f"JSON encoding error: {e}")
 
@@ -1378,13 +1036,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--version",
-        default="v10_11_q38_history_code",
-        help="Default experiment batch (default: v10_11_q38_history_code)",
-    )
-    parser.add_argument(
-        "--session-prefix",
-        default="v1011q38hc",
-        help="Tmux session prefix (default: v1011q38hc)",
+        default=None,
+        help="Batch to select by default (defaults to the newest batch manifest)",
     )
     args = parser.parse_args()
 
@@ -1393,17 +1046,6 @@ def main() -> None:
         default_version=args.version,
         default_session_prefix=args.session_prefix,
     )
-
-    def background_polling() -> None:
-        while True:
-            try:
-                engine.refresh()
-            except Exception as e:
-                print(f"[monitor-bg] Polling error: {e}", flush=True)
-            time.sleep(2.0)
-
-    bg_thread = threading.Thread(target=background_polling, daemon=True)
-    bg_thread.start()
 
     server_address = (args.host, args.port)
     handler_class = make_request_handler(engine)

@@ -37,11 +37,15 @@ def ess(probabilities):
     return 1.0 / sum(p * p for p in probabilities)
 
 
-def _ess(beta, scores):
+def softmax(scores, beta):
     maximum = max(scores)
     weights = [math.exp(beta * (score - maximum)) for score in scores]
     total = sum(weights)
-    return ess([weight / total for weight in weights])
+    return [weight / total for weight in weights]
+
+
+def _ess(beta, scores):
+    return ess(softmax(scores, beta))
 
 
 def calibrate_beta(scores, target):
@@ -86,22 +90,21 @@ class SearchTree:
         self.roots = []
         self.next_id = 0
 
-    def add(self, *, code, idea, fitness, evaluation_id, parent_id, operator, donor_id=None):
-        node = Node(self.next_id, code, idea, fitness, evaluation_id, parent_id, operator, donor_id)
-        self.next_id += 1
-        self.nodes[node.id] = node
-        if parent_id is None:
-            self.roots.append(node.id)
-        else:
-            self.children.setdefault(parent_id, []).append(node.id)
-        return node
-
-    def add_raw(self, node):
+    def _attach(self, node):
         self.nodes[node.id] = node
         if node.parent_id is None:
             self.roots.append(node.id)
         else:
             self.children.setdefault(node.parent_id, []).append(node.id)
+
+    def add(self, *, code, idea, fitness, evaluation_id, parent_id, operator, donor_id=None):
+        node = Node(self.next_id, code, idea, fitness, evaluation_id, parent_id, operator, donor_id)
+        self.next_id += 1
+        self._attach(node)
+        return node
+
+    def add_raw(self, node):
+        self._attach(node)
         self.next_id = max(self.next_id, node.id + 1)
 
     def all_nodes(self):

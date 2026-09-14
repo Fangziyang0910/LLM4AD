@@ -1,7 +1,6 @@
 """TraceAAD V10.11: compact function-level search engine."""
 
 import ast
-import copy
 import json
 import math
 import os
@@ -13,14 +12,30 @@ from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 
-from llm4ad.base import SecureEvaluator, TextFunctionProgramConverter
+from llm4ad.base import SecureEvaluator
 from . import errors, trajectory
 from .core import (SearchTree, UnknownEvaluation, atomic_json, calibrate_beta, digest,
-                   Node, ess, read_journal)
+                   Node, ess, read_journal, softmax)
 
 OPERATORS = ("Refine", "Tune", "Pivot", "Fuse")
 OPERATOR_PROBABILITIES = {operator: 0.25 for operator in OPERATORS}
+QUALITY_ESS_TARGET = 8.0
+PIVOT_UNIFORM_PROBABILITY = 0.5
+DONOR_UNIFORM_PROBABILITY = 0.5
 REPAIRABLE_FAILURES = {"exec_error", "runtime_error", "timeout", "invalid_result", "nonfinite_fitness"}
+
+
+def _timestamp():
+    return datetime.now().isoformat(timespec="seconds")
+
+
+def _restore_rng(rng, state):
+    rng.setstate((state[0], tuple(state[1]), state[2]))
+
+
+def mix_uniform(probabilities, mass):
+    n = len(probabilities)
+    return [mass * value + mass / n for value in probabilities]
 
 
 @lru_cache(maxsize=8192)
@@ -44,36 +59,30 @@ class TraceAADV1011:
         self.history_code = history_code
         self.secure = SecureEvaluator(evaluation)
         self._template_program = evaluation.template_program
-        template = TextFunctionProgramConverter.text_to_program(self._template_program)
-        if template is None or len(template.functions) != 1:
-            raise ValueError("evaluation template must define exactly one function")
-        self._template_func = template.functions[0]
-        self._parse_interface = errors.expected_interface(self._template_func.name,
-                                                          self._template_func.args)
-        target_stub = copy.deepcopy(self._template_func)
-        target_stub.body = "    pass"
+        self._parse_interface, target_stub = errors.template_target(self._template_program)
         self.task_contract = (
             "# Task\n\n" + evaluation.task_description.strip() +
             "\n\nImplement the target function described below. Its body and any supporting "
             "code are your design space.\n\nTarget function:\n```python\n" +
-            str(target_stub).strip() + "\n```"
+            target_stub + "\n```"
         )
         self.tree = SearchTree()
         self.rng = random.Random(seed)
         self.parent_selection_counts = {}
         self.step_counter = self.budget_used = self.completed_attempts = 0
-        self.started_at = datetime.now().isoformat(timespec="seconds")
+        self.started_at = _timestamp()
         self._invalid_streak = 0
         self.events_path = self.run_dir / "events.jsonl"
         self.llm_calls_path = self.run_dir / "llm_calls.jsonl"
-        self.evaluations_path = self.run_dir / "evaluations.jsonl"
+        self.nodes_path = self.run_dir / "nodes.jsonl"
         self.pending_path = self.run_dir / "pending_candidate.json"
         self.state_path = self.run_dir / "tree_state.json"
         self.summary_path = self.run_dir / "logs" / "run_summary.json"
-        self._outcomes = {r["candidate_id"]: r for r in read_journal(self.evaluations_path)}
-        self._logged_calls = {r["call_id"] for r in read_journal(self.llm_calls_path)}
-        self._logged_events = {r["candidate_id"] for r in read_journal(self.events_path)}
         events = read_journal(self.events_path)
+        self._outcomes = {r["candidate_id"]: r for r in events}
+        self._logged_calls = {r["call_id"] for r in read_journal(self.llm_calls_path)}
+        self._logged_events = {r["candidate_id"] for r in events}
+        self._logged_nodes = {r["id"] for r in read_journal(self.nodes_path)}
         self._last_event = events[-1] if events else None
         self._last_response = None
         self.pending = None
@@ -85,8 +94,9 @@ class TraceAADV1011:
             "history_code": history_code,
             "output_tokens": output_tokens, "max_input_tokens": max_input_tokens,
             "operator_probabilities": OPERATOR_PROBABILITIES,
-            "quality_ess_target": 8.0, "pivot_uniform_probability": 0.5,
-            "donor_uniform_probability": 0.5,
+            "quality_ess_target": QUALITY_ESS_TARGET,
+            "pivot_uniform_probability": PIVOT_UNIFORM_PROBABILITY,
+            "donor_uniform_probability": DONOR_UNIFORM_PROBABILITY,
             "task_contract_hash": digest(self.task_contract),
             "llm": {name: getattr(llm, name, None) for name in
                     ("model", "base_url", "temperature", "top_p", "enable_thinking")},
@@ -108,17 +118,13 @@ class TraceAADV1011:
 
     def _quality_distribution(self, nodes):
         scores = [node.fitness for node in nodes]
-        beta, target, quality_ess = calibrate_beta(scores, 8.0)
-        maximum = max(scores)
-        weights = [math.exp(beta * (node.fitness - maximum)) for node in nodes]
-        total = sum(weights)
-        return [weight / total for weight in weights], {"quality_ess": quality_ess, "ess_target": target}
+        beta, target, quality_ess = calibrate_beta(scores, QUALITY_ESS_TARGET)
+        return softmax(scores, beta), {"quality_ess": quality_ess, "ess_target": target}
 
     def node_distribution(self, nodes, operator):
         quality, stats = self._quality_distribution(nodes)
         if operator == "Pivot":
-            n = len(nodes)
-            quality = [0.5 * value + 0.5 / n for value in quality]
+            quality = mix_uniform(quality, PIVOT_UNIFORM_PROBABILITY)
         stats["parent_ess"] = ess(quality)
         return quality, stats
 
@@ -130,37 +136,52 @@ class TraceAADV1011:
         nodes = [node for node in self.tree.all_nodes()
                  if node.id != parent.id and code_key(node.code) != parent_key]
         if not nodes:
-            return None, []
+            return None
         quality, _ = self._quality_distribution(nodes)
-        n = len(nodes)
-        donor = self.rng.choices(nodes, weights=[0.5 * p + 0.5 / n for p in quality])[0]
-        return donor, [{"node_id": donor.id, "fitness": donor.fitness}]
+        return self.rng.choices(nodes, weights=mix_uniform(quality, DONOR_UNIFORM_PROBABILITY))[0]
+
+    def _current_event(self):
+        previous = self._last_event
+        if previous and previous["candidate_id"] == self.completed_attempts:
+            return previous
+        return None
+
+    def _failed_response(self, candidate_id):
+        if self._last_response and self._last_response[0] == candidate_id:
+            return self._last_response[1]
+        return next(record["response"] for record in reversed(read_journal(self.llm_calls_path))
+                    if record.get("candidate_id") == candidate_id and "response" in record)
+
+    def _pending(self, prompt, **fields):
+        pending = {
+            "candidate_id": self.completed_attempts + 1, "phase": "selected",
+            "best_before": self.tree.best().fitness if self.tree.nodes else None,
+            "prompt": prompt, "prompt_tokens": self.builder.count(prompt),
+            "prompt_hash": digest(prompt), "rng_state": list(self.rng.getstate()),
+            "llm_attempts": 0,
+        }
+        pending.update(fields)
+        return pending
+
+    def _schedule_repair(self, previous):
+        prompt = errors.repair_prompt(
+            self.task_contract, self._failed_response(previous["candidate_id"]), previous)
+        return self._pending(
+            prompt, repair_of=previous["candidate_id"],
+            operator=previous.get("operator", "Init"),
+            requested_operator=previous.get("requested_operator", "Init"),
+            parent_id=previous.get("parent_id"), donor_id=previous.get("donor_id"),
+            parent_fitness=previous.get("parent_fitness"),
+            donor_fitness=previous.get("donor_fitness"),
+        )
 
     def _schedule(self):
-        previous = self._last_event
-        if (previous and previous["candidate_id"] == self.completed_attempts and
-                previous.get("status") == "eval_failed" and
-                previous.get("reason") not in REPAIRABLE_FAILURES):
+        previous = self._current_event()
+        if previous and previous.get("status") == "eval_failed" and previous.get("reason") not in REPAIRABLE_FAILURES:
             raise RuntimeError(f"evaluation infrastructure failed: {previous.get('reason')}")
-        if (previous and previous["candidate_id"] == self.completed_attempts and
-                (previous.get("status") == "invalid_output" or
-                 previous.get("reason") in REPAIRABLE_FAILURES) and
-                not previous.get("repair_of")):
-            response = self._last_response[1] if self._last_response and self._last_response[0] == previous["candidate_id"] else next(
-                record["response"] for record in reversed(read_journal(self.llm_calls_path))
-                if record.get("candidate_id") == previous["candidate_id"] and "response" in record)
-            prompt = errors.repair_prompt(self.task_contract, response, previous)
-            return {"candidate_id": self.completed_attempts + 1, "phase": "selected",
-                    "repair_of": previous["candidate_id"], "generation_kind": "repair",
-                    "operator": previous.get("operator", "Init"),
-                    "requested_operator": previous.get("requested_operator", "Init"),
-                    "parent_id": previous.get("parent_id"), "donor_id": previous.get("donor_id"),
-                    "parent_fitness": previous.get("parent_fitness"),
-                    "donor_fitness": previous.get("donor_fitness"),
-                    "best_before": self.tree.best().fitness if self.tree.nodes else None,
-                    "prompt": prompt, "prompt_tokens": self.builder.count(prompt, chat=True),
-                    "prompt_hash": digest(prompt), "context_best_fitness": previous.get("parent_fitness"),
-                    "rng_state": list(self.rng.getstate()), "llm_attempts": 0}
+        if previous and (previous.get("status") == "invalid_output" or
+                         previous.get("reason") in REPAIRABLE_FAILURES) and not previous.get("repair_of"):
+            return self._schedule_repair(previous)
         requested = operator = "Init"
         parent = donor = None
         selection = {}
@@ -175,21 +196,18 @@ class TraceAADV1011:
             self.parent_selection_counts[parent.id] = count + 1
             selection.update(parent_probability=probabilities[index], parent_count_before=count)
             if requested == "Fuse":
-                donor, donor_attempts = self.select_donor(parent)
+                donor = self.select_donor(parent)
                 if donor is None:
                     operator = "Refine"
                     selection["fallback_reason"] = "no donor"
         text = self.builder.build_initial() if operator == "Init" else self.builder.build(parent, operator, donor)
-        return {"candidate_id": self.completed_attempts + 1, "phase": "selected",
-                "requested_operator": requested, "operator": operator,
-                "parent_id": parent.id if parent else None, "donor_id": donor.id if donor else None,
-                "parent_fitness": parent.fitness if parent else None,
-                "donor_fitness": donor.fitness if donor else None,
-                "best_before": self.tree.best().fitness if self.tree.nodes else None,
-                "selection": selection, "operator_probabilities": OPERATOR_PROBABILITIES,
-                "prompt": text, "prompt_tokens": self.builder.count(text, chat=True),
-                "prompt_hash": digest(text), "rng_state": list(self.rng.getstate()),
-                "llm_attempts": 0}
+        return self._pending(
+            text, requested_operator=requested, operator=operator,
+            parent_id=parent.id if parent else None, donor_id=donor.id if donor else None,
+            parent_fitness=parent.fitness if parent else None,
+            donor_fitness=donor.fitness if donor else None,
+            selection=selection,
+        )
 
     def _persist_pending(self):
         atomic_json(self.pending_path, self.pending)
@@ -206,15 +224,14 @@ class TraceAADV1011:
         self.pending["llm_attempts"] += 1
         self._persist_pending()
         started = time.time()
-        request_tokens = self.output_tokens
-        record = {"ts": datetime.now().isoformat(timespec="seconds"),
+        record = {"ts": _timestamp(),
                   "call_id": f"{self.pending['candidate_id']}:{self.pending['llm_attempts']}",
                   "candidate_id": self.pending["candidate_id"], "operator": self.pending["operator"],
-                  "prompt": self.pending["prompt"], "prompt_tokens": self.pending["prompt_tokens"],
-                  "prompt_hash": self.pending["prompt_hash"], "max_tokens": request_tokens}
+                  "prompt_tokens": self.pending["prompt_tokens"],
+                  "prompt_hash": self.pending["prompt_hash"], "max_tokens": self.output_tokens}
         try:
             details = self.llm.draw_sample_with_details(
-                self.pending["prompt"], max_tokens=request_tokens
+                self.pending["prompt"], max_tokens=self.output_tokens
             )
         except Exception:
             record.update(seconds=time.time() - started, error=traceback.format_exc())
@@ -228,6 +245,19 @@ class TraceAADV1011:
         self._persist_pending()
         self._log_call(record)
 
+    def _score_result(self, result):
+        reason, error_type, error, trace = (
+            result.failure_kind, result.error_type, result.error, result.traceback)
+        if result.result is None:
+            return None, reason, error_type, error, trace
+        try:
+            value = float(result.result)
+        except (TypeError, ValueError, OverflowError) as exc:
+            return None, "invalid_result", type(exc).__name__, str(exc), trace
+        if math.isfinite(value):
+            return value, reason, error_type, error, trace
+        return None, "nonfinite_fitness", "NonfiniteFitness", "nonfinite fitness", trace
+
     def _evaluate_pending(self, parsed):
         if self.pending["phase"] == "evaluating":
             outcome = self._outcomes.get(self.pending["candidate_id"])
@@ -238,28 +268,15 @@ class TraceAADV1011:
             self._persist_pending()
             started = time.time()
             try:
-                result = self.secure.evaluate_program_with_details(parsed[2])
-                reason, error_type, error, trace = result.failure_kind, result.error_type, result.error, result.traceback
-                fitness = None
-                if result.result is not None:
-                    try:
-                        value = float(result.result)
-                    except (TypeError, ValueError, OverflowError) as exc:
-                        reason, error_type, error = "invalid_result", type(exc).__name__, str(exc)
-                    else:
-                        if math.isfinite(value):
-                            fitness = value
-                        else:
-                            reason, error_type, error = "nonfinite_fitness", "NonfiniteFitness", "nonfinite fitness"
+                fitness, reason, error_type, error, trace = self._score_result(
+                    self.secure.evaluate_program_with_details(parsed[2]))
             except Exception as exc:
-                reason, error_type, error, trace = "evaluation_error", type(exc).__name__, str(exc), traceback.format_exc()
-                fitness = None
+                fitness, reason, error_type, error, trace = (
+                    None, "evaluation_error", type(exc).__name__, str(exc), traceback.format_exc())
             outcome = {"candidate_id": self.pending["candidate_id"], "evaluation_id": self.pending["evaluation_id"],
                        "fitness": fitness, "reason": reason, "error_type": error_type, "error": error,
                        "traceback": trace, "eval_seconds": time.time() - started,
                        "repair_of": self.pending.get("repair_of")}
-            self._append_record(self.evaluations_path, outcome)
-            self._outcomes[outcome["candidate_id"]] = outcome
         self.pending.update(phase="evaluated", outcome=outcome)
         self._persist_pending()
 
@@ -286,19 +303,24 @@ class TraceAADV1011:
                 node = self.tree.add(code=parsed[2], idea=parsed[0], fitness=outcome["fitness"],
                                      evaluation_id=self.budget_used, parent_id=self.pending["parent_id"],
                                      operator=self.pending["operator"], donor_id=self.pending["donor_id"])
+                # Every program is recorded exactly once, appended at creation.
+                if node.id not in self._logged_nodes:
+                    self._append_record(self.nodes_path, asdict(node))
+                    self._logged_nodes.add(node.id)
         if self.pending["parent_id"] is not None:
             self.step_counter += 1
         record = {key: value for key, value in self.pending.items()
                   if key not in ("prompt", "rng_state", "completion", "phase", "outcome")}
-        record.update(ts=datetime.now().isoformat(timespec="seconds"), status=status, reason=reason,
+        record.update(ts=_timestamp(), status=status, reason=reason,
                       budget_used=self.budget_used, evaluation_id=self.pending.get("outcome", {}).get("evaluation_id"),
                       eval_seconds=self.pending.get("outcome", {}).get("eval_seconds"),
                       llm_seconds=completion["seconds"], node_id=node.id if node else None,
-                      fitness=node.fitness if node else None,
-                      idea_tokens=parsed[3] if parsed is not None else None)
+                      fitness=node.fitness if node else None)
         if self.pending.get("outcome") is not None:
             record.update(error_type=self.pending["outcome"].get("error_type"),
-                          error=self.pending["outcome"].get("error"))
+                          error=self.pending["outcome"].get("error"),
+                          traceback=self.pending["outcome"].get("traceback"),
+                          best_fitness=self.tree.best().fitness if self.tree.nodes else None)
         if node and self.pending["parent_id"] is not None:
             record.update(parent_improved=node.fitness > self.pending["parent_fitness"],
                           frontier_improved=node.fitness > self.pending["best_before"])
@@ -323,7 +345,7 @@ class TraceAADV1011:
 
     def _save_state(self):
         atomic_json(self.state_path, {"mechanism": self.mechanism,
-                                      "started_at": self.started_at, "nodes": [asdict(node) for node in self.tree.all_nodes()],
+                                      "started_at": self.started_at,
                                       "rng_state": list(self.rng.getstate()), "parent_selection_counts": self.parent_selection_counts,
                                       "step_counter": self.step_counter, "budget_used": self.budget_used,
                                       "completed_attempts": self.completed_attempts, "invalid_streak": self._invalid_streak})
@@ -332,10 +354,9 @@ class TraceAADV1011:
         state = json.loads(self.state_path.read_text())
         if state.get("mechanism") != self.mechanism:
             raise ValueError("checkpoint configuration differs from V10.11")
-        for entry in state["nodes"]:
+        for entry in read_journal(self.nodes_path):
             self.tree.add_raw(Node(**entry))
-        rng = state["rng_state"]
-        self.rng.setstate((rng[0], tuple(rng[1]), rng[2]))
+        _restore_rng(self.rng, state["rng_state"])
         self.parent_selection_counts = {int(key): value for key, value in state["parent_selection_counts"].items()}
         self.step_counter, self.budget_used = state["step_counter"], state["budget_used"]
         self.completed_attempts, self._invalid_streak = state["completed_attempts"], state["invalid_streak"]
@@ -348,13 +369,12 @@ class TraceAADV1011:
                 raise ValueError("pending candidate is not the next attempt")
             else:
                 self.pending = pending
-                rng = pending["rng_state"]
-                self.rng.setstate((rng[0], tuple(rng[1]), rng[2]))
+                _restore_rng(self.rng, pending["rng_state"])
 
     def _write_summary(self, status, error=None):
         best = self.tree.best() if self.tree.nodes else None
         payload = {"status": status, "method": self.METHOD, "started_at": self.started_at,
-                   "finished_at": datetime.now().isoformat(timespec="seconds"), "budget": self.budget,
+                   "finished_at": _timestamp(), "budget": self.budget,
                    "budget_used": self.budget_used, "num_nodes": len(self.tree.nodes),
                    "num_roots": len(self.tree.roots), "num_steps": self.step_counter,
                    "best": None if best is None else {"node_id": best.id, "fitness": best.fitness,

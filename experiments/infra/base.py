@@ -280,22 +280,6 @@ def run_in_tmux_log(
             body()
 
 
-def add_run_parser_args(
-    parser: argparse.ArgumentParser,
-    *,
-    output_tokens_default: int = 16384,
-) -> None:
-    parser.add_argument("--task", choices=ALL_TASKS, required=True)
-    parser.add_argument("--backend", choices=tuple(BACKENDS), default="local")
-    parser.add_argument("--base-url")
-    parser.add_argument("--model")
-    parser.add_argument("--no-proxy")
-    parser.add_argument("--output-tokens", type=int, default=output_tokens_default)
-    parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--repeat", type=int)
-    parser.add_argument("--run-name")
-
-
 # ---------------------------------------------------------------------------
 # launch side
 # ---------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 import ast
 import json
+from pathlib import Path
 
 import pytest
 
@@ -7,12 +8,14 @@ from llm4ad.base import Evaluation
 from llm4ad.base.evaluate import EvaluationOutcome
 from llm4ad.method.traceaad_v10_11 import TraceAADV1011
 from llm4ad.method.traceaad_v10_11.core import UnknownEvaluation, read_journal
-from llm4ad.method.traceaad_v10_11.errors import repair_prompt
+from llm4ad.method.traceaad_v10_11.errors import repair_prompt, template_target
 from llm4ad.method.traceaad_v10_11.trajectory import (
     INIT_REFERENCE_INSTRUCTION,
     OPERATOR_INSTRUCTIONS,
     OUTPUT,
 )
+
+MODULE_ROOT = Path(__file__).resolve().parents[2] / "llm4ad" / "method" / "traceaad_v10_11"
 
 
 class TinyEvaluation(Evaluation):
@@ -73,6 +76,43 @@ def add(tree, fitness, parent=None, code="def score(x):\n    return 1", operator
         parent_id=parent,
         operator="Init" if parent is None else (operator or "Refine"),
     )
+
+
+def test_v1011_does_not_import_historical_methods():
+    forbidden = []
+    for path in sorted(MODULE_ROOT.glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            names = []
+            if isinstance(node, ast.Import):
+                names = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                names = [node.module]
+            for name in names:
+                if name.startswith("llm4ad.method.") and not name.startswith(
+                        "llm4ad.method.traceaad_v10_11"):
+                    forbidden.append(f"{path.name}: {name}")
+                if "traceaad_v" in name and "traceaad_v10_11" not in name:
+                    forbidden.append(f"{path.name}: {name}")
+    assert forbidden == []
+
+
+def test_v1011_template_target_is_local():
+    interface, stub = template_target(
+        "import math\n\n"
+        "def score(x: int) -> float:\n"
+        '    """Return a numeric score."""\n'
+        "    return math.sqrt(x)\n"
+    )
+    assert interface[0] == "score"
+    assert interface[1] == "x: int"
+    assert stub == (
+        "def score(x: int) -> float:\n"
+        '    """Return a numeric score."""\n'
+        "    pass"
+    )
+    with pytest.raises(ValueError, match="exactly one function"):
+        template_target("x = 1")
 
 
 def test_v1011_requires_one_idea(tmp_path):
@@ -180,7 +220,9 @@ def test_v1011_history_code_is_explicitly_opt_in(tmp_path):
     child = add(m.tree, 2, root.id, code="def score(x):\n    return x + 1")
     prompt = m.builder.build(child, "Refine")
     assert "Step 1 | Refine" in prompt
-    assert "```python\ndef score(x):\n    return x + 1\n```" in prompt
+    # The parent program appears exactly once: as Current Algorithm, not
+    # again as the newest history step's Code block.
+    assert prompt.count("```python\ndef score(x):\n    return x + 1\n```") == 1
 
 
 def test_v1011_generation_uses_fixed_output_budget(tmp_path):
@@ -234,10 +276,11 @@ def test_runtime_failure_repairs_once_and_charges_every_evaluation(tmp_path):
     llm = FakeLLM(response(1), response("missing_name"), response(3))
     m = method(tmp_path, llm, budget=3)
     m.run()
-    events, receipts = read_journal(m.events_path), read_journal(m.evaluations_path)
+    events = read_journal(m.events_path)
     assert [event["status"] for event in events] == ["ok", "eval_failed", "ok"]
-    assert [receipt["evaluation_id"] for receipt in receipts] == [1, 2, 3]
+    assert [event["evaluation_id"] for event in events] == [1, 2, 3]
     assert events[1]["error_type"] == "NameError" and "missing_name" in events[1]["error"]
+    assert events[1]["traceback"] and "NameError" in events[1]["traceback"]
     assert events[2]["repair_of"] == 2 and events[2]["parent_id"] == events[1]["parent_id"]
     assert m.parent_selection_counts == {0: 1}
     assert "missing_name" in llm.calls[2][0]
@@ -255,7 +298,7 @@ def test_failed_repair_returns_to_normal_search_and_parse_uses_no_eval(tmp_path)
         "ok", "invalid_output", "invalid_output", "ok",
     ]
     assert events[2]["repair_of"] == 2 and "repair_of" not in events[3]
-    assert len(read_journal(m.evaluations_path)) == 2
+    assert sum(1 for e in events if e["status"] == "ok") == 2
     assert sum(m.parent_selection_counts.values()) == 2
 
 
@@ -358,4 +401,26 @@ def test_unknown_evaluation_blocks_without_redrawing(tmp_path, monkeypatch):
         resumed.run()
     summary = json.loads(resumed.summary_path.read_text())
     assert summary["status"] == "blocked" and resumed.budget_used == 0
+    assert resumed.llm.calls == []
+
+
+def test_v1011_persistence_keeps_single_copies(tmp_path):
+    m = method(tmp_path, FakeLLM(response(1), response(2)), budget=2)
+    m.run()
+
+    calls = read_journal(m.llm_calls_path)
+    assert calls and all("prompt" not in call for call in calls)
+    assert all(call.get("prompt_hash") and call.get("response") for call in calls)
+    assert not (tmp_path / "evaluations.jsonl").exists()
+
+    events = read_journal(m.events_path)
+    assert [event["best_fitness"] for event in events] == [1, 2]
+
+    nodes = read_journal(m.nodes_path)
+    assert [node["id"] for node in nodes] == [0, 1]
+    assert "nodes" not in json.loads((tmp_path / "tree_state.json").read_text())
+
+    resumed = method(tmp_path, FakeLLM(), budget=2)
+    resumed.run()
+    assert len(resumed.tree.nodes) == 2 and resumed.budget_used == 2
     assert resumed.llm.calls == []

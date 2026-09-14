@@ -42,16 +42,14 @@ def allocate(plan, available, backend_pool):
     return assignments
 
 
-def healthy_slots(available, checked, backend_pool):
+def healthy_slots(available, backend_pool):
     available = dict(available)
     for backend in backend_pool:
-        if available.get(backend, 0) > 0 and backend not in checked:
+        if available.get(backend, 0) > 0:
             try:
                 check_backends([backend])
             except Exception:
                 available[backend] = 0
-            else:
-                checked.add(backend)
     return available
 
 
@@ -157,7 +155,7 @@ def main():
             available = free_slots()
             if not args.dry_run:
                 # Recheck service health on every actual start; no stale health cache.
-                available = healthy_slots(available, set(), backend_pool)
+                available = healthy_slots(available, backend_pool)
             assignments = allocate(plan, available, backend_pool)
             if not args.direct:
                 assignments = assignments[:1]
